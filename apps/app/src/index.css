@@ -1,0 +1,11 @@
+@import '@remora/ui/styles/tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-bg text-fg antialiased;
+  }
+}

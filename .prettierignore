@@ -1,0 +1,12 @@
+node_modules
+dist
+build
+.next
+pnpm-lock.yaml
+apps/api
+packages/api-client/src/generated
+
+# Проза форматируется руками: prettier ломает таблицы и нумерацию списков
+docs
+README.md
+CLAUDE.md

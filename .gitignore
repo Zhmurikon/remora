@@ -1,0 +1,42 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# build
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# env
+.env
+.env.*
+!.env.example
+
+# editors
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# runtime
+/data/
+*.log
+logs/
+
+# generated
+# packages/api-client/src/generated/schema.ts коммитим: без него не собирается CI
+apps/api/openapi.json

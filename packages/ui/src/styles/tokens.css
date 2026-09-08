@@ -1,0 +1,115 @@
+/**
+ * Дизайн-токены Remora.
+ * Значения — компоненты RGB через пробел, чтобы Tailwind мог подставлять прозрачность.
+ * Импортируется один раз в каждом приложении до директив Tailwind.
+ */
+
+:root {
+  --rm-font-sans: 'Inter', 'Segoe UI', system-ui;
+  --rm-font-mono: 'JetBrains Mono', 'Cascadia Code', ui-monospace;
+
+  /* Светлая тема */
+  --rm-bg: 250 250 249;
+  --rm-surface: 255 255 255;
+  --rm-surface-muted: 245 245 244;
+  --rm-border: 231 229 228;
+
+  --rm-fg: 28 25 23;
+  --rm-fg-muted: 87 83 78;
+  --rm-fg-subtle: 138 133 128;
+
+  --rm-primary: 13 130 133;
+  --rm-primary-hover: 10 105 108;
+  --rm-primary-fg: 255 255 255;
+  --rm-primary-subtle: 224 244 244;
+
+  --rm-accent: 234 141 47;
+  --rm-accent-fg: 255 255 255;
+  --rm-accent-subtle: 253 240 224;
+
+  --rm-success: 22 143 96;
+  --rm-success-subtle: 220 244 233;
+  --rm-warning: 202 138 4;
+  --rm-warning-subtle: 254 243 199;
+  --rm-danger: 208 61 61;
+  --rm-danger-subtle: 253 228 228;
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'],
+.dark {
+  --rm-bg: 20 20 22;
+  --rm-surface: 30 30 33;
+  --rm-surface-muted: 40 40 44;
+  --rm-border: 56 56 61;
+
+  --rm-fg: 245 245 244;
+  --rm-fg-muted: 180 177 173;
+  --rm-fg-subtle: 132 129 125;
+
+  --rm-primary: 45 178 180;
+  --rm-primary-hover: 66 199 201;
+  --rm-primary-fg: 12 30 31;
+  --rm-primary-subtle: 20 60 61;
+
+  --rm-accent: 240 160 78;
+  --rm-accent-fg: 40 24 8;
+  --rm-accent-subtle: 62 44 24;
+
+  --rm-success: 52 178 126;
+  --rm-success-subtle: 20 58 44;
+  --rm-warning: 224 168 42;
+  --rm-warning-subtle: 62 50 16;
+  --rm-danger: 232 96 96;
+  --rm-danger-subtle: 68 28 28;
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --rm-bg: 20 20 22;
+    --rm-surface: 30 30 33;
+    --rm-surface-muted: 40 40 44;
+    --rm-border: 56 56 61;
+
+    --rm-fg: 245 245 244;
+    --rm-fg-muted: 180 177 173;
+    --rm-fg-subtle: 132 129 125;
+
+    --rm-primary: 45 178 180;
+    --rm-primary-hover: 66 199 201;
+    --rm-primary-fg: 12 30 31;
+    --rm-primary-subtle: 20 60 61;
+
+    --rm-accent: 240 160 78;
+    --rm-accent-fg: 40 24 8;
+    --rm-accent-subtle: 62 44 24;
+
+    --rm-success: 52 178 126;
+    --rm-success-subtle: 20 58 44;
+    --rm-warning: 224 168 42;
+    --rm-warning-subtle: 62 50 16;
+    --rm-danger: 232 96 96;
+    --rm-danger-subtle: 68 28 28;
+
+    color-scheme: dark;
+  }
+}
+
+/* Видимый фокус обязателен: во всех режимах обучения работает клавиатурная навигация */
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid rgb(var(--rm-primary));
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

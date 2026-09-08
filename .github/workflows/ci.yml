@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SECRET_KEY: ci-secret-key-at-least-32-characters-long
+  DATABASE_URL: postgresql+asyncpg://remora:remora@localhost:5432/remora_test
+  REDIS_URL: redis://localhost:6379/1
+  ENVIRONMENT: local
+
+jobs:
+  api:
+    name: API — линт, типы, тесты
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: remora
+          POSTGRES_PASSWORD: remora
+          POSTGRES_DB: remora_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U remora" --health-interval 5s
+          --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s
+          --health-timeout 3s --health-retries 10
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: ruff
+        run: uv run ruff check .
+      - name: mypy
+        run: uv run mypy app
+      - name: pytest
+        run: uv run pytest
+      - name: Миграции применяются на чистой базе
+        run: uv run alembic upgrade head
+
+  web:
+    name: Фронтенд — линт, типы, тесты, сборка
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Схема API не разошлась с кодом
+        run: |
+          cd apps/api && uv sync --frozen && cd ../..
+          pnpm gen:api
+          git diff --exit-code packages/api-client/src/generated/schema.ts \
+            || (echo "::error::Схема API изменилась. Запустите pnpm gen:api и закоммитьте результат." && exit 1)
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
