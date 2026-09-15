@@ -52,3 +52,40 @@ export const api = createApiClient({
   getAccessToken: () => accessToken,
   onUnauthorized: refreshAccessToken,
 });
+
+/**
+ * Запрос за бинарным ответом (PDF на печать).
+ *
+ * Обычная ссылка сюда не годится: access-токен живёт только в памяти и в
+ * заголовок `<a href>` не попадёт. Поэтому файл забираем этим fetch и
+ * открываем как blob.
+ */
+export async function fetchBlob(path: string): Promise<Blob> {
+  const request = async () =>
+    fetch(`${API_BASE_URL}${path}`, {
+      credentials: 'include',
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+    });
+
+  let response = await request();
+  if (response.status === 401 && (await refreshAccessToken())) {
+    response = await request();
+  }
+  if (!response.ok) {
+    throw new Error(
+      response.status === 503
+        ? 'Печать сейчас недоступна на сервере'
+        : 'Не удалось подготовить документ',
+    );
+  }
+  return response.blob();
+}
+
+/** Открывает полученный файл в новой вкладке — оттуда пользователь печатает. */
+export async function openPdf(path: string): Promise<void> {
+  const blob = await fetchBlob(path);
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank', 'noopener');
+  // Освобождаем ссылку не сразу: вкладке нужно успеть её прочитать.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}

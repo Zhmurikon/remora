@@ -11,7 +11,7 @@ import { Badge, Button, Card, CardContent, Input } from '@remora/ui';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { api } from '../lib/api';
+import { api, openPdf } from '../lib/api';
 
 type TestConfig = components['schemas']['TestConfig'];
 type TestAttempt = components['schemas']['TestAttemptOut'];
@@ -443,6 +443,15 @@ function TestReview({
         )}
         <Button variant="secondary" onClick={onRestart}>
           Новый тест
+        </Button>
+        <Button variant="ghost" onClick={() => void openPdf(`/api/v1/print/tests/${attempt.id}`)}>
+          Распечатать бланк
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={() => void openPdf(`/api/v1/print/tests/${attempt.id}?answers=true`)}
+        >
+          Ключ с ответами
         </Button>
         <Link to={`/sets/${setId}`}>
           <Button variant="ghost">К набору</Button>

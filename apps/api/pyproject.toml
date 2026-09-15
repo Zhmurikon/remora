@@ -21,6 +21,7 @@ dependencies = [
     "pillow>=11.0.0",
     "fsrs>=5.0.0",
     "httpx>=0.28.1",
+    "reportlab>=5.0.1",
 ]
 
 [dependency-groups]
@@ -31,6 +32,7 @@ dev = [
     "ruff>=0.9.2",
     "mypy>=1.14.1",
     "boto3-stubs[s3]>=1.35.0",
+    "types-reportlab>=5.0.0.20260911",
 ]
 
 [build-system]

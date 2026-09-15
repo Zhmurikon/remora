@@ -136,6 +136,10 @@ class TestModeService:
         await self.study.recalculate_progress(user, attempt.set_id)
         return await self._result(user, attempt)
 
+    async def get_raw_attempt(self, user: User, attempt_id: UUID) -> TestAttempt:
+        """Попытка вместе с ответами. Только для печати: наружу в API не уходит."""
+        return await self._owned_attempt(user, attempt_id)
+
     async def get_result(self, user: User, attempt_id: UUID) -> TestResult:
         attempt = await self._owned_attempt(user, attempt_id)
         if attempt.finished_at is None:

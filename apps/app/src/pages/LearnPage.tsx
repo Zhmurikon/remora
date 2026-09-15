@@ -128,9 +128,17 @@ export function LearnPage() {
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (kind !== 'choice' || checked) return;
       const position = Number(event.key);
-      if (!Number.isInteger(position) || position < 1 || position > options.length) return;
+      if (!Number.isInteger(position) || position < 1) return;
+
+      // Цифры выбирают вариант, а на экране самооценки — оценку FSRS.
+      if (kind === 'recall' && checked) {
+        if (position > 4) return;
+        event.preventDefault();
+        advance(position as Rating, position >= 3, undefined);
+        return;
+      }
+      if (kind !== 'choice' || checked || position > options.length) return;
       event.preventDefault();
       const chosen = options[position - 1];
       if (chosen !== undefined) pick(chosen);
@@ -138,7 +146,7 @@ export function LearnPage() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checked, kind, options]);
+  }, [advance, checked, kind, options]);
 
   function pick(option: string) {
     if (!current || checked) return;
@@ -317,7 +325,9 @@ export function LearnPage() {
               <Card className="p-5">
                 <CardContent value={expected} type={current.card.content_type} />
               </Card>
-              <p className="text-fg-muted mt-4 text-sm">Насколько легко вспомнилось?</p>
+              <p className="text-fg-muted mt-4 text-sm">
+                Насколько легко вспомнилось? Клавиши 1–4.
+              </p>
               <div className="mt-2 grid gap-2 sm:grid-cols-4">
                 {current.previews.map((preview) => (
                   <Button
@@ -328,7 +338,10 @@ export function LearnPage() {
                     }
                     className="h-auto flex-col py-3"
                   >
-                    <span>{ratingLabels[preview.rating - 1]}</span>
+                    <span>
+                      <span className="opacity-70">{preview.rating}</span>{' '}
+                      {ratingLabels[preview.rating - 1]}
+                    </span>
                     <span className="text-xs opacity-80">
                       {formatIntervalSeconds(preview.interval_seconds)}
                     </span>

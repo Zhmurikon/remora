@@ -7,7 +7,7 @@ catalog, classes, assignments, gamification, billing, moderation.
 
 from fastapi import APIRouter
 
-from app.api.v1 import auth, folders, health, media, sets, study, tts
+from app.api.v1 import auth, folders, health, media, printing, sets, study, tts
 
 api_router = APIRouter()
 api_router.include_router(health.router)
@@ -17,3 +17,4 @@ api_router.include_router(sets.router)
 api_router.include_router(media.router)
 api_router.include_router(study.router)
 api_router.include_router(tts.router)
+api_router.include_router(printing.router)

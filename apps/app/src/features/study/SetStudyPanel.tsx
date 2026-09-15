@@ -8,6 +8,7 @@ import { Badge, Button, Card } from '@remora/ui';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
+import { PrintMenu } from './PrintMenu';
 
 export function SetStudyPanel({ setId, cardsCount }: { setId: string; cardsCount: number }) {
   const stats = useQuery({
@@ -88,6 +89,8 @@ export function SetStudyPanel({ setId, cardsCount }: { setId: string; cardsCount
           </div>
 
           <Forecast days={stats.data.forecast} />
+
+          <PrintMenu setId={setId} disabled={disabled} />
 
           {stats.data.problem_cards.length > 0 && (
             <section className="mt-6">
