@@ -49,10 +49,10 @@ jobs:
         run: uv run ruff check .
       - name: mypy
         run: uv run mypy app
-      - name: pytest
-        run: uv run pytest
       - name: Миграции применяются на чистой базе
         run: uv run alembic upgrade head
+      - name: pytest
+        run: uv run pytest
 
   web:
     name: Фронтенд — линт, типы, тесты, сборка
