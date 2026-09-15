@@ -41,6 +41,18 @@ async def get_token_by_hash(db: AsyncSession, token_hash: str) -> RefreshToken |
     return result.scalar_one_or_none()
 
 
+async def get_token_by_hash_for_update(
+    db: AsyncSession, token_hash: str
+) -> RefreshToken | None:
+    """Блокирует токен до конца транзакции для безопасной ротации."""
+    result = await db.execute(
+        select(RefreshToken)
+        .where(RefreshToken.token_hash == token_hash)
+        .with_for_update()
+    )
+    return result.scalar_one_or_none()
+
+
 async def revoke_token(db: AsyncSession, token_id: UUID) -> None:
     await db.execute(
         update(RefreshToken)

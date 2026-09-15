@@ -1,5 +1,6 @@
 """Тесты аутентификации: регистрация, вход, ротация, /me, сброс пароля."""
 
+import asyncio
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -221,6 +222,41 @@ async def test_refresh_token_rotation(mock_send: AsyncMock, client: pytest.fixtu
         cookies={"remora_refresh": new_refresh},
     )
     assert resp3.status_code == 401
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_concurrent_refresh_revokes_token_family(
+    mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "concurrent@example.com",
+            "password": "Str0ngP@ss!",
+            "username": "concurrentuser",
+        },
+    )
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "concurrent@example.com", "password": "Str0ngP@ss!"},
+    )
+    old_refresh = login.cookies.get("remora_refresh")
+    assert old_refresh is not None
+
+    first, second = await asyncio.gather(
+        client.post("/api/v1/auth/refresh", cookies={"remora_refresh": old_refresh}),
+        client.post("/api/v1/auth/refresh", cookies={"remora_refresh": old_refresh}),
+    )
+    assert sorted([first.status_code, second.status_code]) == [200, 401]
+
+    successful = first if first.status_code == 200 else second
+    rotated_refresh = successful.cookies.get("remora_refresh")
+    assert rotated_refresh is not None
+    family_revoked = await client.post(
+        "/api/v1/auth/refresh",
+        cookies={"remora_refresh": rotated_refresh},
+    )
+    assert family_revoked.status_code == 401
 
 
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)

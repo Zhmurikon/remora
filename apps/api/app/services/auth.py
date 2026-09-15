@@ -158,7 +158,7 @@ class AuthService:
     ) -> tuple[User, str, str, datetime]:
         """Ротация refresh-токена. При повторном использовании — отзыв всей семьи."""
         token_hash = hash_token(refresh_token)
-        stored = await token_repo.get_token_by_hash(self.db, token_hash)
+        stored = await token_repo.get_token_by_hash_for_update(self.db, token_hash)
 
         if stored is None:
             # Токен не найден — возможно, фальшивка или уже удалён.
