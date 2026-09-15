@@ -211,7 +211,6 @@ async def test_me_with_valid_token(mock_send: AsyncMock, client: pytest.fixture)
 
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
 async def test_verify_email(mock_send: AsyncMock, client: pytest.fixture) -> None:
-    # Регистрация возвращает верификационный токен (второй элемент tuple)
     service_call = await client.post(
         "/api/v1/auth/register",
         json={
@@ -222,26 +221,14 @@ async def test_verify_email(mock_send: AsyncMock, client: pytest.fixture) -> Non
     )
     assert service_call.status_code == 201
 
-    # Мок send_verification_email был вызван — токен внутри письма.
-    # Но в тесте проще сгенерировать новый через сервис:
-    from app.core.security import create_jwt
-
-    # Получаем user_id через /auth/login
-    login_resp = await client.post(
-        "/api/v1/auth/login",
-        json={"email": "verify@example.com", "password": "Str0ngP@ss!"},
-    )
-    access = login_resp.json()["access_token"]
-    me_resp = await client.get(
-        "/api/v1/auth/me",
-        headers={"Authorization": f"Bearer {access}"},
-    )
-    user_id = me_resp.json()["id"]
-
-    token = create_jwt(user_id, "email_verification", extra={"email": "verify@example.com"})
+    token = mock_send.await_args.args[1]
     resp = await client.post("/api/v1/auth/verify-email", json={"token": token})
     assert resp.status_code == 200
     assert resp.json()["user"]["email_verified"] is True
+
+    reused = await client.post("/api/v1/auth/verify-email", json={"token": token})
+    assert reused.status_code == 401
+    assert reused.json()["code"] == "UNAUTHORIZED"
 
 
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
@@ -267,19 +254,7 @@ async def test_password_reset(
     )
     assert resp.status_code == 204
 
-    # Генерируем токен сброса
-    from app.core.security import create_jwt
-
-    login_resp = await client.post(
-        "/api/v1/auth/login",
-        json={"email": "reset@example.com", "password": "Str0ngP@ss!"},
-    )
-    me_resp = await client.get(
-        "/api/v1/auth/me",
-        headers={"Authorization": f"Bearer {login_resp.json()['access_token']}"},
-    )
-    user_id = me_resp.json()["id"]
-    token = create_jwt(user_id, "password_reset", extra={"email": "reset@example.com"})
+    token = mock_reset.await_args.args[1]
 
     # Сброс пароля
     resp = await client.post(
@@ -287,6 +262,14 @@ async def test_password_reset(
         json={"token": token, "new_password": "NewStr0ngP@ss!"},
     )
     assert resp.status_code == 200
+
+    # Одна и та же ссылка не позволяет сменить пароль повторно.
+    reused = await client.post(
+        "/api/v1/auth/password-reset/confirm",
+        json={"token": token, "new_password": "An0therStr0ngP@ss!"},
+    )
+    assert reused.status_code == 401
+    assert reused.json()["code"] == "UNAUTHORIZED"
 
     # Старый пароль не работает
     resp = await client.post(

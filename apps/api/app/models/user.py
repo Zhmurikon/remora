@@ -60,6 +60,9 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     refresh_tokens: Mapped[list[RefreshToken]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    action_tokens: Mapped[list[ActionToken]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
     oauth_accounts: Mapped[list[OauthAccount]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
@@ -110,6 +113,22 @@ class RefreshToken(UUIDPrimaryKeyMixin, Base):
     ip: Mapped[str | None] = mapped_column(String(45))
 
     user: Mapped[User] = relationship(back_populates="refresh_tokens")
+
+
+class ActionToken(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """Одноразовая ссылка для чувствительного действия с аккаунтом."""
+
+    __tablename__ = "action_tokens"
+
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    purpose: Mapped[str] = mapped_column(String(32), index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    user: Mapped[User] = relationship(back_populates="action_tokens")
 
 
 class OauthAccount(UUIDPrimaryKeyMixin, Base):

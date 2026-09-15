@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, timedelta
+from typing import Literal
 from uuid import UUID, uuid4
 
 import structlog
@@ -24,11 +25,15 @@ from app.core.security import (
     verify_password,
 )
 from app.models.user import User, UserStatus
+from app.repositories import action_token as action_token_repo
 from app.repositories import token as token_repo
 from app.repositories import user as user_repo
 from app.schemas.auth import UserPublic
 
 log = structlog.get_logger()
+
+EMAIL_VERIFICATION: Literal["email_verification"] = "email_verification"
+PASSWORD_RESET: Literal["password_reset"] = "password_reset"
 
 
 class AuthService:
@@ -66,8 +71,15 @@ class AuthService:
             birth_date=birth_date,
         )
 
-        token = create_jwt(
-            str(user.id), "email_verification", extra={"email": email}
+        settings = get_settings()
+        token = create_jwt(str(user.id), EMAIL_VERIFICATION, extra={"email": email})
+        await action_token_repo.create_token(
+            self.db,
+            user_id=user.id,
+            token_hash=hash_token(token),
+            purpose=EMAIL_VERIFICATION,
+            expires_at=datetime.now(tz=UTC)
+            + timedelta(hours=settings.email_verification_ttl_hours),
         )
         await send_verification_email(email, token)
         log.info("auth.register", user_id=str(user.id), email=email)
@@ -79,6 +91,15 @@ class AuthService:
             raise UnauthorizedError("Недействительная или истекшая ссылка")
 
         user_id = UUID(payload["sub"])
+        consumed = await action_token_repo.consume_token(
+            self.db,
+            token_hash=hash_token(token),
+            purpose=EMAIL_VERIFICATION,
+            user_id=user_id,
+        )
+        if not consumed:
+            raise UnauthorizedError("Ссылка уже использована или недействительна")
+
         user = await user_repo.get_user_by_id(self.db, user_id)
         if user is None:
             raise UnauthorizedError("Пользователь не найден")
@@ -195,7 +216,16 @@ class AuthService:
         if user is None:
             return
 
-        token = create_jwt(str(user.id), "password_reset", extra={"email": email})
+        settings = get_settings()
+        token = create_jwt(str(user.id), PASSWORD_RESET, extra={"email": email})
+        await action_token_repo.create_token(
+            self.db,
+            user_id=user.id,
+            token_hash=hash_token(token),
+            purpose=PASSWORD_RESET,
+            expires_at=datetime.now(tz=UTC)
+            + timedelta(minutes=settings.password_reset_ttl_minutes),
+        )
         await send_password_reset_email(email, token)
         log.info("auth.password_reset_requested", user_id=str(user.id))
 
@@ -205,6 +235,15 @@ class AuthService:
             raise UnauthorizedError("Недействительная или истекшая ссылка")
 
         user_id = UUID(payload["sub"])
+        consumed = await action_token_repo.consume_token(
+            self.db,
+            token_hash=hash_token(token),
+            purpose=PASSWORD_RESET,
+            user_id=user_id,
+        )
+        if not consumed:
+            raise UnauthorizedError("Ссылка уже использована или недействительна")
+
         user = await user_repo.get_user_by_id(self.db, user_id)
         if user is None:
             raise UnauthorizedError("Пользователь не найден")
@@ -217,6 +256,9 @@ class AuthService:
         await user_repo.update_password(self.db, user_id, pw_hash)
         # Отзыв всех сессий после смены пароля
         await token_repo.revoke_all_user_tokens(self.db, user_id)
+        await action_token_repo.consume_active_tokens(
+            self.db, user_id=user_id, purpose=PASSWORD_RESET
+        )
         log.info("auth.password_reset", user_id=str(user_id))
         return user
 

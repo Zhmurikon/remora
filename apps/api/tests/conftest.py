@@ -28,7 +28,7 @@ async def client() -> AsyncClient:
     async with engine.begin() as conn:
         await conn.execute(
             text(
-                "TRUNCATE users, user_settings, refresh_tokens, "
+                "TRUNCATE users, user_settings, refresh_tokens, action_tokens, "
                 "oauth_accounts, consents CASCADE"
             )
         )
