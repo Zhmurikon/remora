@@ -337,6 +337,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sets/public/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Публичный набор по ссылке */
+        get: operations["get_public_set_api_v1_sets_public__slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sets/{set_id}": {
         parameters: {
             query?: never;
@@ -634,6 +651,76 @@ export interface components {
             locale: string;
             /** Timezone */
             timezone: string;
+            /** Username */
+            username: string;
+        };
+        /** PublicCard */
+        PublicCard: {
+            /** Code Language */
+            code_language: string | null;
+            content_type: components["schemas"]["ContentType"];
+            /** Definition */
+            definition: string;
+            /** Definition Image Url */
+            definition_image_url?: string | null;
+            /** Definition Transcription */
+            definition_transcription: string | null;
+            /** Hint */
+            hint: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Position */
+            position: number;
+            /** Term */
+            term: string;
+            /** Term Image Url */
+            term_image_url?: string | null;
+            /** Term Transcription */
+            term_transcription: string | null;
+        };
+        /** PublicSet */
+        PublicSet: {
+            author: components["schemas"]["PublicSetAuthor"];
+            /** Cards */
+            cards: components["schemas"]["PublicCard"][];
+            /** Cards Count */
+            cards_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Lang Definition */
+            lang_definition: string;
+            /** Lang Term */
+            lang_term: string;
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            visibility: components["schemas"]["SetVisibility"];
+        };
+        /** PublicSetAuthor */
+        PublicSetAuthor: {
+            /** Avatar Url */
+            avatar_url: string | null;
+            /** Display Name */
+            display_name: string | null;
             /** Username */
             username: string;
         };
@@ -1528,6 +1615,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SetDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_public_set_api_v1_sets_public__slug__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSet"];
                 };
             };
             /** @description Validation Error */

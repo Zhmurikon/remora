@@ -43,4 +43,10 @@
       radial-gradient(circle at 16% 86%, rgb(216 255 125 / 0.12), transparent 18rem),
       linear-gradient(145deg, transparent 30%, rgb(255 255 255 / 0.025));
   }
+
+  .public-set-page {
+    background-image:
+      radial-gradient(circle at 8% 0%, rgb(var(--rm-primary) / 0.09), transparent 30rem),
+      radial-gradient(circle at 94% 30%, rgb(var(--rm-accent) / 0.06), transparent 28rem);
+  }
 }

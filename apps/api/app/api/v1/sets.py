@@ -8,10 +8,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.deps import current_user
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.content import CardBatch, SetCreate, SetDetail, SetSummary, SetUpdate
+from app.schemas.content import CardBatch, PublicSet, SetCreate, SetDetail, SetSummary, SetUpdate
 from app.services.content import ContentService
 
 router = APIRouter(prefix="/sets", tags=["sets"])
+
+
+@router.get("/public/{slug}", response_model=PublicSet, summary="Публичный набор по ссылке")
+async def get_public_set(slug: str, db: AsyncSession = Depends(get_db)) -> PublicSet:
+    return await ContentService(db).get_public_set(slug)
 
 
 @router.get("", response_model=list[SetSummary], summary="Мои наборы")

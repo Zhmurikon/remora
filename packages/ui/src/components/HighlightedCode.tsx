@@ -1,3 +1,5 @@
+'use client';
+
 import { createHighlighterCore, type HighlighterCore, type LanguageInput } from 'shiki/core';
 import { createJavaScriptRegexEngine } from 'shiki/engine/javascript';
 import githubDark from 'shiki/dist/themes/github-dark.mjs';

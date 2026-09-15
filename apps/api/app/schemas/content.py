@@ -62,6 +62,42 @@ class SetDetail(SetSummary):
     cards: list[CardPublic]
 
 
+class PublicCard(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    position: int
+    term: str
+    definition: str
+    term_transcription: str | None
+    definition_transcription: str | None
+    hint: str | None
+    content_type: ContentType
+    code_language: str | None
+    term_image_url: str | None = None
+    definition_image_url: str | None = None
+
+
+class PublicSetAuthor(BaseModel):
+    username: str
+    display_name: str | None
+    avatar_url: str | None
+
+
+class PublicSet(BaseModel):
+    id: UUID
+    title: str
+    description: str
+    visibility: SetVisibility
+    slug: str
+    cards_count: int
+    lang_term: str
+    lang_definition: str
+    author: PublicSetAuthor
+    cards: list[PublicCard]
+    created_at: datetime
+    updated_at: datetime
+
+
 class CardBatch(BaseModel):
     cards: list[CardWrite] = Field(max_length=300)
 

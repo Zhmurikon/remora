@@ -4,6 +4,8 @@ import type { ComponentProps } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 
+const WEB_URL = import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000';
+
 export function SetPage() {
   const { setId = '' } = useParams();
   const query = useQuery({
@@ -39,9 +41,21 @@ export function SetPage() {
           <h1 className="mt-3 text-3xl font-semibold tracking-tight">{set.title}</h1>
           {set.description && <p className="text-fg-muted mt-3 max-w-2xl">{set.description}</p>}
         </div>
-        <Link to={`/sets/${set.id}/edit`}>
-          <Button variant="secondary">Редактировать</Button>
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          {set.visibility !== 'private' && (
+            <a
+              href={`${WEB_URL}/nabor/${set.slug}`}
+              target="_blank"
+              rel="noreferrer"
+              className="border-border bg-surface hover:bg-surface-muted inline-flex h-10 items-center justify-center rounded-md border px-4 font-medium transition-colors"
+            >
+              Открыть публичную страницу
+            </a>
+          )}
+          <Link to={`/sets/${set.id}/edit`}>
+            <Button variant="secondary">Редактировать</Button>
+          </Link>
+        </div>
       </header>
       <div className="mt-8 space-y-3">
         {set.cards.map((card, index) => (

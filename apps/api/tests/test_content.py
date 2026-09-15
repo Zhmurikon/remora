@@ -113,6 +113,40 @@ async def test_user_cannot_access_another_users_set(
 
 
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_public_link_respects_visibility_and_limits_ssr_cards(
+    mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    owner = await _auth(client, "publicowner")
+    private_set = await client.post(
+        "/api/v1/sets", headers=owner, json={"title": "Секретный набор"}
+    )
+    private_slug = private_set.json()["slug"]
+    assert (await client.get(f"/api/v1/sets/public/{private_slug}")).status_code == 404
+
+    public_set = await client.post(
+        "/api/v1/sets",
+        headers=owner,
+        json={"title": "Открытая физика", "visibility": "unlisted"},
+    )
+    set_id = public_set.json()["id"]
+    cards = [
+        {"term": f"Термин {index}", "definition": f"Определение {index}"}
+        for index in range(55)
+    ]
+    await client.put(f"/api/v1/sets/{set_id}/cards", headers=owner, json={"cards": cards})
+
+    response = await client.get(f"/api/v1/sets/public/{public_set.json()['slug']}")
+    assert response.status_code == 200
+    assert response.json()["cards_count"] == 55
+    assert len(response.json()["cards"]) == 50
+    assert response.json()["author"]["username"] == "contentpublicowner"
+
+    deleted = await client.delete(f"/api/v1/sets/{set_id}", headers=owner)
+    assert deleted.status_code == 204
+    assert (await client.get(f"/api/v1/sets/public/{public_set.json()['slug']}")).status_code == 404
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
 async def test_folders_organize_sets_and_delete_safely(
     mock_send: AsyncMock, client: pytest.fixture
 ) -> None:

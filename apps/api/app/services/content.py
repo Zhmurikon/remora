@@ -5,11 +5,22 @@ from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.errors import ConflictError, ForbiddenError, NotFoundError
-from app.models.content import Card, ContentType, Folder, MediaStatus, StudySet
+from app.core.storage import get_object_storage
+from app.models.content import Card, ContentType, Folder, MediaAsset, MediaStatus, StudySet
 from app.models.user import User
 from app.repositories import content as content_repo
-from app.schemas.content import CardBatch, FolderCreate, FolderUpdate, SetCreate, SetUpdate
+from app.schemas.content import (
+    CardBatch,
+    FolderCreate,
+    FolderUpdate,
+    PublicCard,
+    PublicSet,
+    PublicSetAuthor,
+    SetCreate,
+    SetUpdate,
+)
 
 _HTML_TAG = re.compile(r"<\s*/?\s*[a-zA-Z][^>]*>")
 
@@ -20,6 +31,42 @@ class ContentService:
 
     async def list_sets(self, user: User) -> list[StudySet]:
         return await content_repo.list_sets(self.db, user.id)
+
+    async def get_public_set(self, slug: str) -> PublicSet:
+        result = await content_repo.get_public_set_by_slug(self.db, slug)
+        if result is None:
+            raise NotFoundError("Набор не найден")
+        study_set, author = result
+        visible_cards = study_set.cards[:50]
+        asset_ids = {
+            asset_id
+            for card in visible_cards
+            for asset_id in (card.term_image_id, card.definition_image_id)
+            if asset_id is not None
+        }
+        assets = {
+            asset.id: asset
+            for asset in await content_repo.get_media_assets(self.db, asset_ids)
+            if asset.status == MediaStatus.ready and asset.owner_id == study_set.owner_id
+        }
+        return PublicSet(
+            id=study_set.id,
+            title=study_set.title,
+            description=study_set.description,
+            visibility=study_set.visibility,
+            slug=study_set.slug,
+            cards_count=study_set.cards_count,
+            lang_term=study_set.lang_term,
+            lang_definition=study_set.lang_definition,
+            author=PublicSetAuthor(
+                username=author.username,
+                display_name=author.display_name,
+                avatar_url=author.avatar_url,
+            ),
+            cards=[self._public_card(card, assets) for card in visible_cards],
+            created_at=study_set.created_at,
+            updated_at=study_set.updated_at,
+        )
 
     async def list_folders(self, user: User) -> list[Folder]:
         return await content_repo.list_folders(self.db, user.id)
@@ -171,6 +218,29 @@ class ContentService:
             asset = await content_repo.get_media_asset(self.db, image_id)
             if asset is None or asset.owner_id != user.id or asset.status != MediaStatus.ready:
                 raise ConflictError("Изображение недоступно или ещё не обработано")
+
+    @staticmethod
+    def _public_card(card: Card, assets: dict[UUID, MediaAsset]) -> PublicCard:
+        storage = get_object_storage()
+        ttl = get_settings().media_download_ttl_seconds
+
+        def image_url(asset_id: UUID | None) -> str | None:
+            asset = assets.get(asset_id) if asset_id is not None else None
+            return storage.download_url(asset.s3_key, ttl) if asset is not None else None
+
+        return PublicCard(
+            id=card.id,
+            position=card.position,
+            term=card.term,
+            definition=card.definition,
+            term_transcription=card.term_transcription,
+            definition_transcription=card.definition_transcription,
+            hint=card.hint,
+            content_type=card.content_type,
+            code_language=card.code_language,
+            term_image_url=image_url(card.term_image_id),
+            definition_image_url=image_url(card.definition_image_id),
+        )
 
 
 def _slug(value: str) -> str:

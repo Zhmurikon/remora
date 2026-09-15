@@ -7,7 +7,8 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.content import Card, Folder, MediaAsset, StudySet
+from app.models.content import Card, Folder, MediaAsset, SetVisibility, StudySet
+from app.models.user import User, UserStatus
 
 
 async def get_media_asset(db: AsyncSession, asset_id: UUID) -> MediaAsset | None:
@@ -58,6 +59,32 @@ async def get_set(db: AsyncSession, set_id: UUID, *, with_cards: bool = False) -
         )
     result = await db.execute(query)
     return result.scalar_one_or_none()
+
+
+async def get_public_set_by_slug(
+    db: AsyncSession, slug: str
+) -> tuple[StudySet, User] | None:
+    result = await db.execute(
+        select(StudySet, User)
+        .join(User, User.id == StudySet.owner_id)
+        .where(
+            StudySet.slug == slug,
+            StudySet.deleted_at.is_(None),
+            StudySet.visibility.in_((SetVisibility.unlisted, SetVisibility.public)),
+            User.status == UserStatus.active,
+            User.deleted_at.is_(None),
+        )
+        .options(selectinload(StudySet.cards))
+    )
+    row = result.one_or_none()
+    return (row[0], row[1]) if row is not None else None
+
+
+async def get_media_assets(db: AsyncSession, asset_ids: set[UUID]) -> list[MediaAsset]:
+    if not asset_ids:
+        return []
+    result = await db.scalars(select(MediaAsset).where(MediaAsset.id.in_(asset_ids)))
+    return list(result.all())
 
 
 async def create_set(db: AsyncSession, study_set: StudySet) -> StudySet:
