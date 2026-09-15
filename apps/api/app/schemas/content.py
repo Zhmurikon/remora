@@ -17,6 +17,8 @@ class CardWrite(BaseModel):
     hint: str | None = Field(default=None, max_length=1000)
     content_type: ContentType = ContentType.text
     code_language: str | None = Field(default=None, max_length=50)
+    term_image_id: UUID | None = None
+    definition_image_id: UUID | None = None
     alt_answers: list[str] = Field(default_factory=list, max_length=30)
 
 

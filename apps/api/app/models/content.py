@@ -6,7 +6,7 @@ import enum
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, Integer, String, Text, text
+from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, Index, Integer, String, Text, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -23,6 +23,46 @@ class ContentType(enum.Enum):
     text = "text"
     latex = "latex"
     code = "code"
+
+
+class MediaKind(enum.Enum):
+    image = "image"
+    audio = "audio"
+
+
+class MediaSource(enum.Enum):
+    upload = "upload"
+    tts = "tts"
+
+
+class MediaStatus(enum.Enum):
+    pending = "pending"
+    ready = "ready"
+    rejected = "rejected"
+
+
+class MediaAsset(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    __tablename__ = "media_assets"
+    __table_args__ = (
+        Index("ix_media_assets_owner_id_kind_status", "owner_id", "kind", "status"),
+        Index("ix_media_assets_owner_id_checksum", "owner_id", "checksum"),
+    )
+
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    kind: Mapped[MediaKind] = mapped_column(Enum(MediaKind))
+    s3_key: Mapped[str] = mapped_column(String(500), unique=True)
+    mime: Mapped[str] = mapped_column(String(100))
+    size_bytes: Mapped[int] = mapped_column(BigInteger)
+    width: Mapped[int | None] = mapped_column(Integer)
+    height: Mapped[int | None] = mapped_column(Integer)
+    duration_ms: Mapped[int | None] = mapped_column(Integer)
+    checksum: Mapped[str | None] = mapped_column(String(64))
+    source: Mapped[MediaSource] = mapped_column(
+        Enum(MediaSource), default=MediaSource.upload, server_default=text("'upload'")
+    )
+    status: Mapped[MediaStatus] = mapped_column(
+        Enum(MediaStatus), default=MediaStatus.pending, server_default=text("'pending'")
+    )
 
 
 class Folder(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -84,6 +124,12 @@ class Card(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Enum(ContentType), default=ContentType.text, server_default=text("'text'")
     )
     code_language: Mapped[str | None] = mapped_column(String(50))
+    term_image_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("media_assets.id", ondelete="SET NULL"), index=True
+    )
+    definition_image_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("media_assets.id", ondelete="SET NULL"), index=True
+    )
     alt_answers: Mapped[list[str]] = mapped_column(
         JSONB, default=list, server_default=text("'[]'::jsonb")
     )

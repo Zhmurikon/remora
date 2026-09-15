@@ -7,6 +7,8 @@ export interface CardContentProps {
   value: string;
   type?: CardContentType;
   codeLanguage?: string | null;
+  imageUrl?: string | null;
+  imageAlt?: string;
   className?: string;
 }
 
@@ -39,8 +41,31 @@ export function CardContent({
   value,
   type = 'text',
   codeLanguage,
+  imageUrl,
+  imageAlt = '',
   className = '',
 }: CardContentProps) {
+  const content = renderContent(value, type, codeLanguage, className);
+  if (!imageUrl) return content;
+  return (
+    <div className="space-y-3">
+      <img
+        src={imageUrl}
+        alt={imageAlt}
+        loading="lazy"
+        className="max-h-64 w-full rounded-xl object-contain"
+      />
+      {content}
+    </div>
+  );
+}
+
+function renderContent(
+  value: string,
+  type: CardContentType,
+  codeLanguage: string | null | undefined,
+  className: string,
+) {
   if (!value) return <span className={className}>—</span>;
   if (type === 'latex') {
     return (

@@ -31,6 +31,16 @@ class Settings(BaseSettings):
     database_url: PostgresDsn
     redis_url: RedisDsn
 
+    # S3-совместимое хранилище медиа
+    s3_endpoint: str = "http://localhost:9100"
+    s3_access_key: str = "remora"
+    s3_secret_key: SecretStr = SecretStr("remora-dev-secret")
+    s3_bucket_media: str = "remora-media"
+    media_upload_ttl_seconds: int = 900
+    media_download_ttl_seconds: int = 3600
+    media_image_max_size_bytes: int = 10 * 1024 * 1024
+    media_image_max_pixels: int = 25_000_000
+
     # Ограничения чувствительных запросов на один IP и аккаунт
     rate_limit_register: int = 5
     rate_limit_login: int = 10

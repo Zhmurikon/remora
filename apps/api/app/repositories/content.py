@@ -7,7 +7,11 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.content import Card, Folder, StudySet
+from app.models.content import Card, Folder, MediaAsset, StudySet
+
+
+async def get_media_asset(db: AsyncSession, asset_id: UUID) -> MediaAsset | None:
+    return await db.get(MediaAsset, asset_id)
 
 
 async def list_folders(db: AsyncSession, owner_id: UUID) -> list[Folder]:

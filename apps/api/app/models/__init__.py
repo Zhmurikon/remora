@@ -1,6 +1,16 @@
 """Модели SQLAlchemy. Импортируются Alembic при автогенерации миграций."""
 
-from app.models.content import Card, ContentType, Folder, SetVisibility, StudySet
+from app.models.content import (
+    Card,
+    ContentType,
+    Folder,
+    MediaAsset,
+    MediaKind,
+    MediaSource,
+    MediaStatus,
+    SetVisibility,
+    StudySet,
+)
 from app.models.user import (
     ActionToken,
     Consent,
@@ -20,6 +30,10 @@ __all__ = [
     "ConsentKind",
     "ContentType",
     "Folder",
+    "MediaAsset",
+    "MediaKind",
+    "MediaSource",
+    "MediaStatus",
     "OauthAccount",
     "RefreshToken",
     "SetVisibility",

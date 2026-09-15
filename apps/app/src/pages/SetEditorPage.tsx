@@ -29,6 +29,8 @@ interface DraftCard {
   definition: string;
   contentType: CardContentType;
   codeLanguage: string | null;
+  termImageId: string | null;
+  definitionImageId: string | null;
 }
 interface Snapshot {
   title: string;
@@ -83,6 +85,8 @@ export function SetEditorPage() {
         definition: card.definition,
         contentType: card.content_type,
         codeLanguage: card.code_language ?? null,
+        termImageId: card.term_image_id ?? null,
+        definitionImageId: card.definition_image_id ?? null,
       })),
     );
     setReady(true);
@@ -111,12 +115,14 @@ export function SetEditorPage() {
         api.PUT('/api/v1/sets/{set_id}/cards', {
           params: { path: { set_id: setId } },
           body: {
-            cards: snapshot.cards.map(({ id, term, definition, contentType, codeLanguage }) => ({
-              id,
-              term,
-              definition,
-              content_type: contentType,
-              code_language: contentType === 'code' ? codeLanguage || 'text' : null,
+            cards: snapshot.cards.map((card) => ({
+              id: card.id,
+              term: card.term,
+              definition: card.definition,
+              content_type: card.contentType,
+              code_language: card.contentType === 'code' ? card.codeLanguage || 'text' : null,
+              term_image_id: card.termImageId,
+              definition_image_id: card.definitionImageId,
             })),
           },
         }),
@@ -173,6 +179,8 @@ export function SetEditorPage() {
         definition: '',
         contentType: 'text',
         codeLanguage: null,
+        termImageId: null,
+        definitionImageId: null,
       },
     ]);
   }
@@ -300,6 +308,8 @@ export function SetEditorPage() {
                 key: crypto.randomUUID(),
                 contentType: 'text' as const,
                 codeLanguage: null,
+                termImageId: null,
+                definitionImageId: null,
               })),
             ]);
             setBulkOpen(false);
@@ -362,14 +372,30 @@ export function SetEditorPage() {
                 value={card.term}
                 contentType={card.contentType}
                 codeLanguage={card.codeLanguage}
+                imageId={card.termImageId}
                 onChange={(value) => updateCard(card.key, 'term', value)}
+                onImageChange={(value) =>
+                  setCards((items) =>
+                    items.map((item) =>
+                      item.key === card.key ? { ...item, termImageId: value } : item,
+                    ),
+                  )
+                }
               />
               <CardField
                 label="Определение"
                 value={card.definition}
                 contentType={card.contentType}
                 codeLanguage={card.codeLanguage}
+                imageId={card.definitionImageId}
                 onChange={(value) => updateCard(card.key, 'definition', value)}
+                onImageChange={(value) =>
+                  setCards((items) =>
+                    items.map((item) =>
+                      item.key === card.key ? { ...item, definitionImageId: value } : item,
+                    ),
+                  )
+                }
               />
             </div>
           </Card>
@@ -540,13 +566,17 @@ function CardField({
   value,
   contentType,
   codeLanguage,
+  imageId,
   onChange,
+  onImageChange,
 }: {
   label: string;
   value: string;
   contentType: CardContentType;
   codeLanguage: string | null;
+  imageId: string | null;
   onChange: (value: string) => void;
+  onImageChange: (value: string | null) => void;
 }) {
   return (
     <label className="text-fg-muted text-xs font-medium uppercase tracking-wide">
@@ -559,6 +589,7 @@ function CardField({
         className="border-border bg-surface-muted text-fg mt-2 w-full resize-y rounded-xl border px-4 py-3 text-base normal-case tracking-normal"
         placeholder={fieldPlaceholder(label, contentType)}
       />
+      <ImageUpload imageId={imageId} label={label} onChange={onImageChange} />
       {contentType !== 'text' && value && (
         <div className="border-border bg-surface mt-3 rounded-xl border p-3 normal-case tracking-normal">
           <span className="text-fg-subtle mb-2 block text-xs">Предпросмотр</span>
@@ -566,6 +597,95 @@ function CardField({
         </div>
       )}
     </label>
+  );
+}
+
+function ImageUpload({
+  imageId,
+  label,
+  onChange,
+}: {
+  imageId: string | null;
+  label: string;
+  onChange: (value: string | null) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+  const image = useQuery({
+    queryKey: ['media', imageId],
+    enabled: Boolean(imageId),
+    queryFn: async () => {
+      const { data, error: apiError } = await api.GET('/api/v1/media/{asset_id}', {
+        params: { path: { asset_id: imageId! } },
+      });
+      if (apiError || !data) throw new Error();
+      return data;
+    },
+    staleTime: 30 * 60 * 1000,
+  });
+
+  async function upload(file: File) {
+    setUploading(true);
+    setError('');
+    try {
+      const ticket = await api.POST('/api/v1/media/upload-url', {
+        body: { filename: file.name, mime: file.type, size_bytes: file.size },
+      });
+      if (ticket.error || !ticket.data) throw new Error();
+      const uploaded = await fetch(ticket.data.upload_url, {
+        method: ticket.data.method,
+        headers: ticket.data.headers,
+        body: file,
+      });
+      if (!uploaded.ok) throw new Error();
+      const completed = await api.POST('/api/v1/media/{asset_id}/complete', {
+        params: { path: { asset_id: ticket.data.id } },
+      });
+      if (completed.error || !completed.data) throw new Error();
+      onChange(completed.data.id);
+    } catch {
+      setError('Не удалось загрузить изображение');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div className="mt-3 normal-case tracking-normal">
+      {image.data?.download_url && (
+        <img
+          src={image.data.download_url}
+          alt={`Изображение: ${label.toLowerCase()}`}
+          className="border-border bg-surface mb-3 max-h-48 w-full rounded-xl border object-contain"
+        />
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="border-border text-fg hover:bg-surface-muted inline-flex h-11 cursor-pointer items-center rounded-xl border px-4 text-sm font-medium">
+          {uploading ? 'Загружаем…' : imageId ? 'Заменить изображение' : '＋ Изображение'}
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="sr-only"
+            disabled={uploading}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) void upload(file);
+              event.target.value = '';
+            }}
+          />
+        </label>
+        {imageId && (
+          <button
+            type="button"
+            className="text-danger hover:bg-danger-soft h-11 rounded-xl px-3 text-sm"
+            onClick={() => onChange(null)}
+          >
+            Убрать
+          </button>
+        )}
+      </div>
+      {error && <p className="text-danger mt-2 text-sm">{error}</p>}
+    </div>
   );
 }
 

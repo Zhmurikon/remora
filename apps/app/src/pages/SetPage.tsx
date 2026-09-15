@@ -1,5 +1,6 @@
 import { Badge, Button, Card, CardContent } from '@remora/ui';
 import { useQuery } from '@tanstack/react-query';
+import type { ComponentProps } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 
@@ -46,17 +47,21 @@ export function SetPage() {
         {set.cards.map((card, index) => (
           <Card key={card.id} className="grid gap-4 p-5 sm:grid-cols-[48px_1fr_1fr]">
             <span className="text-fg-subtle text-sm">{index + 1}</span>
-            <CardContent
+            <CardSide
               value={card.term}
               type={card.content_type}
               codeLanguage={card.code_language}
               className="font-medium"
+              imageId={card.term_image_id}
+              imageAlt={`Термин: ${card.term}`}
             />
-            <CardContent
+            <CardSide
               value={card.definition}
               type={card.content_type}
               codeLanguage={card.code_language}
               className="text-fg-muted"
+              imageId={card.definition_image_id}
+              imageAlt={`Определение: ${card.definition}`}
             />
           </Card>
         ))}
@@ -68,4 +73,24 @@ export function SetPage() {
       )}
     </div>
   );
+}
+
+function CardSide({
+  imageId,
+  imageAlt,
+  ...content
+}: ComponentProps<typeof CardContent> & { imageId?: string | null; imageAlt: string }) {
+  const image = useQuery({
+    queryKey: ['media', imageId],
+    enabled: Boolean(imageId),
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/media/{asset_id}', {
+        params: { path: { asset_id: imageId! } },
+      });
+      if (error || !data) throw new Error();
+      return data;
+    },
+    staleTime: 30 * 60 * 1000,
+  });
+  return <CardContent {...content} imageUrl={image.data?.download_url} imageAlt={imageAlt} />;
 }

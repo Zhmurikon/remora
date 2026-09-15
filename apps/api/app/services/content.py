@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ConflictError, ForbiddenError, NotFoundError
-from app.models.content import Card, ContentType, Folder, StudySet
+from app.models.content import Card, ContentType, Folder, MediaStatus, StudySet
 from app.models.user import User
 from app.repositories import content as content_repo
 from app.schemas.content import CardBatch, FolderCreate, FolderUpdate, SetCreate, SetUpdate
@@ -125,6 +125,8 @@ class ContentService:
                     hint=source_card.hint,
                     content_type=source_card.content_type,
                     code_language=source_card.code_language,
+                    term_image_id=source_card.term_image_id,
+                    definition_image_id=source_card.definition_image_id,
                     alt_answers=source_card.alt_answers,
                 )
             )
@@ -145,6 +147,7 @@ class ContentService:
                 _validate_plain_content(item.term, item.definition)
             if item.content_type == ContentType.code and not item.code_language:
                 raise ConflictError("Для блока кода нужно выбрать язык")
+            await self._validate_images(user, item.term_image_id, item.definition_image_id)
             if item.id is not None:
                 existing_card = existing.get(item.id)
                 if existing_card is None or item.id in seen:
@@ -162,6 +165,12 @@ class ContentService:
         study_set.cards_count = len(result)
         await self.db.flush()
         return await self.get_owned_set(user, set_id, with_cards=True)
+
+    async def _validate_images(self, user: User, *image_ids: UUID | None) -> None:
+        for image_id in {value for value in image_ids if value is not None}:
+            asset = await content_repo.get_media_asset(self.db, image_id)
+            if asset is None or asset.owner_id != user.id or asset.status != MediaStatus.ready:
+                raise ConflictError("Изображение недоступно или ещё не обработано")
 
 
 def _slug(value: str) -> str:

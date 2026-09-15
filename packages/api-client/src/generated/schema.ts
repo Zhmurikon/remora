@@ -250,6 +250,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/media/upload-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Получить ссылку для загрузки изображения */
+        post: operations["create_upload_url_api_v1_media_upload_url_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/{asset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Получить изображение */
+        get: operations["get_asset_api_v1_media__asset_id__get"];
+        put?: never;
+        post?: never;
+        /** Удалить изображение */
+        delete: operations["delete_asset_api_v1_media__asset_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/{asset_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Завершить загрузку */
+        post: operations["complete_upload_api_v1_media__asset_id__complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ready": {
         parameters: {
             query?: never;
@@ -362,6 +414,8 @@ export interface components {
             created_at: string;
             /** Definition */
             definition: string;
+            /** Definition Image Id */
+            definition_image_id?: string | null;
             /** Definition Transcription */
             definition_transcription?: string | null;
             /** Hint */
@@ -375,6 +429,8 @@ export interface components {
             position: number;
             /** Term */
             term: string;
+            /** Term Image Id */
+            term_image_id?: string | null;
             /** Term Transcription */
             term_transcription?: string | null;
             /**
@@ -393,6 +449,8 @@ export interface components {
             content_type: components["schemas"]["ContentType"];
             /** Definition */
             definition: string;
+            /** Definition Image Id */
+            definition_image_id?: string | null;
             /** Definition Transcription */
             definition_transcription?: string | null;
             /** Hint */
@@ -401,6 +459,8 @@ export interface components {
             id?: string | null;
             /** Term */
             term: string;
+            /** Term Image Id */
+            term_image_id?: string | null;
             /** Term Transcription */
             term_transcription?: string | null;
         };
@@ -475,6 +535,36 @@ export interface components {
             /** Version */
             version: string;
         };
+        /** ImageUploadRequest */
+        ImageUploadRequest: {
+            /** Filename */
+            filename: string;
+            /** Mime */
+            mime: string;
+            /** Size Bytes */
+            size_bytes: number;
+        };
+        /** ImageUploadTicket */
+        ImageUploadTicket: {
+            /** Expires In */
+            expires_in: number;
+            /** Headers */
+            headers: {
+                [key: string]: string;
+            };
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Method
+             * @default PUT
+             */
+            method: string;
+            /** Upload Url */
+            upload_url: string;
+        };
         /** LoginRequest */
         LoginRequest: {
             /**
@@ -485,6 +575,35 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** MediaAssetPublic */
+        MediaAssetPublic: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Download Url */
+            download_url: string | null;
+            /** Height */
+            height: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Mime */
+            mime: string;
+            /** Size Bytes */
+            size_bytes: number;
+            status: components["schemas"]["MediaStatus"];
+            /** Width */
+            width: number | null;
+        };
+        /**
+         * MediaStatus
+         * @enum {string}
+         */
+        MediaStatus: "pending" | "ready" | "rejected";
         /** PasswordChangeRequest */
         PasswordChangeRequest: {
             /** Current Password */
@@ -1221,6 +1340,130 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    create_upload_url_api_v1_media_upload_url_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImageUploadRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageUploadTicket"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_asset_api_v1_media__asset_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaAssetPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_asset_api_v1_media__asset_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    complete_upload_api_v1_media__asset_id__complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaAssetPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
