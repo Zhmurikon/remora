@@ -16,8 +16,8 @@ export function AuthShell({
   description = 'Remora помогает превратить любые заметки в карточки и строит расписание повторений за вас.',
 }: AuthShellProps) {
   return (
-    <main className="auth-page bg-bg text-fg min-h-dvh p-3 sm:p-5 lg:p-7">
-      <div className="border-border/80 bg-surface mx-auto grid min-h-[calc(100dvh-1.5rem)] max-w-[1440px] overflow-hidden rounded-[2rem] border shadow-[0_30px_100px_rgb(0_0_0/0.16)] sm:min-h-[calc(100dvh-2.5rem)] lg:min-h-[calc(100dvh-3.5rem)] lg:grid-cols-[minmax(420px,0.92fr)_minmax(520px,1.08fr)]">
+    <main className="auth-page bg-bg text-fg grid min-h-dvh place-items-center p-3 sm:p-5 lg:p-7">
+      <div className="auth-shell border-border/80 bg-surface mx-auto grid w-full max-w-[1440px] overflow-hidden rounded-[2rem] border shadow-[0_30px_100px_rgb(0_0_0/0.16)] lg:grid-cols-[minmax(420px,0.92fr)_minmax(520px,1.08fr)]">
         <section className="relative hidden overflow-hidden bg-[#0b1009] p-12 text-white lg:flex lg:flex-col xl:p-16">
           <div className="auth-glow absolute inset-0" aria-hidden="true" />
           <div className="relative z-10">
@@ -76,7 +76,7 @@ export function AuthShell({
           <p className="relative z-10 text-xs text-white/35">© 2026 Remora</p>
         </section>
 
-        <section className="flex min-h-full flex-col px-5 py-6 sm:px-10 sm:py-8 lg:px-14 xl:px-24">
+        <section className="flex min-h-0 flex-col overflow-y-auto px-5 py-6 sm:px-10 sm:py-8 lg:px-14 xl:px-24">
           <div className="mb-12 flex items-center justify-between lg:hidden">
             <Logo />
           </div>

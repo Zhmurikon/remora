@@ -25,6 +25,18 @@
       radial-gradient(circle at 96% 92%, rgb(var(--rm-accent) / 0.07), transparent 28rem);
   }
 
+  .auth-shell {
+    height: 760px;
+    max-height: calc(100dvh - 3rem);
+  }
+
+  @media (max-width: 639px) {
+    .auth-shell {
+      height: calc(100dvh - 1.5rem);
+      max-height: none;
+    }
+  }
+
   .auth-glow {
     background:
       radial-gradient(circle at 82% 18%, rgb(var(--rm-primary) / 0.23), transparent 22rem),
