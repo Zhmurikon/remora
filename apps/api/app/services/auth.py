@@ -124,6 +124,9 @@ class AuthService:
         if not verify_password(password, user.password_hash):
             raise UnauthorizedError("Неверный email или пароль")
 
+        if user.status != UserStatus.active:
+            raise UnauthorizedError("Аккаунт недоступен")
+
         access_token = create_jwt(str(user.id), "access")
         raw_token, token_hash = generate_refresh_token()
 

@@ -3,6 +3,9 @@
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from sqlalchemy import text
+
+from app.db.session import get_engine
 
 # Email отправка мокается во всех тестах — MailHog не нужен
 pytestmark = pytest.mark.asyncio
@@ -120,6 +123,37 @@ async def test_login_wrong_password(client: pytest.fixture) -> None:
     )
     assert resp.status_code == 401
     assert resp.json()["code"] == "UNAUTHORIZED"
+
+
+@pytest.mark.parametrize("account_status", ["suspended", "deleted"])
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_login_rejects_unavailable_account(
+    mock_send: AsyncMock,
+    client: pytest.fixture,
+    account_status: str,
+) -> None:
+    email = f"{account_status}@example.com"
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": email,
+            "password": "Str0ngP@ss!",
+            "username": f"user{account_status}",
+        },
+    )
+    async with get_engine().begin() as connection:
+        await connection.execute(
+            text("UPDATE users SET status = CAST(:status AS userstatus) WHERE email = :email"),
+            {"status": account_status, "email": email},
+        )
+
+    response = await client.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": "Str0ngP@ss!"},
+    )
+    assert response.status_code == 401
+    assert response.json()["code"] == "UNAUTHORIZED"
+    assert "remora_refresh" not in response.cookies
 
 
 async def test_login_rate_limit(client: pytest.fixture) -> None:
