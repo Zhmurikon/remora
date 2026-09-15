@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Cookie, Depends, Request, Response, status
+from fastapi import APIRouter, Depends, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.deps import current_user
@@ -153,8 +153,8 @@ async def refresh(
     request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db),
-    refresh_token: str | None = Cookie(default=None, alias="remora_refresh"),
 ) -> RefreshResponse:
+    refresh_token = request.cookies.get(get_settings().refresh_cookie_name)
     if refresh_token is None:
         raise UnauthorizedError("Отсутствует refresh-токен")
 
@@ -178,10 +178,11 @@ async def refresh(
     summary="Выход",
 )
 async def logout(
+    request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db),
-    refresh_token: str | None = Cookie(default=None, alias="remora_refresh"),
 ) -> None:
+    refresh_token = request.cookies.get(get_settings().refresh_cookie_name)
     if refresh_token is not None:
         service = AuthService(db)
         await service.logout(refresh_token)

@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from sqlalchemy import text
 
+from app.core.config import get_settings
 from app.db.session import get_engine
 
 # Email отправка мокается во всех тестах — MailHog не нужен
@@ -287,6 +288,37 @@ async def test_logout(mock_send: AsyncMock, client: pytest.fixture) -> None:
         cookies={"remora_refresh": refresh_token},
     )
     assert resp2.status_code == 401
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_custom_refresh_cookie_name(
+    mock_send: AsyncMock,
+    client: pytest.fixture,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(get_settings(), "refresh_cookie_name", "custom_refresh")
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "cookie@example.com",
+            "password": "Str0ngP@ss!",
+            "username": "cookieuser",
+        },
+    )
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "cookie@example.com", "password": "Str0ngP@ss!"},
+    )
+    refresh_token = login.cookies.get("custom_refresh")
+    assert refresh_token is not None
+    assert "remora_refresh" not in login.cookies
+
+    refreshed = await client.post(
+        "/api/v1/auth/refresh",
+        cookies={"custom_refresh": refresh_token},
+    )
+    assert refreshed.status_code == 200
+    assert refreshed.cookies.get("custom_refresh") is not None
 
 
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
