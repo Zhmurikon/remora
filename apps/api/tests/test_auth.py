@@ -75,6 +75,23 @@ async def test_register_duplicate_username(mock_send: AsyncMock, client: pytest.
 
 
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_register_rate_limit(mock_send: AsyncMock, client: pytest.fixture) -> None:
+    payload = {
+        "email": "limited-register@example.com",
+        "password": "Str0ngP@ss!",
+        "username": "limitedregister",
+    }
+    assert (await client.post("/api/v1/auth/register", json=payload)).status_code == 201
+    for _ in range(4):
+        resp = await client.post("/api/v1/auth/register", json=payload)
+        assert resp.status_code == 409
+
+    blocked = await client.post("/api/v1/auth/register", json=payload)
+    assert blocked.status_code == 429
+    assert blocked.json()["code"] == "RATE_LIMITED"
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
 async def test_login_success(mock_send: AsyncMock, client: pytest.fixture) -> None:
     await client.post(
         "/api/v1/auth/register",
@@ -103,6 +120,29 @@ async def test_login_wrong_password(client: pytest.fixture) -> None:
     )
     assert resp.status_code == 401
     assert resp.json()["code"] == "UNAUTHORIZED"
+
+
+async def test_login_rate_limit(client: pytest.fixture) -> None:
+    payload = {"email": "limited@example.com", "password": "Wr0ngP@ss!"}
+    for _ in range(10):
+        resp = await client.post("/api/v1/auth/login", json=payload)
+        assert resp.status_code == 401
+
+    blocked = await client.post("/api/v1/auth/login", json=payload)
+    assert blocked.status_code == 429
+    assert blocked.json()["code"] == "RATE_LIMITED"
+    assert blocked.json()["details"]["scope"] == "login"
+
+
+async def test_password_reset_rate_limit(client: pytest.fixture) -> None:
+    payload = {"email": "limited-reset@example.com"}
+    for _ in range(5):
+        resp = await client.post("/api/v1/auth/password-reset", json=payload)
+        assert resp.status_code == 204
+
+    blocked = await client.post("/api/v1/auth/password-reset", json=payload)
+    assert blocked.status_code == 429
+    assert blocked.json()["code"] == "RATE_LIMITED"
 
 
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)

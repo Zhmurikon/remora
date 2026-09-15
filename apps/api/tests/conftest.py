@@ -10,9 +10,11 @@ os.environ.setdefault(
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/1")
 os.environ.setdefault("ENVIRONMENT", "local")
 
+import redis.asyncio as redis
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 
+from app.core.config import get_settings
 from app.db.session import dispose_engine, get_engine
 from app.main import create_app
 
@@ -32,4 +34,7 @@ async def client() -> AsyncClient:
                 "oauth_accounts, consents CASCADE"
             )
         )
+    redis_client = redis.from_url(str(get_settings().redis_url))
+    await redis_client.flushdb()
+    await redis_client.aclose()
     await dispose_engine()

@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.deps import current_user
 from app.core.config import get_settings
 from app.core.errors import UnauthorizedError
+from app.core.rate_limit import enforce_rate_limit
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import (
@@ -72,9 +73,18 @@ def _clear_refresh_cookie(response: Response) -> None:
     summary="Регистрация",
 )
 async def register(
+    request: Request,
     body: RegisterRequest,
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
+    settings = get_settings()
+    await enforce_rate_limit(
+        scope="register",
+        ip=request.client.host if request.client else "unknown",
+        identity=body.email,
+        limit=settings.rate_limit_register,
+        window_seconds=settings.rate_limit_window_seconds,
+    )
     service = AuthService(db)
     user, _ = await service.register(
         email=body.email,
@@ -113,6 +123,15 @@ async def login(
     user_agent = request.headers.get("user-agent")
     client = request.client
     ip = client.host if client else None
+
+    settings = get_settings()
+    await enforce_rate_limit(
+        scope="login",
+        ip=ip or "unknown",
+        identity=body.email,
+        limit=settings.rate_limit_login,
+        window_seconds=settings.rate_limit_window_seconds,
+    )
 
     service = AuthService(db)
     user, access, refresh_raw, expires_at = await service.login(
@@ -175,9 +194,18 @@ async def logout(
     summary="Запрос сброса пароля",
 )
 async def request_password_reset(
+    request: Request,
     body: PasswordResetRequest,
     db: AsyncSession = Depends(get_db),
 ) -> None:
+    settings = get_settings()
+    await enforce_rate_limit(
+        scope="password-reset",
+        ip=request.client.host if request.client else "unknown",
+        identity=body.email,
+        limit=settings.rate_limit_password_reset,
+        window_seconds=settings.rate_limit_password_reset_window_seconds,
+    )
     service = AuthService(db)
     await service.request_password_reset(body.email)
 

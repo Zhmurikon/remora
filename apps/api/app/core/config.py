@@ -31,6 +31,13 @@ class Settings(BaseSettings):
     database_url: PostgresDsn
     redis_url: RedisDsn
 
+    # Ограничения чувствительных запросов на один IP и аккаунт
+    rate_limit_register: int = 5
+    rate_limit_login: int = 10
+    rate_limit_password_reset: int = 5
+    rate_limit_window_seconds: int = 900
+    rate_limit_password_reset_window_seconds: int = 3600
+
     # CORS: адреса обоих фронтендов
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 
