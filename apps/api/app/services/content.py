@@ -112,6 +112,7 @@ class ContentService:
         for field, value in values.items():
             setattr(folder, field, value)
         await self.db.flush()
+        await self.db.refresh(folder, attribute_names=["updated_at"])
         return folder
 
     async def delete_folder(self, user: User, folder_id: UUID) -> None:
@@ -141,6 +142,9 @@ class ContentService:
         for field, value in body.model_dump().items():
             setattr(study_set, field, value)
         await self.db.flush()
+        # PostgreSQL вычисляет updated_at при UPDATE. Загружаем значение в async-контексте,
+        # чтобы сериализация ответа не пыталась лениво обратиться к БД.
+        await self.db.refresh(study_set, attribute_names=["updated_at"])
         return study_set
 
     async def delete_set(self, user: User, set_id: UUID) -> None:

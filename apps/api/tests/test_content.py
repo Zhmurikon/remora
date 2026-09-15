@@ -75,6 +75,22 @@ async def test_set_lifecycle_and_card_batch(mock_send: AsyncMock, client: pytest
     assert rich_content.json()["cards"][0]["content_type"] == "latex"
     assert rich_content.json()["cards"][1]["code_language"] == "typescript"
 
+    updated = await client.patch(
+        f"/api/v1/sets/{set_id}",
+        headers=headers,
+        json={
+            "title": "Машинное обучение от статистики до нейросетей",
+            "description": "",
+            "visibility": "private",
+            "lang_term": "ru",
+            "lang_definition": "ru",
+            "folder_id": None,
+        },
+    )
+    assert updated.status_code == 200
+    assert updated.json()["title"] == "Машинное обучение от статистики до нейросетей"
+    assert len(updated.json()["cards"]) == 2
+
     invalid_code = await client.put(
         f"/api/v1/sets/{set_id}/cards",
         headers=headers,
@@ -162,6 +178,12 @@ async def test_folders_organize_sets_and_delete_safely(
         json={"title": "Английский", "parent_id": folder_id},
     )
     assert child.status_code == 201
+
+    renamed = await client.patch(
+        f"/api/v1/folders/{folder_id}", headers=headers, json={"title": "Все языки"}
+    )
+    assert renamed.status_code == 200
+    assert renamed.json()["title"] == "Все языки"
 
     created = await client.post(
         "/api/v1/sets",
