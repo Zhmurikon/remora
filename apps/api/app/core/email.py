@@ -56,7 +56,7 @@ async def send_email(
 
 async def send_verification_email(to: str, token: str) -> None:
     settings = get_settings()
-    link = f"{settings.app_url}/verify-email?token={token}"
+    link = f"{settings.web_url}/verify-email?token={token}"
     subject = "Подтверждение регистрации — Remora"
     body = (
         f"Здравствуйте!\n\n"
@@ -69,7 +69,7 @@ async def send_verification_email(to: str, token: str) -> None:
 
 async def send_password_reset_email(to: str, token: str) -> None:
     settings = get_settings()
-    link = f"{settings.app_url}/reset-password?token={token}"
+    link = f"{settings.web_url}/reset-password?token={token}"
     subject = "Восстановление пароля — Remora"
     body = (
         f"Здравствуйте!\n\n"
