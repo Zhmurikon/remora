@@ -8,4 +8,9 @@
   body {
     @apply bg-bg text-fg antialiased;
   }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
 }

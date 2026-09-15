@@ -10,6 +10,10 @@ export function setAccessToken(token: string | null): void {
   accessToken = token;
 }
 
+export function clearAccessToken(): void {
+  setAccessToken(null);
+}
+
 /**
  * Single-flight обновление токена: десять параллельных 401 не должны
  * породить десять запросов на refresh.

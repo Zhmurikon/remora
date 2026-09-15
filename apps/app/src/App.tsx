@@ -1,50 +1,50 @@
-import { useQuery } from '@tanstack/react-query';
-import { Badge, Button, Card, CardDescription, CardTitle } from '@remora/ui';
-import { STUDY_MODES, STUDY_MODE_LABELS } from '@remora/core';
-import { api } from './lib/api';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { AuthBootstrap } from './features/auth/AuthBootstrap';
+import { ProtectedRoute } from './features/auth/ProtectedRoute';
+import { AppLayout } from './layouts/AppLayout';
+import { DashboardPage } from './pages/DashboardPage';
+import { PlaceholderPage } from './pages/PlaceholderPage';
 
 export function App() {
-  const health = useQuery({
-    queryKey: ['health'],
-    queryFn: async () => {
-      const { data, error } = await api.GET('/api/v1/health');
-      if (error) throw new Error('API недоступен');
-      return data;
-    },
-    retry: false,
-  });
-
   return (
-    <main className="mx-auto flex min-h-dvh max-w-3xl flex-col justify-center gap-8 px-6 py-16">
-      <header className="flex items-center gap-3">
-        <h1 className="text-3xl font-bold tracking-tight">Remora</h1>
-        <Badge tone="primary">кабинет · E0</Badge>
-      </header>
-
-      <Card>
-        <CardTitle>Связь с API</CardTitle>
-        <CardDescription className="mt-1">
-          Запрос идёт через сгенерированный из OpenAPI клиент.
-        </CardDescription>
-        <p className="mt-4 text-sm">
-          {health.isPending && <Badge>проверяю…</Badge>}
-          {health.isError && <Badge tone="warning">API не отвечает</Badge>}
-          {health.data && <Badge tone="success">работает · {health.data.environment}</Badge>}
-        </p>
-      </Card>
-
-      <Card>
-        <CardTitle>Режимы обучения</CardTitle>
-        <ul className="mt-4 flex flex-wrap gap-2">
-          {STUDY_MODES.map((mode) => (
-            <li key={mode}>
-              <Badge>{STUDY_MODE_LABELS[mode]}</Badge>
-            </li>
-          ))}
-        </ul>
-      </Card>
-
-      <Button>Учить</Button>
-    </main>
+    <BrowserRouter>
+      <AuthBootstrap>
+        <Routes>
+          <Route element={<ProtectedRoute />}>
+            <Route element={<AppLayout />}>
+              <Route index element={<DashboardPage />} />
+              <Route
+                path="sets"
+                element={
+                  <PlaceholderPage
+                    title="Мои наборы"
+                    description="Здесь появятся ваши наборы карточек."
+                  />
+                }
+              />
+              <Route
+                path="library"
+                element={
+                  <PlaceholderPage
+                    title="Библиотека"
+                    description="Сохраняйте интересные публичные наборы и возвращайтесь к ним позже."
+                  />
+                }
+              />
+              <Route
+                path="settings"
+                element={
+                  <PlaceholderPage
+                    title="Настройки"
+                    description="Профиль, пароль и активные сессии добавим следующим шагом."
+                  />
+                }
+              />
+            </Route>
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthBootstrap>
+    </BrowserRouter>
   );
 }
