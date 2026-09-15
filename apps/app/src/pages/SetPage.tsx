@@ -1,4 +1,4 @@
-import { Badge, Button, Card } from '@remora/ui';
+import { Badge, Button, Card, CardContent } from '@remora/ui';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
@@ -46,8 +46,18 @@ export function SetPage() {
         {set.cards.map((card, index) => (
           <Card key={card.id} className="grid gap-4 p-5 sm:grid-cols-[48px_1fr_1fr]">
             <span className="text-fg-subtle text-sm">{index + 1}</span>
-            <p className="whitespace-pre-wrap font-medium">{card.term || '—'}</p>
-            <p className="text-fg-muted whitespace-pre-wrap">{card.definition || '—'}</p>
+            <CardContent
+              value={card.term}
+              type={card.content_type}
+              codeLanguage={card.code_language}
+              className="font-medium"
+            />
+            <CardContent
+              value={card.definition}
+              type={card.content_type}
+              codeLanguage={card.code_language}
+              className="text-fg-muted"
+            />
           </Card>
         ))}
       </div>

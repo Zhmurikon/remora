@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ConflictError, ForbiddenError, NotFoundError
-from app.models.content import Card, Folder, StudySet
+from app.models.content import Card, ContentType, Folder, StudySet
 from app.models.user import User
 from app.repositories import content as content_repo
 from app.schemas.content import CardBatch, FolderCreate, FolderUpdate, SetCreate, SetUpdate
@@ -141,7 +141,10 @@ class ContentService:
         seen: set[UUID] = set()
         result: list[Card] = []
         for position, item in enumerate(body.cards):
-            _validate_plain_content(item.term, item.definition)
+            if item.content_type != ContentType.code:
+                _validate_plain_content(item.term, item.definition)
+            if item.content_type == ContentType.code and not item.code_language:
+                raise ConflictError("Для блока кода нужно выбрать язык")
             if item.id is not None:
                 existing_card = existing.get(item.id)
                 if existing_card is None or item.id in seen:

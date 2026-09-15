@@ -1,6 +1,13 @@
 import type { components } from '@remora/api-client';
 import { defaultCardImportOptions, parseCardImport, type CardImportOptions } from '@remora/core';
-import { Button, Card, Input } from '@remora/ui';
+import {
+  Button,
+  Card,
+  CardContent,
+  Input,
+  codeLanguageOptions,
+  type CardContentType,
+} from '@remora/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   useEffect,
@@ -20,6 +27,8 @@ interface DraftCard {
   id?: string;
   term: string;
   definition: string;
+  contentType: CardContentType;
+  codeLanguage: string | null;
 }
 interface Snapshot {
   title: string;
@@ -72,6 +81,8 @@ export function SetEditorPage() {
         id: card.id,
         term: card.term,
         definition: card.definition,
+        contentType: card.content_type,
+        codeLanguage: card.code_language ?? null,
       })),
     );
     setReady(true);
@@ -100,11 +111,12 @@ export function SetEditorPage() {
         api.PUT('/api/v1/sets/{set_id}/cards', {
           params: { path: { set_id: setId } },
           body: {
-            cards: snapshot.cards.map(({ id, term, definition }) => ({
+            cards: snapshot.cards.map(({ id, term, definition, contentType, codeLanguage }) => ({
               id,
               term,
               definition,
-              content_type: 'text' as const,
+              content_type: contentType,
+              code_language: contentType === 'code' ? codeLanguage || 'text' : null,
             })),
           },
         }),
@@ -153,7 +165,32 @@ export function SetEditorPage() {
     );
   }
   function addCard() {
-    setCards((items) => [...items, { key: crypto.randomUUID(), term: '', definition: '' }]);
+    setCards((items) => [
+      ...items,
+      {
+        key: crypto.randomUUID(),
+        term: '',
+        definition: '',
+        contentType: 'text',
+        codeLanguage: null,
+      },
+    ]);
+  }
+  function setCardType(key: string, contentType: CardContentType) {
+    setCards((items) =>
+      items.map((card) =>
+        card.key === key
+          ? {
+              ...card,
+              contentType,
+              codeLanguage: contentType === 'code' ? card.codeLanguage || 'text' : null,
+            }
+          : card,
+      ),
+    );
+  }
+  function setCodeLanguage(key: string, codeLanguage: string) {
+    setCards((items) => items.map((card) => (card.key === key ? { ...card, codeLanguage } : card)));
   }
   function duplicateCard(index: number) {
     setCards((items) => {
@@ -258,7 +295,12 @@ export function SetEditorPage() {
           onImport={(imported) => {
             setCards((current) => [
               ...current,
-              ...imported.map((card) => ({ ...card, key: crypto.randomUUID() })),
+              ...imported.map((card) => ({
+                ...card,
+                key: crypto.randomUUID(),
+                contentType: 'text' as const,
+                codeLanguage: null,
+              })),
             ]);
             setBulkOpen(false);
           }}
@@ -267,8 +309,34 @@ export function SetEditorPage() {
       <div className="mt-8 space-y-4">
         {cards.map((card, index) => (
           <Card key={card.key} className="p-0">
-            <div className="border-border flex min-h-12 items-center justify-between border-b px-4">
-              <span className="text-fg-subtle text-sm font-medium">{index + 1}</span>
+            <div className="border-border flex min-h-14 flex-wrap items-center justify-between gap-2 border-b px-4 py-1">
+              <div className="flex items-center gap-3">
+                <span className="text-fg-subtle text-sm font-medium">{index + 1}</span>
+                <select
+                  aria-label={`Тип содержимого карточки ${index + 1}`}
+                  value={card.contentType}
+                  onChange={(event) => setCardType(card.key, event.target.value as CardContentType)}
+                  className="border-border bg-surface-muted text-fg h-10 rounded-lg border px-3 text-sm"
+                >
+                  <option value="text">Текст</option>
+                  <option value="latex">Формула</option>
+                  <option value="code">Код</option>
+                </select>
+                {card.contentType === 'code' && (
+                  <select
+                    aria-label={`Язык кода карточки ${index + 1}`}
+                    value={card.codeLanguage ?? 'text'}
+                    onChange={(event) => setCodeLanguage(card.key, event.target.value)}
+                    className="border-border bg-surface-muted text-fg h-10 rounded-lg border px-3 text-sm"
+                  >
+                    {codeLanguageOptions.map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
               <div className="flex gap-1">
                 <IconButton label="Выше" disabled={index === 0} onClick={() => moveCard(index, -1)}>
                   ↑
@@ -292,11 +360,15 @@ export function SetEditorPage() {
               <CardField
                 label="Термин"
                 value={card.term}
+                contentType={card.contentType}
+                codeLanguage={card.codeLanguage}
                 onChange={(value) => updateCard(card.key, 'term', value)}
               />
               <CardField
                 label="Определение"
                 value={card.definition}
+                contentType={card.contentType}
+                codeLanguage={card.codeLanguage}
                 onChange={(value) => updateCard(card.key, 'definition', value)}
               />
             </div>
@@ -466,10 +538,14 @@ function BulkImport({
 function CardField({
   label,
   value,
+  contentType,
+  codeLanguage,
   onChange,
 }: {
   label: string;
   value: string;
+  contentType: CardContentType;
+  codeLanguage: string | null;
   onChange: (value: string) => void;
 }) {
   return (
@@ -481,10 +557,25 @@ function CardField({
         rows={3}
         maxLength={10_000}
         className="border-border bg-surface-muted text-fg mt-2 w-full resize-y rounded-xl border px-4 py-3 text-base normal-case tracking-normal"
-        placeholder={label === 'Термин' ? 'Например, memory' : 'Например, память'}
+        placeholder={fieldPlaceholder(label, contentType)}
       />
+      {contentType !== 'text' && value && (
+        <div className="border-border bg-surface mt-3 rounded-xl border p-3 normal-case tracking-normal">
+          <span className="text-fg-subtle mb-2 block text-xs">Предпросмотр</span>
+          <CardContent value={value} type={contentType} codeLanguage={codeLanguage} />
+        </div>
+      )}
     </label>
   );
+}
+
+function fieldPlaceholder(label: string, type: CardContentType) {
+  if (type === 'latex')
+    return label === 'Термин'
+      ? String.raw`x = \frac{-b \pm \sqrt{D}}{2a}`
+      : String.raw`D = b^2 - 4ac`;
+  if (type === 'code') return label === 'Термин' ? 'function remember() {' : '  return true;\n}';
+  return label === 'Термин' ? 'Например, memory' : 'Например, память';
 }
 function IconButton({
   label,

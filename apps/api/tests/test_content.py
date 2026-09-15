@@ -56,9 +56,36 @@ async def test_set_lifecycle_and_card_batch(mock_send: AsyncMock, client: pytest
     assert [card["position"] for card in reordered.json()["cards"]] == [0, 1]
     assert reordered.json()["cards"][0]["definition"] == "изучать"
 
+    rich_content = await client.put(
+        f"/api/v1/sets/{set_id}/cards",
+        headers=headers,
+        json={
+            "cards": [
+                {"term": "x^2", "definition": "x \\cdot x", "content_type": "latex"},
+                {
+                    "term": "const answer = 42",
+                    "definition": "TypeScript",
+                    "content_type": "code",
+                    "code_language": "typescript",
+                },
+            ]
+        },
+    )
+    assert rich_content.status_code == 200
+    assert rich_content.json()["cards"][0]["content_type"] == "latex"
+    assert rich_content.json()["cards"][1]["code_language"] == "typescript"
+
+    invalid_code = await client.put(
+        f"/api/v1/sets/{set_id}/cards",
+        headers=headers,
+        json={"cards": [{"term": "print(1)", "definition": "Python", "content_type": "code"}]},
+    )
+    assert invalid_code.status_code == 409
+
     duplicate = await client.post(f"/api/v1/sets/{set_id}/duplicate", headers=headers)
     assert duplicate.status_code == 201
     assert duplicate.json()["cards_count"] == 2
+    assert duplicate.json()["cards"][1]["content_type"] == "code"
 
     deleted = await client.delete(f"/api/v1/sets/{set_id}", headers=headers)
     assert deleted.status_code == 204

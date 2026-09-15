@@ -15,6 +15,8 @@
   },
   "dependencies": {
     "clsx": "^2.1.1",
+    "katex": "^0.18.7",
+    "shiki": "^4.4.3",
     "tailwind-merge": "^2.6.0"
   },
   "peerDependencies": {
@@ -23,6 +25,7 @@
   },
   "devDependencies": {
     "@remora/config": "workspace:*",
+    "@types/katex": "^0.16.8",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
     "react": "^19.0.0",
