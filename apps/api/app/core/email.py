@@ -35,17 +35,23 @@ async def send_email(
     smtp = SMTP(
         hostname=settings.smtp_host,
         port=settings.smtp_port,
-        start_tls=settings.environment == "production",
+        start_tls=settings.smtp_start_tls,
     )
     try:
         await smtp.connect()
+        if settings.smtp_username and settings.smtp_password:
+            await smtp.login(
+                settings.smtp_username,
+                settings.smtp_password.get_secret_value(),
+            )
         await smtp.send_message(message)
         log.info("email.sent", to=to, subject=subject)
     except Exception:
         log.error("email.send_failed", to=to, subject=subject)
         raise
     finally:
-        await smtp.quit()
+        if smtp.is_connected:
+            await smtp.quit()
 
 
 async def send_verification_email(to: str, token: str) -> None:
