@@ -34,6 +34,7 @@ class SetCreate(BaseModel):
     visibility: SetVisibility = SetVisibility.private
     lang_term: str = Field(default="ru", min_length=2, max_length=10)
     lang_definition: str = Field(default="ru", min_length=2, max_length=10)
+    folder_id: UUID | None = None
 
 
 class SetUpdate(SetCreate):
@@ -48,6 +49,7 @@ class SetSummary(BaseModel):
     visibility: SetVisibility
     slug: str
     cards_count: int
+    folder_id: UUID | None
     created_at: datetime
     updated_at: datetime
 
@@ -60,3 +62,27 @@ class SetDetail(SetSummary):
 
 class CardBatch(BaseModel):
     cards: list[CardWrite] = Field(max_length=300)
+
+
+class FolderCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=100)
+    color: str = Field(default="lime", pattern=r"^(lime|blue|violet|orange|rose)$")
+    parent_id: UUID | None = None
+
+
+class FolderUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=100)
+    color: str | None = Field(default=None, pattern=r"^(lime|blue|violet|orange|rose)$")
+    parent_id: UUID | None = None
+    position: int | None = Field(default=None, ge=0)
+
+
+class FolderPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    parent_id: UUID | None
+    title: str
+    color: str
+    position: int
+    created_at: datetime
+    updated_at: datetime

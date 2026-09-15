@@ -3,11 +3,38 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.content import Card, StudySet
+from app.models.content import Card, Folder, StudySet
+
+
+async def list_folders(db: AsyncSession, owner_id: UUID) -> list[Folder]:
+    result = await db.scalars(
+        select(Folder)
+        .where(Folder.owner_id == owner_id)
+        .order_by(Folder.position, Folder.created_at)
+    )
+    return list(result.all())
+
+
+async def get_folder(db: AsyncSession, folder_id: UUID) -> Folder | None:
+    return await db.get(Folder, folder_id)
+
+
+async def next_folder_position(db: AsyncSession, owner_id: UUID) -> int:
+    value = await db.scalar(
+        select(func.coalesce(func.max(Folder.position), -1)).where(Folder.owner_id == owner_id)
+    )
+    return int(value or 0) + 1
+
+
+async def delete_folder(db: AsyncSession, folder: Folder) -> None:
+    await db.execute(update(StudySet).where(StudySet.folder_id == folder.id).values(folder_id=None))
+    await db.execute(update(Folder).where(Folder.parent_id == folder.id).values(parent_id=None))
+    await db.delete(folder)
+    await db.flush()
 
 
 async def list_sets(db: AsyncSession, owner_id: UUID) -> list[StudySet]:

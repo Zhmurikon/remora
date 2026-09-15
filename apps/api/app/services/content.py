@@ -6,10 +6,10 @@ from uuid import UUID, uuid4
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ConflictError, ForbiddenError, NotFoundError
-from app.models.content import Card, StudySet
+from app.models.content import Card, Folder, StudySet
 from app.models.user import User
 from app.repositories import content as content_repo
-from app.schemas.content import CardBatch, SetCreate, SetUpdate
+from app.schemas.content import CardBatch, FolderCreate, FolderUpdate, SetCreate, SetUpdate
 
 _HTML_TAG = re.compile(r"<\s*/?\s*[a-zA-Z][^>]*>")
 
@@ -20,6 +20,55 @@ class ContentService:
 
     async def list_sets(self, user: User) -> list[StudySet]:
         return await content_repo.list_sets(self.db, user.id)
+
+    async def list_folders(self, user: User) -> list[Folder]:
+        return await content_repo.list_folders(self.db, user.id)
+
+    async def get_owned_folder(self, user: User, folder_id: UUID) -> Folder:
+        folder = await content_repo.get_folder(self.db, folder_id)
+        if folder is None:
+            raise NotFoundError("Папка не найдена")
+        if folder.owner_id != user.id:
+            raise ForbiddenError("Нет доступа к этой папке")
+        return folder
+
+    async def create_folder(self, user: User, body: FolderCreate) -> Folder:
+        if body.parent_id is not None:
+            await self.get_owned_folder(user, body.parent_id)
+        folder = Folder(
+            owner_id=user.id,
+            position=await content_repo.next_folder_position(self.db, user.id),
+            **body.model_dump(),
+        )
+        self.db.add(folder)
+        await self.db.flush()
+        return folder
+
+    async def update_folder(self, user: User, folder_id: UUID, body: FolderUpdate) -> Folder:
+        folder = await self.get_owned_folder(user, folder_id)
+        values = body.model_dump(exclude_unset=True)
+        parent_id = values.get("parent_id")
+        if parent_id == folder.id:
+            raise ConflictError("Папка не может находиться внутри себя")
+        if parent_id is not None:
+            parent: Folder | None = await self.get_owned_folder(user, parent_id)
+            visited = {folder.id}
+            while parent is not None:
+                if parent.id in visited:
+                    raise ConflictError("Нельзя создать цикл из вложенных папок")
+                visited.add(parent.id)
+                parent = (
+                    await self.get_owned_folder(user, parent.parent_id)
+                    if parent.parent_id is not None
+                    else None
+                )
+        for field, value in values.items():
+            setattr(folder, field, value)
+        await self.db.flush()
+        return folder
+
+    async def delete_folder(self, user: User, folder_id: UUID) -> None:
+        await content_repo.delete_folder(self.db, await self.get_owned_folder(user, folder_id))
 
     async def get_owned_set(
         self, user: User, set_id: UUID, *, with_cards: bool = False
@@ -32,11 +81,15 @@ class ContentService:
         return study_set
 
     async def create_set(self, user: User, body: SetCreate) -> StudySet:
+        if body.folder_id is not None:
+            await self.get_owned_folder(user, body.folder_id)
         study_set = StudySet(id=uuid4(), owner_id=user.id, slug="pending", **body.model_dump())
         study_set.slug = f"{_slug(body.title)}-{str(study_set.id)[:8]}"
         return await content_repo.create_set(self.db, study_set)
 
     async def update_set(self, user: User, set_id: UUID, body: SetUpdate) -> StudySet:
+        if body.folder_id is not None:
+            await self.get_owned_folder(user, body.folder_id)
         study_set = await self.get_owned_set(user, set_id, with_cards=True)
         for field, value in body.model_dump().items():
             setattr(study_set, field, value)
@@ -56,6 +109,7 @@ class ContentService:
                 visibility=source.visibility,
                 lang_term=source.lang_term,
                 lang_definition=source.lang_definition,
+                folder_id=source.folder_id,
             ),
         )
         copy.copied_from_id = source.id

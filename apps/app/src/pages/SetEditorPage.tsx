@@ -1,7 +1,15 @@
 import type { components } from '@remora/api-client';
+import { defaultCardImportOptions, parseCardImport, type CardImportOptions } from '@remora/core';
 import { Button, Card, Input } from '@remora/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState, type ButtonHTMLAttributes } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ButtonHTMLAttributes,
+  type ReactNode,
+} from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 
@@ -17,6 +25,7 @@ interface Snapshot {
   title: string;
   description: string;
   visibility: Visibility;
+  folderId: string | null;
   cards: DraftCard[];
 }
 
@@ -27,9 +36,11 @@ export function SetEditorPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [visibility, setVisibility] = useState<Visibility>('private');
+  const [folderId, setFolderId] = useState<string | null>(null);
   const [cards, setCards] = useState<DraftCard[]>([]);
   const [ready, setReady] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [bulkOpen, setBulkOpen] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saving = useRef(false);
   const pending = useRef<Snapshot | null>(null);
@@ -44,12 +55,17 @@ export function SetEditorPage() {
       return data;
     },
   });
+  const folders = useQuery({
+    queryKey: ['folders'],
+    queryFn: async () => (await api.GET('/api/v1/folders')).data ?? [],
+  });
 
   useEffect(() => {
     if (!query.data || ready) return;
     setTitle(query.data.title);
     setDescription(query.data.description);
     setVisibility(query.data.visibility);
+    setFolderId(query.data.folder_id);
     setCards(
       query.data.cards.map((card) => ({
         key: card.id,
@@ -78,6 +94,7 @@ export function SetEditorPage() {
             visibility: snapshot.visibility,
             lang_term: 'ru',
             lang_definition: 'ru',
+            folder_id: snapshot.folderId,
           },
         }),
         api.PUT('/api/v1/sets/{set_id}/cards', {
@@ -115,7 +132,7 @@ export function SetEditorPage() {
   function saveNow() {
     if (timer.current) clearTimeout(timer.current);
     pending.current = null;
-    void runSave({ title, description, visibility, cards });
+    void runSave({ title, description, visibility, folderId, cards });
   }
 
   useEffect(() => {
@@ -128,7 +145,7 @@ export function SetEditorPage() {
     };
     // saveNow намеренно пересоздаётся: снимок должен содержать последние поля формы.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, description, visibility, cards, ready]);
+  }, [title, description, visibility, folderId, cards, ready]);
 
   function updateCard(key: string, field: 'term' | 'definition', value: string) {
     setCards((items) =>
@@ -205,19 +222,48 @@ export function SetEditorPage() {
             placeholder="Короткое описание"
           />
         </div>
-        <label className="text-fg-muted text-sm">
-          Видимость
-          <select
+        <div className="space-y-4">
+          <SelectField
+            label="Папка"
+            value={folderId ?? ''}
+            onChange={(value) => setFolderId(value || null)}
+          >
+            <option value="">Без папки</option>
+            {folders.data?.map((folder) => (
+              <option key={folder.id} value={folder.id}>
+                {folder.title}
+              </option>
+            ))}
+          </SelectField>
+          <SelectField
+            label="Видимость"
             value={visibility}
-            onChange={(event) => setVisibility(event.target.value as Visibility)}
-            className="border-border bg-surface text-fg mt-1.5 h-11 w-full rounded-xl border px-3"
+            onChange={(value) => setVisibility(value as Visibility)}
           >
             <option value="private">Приватный</option>
             <option value="unlisted">По ссылке</option>
             <option value="public">Публичный</option>
-          </select>
-        </label>
+          </SelectField>
+        </div>
       </header>
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-semibold">Карточки</h2>
+        <Button variant="secondary" onClick={() => setBulkOpen((open) => !open)}>
+          {bulkOpen ? 'Закрыть импорт' : 'Массовый ввод'}
+        </Button>
+      </div>
+      {bulkOpen && (
+        <BulkImport
+          onCancel={() => setBulkOpen(false)}
+          onImport={(imported) => {
+            setCards((current) => [
+              ...current,
+              ...imported.map((card) => ({ ...card, key: crypto.randomUUID() })),
+            ]);
+            setBulkOpen(false);
+          }}
+        />
+      )}
       <div className="mt-8 space-y-4">
         {cards.map((card, index) => (
           <Card key={card.key} className="p-0">
@@ -266,6 +312,154 @@ export function SetEditorPage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+function SelectField({
+  label,
+  children,
+  value,
+  onChange,
+}: {
+  label: string;
+  children: ReactNode;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="text-fg-muted block text-sm">
+      {label}
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="border-border bg-surface text-fg mt-1.5 h-11 w-full rounded-xl border px-3"
+      >
+        {children}
+      </select>
+    </label>
+  );
+}
+
+function BulkImport({
+  onCancel,
+  onImport,
+}: {
+  onCancel: () => void;
+  onImport: (cards: Array<{ term: string; definition: string }>) => void;
+}) {
+  const [source, setSource] = useState('');
+  const [options, setOptions] = useState<CardImportOptions>(defaultCardImportOptions);
+  const result = useMemo(() => parseCardImport(source, options), [source, options]);
+  return (
+    <Card className="mt-5 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="font-semibold">Вставьте карточки</h3>
+          <p className="text-fg-muted mt-1 text-sm">
+            Подходит экспорт Quizlet: термин и определение через Tab, каждая карточка с новой
+            строки.
+          </p>
+        </div>
+        <button type="button" className="text-fg-muted hover:text-fg h-11 px-2" onClick={onCancel}>
+          Закрыть
+        </button>
+      </div>
+      <textarea
+        autoFocus
+        value={source}
+        onChange={(event) => setSource(event.target.value)}
+        rows={8}
+        className="border-border bg-surface-muted text-fg mt-4 w-full resize-y rounded-xl border px-4 py-3 font-mono text-sm"
+        placeholder={'memory\tпамять\nlearn\tучиться'}
+      />
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <label className="text-fg-muted text-sm">
+          Между термином и определением
+          <select
+            value={options.sideSeparator}
+            onChange={(event) =>
+              setOptions({
+                ...options,
+                sideSeparator: event.target.value as CardImportOptions['sideSeparator'],
+              })
+            }
+            className="border-border bg-surface text-fg mt-1 h-11 w-full rounded-xl border px-3"
+          >
+            <option value="tab">Табуляция</option>
+            <option value="comma">Запятая</option>
+            <option value="custom">Свой символ</option>
+          </select>
+        </label>
+        <label className="text-fg-muted text-sm">
+          Между карточками
+          <select
+            value={options.cardSeparator}
+            onChange={(event) =>
+              setOptions({
+                ...options,
+                cardSeparator: event.target.value as CardImportOptions['cardSeparator'],
+              })
+            }
+            className="border-border bg-surface text-fg mt-1 h-11 w-full rounded-xl border px-3"
+          >
+            <option value="newline">Новая строка</option>
+            <option value="semicolon">Точка с запятой</option>
+            <option value="custom">Свой символ</option>
+          </select>
+        </label>
+      </div>
+      {(options.sideSeparator === 'custom' || options.cardSeparator === 'custom') && (
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          {options.sideSeparator === 'custom' && (
+            <Input
+              aria-label="Разделитель сторон"
+              placeholder="Например, —"
+              maxLength={10}
+              value={options.customSideSeparator ?? ''}
+              onChange={(event) =>
+                setOptions({ ...options, customSideSeparator: event.target.value })
+              }
+            />
+          )}
+          {options.cardSeparator === 'custom' && (
+            <Input
+              aria-label="Разделитель карточек"
+              placeholder="Например, |"
+              maxLength={10}
+              value={options.customCardSeparator ?? ''}
+              onChange={(event) =>
+                setOptions({ ...options, customCardSeparator: event.target.value })
+              }
+            />
+          )}
+        </div>
+      )}
+      <div className="border-border mt-5 border-t pt-4">
+        <p className="text-sm font-medium">
+          Предпросмотр: {result.cards.length} карточек
+          {result.skipped > 0 ? `, пропущено строк: ${result.skipped}` : ''}
+        </p>
+        <div className="mt-3 max-h-52 space-y-2 overflow-auto">
+          {result.cards.slice(0, 20).map((card, index) => (
+            <div
+              key={`${card.term}-${index}`}
+              className="bg-surface-muted grid gap-2 rounded-lg px-3 py-2 text-sm sm:grid-cols-2"
+            >
+              <span>{card.term}</span>
+              <span className="text-fg-muted">{card.definition}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="mt-5 flex justify-end gap-3">
+        <Button variant="ghost" onClick={onCancel}>
+          Отмена
+        </Button>
+        <Button disabled={result.cards.length === 0} onClick={() => onImport(result.cards)}>
+          Добавить {result.cards.length || ''}
+        </Button>
+      </div>
+    </Card>
   );
 }
 

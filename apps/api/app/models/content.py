@@ -25,11 +25,27 @@ class ContentType(enum.Enum):
     code = "code"
 
 
+class Folder(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    __tablename__ = "folders"
+    __table_args__ = (
+        Index("ix_folders_owner_id_parent_id_position", "owner_id", "parent_id", "position"),
+    )
+
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    parent_id: Mapped[UUID | None] = mapped_column(ForeignKey("folders.id", ondelete="SET NULL"))
+    title: Mapped[str] = mapped_column(String(100))
+    color: Mapped[str] = mapped_column(String(30), default="lime", server_default=text("'lime'"))
+    position: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
+
+
 class StudySet(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "study_sets"
     __table_args__ = (Index("ix_study_sets_owner_id_deleted_at", "owner_id", "deleted_at"),)
 
     owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    folder_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("folders.id", ondelete="SET NULL"), index=True
+    )
     title: Mapped[str] = mapped_column(String(160))
     description: Mapped[str] = mapped_column(Text, default="", server_default=text("''"))
     visibility: Mapped[SetVisibility] = mapped_column(

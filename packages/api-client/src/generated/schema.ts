@@ -197,6 +197,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/folders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Мои папки */
+        get: operations["list_folders_api_v1_folders_get"];
+        put?: never;
+        /** Создать папку */
+        post: operations["create_folder_api_v1_folders_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/folders/{folder_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Удалить папку */
+        delete: operations["delete_folder_api_v1_folders__folder_id__delete"];
+        options?: never;
+        head?: never;
+        /** Изменить папку */
+        patch: operations["update_folder_api_v1_folders__folder_id__patch"];
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -373,6 +409,55 @@ export interface components {
          * @enum {string}
          */
         ContentType: "text" | "latex" | "code";
+        /** FolderCreate */
+        FolderCreate: {
+            /**
+             * Color
+             * @default lime
+             */
+            color: string;
+            /** Parent Id */
+            parent_id?: string | null;
+            /** Title */
+            title: string;
+        };
+        /** FolderPublic */
+        FolderPublic: {
+            /** Color */
+            color: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Parent Id */
+            parent_id: string | null;
+            /** Position */
+            position: number;
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** FolderUpdate */
+        FolderUpdate: {
+            /** Color */
+            color?: string | null;
+            /** Parent Id */
+            parent_id?: string | null;
+            /** Position */
+            position?: number | null;
+            /** Title */
+            title?: string | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -495,6 +580,8 @@ export interface components {
              * @default
              */
             description: string;
+            /** Folder Id */
+            folder_id?: string | null;
             /**
              * Lang Definition
              * @default ru
@@ -523,6 +610,8 @@ export interface components {
             created_at: string;
             /** Description */
             description: string;
+            /** Folder Id */
+            folder_id: string | null;
             /**
              * Id
              * Format: uuid
@@ -554,6 +643,8 @@ export interface components {
             created_at: string;
             /** Description */
             description: string;
+            /** Folder Id */
+            folder_id: string | null;
             /**
              * Id
              * Format: uuid
@@ -577,6 +668,8 @@ export interface components {
              * @default
              */
             description: string;
+            /** Folder Id */
+            folder_id?: string | null;
             /**
              * Lang Definition
              * @default ru
@@ -982,6 +1075,123 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_folders_api_v1_folders_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderPublic"][];
+                };
+            };
+        };
+    };
+    create_folder_api_v1_folders_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FolderCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_folder_api_v1_folders__folder_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                folder_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_folder_api_v1_folders__folder_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                folder_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FolderUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderPublic"];
                 };
             };
             /** @description Validation Error */

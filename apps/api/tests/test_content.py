@@ -83,3 +83,59 @@ async def test_user_cannot_access_another_users_set(
         )
     ).status_code == 403
     assert (await client.delete(f"/api/v1/sets/{set_id}", headers=stranger)).status_code == 403
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_folders_organize_sets_and_delete_safely(
+    mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    headers = await _auth(client, "folders")
+    folder = await client.post(
+        "/api/v1/folders", headers=headers, json={"title": "Языки", "color": "blue"}
+    )
+    assert folder.status_code == 201
+    folder_id = folder.json()["id"]
+    child = await client.post(
+        "/api/v1/folders",
+        headers=headers,
+        json={"title": "Английский", "parent_id": folder_id},
+    )
+    assert child.status_code == 201
+
+    created = await client.post(
+        "/api/v1/sets",
+        headers=headers,
+        json={"title": "Слова", "folder_id": folder_id},
+    )
+    assert created.status_code == 201
+    assert created.json()["folder_id"] == folder_id
+
+    assert (await client.delete(f"/api/v1/folders/{folder_id}", headers=headers)).status_code == 204
+    folders = (await client.get("/api/v1/folders", headers=headers)).json()
+    assert folders[0]["parent_id"] is None
+    loaded = await client.get(f"/api/v1/sets/{created.json()['id']}", headers=headers)
+    assert loaded.json()["folder_id"] is None
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_user_cannot_use_another_users_folder(
+    mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    owner = await _auth(client, "folderowner")
+    stranger = await _auth(client, "folderstranger")
+    folder = await client.post("/api/v1/folders", headers=owner, json={"title": "Личное"})
+    folder_id = folder.json()["id"]
+
+    assert (
+        await client.patch(
+            f"/api/v1/folders/{folder_id}", headers=stranger, json={"title": "Чужое"}
+        )
+    ).status_code == 403
+    assert (
+        await client.post(
+            "/api/v1/sets", headers=stranger, json={"title": "Набор", "folder_id": folder_id}
+        )
+    ).status_code == 403
+    assert (
+        await client.delete(f"/api/v1/folders/{folder_id}", headers=stranger)
+    ).status_code == 403
