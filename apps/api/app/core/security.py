@@ -9,7 +9,8 @@ from __future__ import annotations
 import hashlib
 import secrets
 from datetime import UTC, datetime, timedelta
-from typing import Literal
+from typing import Any, Literal
+from uuid import UUID
 
 import jwt
 from argon2 import PasswordHasher
@@ -61,27 +62,44 @@ def create_jwt(
         ttl = timedelta(minutes=settings.password_reset_ttl_minutes)
 
     now = datetime.now(tz=UTC)
-    payload: dict[str, str] = {
+    payload: dict[str, str | int] = {
+        **(extra or {}),
         "sub": subject,
         "type": token_type,
-        "iat": str(int(now.timestamp())),
-        "exp": str(int((now + ttl).timestamp())),
+        "iat": int(now.timestamp()),
+        "exp": int((now + ttl).timestamp()),
     }
-    if extra:
-        payload.update(extra)
 
     return jwt.encode(payload, settings.secret_key, algorithm="HS256")
 
 
-def decode_jwt(token: str, expected_type: TokenType) -> dict[str, str] | None:
+def decode_jwt(token: str, expected_type: TokenType) -> dict[str, Any] | None:
     """Декодирует JWT и проверяет тип. None — если токен невалиден."""
     settings = get_settings()
     try:
-        payload = jwt.decode(token, settings.secret_key, algorithms=["HS256"])
+        payload = jwt.decode(
+            token,
+            settings.secret_key,
+            algorithms=["HS256"],
+            options={"require": ["sub", "type", "iat", "exp"]},
+        )
     except jwt.PyJWTError:
         return None
 
     if payload.get("type") != expected_type:
+        return None
+    subject = payload.get("sub")
+    issued_at = payload.get("iat")
+    expires_at = payload.get("exp")
+    if (
+        not isinstance(subject, str)
+        or not isinstance(issued_at, int)
+        or not isinstance(expires_at, int)
+    ):
+        return None
+    try:
+        UUID(subject)
+    except ValueError:
         return None
 
     return payload

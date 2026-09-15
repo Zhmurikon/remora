@@ -1,12 +1,15 @@
 """Тесты аутентификации: регистрация, вход, ротация, /me, сброс пароля."""
 
 import asyncio
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
+import jwt
 import pytest
 from sqlalchemy import text
 
 from app.core.config import get_settings
+from app.core.security import create_jwt, hash_token
 from app.db.session import get_engine
 
 # Email отправка мокается во всех тестах — MailHog не нужен
@@ -94,6 +97,33 @@ async def test_register_rate_limit(mock_send: AsyncMock, client: pytest.fixture)
     blocked = await client.post("/api/v1/auth/register", json=payload)
     assert blocked.status_code == 429
     assert blocked.json()["code"] == "RATE_LIMITED"
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_concurrent_registration_returns_conflict(
+    mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    first, second = await asyncio.gather(
+        client.post(
+            "/api/v1/auth/register",
+            json={
+                "email": "race@example.com",
+                "password": "Str0ngP@ss!",
+                "username": "racefirst",
+            },
+        ),
+        client.post(
+            "/api/v1/auth/register",
+            json={
+                "email": "race@example.com",
+                "password": "Str0ngP@ss!",
+                "username": "racesecond",
+            },
+        ),
+    )
+    assert sorted([first.status_code, second.status_code]) == [201, 409]
+    conflict = first if first.status_code == 409 else second
+    assert conflict.json()["code"] == "CONFLICT"
 
 
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
@@ -352,6 +382,69 @@ async def test_me_with_valid_token(mock_send: AsyncMock, client: pytest.fixture)
 
 
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_me_rejects_invalid_jwt_claims(
+    mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "claims@example.com",
+            "password": "Str0ngP@ss!",
+            "username": "claimsuser",
+        },
+    )
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "claims@example.com", "password": "Str0ngP@ss!"},
+    )
+    valid_access = login.json()["access_token"]
+    valid_payload = jwt.decode(
+        valid_access,
+        get_settings().secret_key,
+        algorithms=["HS256"],
+    )
+    user_id = valid_payload["sub"]
+    now = datetime.now(tz=UTC)
+    malformed_tokens = [
+        "not-a-jwt",
+        jwt.encode(
+            {"type": "access", "iat": now, "exp": now + timedelta(minutes=5)},
+            get_settings().secret_key,
+            algorithm="HS256",
+        ),
+        jwt.encode(
+            {
+                "sub": "not-a-uuid",
+                "type": "access",
+                "iat": now,
+                "exp": now + timedelta(minutes=5),
+            },
+            get_settings().secret_key,
+            algorithm="HS256",
+        ),
+        jwt.encode(
+            {
+                "sub": user_id,
+                "type": "access",
+                "iat": now - timedelta(minutes=10),
+                "exp": now - timedelta(minutes=5),
+            },
+            get_settings().secret_key,
+            algorithm="HS256",
+        ),
+        create_jwt(user_id, "email_verification", extra={"email": "claims@example.com"}),
+    ]
+
+    for token in malformed_tokens:
+        response = await client.get(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 401
+        assert response.json()["code"] == "UNAUTHORIZED"
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
 async def test_verify_email(mock_send: AsyncMock, client: pytest.fixture) -> None:
     service_call = await client.post(
         "/api/v1/auth/register",
@@ -371,6 +464,65 @@ async def test_verify_email(mock_send: AsyncMock, client: pytest.fixture) -> Non
     reused = await client.post("/api/v1/auth/verify-email", json={"token": token})
     assert reused.status_code == 401
     assert reused.json()["code"] == "UNAUTHORIZED"
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_email_verification_link_expires(
+    mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "expired@example.com",
+            "password": "Str0ngP@ss!",
+            "username": "expireduser",
+        },
+    )
+    token = mock_send.await_args.args[1]
+    async with get_engine().begin() as connection:
+        await connection.execute(
+            text(
+                "UPDATE action_tokens SET expires_at = now() - interval '1 second' "
+                "WHERE token_hash = :token_hash"
+            ),
+            {"token_hash": hash_token(token)},
+        )
+
+    response = await client.post("/api/v1/auth/verify-email", json={"token": token})
+    assert response.status_code == 401
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_email_verification_isolated_between_users(
+    mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    credentials = [
+        ("first@example.com", "firstuser"),
+        ("second@example.com", "seconduser"),
+    ]
+    for email, username in credentials:
+        await client.post(
+            "/api/v1/auth/register",
+            json={"email": email, "password": "Str0ngP@ss!", "username": username},
+        )
+
+    first_token = mock_send.await_args_list[0].args[1]
+    verified = await client.post(
+        "/api/v1/auth/verify-email", json={"token": first_token}
+    )
+    assert verified.status_code == 200
+    assert verified.json()["user"]["email"] == "first@example.com"
+
+    for email, _username in credentials:
+        login = await client.post(
+            "/api/v1/auth/login",
+            json={"email": email, "password": "Str0ngP@ss!"},
+        )
+        me = await client.get(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {login.json()['access_token']}"},
+        )
+        assert me.json()["email_verified"] is (email == "first@example.com")
 
 
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
@@ -426,3 +578,39 @@ async def test_password_reset(
         json={"email": "reset@example.com", "password": "NewStr0ngP@ss!"},
     )
     assert resp.status_code == 200
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+@patch("app.services.auth.send_password_reset_email", new_callable=AsyncMock)
+async def test_password_reset_link_expires(
+    mock_reset: AsyncMock,
+    mock_verify: AsyncMock,
+    client: pytest.fixture,
+) -> None:
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "expired-reset@example.com",
+            "password": "Str0ngP@ss!",
+            "username": "expiredreset",
+        },
+    )
+    await client.post(
+        "/api/v1/auth/password-reset",
+        json={"email": "expired-reset@example.com"},
+    )
+    token = mock_reset.await_args.args[1]
+    async with get_engine().begin() as connection:
+        await connection.execute(
+            text(
+                "UPDATE action_tokens SET expires_at = now() - interval '1 second' "
+                "WHERE token_hash = :token_hash"
+            ),
+            {"token_hash": hash_token(token)},
+        )
+
+    response = await client.post(
+        "/api/v1/auth/password-reset/confirm",
+        json={"token": token, "new_password": "NewStr0ngP@ss!"},
+    )
+    assert response.status_code == 401

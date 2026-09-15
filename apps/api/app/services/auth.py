@@ -10,6 +10,7 @@ from typing import Literal
 from uuid import UUID, uuid4
 
 import structlog
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -63,13 +64,18 @@ class AuthService:
             raise ConflictError("Это имя пользователя занято")
 
         pw_hash = hash_password(password)
-        user = await user_repo.create_user(
-            self.db,
-            email=email,
-            password_hash=pw_hash,
-            username=username,
-            birth_date=birth_date,
-        )
+        try:
+            user = await user_repo.create_user(
+                self.db,
+                email=email,
+                password_hash=pw_hash,
+                username=username,
+                birth_date=birth_date,
+            )
+        except IntegrityError as exc:
+            # Предварительные SELECT не защищают от двух одновременных INSERT.
+            await self.db.rollback()
+            raise ConflictError("Email или имя пользователя уже заняты") from exc
 
         settings = get_settings()
         token = create_jwt(str(user.id), EMAIL_VERIFICATION, extra={"email": email})
@@ -101,7 +107,7 @@ class AuthService:
             raise UnauthorizedError("Ссылка уже использована или недействительна")
 
         user = await user_repo.get_user_by_id(self.db, user_id)
-        if user is None:
+        if user is None or payload.get("email") != user.email:
             raise UnauthorizedError("Пользователь не найден")
 
         await user_repo.verify_email(self.db, user_id)
@@ -248,7 +254,7 @@ class AuthService:
             raise UnauthorizedError("Ссылка уже использована или недействительна")
 
         user = await user_repo.get_user_by_id(self.db, user_id)
-        if user is None:
+        if user is None or payload.get("email") != user.email:
             raise UnauthorizedError("Пользователь не найден")
 
         err = validate_password(new_password)
