@@ -56,11 +56,13 @@ export function SetStudyPanel({ setId, cardsCount }: { setId: string; cardsCount
             Карточки
           </Button>
         </Link>
+        <Link to={`/sets/${setId}/write`} aria-disabled={disabled}>
+          <Button variant="secondary" disabled={disabled}>
+            Письмо
+          </Button>
+        </Link>
         <Button variant="ghost" disabled title="Появится в следующем этапе">
           Тест
-        </Button>
-        <Button variant="ghost" disabled title="Появится в следующем этапе">
-          Письмо
         </Button>
       </div>
 

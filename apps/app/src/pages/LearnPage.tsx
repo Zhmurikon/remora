@@ -9,8 +9,10 @@
 
 import {
   canAskMultipleChoice,
+  checkAnswer,
   formatIntervalSeconds,
   generateOptions,
+  normalizeAnswer,
   pluralWithCount,
   type Rating,
 } from '@remora/core';
@@ -18,6 +20,7 @@ import { Badge, Button, Card, CardContent, Input } from '@remora/ui';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Diff, SessionSummary } from '../features/study/SessionSummary';
+import { answerLang, answerSide, questionImage, questionSide } from '../features/study/card-sides';
 import { StudyShell } from '../features/study/StudyShell';
 import { selectCurrent, useStudyStore, type QueueItem } from '../features/study/study-store';
 import {
@@ -41,6 +44,7 @@ export function LearnPage() {
   const direction = (params.get('direction') as StudyDirectionMode | null) ?? 'term_to_def';
 
   const query = useStudySession({ setId, mode: 'learn', scope: 'due', direction });
+  const queue = query.data?.queue;
 
   const items = useStudyStore((state) => state.items);
   const index = useStudyStore((state) => state.index);
@@ -50,6 +54,7 @@ export function LearnPage() {
   const answer = useStudyStore((state) => state.answer);
 
   const [typed, setTyped] = useState('');
+  const [typoHint, setTypoHint] = useState<string | null>(null);
   const [checked, setChecked] = useState<{ correct: boolean; value: string } | null>(null);
   const [roundBreak, setRoundBreak] = useState(false);
   const [finished, setFinished] = useState(false);
@@ -85,6 +90,7 @@ export function LearnPage() {
         requeue: !correct,
       });
       setTyped('');
+      setTypoHint(null);
       setChecked(null);
       shownAt.current = Date.now();
       const answered = index + 1;
@@ -97,15 +103,24 @@ export function LearnPage() {
 
   const check = useCallback(() => {
     if (!current || checked) return;
-    const expected = answerSide(current);
-    const alternatives = [expected, ...(current.card.alt_answers ?? [])];
-    const correct = alternatives.some((value) => looseEqual(value, typed));
+    const verdict = checkAnswer(typed, answerSide(current), {
+      strictness: queue?.answer_strictness ?? 'moderate',
+      alternatives: current.card.alt_answers ?? [],
+      lang: answerLang(current, queue?.lang_term, queue?.lang_definition),
+    });
+    // Опечатка — не ошибка: просим ввести заново, ничего не записывая.
+    if (verdict.verdict === 'typo') {
+      setTypoHint(typed);
+      setTyped('');
+      return;
+    }
+    const correct = verdict.verdict === 'correct';
     setChecked({ correct, value: typed });
     if (correct) {
       // Верный ввод — оценка «хорошо», карточка уходит по расписанию.
       setTimeout(() => advance(3, true, typed), 450);
     }
-  }, [advance, checked, current, typed]);
+  }, [advance, checked, current, queue, typed]);
 
   useEffect(() => {
     if (kind !== 'choice') inputRef.current?.focus();
@@ -127,7 +142,7 @@ export function LearnPage() {
 
   function pick(option: string) {
     if (!current || checked) return;
-    const correct = looseEqual(option, answerSide(current));
+    const correct = sameAnswer(option, answerSide(current));
     setChecked({ correct, value: option });
     // Выбор из вариантов маппится в two-way оценку: верно → «хорошо»,
     // неверно → «не помню». Промежуточных градаций тут нет.
@@ -271,9 +286,17 @@ export function LearnPage() {
             onChange={(event) => setTyped(event.target.value)}
             placeholder="Ваш ответ"
             autoComplete="off"
+            autoCapitalize="off"
+            spellCheck={false}
             aria-label="Ваш ответ"
+            error={typoHint ? 'Почти верно — проверьте написание и введите ещё раз' : undefined}
             disabled={checked?.correct === true}
           />
+          {typoHint && (
+            <p className="text-warning mt-2 text-sm">
+              Вы ввели: <Diff expected={expected} typed={typoHint} />
+            </p>
+          )}
           <div className="mt-3 flex flex-wrap gap-3">
             <Button type="submit">{checked && !checked.correct ? 'Дальше' : 'Проверить'}</Button>
             {!checked && (
@@ -344,28 +367,10 @@ function questionKind(item: QueueItem, pool: readonly string[]): QuestionKind {
   return canAskMultipleChoice(pool) ? 'choice' : 'typing';
 }
 
-function questionSide(item: QueueItem): string {
-  return item.direction === 'term_to_def' ? item.card.term : item.card.definition;
-}
-
-function answerSide(item: QueueItem): string {
-  return item.direction === 'term_to_def' ? item.card.definition : item.card.term;
-}
-
-function questionImage(item: QueueItem): string | null | undefined {
-  return item.direction === 'term_to_def'
-    ? item.card.term_image_url
-    : item.card.definition_image_url;
-}
-
-/**
- * Мягкое сравнение до появления общего нормализатора в E4: регистр, пробелы и ё.
- * Полные правила (диакритика, артикли, расстояние Левенштейна) — packages/core в E4.
- */
-function looseEqual(left: string, right: string): boolean {
-  const normalize = (value: string) =>
-    value.trim().toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ');
-  return normalize(left) === normalize(right) && normalize(right).length > 0;
+/** Совпадение вариантов выбора: опечаток здесь быть не может, нужна только нормализация. */
+function sameAnswer(left: string, right: string): boolean {
+  const normalized = normalizeAnswer(right);
+  return normalized.length > 0 && normalizeAnswer(left) === normalized;
 }
 
 function optionStyle(
@@ -374,7 +379,7 @@ function optionStyle(
   checked: { correct: boolean; value: string } | null,
 ): string {
   if (!checked) return 'border-border bg-surface hover:bg-surface-muted';
-  if (looseEqual(option, expected)) return 'border-success bg-success-subtle text-success';
+  if (sameAnswer(option, expected)) return 'border-success bg-success-subtle text-success';
   if (option === checked.value) return 'border-danger bg-danger-subtle text-danger';
   return 'border-border bg-surface opacity-60';
 }

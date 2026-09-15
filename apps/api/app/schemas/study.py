@@ -6,6 +6,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.core.answers import Strictness
 from app.models.content import ContentType
 from app.models.study import CardStateKind, SessionStatus, StudyDirection, StudyMode
 
@@ -75,8 +76,17 @@ class QueueItem(BaseModel):
 
 
 class StudyQueue(BaseModel):
+    """Всё, что нужно тренировке на одну сессию, одним запросом.
+
+    Языки сторон и строгость лежат здесь, а не запрашиваются отдельно: без них
+    клиент не может проверить ответ теми же правилами, что и сервер.
+    """
+
     set_id: UUID
     set_title: str
+    lang_term: str
+    lang_definition: str
+    answer_strictness: Strictness
     mode: StudyMode
     generated_at: datetime
     scheduler_version: str
@@ -175,6 +185,7 @@ class StudySettingsOut(BaseModel):
     fsrs_max_interval_days: int
     new_cards_per_day: int
     reviews_per_day: int
+    answer_strictness: Strictness
 
 
 class StudySettingsUpdate(BaseModel):
@@ -183,3 +194,4 @@ class StudySettingsUpdate(BaseModel):
     fsrs_max_interval_days: int | None = Field(default=None, ge=1, le=36500)
     new_cards_per_day: int | None = Field(default=None, ge=0, le=500)
     reviews_per_day: int | None = Field(default=None, ge=0, le=2000)
+    answer_strictness: Strictness | None = None

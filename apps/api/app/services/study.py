@@ -16,6 +16,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.answers import Strictness
 from app.core.config import get_settings
 from app.core.errors import ConflictError, ForbiddenError, NotFoundError
 from app.core.storage import get_object_storage
@@ -166,6 +167,9 @@ class StudyService:
         return StudyQueue(
             set_id=study_set.id,
             set_title=study_set.title,
+            lang_term=study_set.lang_term,
+            lang_definition=study_set.lang_definition,
+            answer_strictness=Strictness(settings.answer_strictness),
             mode=mode,
             generated_at=now,
             scheduler_version=scheduler.version,

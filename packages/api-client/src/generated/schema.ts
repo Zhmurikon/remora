@@ -1304,6 +1304,11 @@ export interface components {
             review: number;
         };
         /**
+         * Strictness
+         * @enum {string}
+         */
+        Strictness: "strict" | "moderate" | "lenient";
+        /**
          * StudyDirection
          * @description Направление изучения. Состояния FSRS по направлениям раздельные.
          * @enum {string}
@@ -1314,8 +1319,15 @@ export interface components {
          * @enum {string}
          */
         StudyMode: "flashcards" | "learn" | "test" | "write" | "listen";
-        /** StudyQueue */
+        /**
+         * StudyQueue
+         * @description Всё, что нужно тренировке на одну сессию, одним запросом.
+         *
+         *     Языки сторон и строгость лежат здесь, а не запрашиваются отдельно: без них
+         *     клиент не может проверить ответ теми же правилами, что и сервер.
+         */
         StudyQueue: {
+            answer_strictness: components["schemas"]["Strictness"];
             /** Due Total */
             due_total: number;
             /**
@@ -1325,6 +1337,10 @@ export interface components {
             generated_at: string;
             /** Items */
             items: components["schemas"]["QueueItem"][];
+            /** Lang Definition */
+            lang_definition: string;
+            /** Lang Term */
+            lang_term: string;
             mode: components["schemas"]["StudyMode"];
             /** New Left Today */
             new_left_today: number;
@@ -1344,6 +1360,7 @@ export interface components {
         };
         /** StudySettingsOut */
         StudySettingsOut: {
+            answer_strictness: components["schemas"]["Strictness"];
             /** Daily Goal Cards */
             daily_goal_cards: number;
             /** Fsrs Desired Retention */
@@ -1357,6 +1374,7 @@ export interface components {
         };
         /** StudySettingsUpdate */
         StudySettingsUpdate: {
+            answer_strictness?: components["schemas"]["Strictness"] | null;
             /** Daily Goal Cards */
             daily_goal_cards?: number | null;
             /** Fsrs Desired Retention */

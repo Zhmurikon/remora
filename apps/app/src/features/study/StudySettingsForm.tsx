@@ -4,6 +4,7 @@
  */
 
 import type { ApiError } from '@remora/api-client';
+import { STRICTNESS_LABELS, STRICTNESS_LEVELS, type Strictness } from '@remora/core';
 import { Button, Card, Input } from '@remora/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
@@ -36,6 +37,7 @@ export function StudySettingsForm() {
         new_cards_per_day: Number(form.get('new_per_day')),
         reviews_per_day: Number(form.get('reviews_per_day')),
         daily_goal_cards: Number(form.get('daily_goal')),
+        answer_strictness: String(form.get('strictness')) as Strictness,
       },
     });
     if (error) {
@@ -113,6 +115,27 @@ export function StudySettingsForm() {
           max={500}
           defaultValue={settings.data.daily_goal_cards}
         />
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="strictness" className="text-fg text-sm font-medium">
+            Строгость проверки ответов
+          </label>
+          <select
+            id="strictness"
+            name="strictness"
+            defaultValue={settings.data.answer_strictness}
+            className="border-border bg-surface text-fg h-10 w-full rounded-md border px-3 text-base"
+          >
+            {STRICTNESS_LEVELS.map((level) => (
+              <option key={level} value={level}>
+                {STRICTNESS_LABELS[level]}
+              </option>
+            ))}
+          </select>
+          <p className="text-fg-subtle text-sm">
+            «Строго» — только регистр, пробелы и ё. «Умеренно» — ещё пунктуация, артикли и одна
+            опечатка. «Мягко» — прощает две-три.
+          </p>
+        </div>
         {message && <p className="text-fg-muted text-sm">{message}</p>}
         <Button type="submit" loading={saving}>
           Сохранить

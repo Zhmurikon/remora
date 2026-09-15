@@ -100,6 +100,10 @@ class UserSettings(UUIDPrimaryKeyMixin, Base):
     )
     new_cards_per_day: Mapped[int] = mapped_column(default=20, server_default=text("20"))
     reviews_per_day: Mapped[int] = mapped_column(default=200, server_default=text("200"))
+    # Строгость проверки ответов в режимах «Письмо», «Тест» и «Аудирование».
+    answer_strictness: Mapped[str] = mapped_column(
+        String(10), default="moderate", server_default=text("'moderate'")
+    )
     tts_voice_preference: Mapped[str | None] = mapped_column(String(32))
     notification_channels: Mapped[dict[str, Any]] = mapped_column(
         JSONB, default=dict, server_default=text("'{}'::jsonb")

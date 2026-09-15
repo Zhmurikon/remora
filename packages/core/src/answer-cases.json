@@ -1,0 +1,476 @@
+{
+  "comment": "Контракт нормализатора ответов. Читается тестами TS (packages/core/src/answers.test.ts) и Python (apps/api/tests/test_answers.py). Ожидания написаны руками: это описание желаемого поведения, а не снимок текущего.",
+  "cases": [
+    {
+      "name": "точное совпадение",
+      "typed": "кошка",
+      "expected": "кошка",
+      "verdict": "correct"
+    },
+    {
+      "name": "регистр",
+      "typed": "Кошка",
+      "expected": "кошка",
+      "verdict": "correct"
+    },
+    {
+      "name": "регистр целиком",
+      "typed": "КОШКА",
+      "expected": "кошка",
+      "verdict": "correct"
+    },
+    {
+      "name": "пробелы по краям",
+      "typed": "  кошка  ",
+      "expected": "кошка",
+      "verdict": "correct"
+    },
+    {
+      "name": "двойные пробелы внутри",
+      "typed": "белый  медведь",
+      "expected": "белый медведь",
+      "verdict": "correct"
+    },
+    {
+      "name": "перенос строки вместо пробела",
+      "typed": "белый\nмедведь",
+      "expected": "белый медведь",
+      "verdict": "correct"
+    },
+    {
+      "name": "ё вместо е",
+      "typed": "ёж",
+      "expected": "еж",
+      "verdict": "correct"
+    },
+    {
+      "name": "е вместо ё",
+      "typed": "еж",
+      "expected": "ёж",
+      "verdict": "correct"
+    },
+    {
+      "name": "ё нормализуется даже строго",
+      "typed": "елка",
+      "expected": "ёлка",
+      "strictness": "strict",
+      "verdict": "correct"
+    },
+    {
+      "name": "й не сворачивается в и (иначе «мои» стало бы верным)",
+      "typed": "мои",
+      "expected": "мой",
+      "verdict": "incorrect"
+    },
+    {
+      "name": "й сохраняется при нормализации",
+      "typed": "чайный",
+      "expected": "чайный",
+      "verdict": "correct"
+    },
+    {
+      "name": "точка в конце",
+      "typed": "кошка.",
+      "expected": "кошка",
+      "verdict": "correct"
+    },
+    {
+      "name": "точка в конце при строгой проверке",
+      "typed": "кошка.",
+      "expected": "кошка",
+      "strictness": "strict",
+      "verdict": "incorrect"
+    },
+    {
+      "name": "запятая и восклицательный знак",
+      "typed": "да, конечно!",
+      "expected": "да конечно",
+      "verdict": "correct"
+    },
+    {
+      "name": "кавычки-ёлочки",
+      "typed": "«война и мир»",
+      "expected": "война и мир",
+      "verdict": "correct"
+    },
+    {
+      "name": "дефис как пробел",
+      "typed": "по-русски",
+      "expected": "по русски",
+      "verdict": "correct"
+    },
+    {
+      "name": "тире",
+      "typed": "кто-то",
+      "expected": "кто то",
+      "verdict": "correct"
+    },
+    {
+      "name": "скобки с уточнением",
+      "typed": "столица (Москва)",
+      "expected": "столица Москва",
+      "verdict": "correct"
+    },
+    {
+      "name": "одна опечатка в коротком слове",
+      "typed": "кощка",
+      "expected": "кошка",
+      "verdict": "typo"
+    },
+    {
+      "name": "опечатка не прощается строго",
+      "typed": "кощка",
+      "expected": "кошка",
+      "strictness": "strict",
+      "verdict": "incorrect"
+    },
+    {
+      "name": "две опечатки в коротком слове",
+      "typed": "кощкв",
+      "expected": "кошка",
+      "verdict": "incorrect"
+    },
+    {
+      "name": "две опечатки в коротком слове не прощаются даже мягко",
+      "typed": "кощкв",
+      "expected": "кошка",
+      "strictness": "lenient",
+      "verdict": "incorrect"
+    },
+    {
+      "name": "опечатка в длинном слове",
+      "typed": "достопримечательнось",
+      "expected": "достопримечательность",
+      "verdict": "typo"
+    },
+    {
+      "name": "пропущенная буква",
+      "typed": "велосипд",
+      "expected": "велосипед",
+      "verdict": "typo"
+    },
+    {
+      "name": "лишняя буква",
+      "typed": "велосипеед",
+      "expected": "велосипед",
+      "verdict": "typo"
+    },
+    {
+      "name": "трёхбуквенное слово опечаток не прощает",
+      "typed": "кот",
+      "expected": "кит",
+      "verdict": "incorrect"
+    },
+    {
+      "name": "трёхбуквенное слово мягко прощает одну",
+      "typed": "кот",
+      "expected": "кит",
+      "strictness": "lenient",
+      "verdict": "typo"
+    },
+    {
+      "name": "другое слово",
+      "typed": "собака",
+      "expected": "кошка",
+      "verdict": "incorrect"
+    },
+    {
+      "name": "пустой ответ",
+      "typed": "",
+      "expected": "кошка",
+      "verdict": "incorrect"
+    },
+    {
+      "name": "только пробелы",
+      "typed": "   ",
+      "expected": "кошка",
+      "verdict": "incorrect"
+    },
+    {
+      "name": "только пунктуация",
+      "typed": "...",
+      "expected": "кошка",
+      "verdict": "incorrect"
+    },
+    {
+      "name": "синоним из alt_answers",
+      "typed": "машина",
+      "expected": "автомобиль",
+      "alternatives": ["машина", "тачка"],
+      "verdict": "correct",
+      "matched": "машина"
+    },
+    {
+      "name": "второй синоним",
+      "typed": "тачка",
+      "expected": "автомобиль",
+      "alternatives": ["машина", "тачка"],
+      "verdict": "correct",
+      "matched": "тачка"
+    },
+    {
+      "name": "опечатка в синониме",
+      "typed": "машына",
+      "expected": "автомобиль",
+      "alternatives": ["машина"],
+      "verdict": "typo",
+      "matched": "машина"
+    },
+    {
+      "name": "основной ответ важнее синонима",
+      "typed": "автомобиль",
+      "expected": "автомобиль",
+      "alternatives": ["машина"],
+      "verdict": "correct",
+      "matched": "автомобиль"
+    },
+    {
+      "name": "ни один синоним не подошёл",
+      "typed": "велосипед",
+      "expected": "автомобиль",
+      "alternatives": ["машина", "тачка"],
+      "verdict": "incorrect"
+    },
+    {
+      "name": "пустой синоним игнорируется",
+      "typed": "машина",
+      "expected": "автомобиль",
+      "alternatives": ["", "  ", "машина"],
+      "verdict": "correct",
+      "matched": "машина"
+    },
+    {
+      "name": "фраза с запятой",
+      "typed": "Москва, столица России",
+      "expected": "Москва столица России",
+      "verdict": "correct"
+    },
+    {
+      "name": "числа",
+      "typed": "42",
+      "expected": "42",
+      "verdict": "correct"
+    },
+    {
+      "name": "другое число",
+      "typed": "43",
+      "expected": "42",
+      "verdict": "incorrect"
+    },
+    {
+      "name": "число и единица измерения",
+      "typed": "1941",
+      "expected": "1941 год",
+      "verdict": "incorrect"
+    },
+    {
+      "name": "английский артикль the отбрасывается",
+      "typed": "the cat",
+      "expected": "cat",
+      "lang": "en",
+      "verdict": "correct"
+    },
+    {
+      "name": "артикль a отбрасывается",
+      "typed": "a dog",
+      "expected": "dog",
+      "lang": "en",
+      "verdict": "correct"
+    },
+    {
+      "name": "артикль an отбрасывается",
+      "typed": "an apple",
+      "expected": "apple",
+      "lang": "en",
+      "verdict": "correct"
+    },
+    {
+      "name": "артикль в ожидаемом ответе",
+      "typed": "cat",
+      "expected": "the cat",
+      "lang": "en",
+      "verdict": "correct"
+    },
+    {
+      "name": "артикли не трогаются в русском наборе",
+      "typed": "the cat",
+      "expected": "cat",
+      "lang": "ru",
+      "verdict": "incorrect"
+    },
+    {
+      "name": "артикли не трогаются при строгой проверке",
+      "typed": "the cat",
+      "expected": "cat",
+      "lang": "en",
+      "strictness": "strict",
+      "verdict": "incorrect"
+    },
+    {
+      "name": "артикль как самостоятельный ответ",
+      "typed": "the",
+      "expected": "the",
+      "lang": "en",
+      "verdict": "correct"
+    },
+    {
+      "name": "артикль не превращается в другой артикль",
+      "typed": "the",
+      "expected": "a",
+      "lang": "en",
+      "verdict": "incorrect"
+    },
+    {
+      "name": "немецкий артикль",
+      "typed": "der Hund",
+      "expected": "Hund",
+      "lang": "de",
+      "verdict": "correct"
+    },
+    {
+      "name": "французский артикль",
+      "typed": "le chat",
+      "expected": "chat",
+      "lang": "fr",
+      "verdict": "correct"
+    },
+    {
+      "name": "испанский артикль",
+      "typed": "el perro",
+      "expected": "perro",
+      "lang": "es",
+      "verdict": "correct"
+    },
+    {
+      "name": "итальянский артикль",
+      "typed": "il gatto",
+      "expected": "gatto",
+      "lang": "it",
+      "verdict": "correct"
+    },
+    {
+      "name": "апостроф прямой",
+      "typed": "don't",
+      "expected": "dont",
+      "lang": "en",
+      "verdict": "correct"
+    },
+    {
+      "name": "апостроф типографский",
+      "typed": "don’t",
+      "expected": "don't",
+      "lang": "en",
+      "verdict": "correct"
+    },
+    {
+      "name": "регистр в английской фразе",
+      "typed": "Hello World",
+      "expected": "hello world",
+      "lang": "en",
+      "verdict": "correct"
+    },
+    {
+      "name": "диакритика французского",
+      "typed": "cafe",
+      "expected": "café",
+      "lang": "fr",
+      "verdict": "correct"
+    },
+    {
+      "name": "диакритика в обратную сторону",
+      "typed": "café",
+      "expected": "cafe",
+      "lang": "fr",
+      "verdict": "correct"
+    },
+    {
+      "name": "диакритика сохраняется при строгой проверке",
+      "typed": "cafe",
+      "expected": "café",
+      "lang": "fr",
+      "strictness": "strict",
+      "verdict": "incorrect"
+    },
+    {
+      "name": "испанская тильда",
+      "typed": "manana",
+      "expected": "mañana",
+      "lang": "es",
+      "verdict": "correct"
+    },
+    {
+      "name": "немецкий умляут",
+      "typed": "Madchen",
+      "expected": "Mädchen",
+      "lang": "de",
+      "verdict": "correct"
+    },
+    {
+      "name": "перестановка букв — две правки",
+      "typed": "recieve",
+      "expected": "receive",
+      "lang": "en",
+      "verdict": "incorrect"
+    },
+    {
+      "name": "перестановка прощается мягко",
+      "typed": "recieve",
+      "expected": "receive",
+      "lang": "en",
+      "strictness": "lenient",
+      "verdict": "typo"
+    },
+    {
+      "name": "одна опечатка в английском слове",
+      "typed": "beatiful",
+      "expected": "beautiful",
+      "lang": "en",
+      "verdict": "typo"
+    },
+    {
+      "name": "совсем другое английское слово",
+      "typed": "keyboard",
+      "expected": "mouse",
+      "lang": "en",
+      "verdict": "incorrect"
+    },
+    {
+      "name": "фразовый глагол с артиклем и пунктуацией",
+      "typed": "To give up!",
+      "expected": "give up",
+      "lang": "en",
+      "verdict": "incorrect"
+    },
+    {
+      "name": "многословный ответ с опечаткой",
+      "typed": "красная площадь",
+      "expected": "красная площадь",
+      "verdict": "correct"
+    },
+    {
+      "name": "порядок слов важен",
+      "typed": "площадь красная",
+      "expected": "красная площадь",
+      "verdict": "incorrect"
+    },
+    {
+      "name": "регистр и пунктуация вместе",
+      "typed": "H2O.",
+      "expected": "h2o",
+      "verdict": "correct"
+    },
+    {
+      "name": "строгий режим прощает только пробелы и регистр",
+      "typed": "  Кошка  ",
+      "expected": "кошка",
+      "strictness": "strict",
+      "verdict": "correct"
+    },
+    {
+      "name": "длинная фраза с одной опечаткой прощается",
+      "typed": "интервальное повторенie",
+      "expected": "интервальное повторение",
+      "verdict": "typo"
+    }
+  ]
+}
