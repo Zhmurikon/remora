@@ -48,7 +48,9 @@ class MediaAsset(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Index("ix_media_assets_owner_id_checksum", "owner_id", "checksum"),
     )
 
-    owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    # Аудио из TTS принадлежит платформе, а не пользователю: кэш общий, и
+    # удаление аккаунта не должно уносить озвучку, которой пользуются все.
+    owner_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     kind: Mapped[MediaKind] = mapped_column(Enum(MediaKind))
     s3_key: Mapped[str] = mapped_column(String(500), unique=True)
     mime: Mapped[str] = mapped_column(String(100))

@@ -9,3 +9,4 @@ export {
   type CardContentProps,
   type CardContentType,
 } from './components/CardContent';
+export { AudioPlayer, type AudioPlayerProps } from './components/AudioPlayer';

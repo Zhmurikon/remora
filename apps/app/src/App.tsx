@@ -5,6 +5,7 @@ import { AppLayout } from './layouts/AppLayout';
 import { DashboardPage } from './pages/DashboardPage';
 import { FlashcardsPage } from './pages/FlashcardsPage';
 import { LearnPage } from './pages/LearnPage';
+import { ListenPage } from './pages/ListenPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SetEditorPage } from './pages/SetEditorPage';
@@ -28,6 +29,7 @@ export function App() {
               <Route path="sets/:setId/flashcards" element={<FlashcardsPage />} />
               <Route path="sets/:setId/write" element={<WritePage />} />
               <Route path="sets/:setId/test" element={<TestPage />} />
+              <Route path="sets/:setId/listen" element={<ListenPage />} />
               <Route
                 path="library"
                 element={

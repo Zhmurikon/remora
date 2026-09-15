@@ -42,10 +42,19 @@ class ObjectStorage:
         await asyncio.to_thread(self.client.delete_object, Bucket=self.bucket, Key=key)
 
 
-@lru_cache
-def get_object_storage() -> ObjectStorage:
+    async def put(self, key: str, payload: bytes, mime: str) -> None:
+        await asyncio.to_thread(
+            self.client.put_object,
+            Bucket=self.bucket,
+            Key=key,
+            Body=payload,
+            ContentType=mime,
+        )
+
+
+def _client() -> S3Client:
     settings = get_settings()
-    client = boto3.client(
+    return boto3.client(
         "s3",
         endpoint_url=settings.s3_endpoint,
         aws_access_key_id=settings.s3_access_key,
@@ -53,4 +62,14 @@ def get_object_storage() -> ObjectStorage:
         region_name="us-east-1",
         config=Config(proxies={}),
     )
-    return ObjectStorage(client, settings.s3_bucket_media)
+
+
+@lru_cache
+def get_object_storage() -> ObjectStorage:
+    return ObjectStorage(_client(), get_settings().s3_bucket_media)
+
+
+@lru_cache
+def get_audio_storage() -> ObjectStorage:
+    """Аудио лежит в отдельном бакете: у него другой жизненный цикл и кэш общий."""
+    return ObjectStorage(_client(), get_settings().s3_bucket_audio)

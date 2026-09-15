@@ -629,6 +629,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tts/speak": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Озвучить сторону карточки */
+        post: operations["speak_api_v1_tts_speak_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tts/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Доступна ли озвучка */
+        get: operations["tts_status_api_v1_tts_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1370,6 +1404,39 @@ export interface components {
          * @enum {string}
          */
         SetVisibility: "private" | "unlisted" | "public";
+        /** SpeakRequest */
+        SpeakRequest: {
+            /**
+             * Card Id
+             * Format: uuid
+             */
+            card_id: string;
+            /** @default term_to_def */
+            direction: components["schemas"]["StudyDirection"];
+            /**
+             * Side
+             * @default question
+             */
+            side: string;
+            /**
+             * Speed
+             * @default 1
+             */
+            speed: number;
+            /** Voice */
+            voice?: string | null;
+        };
+        /** SpeakResponse */
+        SpeakResponse: {
+            /** Audio Url */
+            audio_url: string;
+            /** Cached */
+            cached: boolean;
+            /** Lang */
+            lang: string;
+            /** Voice */
+            voice: string;
+        };
         /** StateDistribution */
         StateDistribution: {
             /**
@@ -1641,6 +1708,17 @@ export interface components {
              */
             token_type: string;
             user: components["schemas"]["UserPublic"];
+        };
+        /** TtsStatus */
+        TtsStatus: {
+            /** Available */
+            available: boolean;
+            /** Chars Used This Month */
+            chars_used_this_month: number;
+            /** Voices */
+            voices: {
+                [key: string]: string;
+            };
         };
         /** UserPublic */
         UserPublic: {
@@ -2996,6 +3074,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    speak_api_v1_tts_speak_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SpeakRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpeakResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    tts_status_api_v1_tts_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TtsStatus"];
                 };
             };
         };

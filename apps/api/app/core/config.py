@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     s3_access_key: str = "remora"
     s3_secret_key: SecretStr = SecretStr("remora-dev-secret")
     s3_bucket_media: str = "remora-media"
+    s3_bucket_audio: str = "remora-audio"
     media_upload_ttl_seconds: int = 900
     media_download_ttl_seconds: int = 3600
     media_image_max_size_bytes: int = 10 * 1024 * 1024
@@ -74,6 +75,14 @@ class Settings(BaseSettings):
     smtp_username: str | None = None
     smtp_password: SecretStr | None = None
     smtp_start_tls: bool = False
+
+    # Синтез речи. Без ключа провайдер выключен: интерфейс продолжает работать,
+    # просто не предлагает озвучку — обучение от TTS зависеть не должно.
+    tts_provider: Literal["yandex", "disabled"] = "disabled"
+    yandex_speechkit_api_key: SecretStr | None = None
+    yandex_speechkit_folder_id: str | None = None
+    tts_max_chars_per_request: int = 500
+    tts_request_timeout_seconds: float = 15.0
 
     @property
     def is_local(self) -> bool:

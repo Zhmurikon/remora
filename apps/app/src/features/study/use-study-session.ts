@@ -24,6 +24,8 @@ export interface StudySessionOptions {
   shuffle?: boolean;
   /** «Карточки» по умолчанию не пишут в расписание — это просмотр, не повторение. */
   trackProgress?: boolean;
+  /** Отложить загрузку: «Аудирование» сначала проверяет, доступен ли синтез. */
+  enabled?: boolean;
 }
 
 export function useStudySession({
@@ -33,6 +35,7 @@ export function useStudySession({
   direction = 'term_to_def',
   shuffle = true,
   trackProgress = true,
+  enabled = true,
 }: StudySessionOptions) {
   const begin = useStudyStore((state) => state.begin);
   const reset = useStudyStore((state) => state.reset);
@@ -40,6 +43,7 @@ export function useStudySession({
 
   const query = useQuery({
     queryKey: ['study', 'queue', setId, mode, scope, direction, shuffle, trackProgress],
+    enabled,
     staleTime: Infinity,
     gcTime: 0,
     retry: 1,
