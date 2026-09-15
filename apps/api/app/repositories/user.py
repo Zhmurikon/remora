@@ -61,3 +61,20 @@ async def update_password(db: AsyncSession, user_id: UUID, password_hash: str) -
     user = result.scalar_one_or_none()
     if user is not None:
         user.password_hash = password_hash
+
+
+async def update_profile(
+    db: AsyncSession,
+    user: User,
+    *,
+    username: str,
+    display_name: str | None,
+    locale: str,
+    timezone: str,
+) -> User:
+    user.username = username
+    user.display_name = display_name
+    user.locale = locale
+    user.timezone = timezone
+    await db.flush()
+    return user

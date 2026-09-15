@@ -4,6 +4,7 @@ import { ProtectedRoute } from './features/auth/ProtectedRoute';
 import { AppLayout } from './layouts/AppLayout';
 import { DashboardPage } from './pages/DashboardPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
+import { SettingsPage } from './pages/SettingsPage';
 
 export function App() {
   return (
@@ -31,15 +32,7 @@ export function App() {
                   />
                 }
               />
-              <Route
-                path="settings"
-                element={
-                  <PlaceholderPage
-                    title="Настройки"
-                    description="Профиль, пароль и активные сессии добавим следующим шагом."
-                  />
-                }
-              />
+              <Route path="settings" element={<SettingsPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

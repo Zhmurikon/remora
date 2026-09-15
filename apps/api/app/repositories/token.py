@@ -35,20 +35,14 @@ async def create_token(
 
 
 async def get_token_by_hash(db: AsyncSession, token_hash: str) -> RefreshToken | None:
-    result = await db.execute(
-        select(RefreshToken).where(RefreshToken.token_hash == token_hash)
-    )
+    result = await db.execute(select(RefreshToken).where(RefreshToken.token_hash == token_hash))
     return result.scalar_one_or_none()
 
 
-async def get_token_by_hash_for_update(
-    db: AsyncSession, token_hash: str
-) -> RefreshToken | None:
+async def get_token_by_hash_for_update(db: AsyncSession, token_hash: str) -> RefreshToken | None:
     """Блокирует токен до конца транзакции для безопасной ротации."""
     result = await db.execute(
-        select(RefreshToken)
-        .where(RefreshToken.token_hash == token_hash)
-        .with_for_update()
+        select(RefreshToken).where(RefreshToken.token_hash == token_hash).with_for_update()
     )
     return result.scalar_one_or_none()
 
@@ -70,9 +64,7 @@ async def revoke_family(db: AsyncSession, family_id: UUID) -> None:
     )
 
 
-async def get_active_tokens_by_user(
-    db: AsyncSession, user_id: UUID
-) -> list[RefreshToken]:
+async def get_active_tokens_by_user(db: AsyncSession, user_id: UUID) -> list[RefreshToken]:
     result = await db.execute(
         select(RefreshToken)
         .where(
@@ -94,3 +86,29 @@ async def revoke_all_user_tokens(db: AsyncSession, user_id: UUID) -> None:
         )
         .values(revoked_at=datetime.now(tz=UTC))
     )
+
+
+async def revoke_user_token(db: AsyncSession, user_id: UUID, token_id: UUID) -> bool:
+    token = await db.scalar(
+        select(RefreshToken).where(
+            RefreshToken.id == token_id,
+            RefreshToken.user_id == user_id,
+            RefreshToken.revoked_at.is_(None),
+        )
+    )
+    if token is None:
+        return False
+    token.revoked_at = datetime.now(tz=UTC)
+    return True
+
+
+async def revoke_other_user_tokens(
+    db: AsyncSession, user_id: UUID, current_token_hash: str | None
+) -> None:
+    query = update(RefreshToken).where(
+        RefreshToken.user_id == user_id,
+        RefreshToken.revoked_at.is_(None),
+    )
+    if current_token_hash is not None:
+        query = query.where(RefreshToken.token_hash != current_token_hash)
+    await db.execute(query.values(revoked_at=datetime.now(tz=UTC)))

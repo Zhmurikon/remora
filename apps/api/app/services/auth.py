@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.email import send_password_reset_email, send_verification_email
-from app.core.errors import ConflictError, UnauthorizedError
+from app.core.errors import ConflictError, NotFoundError, UnauthorizedError
 from app.core.passwords import validate_password
 from app.core.security import (
     create_jwt,
@@ -29,7 +29,7 @@ from app.models.user import User, UserStatus
 from app.repositories import action_token as action_token_repo
 from app.repositories import token as token_repo
 from app.repositories import user as user_repo
-from app.schemas.auth import UserPublic
+from app.schemas.auth import SessionPublic, UserPublic
 
 log = structlog.get_logger()
 
@@ -137,9 +137,7 @@ class AuthService:
         raw_token, token_hash = generate_refresh_token()
 
         settings = get_settings()
-        expires_at = datetime.now(tz=UTC) + timedelta(
-            days=settings.refresh_token_ttl_days
-        )
+        expires_at = datetime.now(tz=UTC) + timedelta(days=settings.refresh_token_ttl_days)
 
         await token_repo.create_token(
             self.db,
@@ -216,6 +214,52 @@ class AuthService:
         if stored is not None and stored.revoked_at is None:
             await token_repo.revoke_token(self.db, stored.id)
             log.info("auth.logout", user_id=str(stored.user_id))
+
+    async def update_profile(
+        self, user: User, *, username: str, display_name: str | None, locale: str, timezone: str
+    ) -> User:
+        existing = await user_repo.get_user_by_username(self.db, username)
+        if existing is not None and existing.id != user.id:
+            raise ConflictError("Это имя пользователя занято")
+        return await user_repo.update_profile(
+            self.db,
+            user,
+            username=username,
+            display_name=display_name,
+            locale=locale,
+            timezone=timezone,
+        )
+
+    async def change_password(
+        self, user: User, current_password: str, new_password: str, current_refresh: str | None
+    ) -> None:
+        if user.password_hash is None or not verify_password(current_password, user.password_hash):
+            raise UnauthorizedError("Текущий пароль указан неверно")
+        err = validate_password(new_password)
+        if err:
+            raise ConflictError(err)
+        await user_repo.update_password(self.db, user.id, hash_password(new_password))
+        await token_repo.revoke_other_user_tokens(
+            self.db, user.id, hash_token(current_refresh) if current_refresh else None
+        )
+
+    async def list_sessions(self, user: User, current_refresh: str | None) -> list[SessionPublic]:
+        current_hash = hash_token(current_refresh) if current_refresh else None
+        tokens = await token_repo.get_active_tokens_by_user(self.db, user.id)
+        return [
+            SessionPublic(
+                id=t.id,
+                user_agent=t.user_agent,
+                ip=t.ip,
+                expires_at=t.expires_at,
+                current=t.token_hash == current_hash,
+            )
+            for t in tokens
+        ]
+
+    async def revoke_session(self, user: User, session_id: UUID) -> None:
+        if not await token_repo.revoke_user_token(self.db, user.id, session_id):
+            raise NotFoundError("Сессия не найдена")
 
     async def request_password_reset(self, email: str) -> None:
         """Отправляет письмо сброса, если email существует.

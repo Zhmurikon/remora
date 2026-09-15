@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,10 +27,13 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import (
     LoginRequest,
+    PasswordChangeRequest,
     PasswordResetConfirmRequest,
     PasswordResetRequest,
+    ProfileUpdateRequest,
     RefreshResponse,
     RegisterRequest,
+    SessionPublic,
     TokenResponse,
     UserPublic,
     VerifyEmailRequest,
@@ -232,3 +236,43 @@ async def confirm_password_reset(
 )
 async def get_me(user: User = Depends(current_user)) -> UserPublic:
     return to_user_public(user)
+
+
+@router.patch("/me", response_model=UserPublic, summary="Обновление профиля")
+async def update_me(
+    body: ProfileUpdateRequest,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+) -> UserPublic:
+    updated = await AuthService(db).update_profile(user, **body.model_dump())
+    return to_user_public(updated)
+
+
+@router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT, summary="Смена пароля")
+async def change_password(
+    request: Request,
+    body: PasswordChangeRequest,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    current_refresh = request.cookies.get(get_settings().refresh_cookie_name)
+    await AuthService(db).change_password(
+        user, body.current_password, body.new_password, current_refresh
+    )
+
+
+@router.get("/sessions", response_model=list[SessionPublic], summary="Активные сессии")
+async def list_sessions(
+    request: Request, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+) -> list[SessionPublic]:
+    current_refresh = request.cookies.get(get_settings().refresh_cookie_name)
+    return await AuthService(db).list_sessions(user, current_refresh)
+
+
+@router.delete(
+    "/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Отзыв сессии"
+)
+async def revoke_session(
+    session_id: UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+) -> None:
+    await AuthService(db).revoke_session(user, session_id)

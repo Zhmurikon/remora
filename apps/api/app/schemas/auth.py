@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
@@ -42,6 +42,26 @@ class PasswordResetRequest(BaseModel):
 class PasswordResetConfirmRequest(BaseModel):
     token: str
     new_password: str = Field(min_length=8, max_length=128)
+
+
+class ProfileUpdateRequest(BaseModel):
+    username: str = Field(min_length=3, max_length=32, pattern=r"^[a-zA-Z0-9_-]+$")
+    display_name: str | None = Field(default=None, max_length=64)
+    locale: str = Field(min_length=2, max_length=5)
+    timezone: str = Field(min_length=1, max_length=40)
+
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class SessionPublic(BaseModel):
+    id: UUID
+    user_agent: str | None
+    ip: str | None
+    expires_at: datetime
+    current: bool
 
 
 class UserPublic(BaseModel):

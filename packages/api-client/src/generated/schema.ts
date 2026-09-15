@@ -9,6 +9,23 @@
  */
 
 export interface paths {
+    "/api/v1/auth/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Смена пароля */
+        post: operations["change_password_api_v1_auth_change_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -57,7 +74,8 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** Обновление профиля */
+        patch: operations["update_me_api_v1_auth_me_patch"];
         trace?: never;
     };
     "/api/v1/auth/password-reset": {
@@ -123,6 +141,40 @@ export interface paths {
         /** Регистрация */
         post: operations["register_api_v1_auth_register_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Активные сессии */
+        get: operations["list_sessions_api_v1_auth_sessions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Отзыв сессии */
+        delete: operations["revoke_session_api_v1_auth_sessions__session_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -210,6 +262,13 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** PasswordChangeRequest */
+        PasswordChangeRequest: {
+            /** Current Password */
+            current_password: string;
+            /** New Password */
+            new_password: string;
+        };
         /** PasswordResetConfirmRequest */
         PasswordResetConfirmRequest: {
             /** New Password */
@@ -224,6 +283,17 @@ export interface components {
              * Format: email
              */
             email: string;
+        };
+        /** ProfileUpdateRequest */
+        ProfileUpdateRequest: {
+            /** Display Name */
+            display_name?: string | null;
+            /** Locale */
+            locale: string;
+            /** Timezone */
+            timezone: string;
+            /** Username */
+            username: string;
         };
         /** ReadinessResponse */
         ReadinessResponse: {
@@ -260,6 +330,25 @@ export interface components {
             password: string;
             /** Username */
             username: string;
+        };
+        /** SessionPublic */
+        SessionPublic: {
+            /** Current */
+            current: boolean;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Ip */
+            ip: string | null;
+            /** User Agent */
+            user_agent: string | null;
         };
         /** TokenResponse */
         TokenResponse: {
@@ -325,6 +414,37 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    change_password_api_v1_auth_change_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordChangeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     login_api_v1_auth_login_post: {
         parameters: {
             query?: never;
@@ -392,6 +512,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserPublic"];
+                };
+            };
+        };
+    };
+    update_me_api_v1_auth_me_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -501,6 +654,55 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TokenResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sessions_api_v1_auth_sessions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionPublic"][];
+                };
+            };
+        };
+    };
+    revoke_session_api_v1_auth_sessions__session_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

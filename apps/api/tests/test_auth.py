@@ -382,9 +382,7 @@ async def test_me_with_valid_token(mock_send: AsyncMock, client: pytest.fixture)
 
 
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
-async def test_me_rejects_invalid_jwt_claims(
-    mock_send: AsyncMock, client: pytest.fixture
-) -> None:
+async def test_me_rejects_invalid_jwt_claims(mock_send: AsyncMock, client: pytest.fixture) -> None:
     await client.post(
         "/api/v1/auth/register",
         json={
@@ -507,9 +505,7 @@ async def test_email_verification_isolated_between_users(
         )
 
     first_token = mock_send.await_args_list[0].args[1]
-    verified = await client.post(
-        "/api/v1/auth/verify-email", json={"token": first_token}
-    )
+    verified = await client.post("/api/v1/auth/verify-email", json={"token": first_token})
     assert verified.status_code == 200
     assert verified.json()["user"]["email"] == "first@example.com"
 
@@ -614,3 +610,91 @@ async def test_password_reset_link_expires(
         json={"token": token, "new_password": "NewStr0ngP@ss!"},
     )
     assert response.status_code == 401
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_profile_and_password_settings(mock_send: AsyncMock, client: pytest.fixture) -> None:
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "settings@example.com",
+            "password": "Str0ngP@ss!",
+            "username": "settingsuser",
+        },
+    )
+    login = await client.post(
+        "/api/v1/auth/login", json={"email": "settings@example.com", "password": "Str0ngP@ss!"}
+    )
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    profile = await client.patch(
+        "/api/v1/auth/me",
+        headers=headers,
+        json={
+            "username": "newsettings",
+            "display_name": "Новый профиль",
+            "locale": "ru",
+            "timezone": "Asia/Vladivostok",
+        },
+    )
+    assert profile.status_code == 200
+    assert profile.json()["username"] == "newsettings"
+    assert profile.json()["display_name"] == "Новый профиль"
+
+    wrong = await client.post(
+        "/api/v1/auth/change-password",
+        headers=headers,
+        json={"current_password": "WrongP@ss1!", "new_password": "NewStr0ngP@ss!"},
+    )
+    assert wrong.status_code == 401
+    changed = await client.post(
+        "/api/v1/auth/change-password",
+        headers=headers,
+        json={"current_password": "Str0ngP@ss!", "new_password": "NewStr0ngP@ss!"},
+    )
+    assert changed.status_code == 204
+    relogin = await client.post(
+        "/api/v1/auth/login", json={"email": "settings@example.com", "password": "NewStr0ngP@ss!"}
+    )
+    assert relogin.status_code == 200
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_sessions_are_isolated_by_user(mock_send: AsyncMock, client: pytest.fixture) -> None:
+    for number in (1, 2):
+        await client.post(
+            "/api/v1/auth/register",
+            json={
+                "email": f"session{number}@example.com",
+                "password": "Str0ngP@ss!",
+                "username": f"sessionuser{number}",
+            },
+        )
+    first = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "session1@example.com", "password": "Str0ngP@ss!"},
+        headers={"user-agent": "First device"},
+    )
+    second = await client.post(
+        "/api/v1/auth/login", json={"email": "session2@example.com", "password": "Str0ngP@ss!"}
+    )
+    first_headers = {"Authorization": f"Bearer {first.json()['access_token']}"}
+    second_headers = {"Authorization": f"Bearer {second.json()['access_token']}"}
+
+    sessions = await client.get(
+        "/api/v1/auth/sessions",
+        headers=first_headers,
+        cookies={"remora_refresh": first.cookies["remora_refresh"]},
+    )
+    assert sessions.status_code == 200
+    assert len(sessions.json()) == 1
+    assert sessions.json()[0]["current"] is True
+
+    forbidden = await client.delete(
+        f"/api/v1/auth/sessions/{sessions.json()[0]['id']}", headers=second_headers
+    )
+    assert forbidden.status_code == 404
+    revoked = await client.delete(
+        f"/api/v1/auth/sessions/{sessions.json()[0]['id']}", headers=first_headers
+    )
+    assert revoked.status_code == 204
