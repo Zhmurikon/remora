@@ -2,6 +2,7 @@ import { Badge, Button, Card, CardContent } from '@remora/ui';
 import { useQuery } from '@tanstack/react-query';
 import type { ComponentProps } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { SetStudyPanel } from '../features/study/SetStudyPanel';
 import { api } from '../lib/api';
 
 const WEB_URL = import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000';
@@ -57,7 +58,11 @@ export function SetPage() {
           </Link>
         </div>
       </header>
-      <div className="mt-8 space-y-3">
+      <div className="mt-8">
+        <SetStudyPanel setId={set.id} cardsCount={set.cards_count} />
+      </div>
+      <h2 className="mt-10 text-lg font-semibold">Карточки</h2>
+      <div className="mt-4 space-y-3">
         {set.cards.map((card, index) => (
           <Card key={card.id} className="grid gap-4 p-5 sm:grid-cols-[48px_1fr_1fr]">
             <span className="text-fg-subtle text-sm">{index + 1}</span>

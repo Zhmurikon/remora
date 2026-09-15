@@ -17,8 +17,16 @@ export function pluralWithCount(count: number, forms: [string, string, string]):
   return `${count} ${plural(count, forms)}`;
 }
 
-/** Человекочитаемый интервал повторения: 0.5 → «12 часов», 45 → «1.5 месяца». */
+/**
+ * Человекочитаемый интервал повторения: 0.5 → «12 часов», 45 → «1.5 месяца».
+ * Шаги заучивания измеряются минутами, поэтому минуты тоже нужны:
+ * «1 час» на кнопке вместо «1 мин» — прямая ложь пользователю.
+ */
 export function formatInterval(days: number): string {
+  if (days < 1 / 24) {
+    const minutes = Math.max(1, Math.round(days * 24 * 60));
+    return pluralWithCount(minutes, ['минута', 'минуты', 'минут']);
+  }
   if (days < 1) {
     const hours = Math.max(1, Math.round(days * 24));
     return pluralWithCount(hours, ['час', 'часа', 'часов']);
@@ -33,6 +41,11 @@ export function formatInterval(days: number): string {
   }
   const years = Math.round((days / 365) * 10) / 10;
   return `${years} ${plural(Math.round(years), ['год', 'года', 'лет'])}`;
+}
+
+/** То же, но от секунд: планировщик отдаёт интервалы именно в них. */
+export function formatIntervalSeconds(seconds: number): string {
+  return formatInterval(seconds / 86_400);
 }
 
 /** Размер файла для сообщений о лимитах. */

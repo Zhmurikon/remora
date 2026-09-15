@@ -11,6 +11,16 @@ from app.models.content import (
     SetVisibility,
     StudySet,
 )
+from app.models.study import (
+    CardState,
+    CardStateKind,
+    Review,
+    SessionStatus,
+    StudyDirection,
+    StudyMode,
+    StudySession,
+    UserSetProgress,
+)
 from app.models.user import (
     ActionToken,
     Consent,
@@ -26,6 +36,8 @@ from app.models.user import (
 __all__ = [
     "ActionToken",
     "Card",
+    "CardState",
+    "CardStateKind",
     "Consent",
     "ConsentKind",
     "ContentType",
@@ -36,10 +48,16 @@ __all__ = [
     "MediaStatus",
     "OauthAccount",
     "RefreshToken",
+    "Review",
+    "SessionStatus",
     "SetVisibility",
+    "StudyDirection",
+    "StudyMode",
+    "StudySession",
     "StudySet",
     "User",
     "UserRole",
+    "UserSetProgress",
     "UserSettings",
     "UserStatus",
 ]

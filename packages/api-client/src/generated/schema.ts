@@ -407,6 +407,143 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/study/forecast": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Прогноз нагрузки на ближайшие дни */
+        get: operations["get_forecast_api_v1_study_forecast_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/study/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Отправить ответы батчем */
+        post: operations["submit_reviews_api_v1_study_reviews_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/study/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Начать тренировку */
+        post: operations["start_session_api_v1_study_sessions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/study/sessions/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Незавершённая тренировка */
+        get: operations["get_active_session_api_v1_study_sessions_active_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/study/sessions/{session_id}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Завершить тренировку */
+        post: operations["finish_session_api_v1_study_sessions__session_id__finish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/study/sets/{set_id}/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Очередь карточек на тренировку */
+        get: operations["get_queue_api_v1_study_sets__set_id__queue_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/study/sets/{set_id}/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Статистика по набору */
+        get: operations["get_set_stats_api_v1_study_sets__set_id__stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/study/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Настройки обучения */
+        get: operations["get_study_settings_api_v1_study_settings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Изменить настройки обучения */
+        patch: operations["update_study_settings_api_v1_study_settings_patch"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -456,6 +593,39 @@ export interface components {
              */
             updated_at: string;
         };
+        /**
+         * CardStateKind
+         * @description Состояние карточки. `new` — строка создана, но ответов ещё не было.
+         * @enum {string}
+         */
+        CardStateKind: "new" | "learning" | "review" | "relearning";
+        /** CardStateOut */
+        CardStateOut: {
+            /**
+             * Card Id
+             * Format: uuid
+             */
+            card_id: string;
+            /** Difficulty */
+            difficulty: number | null;
+            direction: components["schemas"]["StudyDirection"];
+            /**
+             * Due At
+             * Format: date-time
+             */
+            due_at: string;
+            /** Lapses */
+            lapses: number;
+            /** Last Reviewed At */
+            last_reviewed_at: string | null;
+            /** Reps */
+            reps: number;
+            /** Stability */
+            stability: number | null;
+            state: components["schemas"]["CardStateKind"];
+            /** Suspended At */
+            suspended_at?: string | null;
+        };
         /** CardWrite */
         CardWrite: {
             /** Alt Answers */
@@ -486,6 +656,12 @@ export interface components {
          * @enum {string}
          */
         ContentType: "text" | "latex" | "code";
+        /**
+         * DirectionMode
+         * @description Направление тренировки. `both` разворачивается в два состояния на карточку.
+         * @enum {string}
+         */
+        DirectionMode: "term_to_def" | "def_to_term" | "both";
         /** FolderCreate */
         FolderCreate: {
             /**
@@ -534,6 +710,13 @@ export interface components {
             position?: number | null;
             /** Title */
             title?: string | null;
+        };
+        /** ForecastDay */
+        ForecastDay: {
+            /** Count */
+            count: number;
+            /** Date */
+            date: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -643,6 +826,24 @@ export interface components {
              */
             email: string;
         };
+        /** ProblemCard */
+        ProblemCard: {
+            /**
+             * Card Id
+             * Format: uuid
+             */
+            card_id: string;
+            /** Definition */
+            definition: string;
+            /** Lapses */
+            lapses: number;
+            /** Reps */
+            reps: number;
+            /** Retrievability */
+            retrievability: number;
+            /** Term */
+            term: string;
+        };
         /** ProfileUpdateRequest */
         ProfileUpdateRequest: {
             /** Display Name */
@@ -724,6 +925,67 @@ export interface components {
             /** Username */
             username: string;
         };
+        /**
+         * QueueCard
+         * @description Карточка в том виде, в каком её показывает тренировка.
+         */
+        QueueCard: {
+            /** Alt Answers */
+            alt_answers?: string[];
+            /** Code Language */
+            code_language: string | null;
+            content_type: components["schemas"]["ContentType"];
+            /** Definition */
+            definition: string;
+            /** Definition Image Url */
+            definition_image_url?: string | null;
+            /** Definition Transcription */
+            definition_transcription: string | null;
+            /** Hint */
+            hint: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Position */
+            position: number;
+            /** Term */
+            term: string;
+            /** Term Image Url */
+            term_image_url?: string | null;
+            /** Term Transcription */
+            term_transcription: string | null;
+        };
+        /** QueueItem */
+        QueueItem: {
+            card: components["schemas"]["QueueCard"];
+            direction: components["schemas"]["StudyDirection"];
+            /** Previews */
+            previews: components["schemas"]["RatingPreviewOut"][];
+            state: components["schemas"]["CardStateOut"];
+        };
+        /**
+         * QueueScope
+         * @description Что класть в очередь. `due` — режим «Заучивание», остальное — фильтры «Карточек».
+         * @enum {string}
+         */
+        QueueScope: "due" | "all" | "hard" | "new";
+        /**
+         * RatingPreviewOut
+         * @description Подпись на кнопке самооценки: когда карточка вернётся при такой оценке.
+         */
+        RatingPreviewOut: {
+            /**
+             * Due At
+             * Format: date-time
+             */
+            due_at: string;
+            /** Interval Seconds */
+            interval_seconds: number;
+            /** Rating */
+            rating: number;
+        };
         /** ReadinessResponse */
         ReadinessResponse: {
             /** Checks */
@@ -760,6 +1022,96 @@ export interface components {
             /** Username */
             username: string;
         };
+        /** ReviewBatch */
+        ReviewBatch: {
+            /** Reviews */
+            reviews: components["schemas"]["ReviewIn"][];
+            /** Session Id */
+            session_id?: string | null;
+        };
+        /** ReviewBatchResult */
+        ReviewBatchResult: {
+            /** Accepted */
+            accepted: string[];
+            /** Duplicates */
+            duplicates: string[];
+            /** Rejected */
+            rejected: string[];
+            /** States */
+            states: components["schemas"]["CardStateOut"][];
+        };
+        /**
+         * ReviewIn
+         * @description Один ответ. `client_review_id` генерирует клиент — он же ключ идемпотентности.
+         */
+        ReviewIn: {
+            /** Answer Correct */
+            answer_correct?: boolean | null;
+            /**
+             * Card Id
+             * Format: uuid
+             */
+            card_id: string;
+            /**
+             * Client Review Id
+             * Format: uuid
+             */
+            client_review_id: string;
+            direction: components["schemas"]["StudyDirection"];
+            /** Duration Ms */
+            duration_ms?: number | null;
+            mode: components["schemas"]["StudyMode"];
+            /** Rating */
+            rating: number;
+            /**
+             * Reviewed At
+             * Format: date-time
+             */
+            reviewed_at: string;
+        };
+        /** SessionCreate */
+        SessionCreate: {
+            /** Config */
+            config?: {
+                [key: string]: unknown;
+            };
+            mode: components["schemas"]["StudyMode"];
+            /**
+             * Set Id
+             * Format: uuid
+             */
+            set_id: string;
+        };
+        /** SessionOut */
+        SessionOut: {
+            /** Cards Correct */
+            cards_correct: number;
+            /** Cards Seen */
+            cards_seen: number;
+            /** Config */
+            config: {
+                [key: string]: unknown;
+            };
+            /** Ended At */
+            ended_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            mode: components["schemas"]["StudyMode"];
+            /**
+             * Set Id
+             * Format: uuid
+             */
+            set_id: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            status: components["schemas"]["SessionStatus"];
+        };
         /** SessionPublic */
         SessionPublic: {
             /** Current */
@@ -779,6 +1131,11 @@ export interface components {
             /** User Agent */
             user_agent: string | null;
         };
+        /**
+         * SessionStatus
+         * @enum {string}
+         */
+        SessionStatus: "active" | "finished" | "abandoned";
         /** SetCreate */
         SetCreate: {
             /**
@@ -838,6 +1195,33 @@ export interface components {
             updated_at: string;
             visibility: components["schemas"]["SetVisibility"];
         };
+        /** SetStats */
+        SetStats: {
+            /** Cards Total */
+            cards_total: number;
+            distribution: components["schemas"]["StateDistribution"];
+            /** Due Now */
+            due_now: number;
+            /** Forecast */
+            forecast: components["schemas"]["ForecastDay"][];
+            /** Last Studied At */
+            last_studied_at: string | null;
+            /** Learning Count */
+            learning_count: number;
+            /** Mastered Count */
+            mastered_count: number;
+            /** Mastery Percent */
+            mastery_percent: number;
+            /** Not Started Count */
+            not_started_count: number;
+            /** Problem Cards */
+            problem_cards: components["schemas"]["ProblemCard"][];
+            /**
+             * Set Id
+             * Format: uuid
+             */
+            set_id: string;
+        };
         /** SetSummary */
         SetSummary: {
             /** Cards Count */
@@ -896,6 +1280,94 @@ export interface components {
          * @enum {string}
          */
         SetVisibility: "private" | "unlisted" | "public";
+        /** StateDistribution */
+        StateDistribution: {
+            /**
+             * Learning
+             * @default 0
+             */
+            learning: number;
+            /**
+             * New
+             * @default 0
+             */
+            new: number;
+            /**
+             * Relearning
+             * @default 0
+             */
+            relearning: number;
+            /**
+             * Review
+             * @default 0
+             */
+            review: number;
+        };
+        /**
+         * StudyDirection
+         * @description Направление изучения. Состояния FSRS по направлениям раздельные.
+         * @enum {string}
+         */
+        StudyDirection: "term_to_def" | "def_to_term";
+        /**
+         * StudyMode
+         * @enum {string}
+         */
+        StudyMode: "flashcards" | "learn" | "test" | "write" | "listen";
+        /** StudyQueue */
+        StudyQueue: {
+            /** Due Total */
+            due_total: number;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Items */
+            items: components["schemas"]["QueueItem"][];
+            mode: components["schemas"]["StudyMode"];
+            /** New Left Today */
+            new_left_today: number;
+            /** New Total */
+            new_total: number;
+            /** Reviews Left Today */
+            reviews_left_today: number;
+            /** Scheduler Version */
+            scheduler_version: string;
+            /**
+             * Set Id
+             * Format: uuid
+             */
+            set_id: string;
+            /** Set Title */
+            set_title: string;
+        };
+        /** StudySettingsOut */
+        StudySettingsOut: {
+            /** Daily Goal Cards */
+            daily_goal_cards: number;
+            /** Fsrs Desired Retention */
+            fsrs_desired_retention: number;
+            /** Fsrs Max Interval Days */
+            fsrs_max_interval_days: number;
+            /** New Cards Per Day */
+            new_cards_per_day: number;
+            /** Reviews Per Day */
+            reviews_per_day: number;
+        };
+        /** StudySettingsUpdate */
+        StudySettingsUpdate: {
+            /** Daily Goal Cards */
+            daily_goal_cards?: number | null;
+            /** Fsrs Desired Retention */
+            fsrs_desired_retention?: number | null;
+            /** Fsrs Max Interval Days */
+            fsrs_max_interval_days?: number | null;
+            /** New Cards Per Day */
+            new_cards_per_day?: number | null;
+            /** Reviews Per Day */
+            reviews_per_day?: number | null;
+        };
         /** TokenResponse */
         TokenResponse: {
             /** Access Token */
@@ -1807,6 +2279,288 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SetDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_forecast_api_v1_study_forecast_get: {
+        parameters: {
+            query?: {
+                days?: number;
+                set_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForecastDay"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_reviews_api_v1_study_reviews_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewBatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewBatchResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_session_api_v1_study_sessions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_active_session_api_v1_study_sessions_active_get: {
+        parameters: {
+            query: {
+                set_id: string;
+                mode?: components["schemas"]["StudyMode"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionOut"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finish_session_api_v1_study_sessions__session_id__finish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_queue_api_v1_study_sets__set_id__queue_get: {
+        parameters: {
+            query?: {
+                mode?: components["schemas"]["StudyMode"];
+                scope?: components["schemas"]["QueueScope"];
+                direction?: components["schemas"]["DirectionMode"];
+                limit?: number;
+                shuffle?: boolean;
+            };
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudyQueue"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_set_stats_api_v1_study_sets__set_id__stats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetStats"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_study_settings_api_v1_study_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudySettingsOut"];
+                };
+            };
+        };
+    };
+    update_study_settings_api_v1_study_settings_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudySettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudySettingsOut"];
                 };
             };
             /** @description Validation Error */

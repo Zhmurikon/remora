@@ -3,6 +3,7 @@ import { Button, Card, Input } from '@remora/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
 import { useAuthStore } from '../features/auth/auth-store';
+import { StudySettingsForm } from '../features/study/StudySettingsForm';
 import { api, clearAccessToken } from '../lib/api';
 
 type Session = components['schemas']['SessionPublic'];
@@ -15,6 +16,7 @@ export function SettingsPage() {
       <div className="mt-8 grid gap-6 xl:grid-cols-2">
         <ProfileForm />
         <PasswordForm />
+        <StudySettingsForm />
       </div>
       <Sessions />
     </div>

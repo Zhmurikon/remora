@@ -49,6 +49,18 @@ async def create_user(
     return user
 
 
+async def get_or_create_settings(db: AsyncSession, user_id: UUID) -> UserSettings:
+    """Настройки создаются при регистрации, но у ранних аккаунтов их может не быть."""
+    result = await db.execute(select(UserSettings).where(UserSettings.user_id == user_id))
+    settings = result.scalar_one_or_none()
+    if settings is not None:
+        return settings
+    settings = UserSettings(user_id=user_id)
+    db.add(settings)
+    await db.flush()
+    return settings
+
+
 async def verify_email(db: AsyncSession, user_id: UUID) -> None:
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()

@@ -10,3 +10,6 @@ packages/api-client/src/generated
 docs
 README.md
 CLAUDE.md
+AGENTS.md
+design.md
+TODO.md
