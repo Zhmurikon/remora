@@ -231,10 +231,148 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Мои наборы */
+        get: operations["list_sets_api_v1_sets_get"];
+        put?: never;
+        /** Создать набор */
+        post: operations["create_set_api_v1_sets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sets/{set_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Получить набор */
+        get: operations["get_set_api_v1_sets__set_id__get"];
+        put?: never;
+        post?: never;
+        /** Удалить набор */
+        delete: operations["delete_set_api_v1_sets__set_id__delete"];
+        options?: never;
+        head?: never;
+        /** Изменить набор */
+        patch: operations["update_set_api_v1_sets__set_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/sets/{set_id}/cards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Сохранить карточки */
+        put: operations["sync_cards_api_v1_sets__set_id__cards_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sets/{set_id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Дублировать набор */
+        post: operations["duplicate_set_api_v1_sets__set_id__duplicate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** CardBatch */
+        CardBatch: {
+            /** Cards */
+            cards: components["schemas"]["CardWrite"][];
+        };
+        /** CardPublic */
+        CardPublic: {
+            /** Alt Answers */
+            alt_answers?: string[];
+            /** Code Language */
+            code_language?: string | null;
+            /** @default text */
+            content_type: components["schemas"]["ContentType"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Definition */
+            definition: string;
+            /** Definition Transcription */
+            definition_transcription?: string | null;
+            /** Hint */
+            hint?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Position */
+            position: number;
+            /** Term */
+            term: string;
+            /** Term Transcription */
+            term_transcription?: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** CardWrite */
+        CardWrite: {
+            /** Alt Answers */
+            alt_answers?: string[];
+            /** Code Language */
+            code_language?: string | null;
+            /** @default text */
+            content_type: components["schemas"]["ContentType"];
+            /** Definition */
+            definition: string;
+            /** Definition Transcription */
+            definition_transcription?: string | null;
+            /** Hint */
+            hint?: string | null;
+            /** Id */
+            id?: string | null;
+            /** Term */
+            term: string;
+            /** Term Transcription */
+            term_transcription?: string | null;
+        };
+        /**
+         * ContentType
+         * @enum {string}
+         */
+        ContentType: "text" | "latex" | "code";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -350,6 +488,115 @@ export interface components {
             /** User Agent */
             user_agent: string | null;
         };
+        /** SetCreate */
+        SetCreate: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Lang Definition
+             * @default ru
+             */
+            lang_definition: string;
+            /**
+             * Lang Term
+             * @default ru
+             */
+            lang_term: string;
+            /** Title */
+            title: string;
+            /** @default private */
+            visibility: components["schemas"]["SetVisibility"];
+        };
+        /** SetDetail */
+        SetDetail: {
+            /** Cards */
+            cards: components["schemas"]["CardPublic"][];
+            /** Cards Count */
+            cards_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Lang Definition */
+            lang_definition: string;
+            /** Lang Term */
+            lang_term: string;
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            visibility: components["schemas"]["SetVisibility"];
+        };
+        /** SetSummary */
+        SetSummary: {
+            /** Cards Count */
+            cards_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            visibility: components["schemas"]["SetVisibility"];
+        };
+        /** SetUpdate */
+        SetUpdate: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Lang Definition
+             * @default ru
+             */
+            lang_definition: string;
+            /**
+             * Lang Term
+             * @default ru
+             */
+            lang_term: string;
+            /** Title */
+            title: string;
+            /** @default private */
+            visibility: components["schemas"]["SetVisibility"];
+        };
+        /**
+         * SetVisibility
+         * @enum {string}
+         */
+        SetVisibility: "private" | "unlisted" | "public";
         /** TokenResponse */
         TokenResponse: {
             /** Access Token */
@@ -784,6 +1031,220 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReadinessResponse"];
+                };
+            };
+        };
+    };
+    list_sets_api_v1_sets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetSummary"][];
+                };
+            };
+        };
+    };
+    create_set_api_v1_sets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_set_api_v1_sets__set_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_set_api_v1_sets__set_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_set_api_v1_sets__set_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sync_cards_api_v1_sets__set_id__cards_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CardBatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    duplicate_set_api_v1_sets__set_id__duplicate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

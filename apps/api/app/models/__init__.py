@@ -1,5 +1,6 @@
 """Модели SQLAlchemy. Импортируются Alembic при автогенерации миграций."""
 
+from app.models.content import Card, ContentType, SetVisibility, StudySet
 from app.models.user import (
     ActionToken,
     Consent,
@@ -14,10 +15,14 @@ from app.models.user import (
 
 __all__ = [
     "ActionToken",
+    "Card",
     "Consent",
     "ConsentKind",
+    "ContentType",
     "OauthAccount",
     "RefreshToken",
+    "SetVisibility",
+    "StudySet",
     "User",
     "UserRole",
     "UserSettings",

@@ -5,6 +5,9 @@ import { AppLayout } from './layouts/AppLayout';
 import { DashboardPage } from './pages/DashboardPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { SetEditorPage } from './pages/SetEditorPage';
+import { SetPage } from './pages/SetPage';
+import { SetsPage } from './pages/SetsPage';
 
 export function App() {
   return (
@@ -14,15 +17,9 @@ export function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
               <Route index element={<DashboardPage />} />
-              <Route
-                path="sets"
-                element={
-                  <PlaceholderPage
-                    title="Мои наборы"
-                    description="Здесь появятся ваши наборы карточек."
-                  />
-                }
-              />
+              <Route path="sets" element={<SetsPage />} />
+              <Route path="sets/:setId" element={<SetPage />} />
+              <Route path="sets/:setId/edit" element={<SetEditorPage />} />
               <Route
                 path="library"
                 element={

@@ -1,8 +1,10 @@
 import { Button, Card } from '@remora/ui';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../features/auth/auth-store';
 
 export function DashboardPage() {
   const user = useAuthStore((state) => state.user);
+  const navigate = useNavigate();
   const name = user?.display_name || user?.username || 'друг';
   return (
     <div>
@@ -16,8 +18,8 @@ export function DashboardPage() {
             Соберите первый набор карточек, а Remora поможет заниматься регулярно.
           </p>
         </div>
-        <Button size="lg" disabled>
-          Создать набор
+        <Button size="lg" onClick={() => navigate('/sets')}>
+          Перейти к наборам
         </Button>
       </header>
       <section className="mt-10 grid gap-4 sm:grid-cols-3" aria-label="Статистика">
@@ -38,8 +40,8 @@ export function DashboardPage() {
             <p className="text-fg-muted mx-auto mt-2 max-w-md">
               Редактор карточек будет следующим большим этапом разработки.
             </p>
-            <Button className="mt-6" disabled>
-              Создать первый набор
+            <Button className="mt-6" onClick={() => navigate('/sets')}>
+              Открыть библиотеку
             </Button>
           </div>
         </div>
