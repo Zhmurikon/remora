@@ -11,7 +11,9 @@ os.environ.setdefault("REDIS_URL", "redis://localhost:6379/1")
 os.environ.setdefault("ENVIRONMENT", "local")
 
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
 
+from app.db.session import dispose_engine, get_engine
 from app.main import create_app
 
 
@@ -21,3 +23,13 @@ async def client() -> AsyncClient:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
+    # Очистка таблиц в том же event loop, до закрытия
+    engine = get_engine()
+    async with engine.begin() as conn:
+        await conn.execute(
+            text(
+                "TRUNCATE users, user_settings, refresh_tokens, "
+                "oauth_accounts, consents CASCADE"
+            )
+        )
+    await dispose_engine()

@@ -31,9 +31,26 @@ class Settings(BaseSettings):
     # CORS: адреса обоих фронтендов
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 
+    # Адреса фронтендов для ссылок в письмах
+    web_url: str = "http://localhost:3000"
+    app_url: str = "http://localhost:5173"
+
     # Токены
     access_token_ttl_minutes: int = 15
     refresh_token_ttl_days: int = 30
+    email_verification_ttl_hours: int = 24
+    password_reset_ttl_minutes: int = 30
+
+    # Cookie для refresh-токена
+    refresh_cookie_name: str = "remora_refresh"
+    cookie_secure: bool = False
+    cookie_samesite: Literal["lax", "none", "strict"] = "lax"
+    cookie_domain: str | None = None
+
+    # SMTP
+    smtp_host: str = "localhost"
+    smtp_port: int = 1025
+    smtp_from: str = "noreply@remora.local"
 
     @property
     def is_local(self) -> bool:
