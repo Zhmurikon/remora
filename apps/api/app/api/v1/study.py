@@ -26,7 +26,9 @@ from app.schemas.study import (
     StudySettingsOut,
     StudySettingsUpdate,
 )
+from app.schemas.test_mode import TestAttemptOut, TestConfig, TestResult, TestSubmit
 from app.services.study import DEFAULT_QUEUE_LIMIT, FORECAST_DAYS, MAX_QUEUE_LIMIT, StudyService
+from app.services.test_mode import TestModeService
 
 router = APIRouter(prefix="/study", tags=["study"])
 
@@ -133,3 +135,56 @@ async def submit_reviews(
     body: ReviewBatch, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
 ) -> ReviewBatchResult:
     return await StudyService(db).submit_reviews(user, body)
+
+
+@router.post(
+    "/sets/{set_id}/tests",
+    response_model=TestAttemptOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Собрать тест по набору",
+)
+async def create_test(
+    set_id: UUID,
+    body: TestConfig,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+) -> TestAttemptOut:
+    return await TestModeService(db).create_attempt(user, set_id, body)
+
+
+@router.get("/tests/{attempt_id}", response_model=TestAttemptOut, summary="Попытка теста")
+async def get_test(
+    attempt_id: UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+) -> TestAttemptOut:
+    return await TestModeService(db).get_attempt(user, attempt_id)
+
+
+@router.post(
+    "/tests/{attempt_id}/submit", response_model=TestResult, summary="Проверить ответы теста"
+)
+async def submit_test(
+    attempt_id: UUID,
+    body: TestSubmit,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+) -> TestResult:
+    return await TestModeService(db).submit(user, attempt_id, body)
+
+
+@router.get("/tests/{attempt_id}/result", response_model=TestResult, summary="Разбор теста")
+async def get_test_result(
+    attempt_id: UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+) -> TestResult:
+    return await TestModeService(db).get_result(user, attempt_id)
+
+
+@router.post(
+    "/tests/{attempt_id}/retake",
+    response_model=TestAttemptOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Пересдать ошибки",
+)
+async def retake_test(
+    attempt_id: UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+) -> TestAttemptOut:
+    return await TestModeService(db).retake(user, attempt_id)

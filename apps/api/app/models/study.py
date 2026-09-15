@@ -178,6 +178,44 @@ class StudySession(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
 
 
+class TestAttempt(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """Одна попытка теста с зафиксированным списком вопросов.
+
+    Вопросы генерируются на сервере и не пересоздаются при перезагрузке
+    страницы: иначе человек, обновивший вкладку, получил бы другой тест.
+    Правильные ответы лежат здесь же и клиенту до проверки не уходят.
+    """
+
+    __tablename__ = "test_attempts"
+    __table_args__ = (
+        Index("ix_test_attempts_user_id_set_id_created_at", "user_id", "set_id", "created_at"),
+    )
+
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    set_id: Mapped[UUID] = mapped_column(
+        ForeignKey("study_sets.id", ondelete="CASCADE"), index=True
+    )
+    session_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("study_sessions.id", ondelete="SET NULL")
+    )
+    config: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, default=dict, server_default=text("'{}'::jsonb")
+    )
+    questions: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB, default=list, server_default=text("'[]'::jsonb")
+    )
+    answers: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB, default=list, server_default=text("'[]'::jsonb")
+    )
+    score: Mapped[float | None] = mapped_column(Float)
+    correct_count: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Попытка, ошибки которой пересдаются. Нужна, чтобы показать цепочку пересдач.
+    retake_of_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("test_attempts.id", ondelete="SET NULL")
+    )
+
+
 class UserSetProgress(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     """Денормализованная сводка по набору. Пересчитывается при завершении сессии."""
 

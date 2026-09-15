@@ -19,6 +19,7 @@ from app.models.study import (
     StudyDirection,
     StudyMode,
     StudySession,
+    TestAttempt,
     UserSetProgress,
 )
 from app.models.user import (
@@ -55,6 +56,7 @@ __all__ = [
     "StudyMode",
     "StudySession",
     "StudySet",
+    "TestAttempt",
     "User",
     "UserRole",
     "UserSetProgress",

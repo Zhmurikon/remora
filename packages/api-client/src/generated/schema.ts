@@ -526,6 +526,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/study/sets/{set_id}/tests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Собрать тест по набору */
+        post: operations["create_test_api_v1_study_sets__set_id__tests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/study/settings": {
         parameters: {
             query?: never;
@@ -544,10 +561,83 @@ export interface paths {
         patch: operations["update_study_settings_api_v1_study_settings_patch"];
         trace?: never;
     };
+    "/api/v1/study/tests/{attempt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Попытка теста */
+        get: operations["get_test_api_v1_study_tests__attempt_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/study/tests/{attempt_id}/result": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Разбор теста */
+        get: operations["get_test_result_api_v1_study_tests__attempt_id__result_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/study/tests/{attempt_id}/retake": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Пересдать ошибки */
+        post: operations["retake_test_api_v1_study_tests__attempt_id__retake_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/study/tests/{attempt_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Проверить ответы теста */
+        post: operations["submit_test_api_v1_study_tests__attempt_id__submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AnswerVerdict
+         * @enum {string}
+         */
+        AnswerVerdict: "correct" | "typo" | "incorrect";
         /** CardBatch */
         CardBatch: {
             /** Cards */
@@ -1385,6 +1475,161 @@ export interface components {
             new_cards_per_day?: number | null;
             /** Reviews Per Day */
             reviews_per_day?: number | null;
+        };
+        /** TestAnswerIn */
+        TestAnswerIn: {
+            /** Question Id */
+            question_id: string;
+            /** Value */
+            value?: string | null;
+            /** Values */
+            values?: string[];
+        };
+        /** TestAttemptOut */
+        TestAttemptOut: {
+            config: components["schemas"]["TestConfig"];
+            /** Correct Count */
+            correct_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Questions */
+            questions: components["schemas"]["TestQuestionOut"][];
+            /** Retake Of Id */
+            retake_of_id?: string | null;
+            /** Score */
+            score: number | null;
+            /**
+             * Set Id
+             * Format: uuid
+             */
+            set_id: string;
+            /** Set Title */
+            set_title: string;
+        };
+        /** TestConfig */
+        TestConfig: {
+            /** @default term_to_def */
+            direction: components["schemas"]["DirectionMode"];
+            /**
+             * Kinds
+             * @default [
+             *       "choice",
+             *       "true_false",
+             *       "typing"
+             *     ]
+             */
+            kinds: components["schemas"]["TestQuestionKind"][];
+            /**
+             * Question Count
+             * @default 20
+             */
+            question_count: number;
+            /** @default all */
+            source: components["schemas"]["TestSource"];
+            /**
+             * Write To Schedule
+             * @default true
+             */
+            write_to_schedule: boolean;
+        };
+        /**
+         * TestQuestionKind
+         * @enum {string}
+         */
+        TestQuestionKind: "choice" | "true_false" | "typing" | "matching";
+        /** TestQuestionOut */
+        TestQuestionOut: {
+            /**
+             * Card Id
+             * Format: uuid
+             */
+            card_id: string;
+            /** Code Language */
+            code_language?: string | null;
+            content_type: components["schemas"]["ContentType"];
+            direction: components["schemas"]["StudyDirection"];
+            /** Hint */
+            hint?: string | null;
+            /** Id */
+            id: string;
+            kind: components["schemas"]["TestQuestionKind"];
+            /** Options */
+            options?: string[];
+            /** Pairs */
+            pairs?: string[];
+            /** Prompt */
+            prompt: string;
+            /** Prompt Image Url */
+            prompt_image_url?: string | null;
+            /** Statement */
+            statement?: string | null;
+        };
+        /**
+         * TestQuestionReview
+         * @description Разбор одного вопроса после проверки.
+         */
+        TestQuestionReview: {
+            /** Correct */
+            correct: boolean;
+            /** Expected */
+            expected: string;
+            /** Expected Values */
+            expected_values?: string[];
+            /** Given */
+            given: string | null;
+            /** Given Values */
+            given_values?: string[];
+            question: components["schemas"]["TestQuestionOut"];
+            verdict: components["schemas"]["AnswerVerdict"];
+        };
+        /** TestResult */
+        TestResult: {
+            /**
+             * Attempt Id
+             * Format: uuid
+             */
+            attempt_id: string;
+            /** Correct Count */
+            correct_count: number;
+            /**
+             * Finished At
+             * Format: date-time
+             */
+            finished_at: string;
+            /** Review */
+            review: components["schemas"]["TestQuestionReview"][];
+            /** Score */
+            score: number;
+            /**
+             * Set Id
+             * Format: uuid
+             */
+            set_id: string;
+            /** Total */
+            total: number;
+            /** Wrong Card Ids */
+            wrong_card_ids: string[];
+        };
+        /**
+         * TestSource
+         * @description Из каких карточек собирать тест.
+         * @enum {string}
+         */
+        TestSource: "all" | "hard" | "new";
+        /** TestSubmit */
+        TestSubmit: {
+            /** Answers */
+            answers: components["schemas"]["TestAnswerIn"][];
         };
         /** TokenResponse */
         TokenResponse: {
@@ -2539,6 +2784,41 @@ export interface operations {
             };
         };
     };
+    create_test_api_v1_study_sets__set_id__tests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestConfig"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestAttemptOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_study_settings_api_v1_study_settings_get: {
         parameters: {
             query?: never;
@@ -2579,6 +2859,134 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StudySettingsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_test_api_v1_study_tests__attempt_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestAttemptOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_test_result_api_v1_study_tests__attempt_id__result_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retake_test_api_v1_study_tests__attempt_id__retake_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestAttemptOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_test_api_v1_study_tests__attempt_id__submit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestSubmit"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestResult"];
                 };
             };
             /** @description Validation Error */

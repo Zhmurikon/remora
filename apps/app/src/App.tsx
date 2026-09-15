@@ -10,6 +10,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { SetEditorPage } from './pages/SetEditorPage';
 import { SetPage } from './pages/SetPage';
 import { SetsPage } from './pages/SetsPage';
+import { TestPage } from './pages/TestPage';
 import { WritePage } from './pages/WritePage';
 
 export function App() {
@@ -26,6 +27,7 @@ export function App() {
               <Route path="sets/:setId/learn" element={<LearnPage />} />
               <Route path="sets/:setId/flashcards" element={<FlashcardsPage />} />
               <Route path="sets/:setId/write" element={<WritePage />} />
+              <Route path="sets/:setId/test" element={<TestPage />} />
               <Route
                 path="library"
                 element={
