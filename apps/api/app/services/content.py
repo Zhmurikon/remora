@@ -1,6 +1,7 @@
 """Бизнес-логика наборов и атомарного сохранения карточек."""
 
 import re
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,9 +9,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.errors import ConflictError, ForbiddenError, NotFoundError
 from app.core.storage import get_object_storage
-from app.models.content import Card, ContentType, Folder, MediaAsset, MediaStatus, StudySet
+from app.models.content import (
+    Card,
+    ContentType,
+    Folder,
+    MediaAsset,
+    MediaStatus,
+    SetVisibility,
+    StudySet,
+)
 from app.models.user import User
 from app.repositories import content as content_repo
+from app.repositories import courses as course_repo
 from app.schemas.content import (
     CardBatch,
     FolderCreate,
@@ -32,12 +42,19 @@ class ContentService:
     async def list_sets(self, user: User) -> list[StudySet]:
         return await content_repo.list_sets(self.db, user.id)
 
-    async def get_public_set(self, slug: str) -> PublicSet:
+    async def get_public_set(
+        self, slug: str, *, after: int | None = None, revision: datetime | None = None
+    ) -> PublicSet:
         result = await content_repo.get_public_set_by_slug(self.db, slug)
         if result is None:
             raise NotFoundError("Набор не найден")
         study_set, author = result
-        visible_cards = study_set.cards[:50]
+        course = await course_repo.course_for_set(self.db, study_set.id)
+        article = await course_repo.get_article_for_set(self.db, study_set.id) if course else None
+        if after is not None and revision != study_set.updated_at:
+            raise ConflictError("Материал изменился. Обновите страницу перед продолжением")
+        page = await content_repo.public_cards_page(self.db, study_set.id, after)
+        visible_cards = page[:50]
         asset_ids = {
             asset_id
             for card in visible_cards
@@ -50,6 +67,7 @@ class ContentService:
             if asset.status == MediaStatus.ready and asset.owner_id == study_set.owner_id
         }
         return PublicSet(
+            course_url=f"/kurs/{course.slug}#article-{article.id}" if course and article else None,
             id=study_set.id,
             title=study_set.title,
             description=study_set.description,
@@ -64,6 +82,7 @@ class ContentService:
                 avatar_url=author.avatar_url,
             ),
             cards=[self._public_card(card, assets) for card in visible_cards],
+            next_cursor=visible_cards[-1].position if len(page) > 50 else None,
             created_at=study_set.created_at,
             updated_at=study_set.updated_at,
         )
@@ -129,6 +148,10 @@ class ContentService:
         return study_set
 
     async def create_set(self, user: User, body: SetCreate) -> StudySet:
+        if body.visibility != SetVisibility.private:
+            raise ConflictError(
+                "Публикация доступна в настройках курса", details={"action": "publish_course"}
+            )
         if body.folder_id is not None:
             await self.get_owned_folder(user, body.folder_id)
         study_set = StudySet(id=uuid4(), owner_id=user.id, slug="pending", **body.model_dump())
@@ -139,7 +162,11 @@ class ContentService:
         if body.folder_id is not None:
             await self.get_owned_folder(user, body.folder_id)
         study_set = await self.get_owned_set(user, set_id, with_cards=True)
-        for field, value in body.model_dump().items():
+        if "visibility" in body.model_fields_set and body.visibility != study_set.visibility:
+            raise ConflictError(
+                "Публикация доступна в настройках курса", details={"action": "publish_course"}
+            )
+        for field, value in body.model_dump(exclude={"visibility"}).items():
             setattr(study_set, field, value)
         await self.db.flush()
         # PostgreSQL вычисляет updated_at при UPDATE. Загружаем значение в async-контексте,
@@ -157,7 +184,7 @@ class ContentService:
             SetCreate(
                 title=f"Копия — {source.title}",
                 description=source.description,
-                visibility=source.visibility,
+                visibility=SetVisibility.private,
                 lang_term=source.lang_term,
                 lang_definition=source.lang_definition,
                 folder_id=source.folder_id,
@@ -214,6 +241,7 @@ class ContentService:
             result.append(card)
         await content_repo.sync_cards(self.db, study_set, result)
         study_set.cards_count = len(result)
+        study_set.updated_at = datetime.now(UTC)
         await self.db.flush()
         return await self.get_owned_set(user, set_id, with_cards=True)
 

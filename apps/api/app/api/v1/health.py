@@ -44,7 +44,9 @@ async def ready(
         checks["postgres"] = f"error: {type(exc).__name__}"
 
     try:
-        client: aioredis.Redis = aioredis.from_url(str(settings.redis_url))
+        client: aioredis.Redis = aioredis.from_url(  # type: ignore[no-untyped-call]
+            str(settings.redis_url)
+        )
         await client.ping()
         await client.aclose()
         checks["redis"] = "ok"

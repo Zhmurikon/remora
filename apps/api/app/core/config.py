@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     # Инфраструктура
     database_url: PostgresDsn
     redis_url: RedisDsn
+    meili_url: str = "http://localhost:7700"
+    meili_master_key: SecretStr = SecretStr("remora-dev-master-key")
+    meili_index: str = Field(default="courses", pattern=r"^[a-zA-Z0-9_-]+$")
+    meili_timeout_seconds: float = Field(default=10, gt=0, le=60)
 
     # S3-совместимое хранилище медиа
     s3_endpoint: str = "http://localhost:9100"
@@ -39,6 +43,7 @@ class Settings(BaseSettings):
     s3_bucket_audio: str = "remora-audio"
     media_upload_ttl_seconds: int = 900
     media_download_ttl_seconds: int = 3600
+    account_export_ttl_hours: int = 24
     media_image_max_size_bytes: int = 10 * 1024 * 1024
     media_image_max_pixels: int = 25_000_000
 

@@ -7,7 +7,8 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.content import Card, Folder, MediaAsset, SetVisibility, StudySet
+from app.models.content import Card, Folder, MediaAsset, StudySet
+from app.models.courses import Course, CourseArticle, CourseSection
 from app.models.user import User, UserStatus
 
 
@@ -61,23 +62,32 @@ async def get_set(db: AsyncSession, set_id: UUID, *, with_cards: bool = False) -
     return result.scalar_one_or_none()
 
 
-async def get_public_set_by_slug(
-    db: AsyncSession, slug: str
-) -> tuple[StudySet, User] | None:
+async def get_public_set_by_slug(db: AsyncSession, slug: str) -> tuple[StudySet, User] | None:
     result = await db.execute(
         select(StudySet, User)
         .join(User, User.id == StudySet.owner_id)
+        .join(CourseArticle, CourseArticle.set_id == StudySet.id)
+        .join(CourseSection, CourseSection.id == CourseArticle.section_id)
+        .join(Course, Course.id == CourseSection.course_id)
         .where(
             StudySet.slug == slug,
             StudySet.deleted_at.is_(None),
-            StudySet.visibility.in_((SetVisibility.unlisted, SetVisibility.public)),
+            Course.is_published.is_(True),
+            Course.moderation_status != "blocked",
+            Course.owner_id == StudySet.owner_id,
             User.status == UserStatus.active,
             User.deleted_at.is_(None),
         )
-        .options(selectinload(StudySet.cards))
     )
     row = result.one_or_none()
     return (row[0], row[1]) if row is not None else None
+
+
+async def public_cards_page(db: AsyncSession, set_id: UUID, after: int | None) -> list[Card]:
+    query = select(Card).where(Card.set_id == set_id)
+    if after is not None:
+        query = query.where(Card.position > after)
+    return list((await db.scalars(query.order_by(Card.position).limit(51))).all())
 
 
 async def get_media_assets(db: AsyncSession, asset_ids: set[UUID]) -> list[MediaAsset]:

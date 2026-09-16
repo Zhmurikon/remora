@@ -1,7 +1,7 @@
 import { Badge, Card } from '@remora/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { PublicCardContent } from './PublicCardContent';
 
 const API_URL = process.env.API_INTERNAL_URL ?? 'http://localhost:8000';
@@ -21,6 +21,7 @@ type PublicCard = {
 };
 
 type PublicSet = {
+  course_url?: string | null;
   id: string;
   title: string;
   description: string;
@@ -33,6 +34,12 @@ type PublicSet = {
 };
 
 async function loadSet(slug: string): Promise<PublicSet | null> {
+  // Параметр маршрута может прийти percent-encoded: не кодируем кириллицу повторно.
+  try {
+    slug = decodeURIComponent(slug);
+  } catch {
+    return null;
+  }
   const response = await fetch(`${API_URL}/api/v1/sets/public/${encodeURIComponent(slug)}`, {
     cache: 'no-store',
   });
@@ -49,6 +56,8 @@ export async function generateMetadata({
   const { slug } = await params;
   const set = await loadSet(slug);
   if (!set) return { title: 'Набор не найден' };
+  if (set.course_url)
+    return { title: set.title, alternates: { canonical: set.course_url.split('#')[0] } };
   const description =
     set.description || `Набор «${set.title}»: ${set.cards_count} карточек для запоминания.`;
   return {
@@ -65,6 +74,7 @@ export default async function PublicSetPage({ params }: { params: Promise<{ slug
   const { slug } = await params;
   const set = await loadSet(slug);
   if (!set) notFound();
+  if (set.course_url) permanentRedirect(set.course_url);
   const authorName = set.author.display_name || `@${set.author.username}`;
 
   return (

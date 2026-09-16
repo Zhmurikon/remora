@@ -10,6 +10,7 @@
 from typing import Any
 
 from fastapi import FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -93,7 +94,7 @@ def register_exception_handlers(app: FastAPI) -> None:
             content=_payload(
                 "VALIDATION_ERROR",
                 "Некорректные данные запроса",
-                {"errors": exc.errors()},
+                {"errors": jsonable_encoder(exc.errors(), custom_encoder={ValueError: str})},
             ),
         )
 

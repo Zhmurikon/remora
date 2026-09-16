@@ -79,7 +79,7 @@ services:
   mailhog:
     image: mailhog/mailhog:v1.0.1
     ports:
-      - '${SMTP_PORT:-1025}:1025'
+      - '${MAILHOG_SMTP_PORT:-1025}:1025'
       - '${MAILHOG_UI_PORT:-8025}:8025'
 
 volumes:

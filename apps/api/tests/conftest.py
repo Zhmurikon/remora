@@ -9,6 +9,14 @@ os.environ.setdefault(
 )
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/1")
 os.environ.setdefault("ENVIRONMENT", "local")
+# Тесты не должны отправлять письма через рабочие реквизиты из .env.
+os.environ["SMTP_HOST"] = "localhost"
+os.environ["SMTP_PORT"] = "1025"
+os.environ["SMTP_USERNAME"] = ""
+os.environ["SMTP_PASSWORD"] = ""
+os.environ["SMTP_START_TLS"] = "false"
+os.environ["SMTP_FROM"] = "tests@remora.local"
+os.environ["DEBUG"] = "false"
 
 import redis.asyncio as redis
 from httpx import ASGITransport, AsyncClient

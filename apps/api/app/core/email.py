@@ -78,3 +78,15 @@ async def send_password_reset_email(to: str, token: str) -> None:
         f"Если вы не запрашивали сброс пароля — проигнорируйте это письмо."
     )
     await send_email(to, subject, body)
+
+
+async def send_account_export_email(to: str, download_url: str, ttl_hours: int) -> None:
+    subject = "Архив ваших данных готов — Remora"
+    body = (
+        "Здравствуйте!\n\n"
+        "Архив с данными вашего аккаунта готов:\n"
+        f"{download_url}\n\n"
+        f"Ссылка действительна {ttl_hours} ч. Не пересылайте её другим людям.\n\n"
+        "Если вы не запрашивали экспорт, смените пароль и завершите незнакомые сессии."
+    )
+    await send_email(to, subject, body)

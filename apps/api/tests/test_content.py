@@ -4,6 +4,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from tests.test_courses import legacy_visibility
+
 
 async def _auth(client: pytest.fixture, suffix: str) -> dict[str, str]:
     email = f"content-{suffix}@example.com"
@@ -142,14 +144,21 @@ async def test_public_link_respects_visibility_and_limits_ssr_cards(
     public_set = await client.post(
         "/api/v1/sets",
         headers=owner,
-        json={"title": "Открытая физика", "visibility": "unlisted"},
+        json={"title": "Открытая физика"},
     )
     set_id = public_set.json()["id"]
+    await legacy_visibility(set_id, "unlisted")
     cards = [
-        {"term": f"Термин {index}", "definition": f"Определение {index}"}
-        for index in range(55)
+        {"term": f"Термин {index}", "definition": f"Определение {index}"} for index in range(55)
     ]
     await client.put(f"/api/v1/sets/{set_id}/cards", headers=owner, json={"cards": cards})
+
+    course = (
+        await client.post(
+            "/api/v1/courses", headers=owner, json={"title": "Физика", "set_id": set_id}
+        )
+    ).json()
+    await client.post(f"/api/v1/courses/{course['id']}/publish", headers=owner, json={})
 
     response = await client.get(f"/api/v1/sets/public/{public_set.json()['slug']}")
     assert response.status_code == 200

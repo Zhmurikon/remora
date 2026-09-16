@@ -92,6 +92,36 @@ class MediaService:
         await self.db.flush()
         return self._public(asset)
 
+    async def import_image(self, user: User, filename: str, payload: bytes) -> MediaAsset:
+        """Проверяет и сохраняет картинку из доверенного серверного импортера."""
+        if len(payload) > self.settings.media_image_max_size_bytes:
+            raise ConflictError("Изображение из архива слишком большое")
+        try:
+            width, height, mime = _inspect_image(payload, self.settings.media_image_max_pixels)
+        except (UnidentifiedImageError, OSError, ValueError) as exc:
+            raise ConflictError("В архиве найдено недопустимое изображение") from exc
+        asset_id = uuid4()
+        suffix = Path(filename).suffix.lower()[:10]
+        key = f"users/{user.id}/images/{asset_id}{suffix}"
+        checksum = hashlib.sha256(payload).hexdigest()
+        asset = MediaAsset(
+            id=asset_id,
+            owner_id=user.id,
+            kind=MediaKind.image,
+            s3_key=key,
+            mime=mime,
+            size_bytes=len(payload),
+            width=width,
+            height=height,
+            checksum=checksum,
+            source=MediaSource.upload,
+            status=MediaStatus.ready,
+        )
+        await get_object_storage().put(key, payload, mime)
+        self.db.add(asset)
+        await self.db.flush()
+        return asset
+
     async def get_asset(self, user: User, asset_id: UUID) -> MediaAssetPublic:
         return self._public(await self._owned_asset(user, asset_id))
 

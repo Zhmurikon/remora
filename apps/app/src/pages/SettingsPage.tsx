@@ -1,4 +1,5 @@
 import type { ApiError, components } from '@remora/api-client';
+import { formatBytes } from '@remora/core';
 import { Button, Card, Input } from '@remora/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
@@ -17,9 +18,112 @@ export function SettingsPage() {
         <ProfileForm />
         <PasswordForm />
         <StudySettingsForm />
+        <AccountExport />
       </div>
       <Sessions />
     </div>
+  );
+}
+
+type AccountExportJob = components['schemas']['AccountExportPublic'];
+
+function AccountExport() {
+  const queryClient = useQueryClient();
+  const [message, setMessage] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
+  const query = useQuery({
+    queryKey: ['account-export'],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/users/me/export/latest');
+      if (error) throw new Error(errorMessage(error));
+      return data;
+    },
+    refetchInterval: (state) => {
+      const job = state.state.data;
+      return job?.status === 'queued' || job?.status === 'processing' ? 2_000 : false;
+    },
+  });
+  const job = query.data as AccountExportJob | null | undefined;
+  const active = job?.status === 'queued' || job?.status === 'processing';
+
+  async function start() {
+    setStarting(true);
+    setMessage(null);
+    const { data, error } = await api.POST('/api/v1/users/me/export');
+    if (error) setMessage(errorMessage(error));
+    else {
+      queryClient.setQueryData(['account-export'], data);
+      setMessage('Архив поставлен в очередь. Ссылку также отправим на ваш email.');
+    }
+    setStarting(false);
+  }
+
+  return (
+    <Card className="p-6">
+      <h2 className="text-xl font-semibold">Ваши данные</h2>
+      <p className="text-fg-muted mt-1 text-sm leading-relaxed">
+        Скачайте ZIP со всеми наборами, историей обучения, настройками и медиафайлами. Пароли и
+        токены в архив не входят.
+      </p>
+
+      {active && job && (
+        <div className="bg-surface-muted mt-5 rounded-xl p-4" aria-live="polite">
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="font-medium">
+              {job.status === 'queued' ? 'Ожидает обработки' : 'Собираем архив'}
+            </span>
+            <span className="text-fg-muted">{job.progress}%</span>
+          </div>
+          <div
+            className="bg-border mt-3 h-2 overflow-hidden rounded-full"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={job.progress}
+          >
+            <div className="bg-primary h-full rounded-full" style={{ width: `${job.progress}%` }} />
+          </div>
+        </div>
+      )}
+
+      {job?.status === 'completed' && job.download_url && (
+        <div className="bg-success-subtle mt-5 rounded-xl p-4">
+          <p className="font-medium">Архив готов</p>
+          <p className="text-fg-muted mt-1 text-sm">
+            {job.size_bytes ? formatBytes(job.size_bytes) : 'ZIP'} · ссылка действует до{' '}
+            {job.expires_at ? new Date(job.expires_at).toLocaleString('ru-RU') : 'истечения срока'}
+          </p>
+          <a
+            href={job.download_url}
+            className="bg-primary text-primary-fg mt-4 inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-medium"
+          >
+            Скачать ZIP
+          </a>
+        </div>
+      )}
+
+      {job?.status === 'completed' && !job.download_url && (
+        <p className="bg-warning-subtle mt-5 rounded-xl p-4 text-sm" role="status">
+          Срок ссылки истёк. Запросите новый архив.
+        </p>
+      )}
+      {job?.status === 'failed' && (
+        <p className="bg-danger-subtle text-danger mt-5 rounded-xl p-4 text-sm" role="alert">
+          {job.error_message || 'Не удалось подготовить архив. Попробуйте ещё раз.'}
+        </p>
+      )}
+
+      <Status text={message} />
+      <Button
+        variant={job?.status === 'completed' ? 'secondary' : 'primary'}
+        className="mt-5"
+        loading={starting}
+        disabled={active}
+        onClick={() => void start()}
+      >
+        {active ? 'Архив готовится' : job ? 'Создать новый архив' : 'Запросить архив'}
+      </Button>
+    </Card>
   );
 }
 

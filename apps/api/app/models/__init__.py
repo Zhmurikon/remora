@@ -11,6 +11,9 @@ from app.models.content import (
     SetVisibility,
     StudySet,
 )
+from app.models.courses import Course, CourseArticle, CourseSection
+from app.models.exports import AccountExportJob, AccountExportStatus
+from app.models.imports import ImportJob, ImportJobStatus
 from app.models.study import (
     CardState,
     CardStateKind,
@@ -36,6 +39,8 @@ from app.models.user import (
 )
 
 __all__ = [
+    "AccountExportJob",
+    "AccountExportStatus",
     "ActionToken",
     "Card",
     "CardState",
@@ -43,7 +48,12 @@ __all__ = [
     "Consent",
     "ConsentKind",
     "ContentType",
+    "Course",
+    "CourseArticle",
+    "CourseSection",
     "Folder",
+    "ImportJob",
+    "ImportJobStatus",
     "MediaAsset",
     "MediaKind",
     "MediaSource",

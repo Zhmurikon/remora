@@ -3,6 +3,7 @@ import { AuthBootstrap } from './features/auth/AuthBootstrap';
 import { ProtectedRoute } from './features/auth/ProtectedRoute';
 import { AppLayout } from './layouts/AppLayout';
 import { DashboardPage } from './pages/DashboardPage';
+import { CoursePage, CoursesPage, NewCoursePage } from './pages/CoursesPage';
 import { FlashcardsPage } from './pages/FlashcardsPage';
 import { LearnPage } from './pages/LearnPage';
 import { ListenPage } from './pages/ListenPage';
@@ -23,6 +24,9 @@ export function App() {
             <Route element={<AppLayout />}>
               <Route index element={<DashboardPage />} />
               <Route path="sets" element={<SetsPage />} />
+              <Route path="courses" element={<CoursesPage />} />
+              <Route path="courses/new" element={<NewCoursePage />} />
+              <Route path="courses/:courseId" element={<CoursePage />} />
               <Route path="sets/:setId" element={<SetPage />} />
               <Route path="sets/:setId/edit" element={<SetEditorPage />} />
               <Route path="sets/:setId/learn" element={<LearnPage />} />

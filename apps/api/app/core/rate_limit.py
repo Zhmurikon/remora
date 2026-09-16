@@ -49,7 +49,9 @@ async def enforce_rate_limit(
 ) -> None:
     """Учитывает попытку и бросает RATE_LIMITED при заполненном окне."""
     settings = get_settings()
-    client = redis.from_url(str(settings.redis_url), decode_responses=True)
+    client = redis.from_url(  # type: ignore[no-untyped-call]
+        str(settings.redis_url), decode_responses=True
+    )
     now = time.time()
     try:
         result = await client.eval(
@@ -71,6 +73,4 @@ async def enforce_rate_limit(
 
     if int(result[0]) == 0:
         retry_after = max(1, int(float(result[1]) + window_seconds - now))
-        raise RateLimitError(
-            details={"retry_after_seconds": retry_after, "scope": scope}
-        )
+        raise RateLimitError(details={"retry_after_seconds": retry_after, "scope": scope})

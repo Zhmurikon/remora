@@ -84,6 +84,8 @@ class PublicSetAuthor(BaseModel):
 
 
 class PublicSet(BaseModel):
+    course_url: str | None = None
+    next_cursor: int | None = None
     id: UUID
     title: str
     description: str
@@ -99,7 +101,8 @@ class PublicSet(BaseModel):
 
 
 class CardBatch(BaseModel):
-    cards: list[CardWrite] = Field(max_length=300)
+    # Технический потолок синхронизации; тарифные квоты позже проверяет только Entitlements.
+    cards: list[CardWrite] = Field(max_length=5000)
 
 
 class FolderCreate(BaseModel):

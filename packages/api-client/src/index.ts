@@ -34,10 +34,14 @@ export function createApiClient({ baseUrl, getAccessToken, onUnauthorized }: Cre
     credentials: 'include',
   });
 
+  // fetch потребляет тело запроса. Копию для повторной отправки сохраняем до него.
+  const retryRequests = new WeakMap<Request, Request>();
+
   const auth: Middleware = {
     async onRequest({ request }) {
       const token = getAccessToken?.();
       if (token) request.headers.set('Authorization', `Bearer ${token}`);
+      if (onUnauthorized) retryRequests.set(request, request.clone());
       return request;
     },
     async onResponse({ request, response }) {
@@ -45,7 +49,9 @@ export function createApiClient({ baseUrl, getAccessToken, onUnauthorized }: Cre
       const refreshed = await onUnauthorized();
       if (!refreshed) return response;
 
-      const retry = new Request(request.clone());
+      const original = retryRequests.get(request);
+      if (!original) return response;
+      const retry = new Request(original);
       const token = getAccessToken?.();
       if (token) retry.headers.set('Authorization', `Bearer ${token}`);
       return fetch(retry);

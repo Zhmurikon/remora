@@ -7,6 +7,7 @@ import { api, clearAccessToken } from '../lib/api';
 const navigation = [
   { to: '/', label: 'Главная', icon: '⌂', end: true },
   { to: '/sets', label: 'Мои наборы', icon: '▣' },
+  { to: '/courses', label: 'Мои курсы', icon: '▤' },
   { to: '/library', label: 'Библиотека', icon: '◇' },
   { to: '/settings', label: 'Настройки', icon: '⚙' },
 ];
