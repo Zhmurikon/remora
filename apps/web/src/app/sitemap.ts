@@ -2,6 +2,7 @@ import type { components } from '@remora/api-client';
 import type { MetadataRoute } from 'next';
 import { absoluteUrl } from '../lib/seo';
 import { publishedPosts } from '../lib/blog';
+import { loadCollectionCourses, publishedCollections } from '../lib/collections';
 
 const API_URL = process.env.API_INTERNAL_URL ?? 'http://localhost:8000';
 type Entry = components['schemas']['CourseSitemapEntry'];
@@ -20,6 +21,13 @@ async function loadEntries(): Promise<Entry[]> {
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries = await loadEntries();
+  const collections = await Promise.all(
+    publishedCollections().map(async (collection) => {
+      const result = await loadCollectionCourses(collection);
+      return result.ok && result.courses.length > 0 ? collection : null;
+    }),
+  );
+  const availableCollections = collections.filter((collection) => collection !== null);
   const authors = new Map<string, Date>();
   const courses = entries.map((entry) => {
     const modified = new Date(entry.updated_at);
@@ -34,6 +42,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...publishedPosts().map((post) => ({
       url: absoluteUrl(`/blog/${post.slug}`),
       lastModified: new Date(post.updatedAt),
+    })),
+    ...(availableCollections.length
+      ? [{ url: absoluteUrl('/podborki'), changeFrequency: 'weekly' as const, priority: 0.7 }]
+      : []),
+    ...availableCollections.map((collection) => ({
+      url: absoluteUrl(`/podborki/${collection.slug}`),
+      lastModified: new Date(collection.updatedAt),
     })),
     ...courses,
     ...Array.from(authors, ([username, lastModified]) => ({

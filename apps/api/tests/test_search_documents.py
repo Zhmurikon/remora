@@ -122,3 +122,9 @@ async def test_index_only_contains_available_listed_courses(client, hidden, monk
     if not hidden:
         assert "content" not in result.json()["items"][0]
         assert result.json()["items"][0]["saves_count"] == expected_saves
+    # Даже знание UUID не раскрывает закрытый материал через редакционные подборки.
+    selected = await client.get("/api/v1/search/courses/selected", params={"ids": str(course_id)})
+    assert selected.status_code == 200
+    assert len(selected.json()) == (0 if hidden else 1)
+    if not hidden:
+        assert selected.json() == result.json()["items"]

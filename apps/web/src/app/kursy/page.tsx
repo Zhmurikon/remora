@@ -114,6 +114,12 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
         <p className="text-fg-muted mt-4 max-w-prose text-lg">
           Курсы и карточки для следующего занятия, зачёта или нового интереса.
         </p>
+        <Link
+          href="/podborki"
+          className="text-primary mt-4 inline-flex min-h-11 items-center underline"
+        >
+          Подборки редакции →
+        </Link>
       </header>
       <Card>
         <form action="/kursy" method="get" role="search" className="space-y-5 [&_input]:min-h-11">

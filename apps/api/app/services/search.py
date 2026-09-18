@@ -20,6 +20,18 @@ class SearchUnavailableError(AppError):
     message = "Поиск временно недоступен. Попробуйте позже"
 
 
+async def selected_courses(db: AsyncSession, ids: list[UUID]) -> list[CourseSearchItem]:
+    # Редакционный список не даёт дополнительных прав и не зависит от задержки индекса.
+    documents = {
+        item["id"]: item for item in await course_documents(db, ids, include_content=False)
+    }
+    return [
+        CourseSearchItem.model_validate(documents[str(course_id)])
+        for course_id in dict.fromkeys(ids)
+        if str(course_id) in documents
+    ]
+
+
 def index_query(query: CourseSearchQuery) -> dict[str, Any]:
     filters = [f"cards_count >= {query.min_cards}"]
     # JSON-кавычки не дают пользовательскому тегу превратиться в выражение фильтра.

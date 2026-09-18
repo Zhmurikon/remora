@@ -1,0 +1,204 @@
+.collection-art {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;
+  overflow: hidden;
+  isolation: isolate;
+}
+.collection-art-orbit {
+  position: absolute;
+  width: 290px;
+  height: 180px;
+  border: 1px dashed rgb(var(--rm-primary) / 0.24);
+  border-radius: 50%;
+  transform: rotate(-25deg);
+  z-index: -1;
+}
+.collection-art-sheet {
+  width: 112px;
+  height: 144px;
+  flex-shrink: 0;
+  padding: 24px 18px;
+  border: 1px solid rgb(var(--rm-border));
+  border-radius: 14px;
+  background: rgb(var(--rm-surface));
+  transform: rotate(-12deg);
+  box-shadow: 0 8px 24px rgb(var(--rm-primary) / 0.06);
+}
+.collection-art-sheet + .collection-art-sheet {
+  margin-left: -36px;
+  transform: translateY(-12px);
+}
+.collection-art-sheet:last-child {
+  transform: rotate(12deg);
+}
+.collection-art-sheet span {
+  display: block;
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgb(var(--rm-primary) / 0.55);
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+.collection-art-sheet i {
+  display: block;
+  height: 4px;
+  background: rgb(var(--rm-primary) / 0.14);
+  border-radius: 4px;
+  margin-top: 8px;
+}
+.collection-art-sheet i:last-child {
+  width: 60%;
+}
+.collection-empty {
+  padding: 40px;
+  border: 1px solid rgb(var(--rm-border));
+  border-radius: 24px;
+  background: rgb(var(--rm-surface));
+}
+.collection-empty h2,
+.collection-empty h3 {
+  font-size: 24px;
+  line-height: 1.3;
+  font-weight: 600;
+}
+.collection-empty p {
+  max-width: 620px;
+  margin-block: 16px 24px;
+  color: rgb(var(--rm-fg-muted));
+}
+.collection-hero {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 56px;
+  align-items: center;
+  padding-block: 32px 64px;
+}
+.collection-hero > div {
+  min-width: 0;
+}
+.collection-hero > div > p {
+  color: rgb(var(--rm-fg-muted));
+}
+.collection-hero .blog-meta {
+  margin-top: 24px;
+}
+.collection-hero .collection-art {
+  border-radius: 24px;
+  min-height: 320px;
+}
+.collection-selection {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 56px;
+  align-items: start;
+}
+.collection-context h2 {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 24px;
+}
+.collection-context p {
+  color: rgb(var(--rm-fg-muted));
+  line-height: 1.8;
+}
+.collection-context .collection-hint {
+  font-size: 14px;
+  border-top: 1px solid rgb(var(--rm-border));
+  padding-top: 24px;
+  margin-top: 24px;
+}
+.collection-courses {
+  display: grid;
+  gap: 24px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.collection-course {
+  display: flex;
+  gap: 24px;
+  padding: 32px;
+  border-radius: 24px;
+  background: rgb(var(--rm-surface));
+  border: 1px solid rgb(var(--rm-border));
+}
+.collection-course-copy {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.collection-number {
+  color: rgb(var(--rm-primary));
+  font-size: 14px;
+  padding-top: 10px;
+}
+.collection-course h3 {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.collection-course h3 a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.collection-course h3 a:hover {
+  color: rgb(var(--rm-primary));
+  text-decoration: underline;
+}
+.collection-description {
+  color: rgb(var(--rm-fg-muted));
+  margin-top: 12px;
+  line-height: 1.7;
+}
+.collection-course .blog-meta {
+  margin-block: 16px 24px;
+}
+.collection-note {
+  padding: 20px;
+  background: rgb(var(--rm-home-mint));
+  border-radius: 16px;
+  line-height: 1.7;
+}
+.collection-note > span {
+  display: block;
+  color: rgb(var(--rm-primary));
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.collection-back {
+  margin-block: 40px 0;
+}
+@media (max-width: 800px) {
+  .collection-hero {
+    gap: 32px;
+    grid-template-columns: 1fr;
+    padding-bottom: 40px;
+  }
+  .collection-hero .collection-art {
+    min-height: 240px;
+  }
+  .collection-selection {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+}
+@media (max-width: 540px) {
+  .collection-empty,
+  .collection-course {
+    padding: 24px;
+  }
+  .collection-course {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .collection-number {
+    padding: 0;
+  }
+  .collection-course h3 {
+    font-size: 22px;
+  }
+}

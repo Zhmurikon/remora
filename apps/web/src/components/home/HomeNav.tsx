@@ -14,8 +14,9 @@ export function HomeNav() {
       <nav className="home-desktop-nav" aria-label="Основная навигация">
         <a href="#features">Возможности</a>
         <a href="/kursy">Каталог</a>
+        <a href="/podborki">Подборки</a>
         <a href="/blog">Блог</a>
-        <a href="#questions">Вопросы и ответы</a>
+        <a href="#questions">Вопросы</a>
       </nav>
       <div className="home-nav-actions">
         <a href="/login">Войти</a>
@@ -59,6 +60,7 @@ export function HomeNav() {
           Возможности
         </a>
         <a href="/kursy">Каталог курсов</a>
+        <a href="/podborki">Подборки</a>
         <a href="/blog">Блог</a>
         <a href="#questions" onClick={() => setOpen(false)}>
           Вопросы и ответы

@@ -2,11 +2,12 @@ import type { ReactNode } from 'react';
 import { FishMark } from '@remora/ui';
 import { HomeTheme } from '../../components/home/HomeTheme';
 import '../home.css';
-import './blog.css';
+import '../blog/blog.css';
+import './collections.css';
 
-export default function BlogLayout({ children }: { children: ReactNode }) {
+export default function CollectionsLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="home blog">
+    <div className="home blog collections">
       <a className="home-skip" href="#main-content">
         Перейти к содержимому
       </a>
@@ -17,10 +18,10 @@ export default function BlogLayout({ children }: { children: ReactNode }) {
         </a>
         <nav aria-label="Основная навигация">
           <a href="/kursy">Каталог</a>
-          <a href="/podborki">Подборки</a>
-          <a href="/blog" aria-current="location">
-            Блог
+          <a href="/podborki" aria-current="location">
+            Подборки
           </a>
+          <a href="/blog">Блог</a>
           <a className="home-button home-button-small" href="/#demo">
             Попробовать
           </a>
@@ -37,8 +38,8 @@ export default function BlogLayout({ children }: { children: ReactNode }) {
         <span>Учиться в своём темпе.</span>
         <HomeTheme />
         <nav aria-label="Навигация в подвале">
-          <a href="/blog">Все статьи</a>
           <a href="/kursy">Каталог</a>
+          <a href="/blog">Блог</a>
           <a href="/login">Войти</a>
         </nav>
       </footer>
