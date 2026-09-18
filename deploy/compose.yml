@@ -9,6 +9,8 @@ x-api: &api
   volumes:
     - ../:/workspace:ro
     - python-deps:/opt/venv
+  extra_hosts:
+    - host.docker.internal:host-gateway
   networks: [internal]
   restart: unless-stopped
 
