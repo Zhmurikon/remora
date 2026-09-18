@@ -30,6 +30,10 @@ export function App() {
               <Route path="courses/new" element={<NewCoursePage />} />
               <Route path="courses/:courseId" element={<CoursePage />} />
               <Route path="courses/:courseId/edit" element={<CourseEditorPage />} />
+              <Route
+                path="courses/:courseId/materials/:articleId/edit"
+                element={<CourseEditorPage />}
+              />
               <Route path="courses/:courseId/read" element={<CourseReaderPage />} />
               <Route path="courses/copy/:slug" element={<CourseCopyPage />} />
               <Route path="sets/:setId" element={<SetPage />} />

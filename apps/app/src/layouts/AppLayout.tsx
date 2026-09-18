@@ -1,6 +1,6 @@
 import { Button } from '@remora/ui';
 import { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../features/auth/auth-store';
 import { api, clearAccessToken } from '../lib/api';
 
@@ -13,6 +13,7 @@ const navigation = [
 ];
 
 export function AppLayout() {
+  const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const user = useAuthStore((state) => state.user);
@@ -29,6 +30,16 @@ export function AppLayout() {
   }
 
   const name = user?.display_name || user?.username || 'Пользователь';
+
+  if (/^\/courses\/[^/]+\/read$/.test(location.pathname)) {
+    return (
+      <main className="min-h-dvh px-4 py-4 sm:px-8 sm:py-6">
+        <div className="mx-auto max-w-7xl">
+          <Outlet />
+        </div>
+      </main>
+    );
+  }
 
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[260px_1fr]">

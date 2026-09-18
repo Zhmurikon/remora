@@ -274,7 +274,7 @@ function CourseForm({ course }: { course?: Course }) {
               Читать курс
             </Link>
             <Link className={linkStyle} to={`/courses/${course.id}/edit`}>
-              Редактировать структуру и теорию
+              Редактировать структуру
             </Link>
           </div>
           <CopyCourseButton courseId={course.id} />
@@ -285,17 +285,19 @@ function CourseForm({ course }: { course?: Course }) {
                 {section.articles.map((article) => (
                   <li key={article.id} className="mt-3">
                     <p className="break-words">{article.title}</p>
-                    {article.body && (
-                      <details className="bg-surface-muted mt-2 rounded-xl p-3">
-                        <summary className="focus-visible:outline-primary flex min-h-11 cursor-pointer items-center focus-visible:outline">
-                          Читать теорию
-                        </summary>
-                        <div className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed">
-                          {article.body}
-                        </div>
-                      </details>
-                    )}
                     <div className="flex flex-wrap gap-x-5">
+                      <Link
+                        className={linkStyle}
+                        to={`/courses/${course.id}/read?article=${article.id}`}
+                      >
+                        Читать и пройти квиз
+                      </Link>
+                      <Link
+                        className={linkStyle}
+                        to={`/courses/${course.id}/materials/${article.id}/edit`}
+                      >
+                        Редактировать материал
+                      </Link>
                       <Link className={linkStyle} to={`/sets/${article.set_id}`}>
                         Открыть набор
                       </Link>

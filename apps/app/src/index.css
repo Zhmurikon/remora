@@ -14,3 +14,15 @@
     -webkit-tap-highlight-color: transparent;
   }
 }
+
+.course-reading > div {
+  max-width: 70ch;
+  line-height: 1.85;
+}
+.course-reading > div > * + * {
+  margin-top: 1.5em;
+}
+.course-reading pre {
+  font-size: 0.85em;
+  line-height: 1.6;
+}

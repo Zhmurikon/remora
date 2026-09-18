@@ -1,9 +1,10 @@
 import type { components } from '@remora/api-client';
 import { ArticleContent, Button, Card } from '@remora/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
+import { TestPage } from './TestPage';
 import { courseLink } from './CourseEditorPage';
 
 export function CopyCourseButton({
@@ -113,9 +114,6 @@ export function CourseReaderPage() {
   });
   return (
     <div className="space-y-6">
-      <Link to={`/courses/${courseId}`} className={courseLink}>
-        Настройки курса
-      </Link>
       {query.isPending && <p role="status">Загружаем материалы…</p>}
       {query.isError && (
         <div role="alert">
@@ -130,84 +128,240 @@ export function CourseReaderPage() {
 
 function Reader({ course }: { course: components['schemas']['CourseDetail'] }) {
   const [params, setParams] = useSearchParams();
+  const [largeText, setLargeText] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const [quizActive, setQuizActive] = useState(false);
+  const [quizFinished, setQuizFinished] = useState(false);
+  const [outlineOpen, setOutlineOpen] = useState(
+    () => window.matchMedia?.('(min-width: 1280px)').matches ?? true,
+  );
+  const previousStep = useRef<string | null>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
   const articles = course.sections.flatMap((s) => s.articles);
   const active = articles.find((a) => a.id === params.get('article')) ?? articles[0];
   const index = articles.findIndex((a) => a.id === active?.id);
+  const quiz = params.get('step') === 'quiz';
+  const section = course.sections.find((s) => s.articles.some((a) => a.id === active?.id));
+  useEffect(() => {
+    heading.current?.focus({ preventScroll: true });
+    if (previousStep.current !== null && previousStep.current !== `${active?.id}:${quiz}`)
+      heading.current?.scrollIntoView?.({ block: 'start' });
+    previousStep.current = `${active?.id}:${quiz}`;
+    setQuizActive(false);
+    setQuizFinished(false);
+  }, [active?.id, quiz]);
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      if (quizActive) event.preventDefault();
+    };
+    const leave = (event: MouseEvent) => {
+      if (
+        quizActive &&
+        event.target instanceof Element &&
+        event.target.closest('a[href]') &&
+        !window.confirm('Выйти из квиза? Ответы незавершённого квиза будут потеряны.')
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+    window.addEventListener('beforeunload', warn);
+    document.addEventListener('click', leave, true);
+    return () => {
+      window.removeEventListener('beforeunload', warn);
+      document.removeEventListener('click', leave, true);
+    };
+  }, [quizActive]);
+  function go(article: string, step = 'read') {
+    if (
+      quizActive &&
+      !window.confirm('Выйти из квиза? Ответы незавершённого квиза будут потеряны.')
+    )
+      return;
+    if (window.matchMedia?.('(max-width: 1279px)').matches) setOutlineOpen(false);
+    setParams({ article, ...(step === 'quiz' ? { step } : {}) });
+  }
   return (
-    <>
-      <header>
-        <h1 className="break-words text-3xl font-semibold">{course.title}</h1>
-        <p className="text-fg-muted mt-2 whitespace-pre-wrap break-words">{course.description}</p>
+    <div className="space-y-6 [overflow-wrap:anywhere] [&_a]:max-w-full [&_button]:h-auto [&_button]:min-h-11 [&_button]:max-w-full [&_button]:whitespace-normal [&_button]:py-2 [&_button]:[overflow-wrap:anywhere]">
+      <header className="border-border flex flex-wrap items-center justify-between gap-3 border-b pb-4">
+        <Link to="/courses" className={courseLink}>
+          Мои курсы
+        </Link>
+        <div className="flex min-w-0 max-w-full flex-wrap gap-4">
+          <Button variant="ghost" aria-pressed={focusMode} onClick={() => setFocusMode(!focusMode)}>
+            {focusMode ? 'Показать оглавление' : 'Сосредоточиться на чтении'}
+          </Button>
+          <Link to={`/courses/${course.id}/edit`} className={courseLink}>
+            Редактировать курс
+          </Link>
+        </div>
       </header>
       {!active ? (
         <Card>
-          В курсе пока нет статей.{' '}
+          <h1 className="text-3xl font-semibold">{course.title}</h1>
+          <p className="mt-4">В курсе пока нет статей.</p>
           <Link className={courseLink} to={`/courses/${course.id}/edit`}>
             Добавить материалы
           </Link>
         </Card>
       ) : (
-        <div className="grid min-w-0 gap-8 lg:grid-cols-[16rem_minmax(0,1fr)]">
-          <nav aria-label="Оглавление курса" className="space-y-4">
-            {course.sections.map((s) => (
-              <div key={s.id}>
-                <h2 className="break-words font-semibold">{s.title}</h2>
-                <ul>
-                  {s.articles.map((a) => (
-                    <li key={a.id}>
-                      <button
-                        className={`focus-visible:outline-primary min-h-11 w-full rounded-xl p-3 text-left ${a.id === active.id ? 'bg-surface-muted text-primary' : 'text-fg-muted'}`}
-                        aria-current={a.id === active.id ? 'page' : undefined}
-                        onClick={() => setParams({ article: a.id })}
-                      >
-                        {a.title}
-                      </button>
-                    </li>
+        <div
+          className={`grid min-w-0 gap-8 ${focusMode ? '' : 'xl:grid-cols-[16rem_minmax(0,1fr)]'}`}
+        >
+          {!focusMode && (
+            <aside className="min-w-0 xl:sticky xl:top-6 xl:max-h-[calc(100dvh-3rem)] xl:self-start xl:overflow-y-auto">
+              <details
+                className="border-border bg-surface rounded-2xl border p-5"
+                open={outlineOpen}
+                onToggle={(event) => setOutlineOpen(event.currentTarget.open)}
+              >
+                <summary className="min-h-11 cursor-pointer font-semibold">
+                  Оглавление курса
+                </summary>
+                <p className="mt-3 break-words text-lg font-semibold">{course.title}</p>
+                <p className="text-fg-muted mt-2 text-sm">
+                  Урок {index + 1} из {articles.length}
+                </p>
+                <nav aria-label="Оглавление курса" className="mt-6 space-y-6">
+                  {course.sections.map((s, si) => (
+                    <div key={s.id}>
+                      <h2 className="text-fg-muted mb-2 break-words text-sm font-medium">
+                        {si + 1}. {s.title}
+                      </h2>
+                      <ol className="space-y-1">
+                        {s.articles.map((a, ai) => (
+                          <li key={a.id}>
+                            <button
+                              className={`focus-visible:outline-primary min-h-11 w-full rounded-xl p-3 text-left text-sm ${a.id === active.id ? 'bg-primary-subtle text-primary font-semibold' : 'text-fg-muted hover:bg-surface-muted'}`}
+                              aria-current={a.id === active.id ? 'page' : undefined}
+                              onClick={() => go(a.id)}
+                            >
+                              <span className="mr-2">
+                                {si + 1}.{ai + 1}
+                              </span>
+                              {a.title}
+                            </button>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
                   ))}
-                </ul>
-              </div>
-            ))}
-          </nav>
-          <article className="min-w-0 space-y-6" key={active.id}>
-            <p className="text-fg-muted text-sm">
-              Статья {index + 1} из {articles.length}
-            </p>
-            <h2 className="break-words text-2xl font-semibold">{active.title}</h2>
-            {active.body ? (
-              <ArticleContent value={active.body} />
-            ) : (
-              <p className="text-fg-muted">
-                Теория пока не добавлена. Можно сразу перейти к карточкам.
+                </nav>
+              </details>
+            </aside>
+          )}
+          <div className="min-w-0">
+            <article className="border-border bg-surface mx-auto max-w-3xl rounded-2xl border p-5 sm:p-8 lg:p-10">
+              <p className="text-fg-muted text-sm">
+                {section?.title} · Урок {index + 1} из {articles.length}
               </p>
-            )}
-            <div className="border-border flex flex-wrap gap-5 border-t pt-5">
-              <Link className={courseLink} to={`/sets/${active.set_id}/learn`}>
-                Начать заучивание
-              </Link>
-              <Link className={courseLink} to={`/sets/${active.set_id}`}>
-                Все режимы обучения
-              </Link>
-            </div>
-            <div className="flex flex-wrap justify-between gap-3">
-              <Button
-                variant="secondary"
-                disabled={index <= 0}
-                onClick={() => setParams({ article: articles[index - 1]!.id })}
+              <h1
+                ref={heading}
+                tabIndex={-1}
+                className="mt-3 scroll-mt-24 break-words text-3xl font-semibold tracking-tight focus:outline-none"
               >
-                Предыдущая статья
-              </Button>
-              <Button
-                variant="secondary"
-                disabled={index >= articles.length - 1}
-                onClick={() => setParams({ article: articles[index + 1]!.id })}
-              >
-                Следующая статья
-              </Button>
-            </div>
-            <CopyCourseButton courseId={course.id} articleId={active.id} />
-          </article>
+                {active.title}
+              </h1>
+              <div className="border-border my-6 flex flex-wrap items-center justify-between gap-3 border-b pb-4">
+                <div className="flex flex-wrap gap-2" aria-label="Шаги урока">
+                  <Button
+                    variant={quiz ? 'ghost' : 'secondary'}
+                    aria-current={!quiz ? 'step' : undefined}
+                    onClick={() => go(active.id)}
+                  >
+                    1. Материал
+                  </Button>
+                  <Button
+                    variant={quiz ? 'secondary' : 'ghost'}
+                    aria-current={quiz ? 'step' : undefined}
+                    onClick={() => go(active.id, 'quiz')}
+                  >
+                    2. Квиз
+                  </Button>
+                </div>
+                {!quiz && (
+                  <Button
+                    variant="ghost"
+                    aria-pressed={largeText}
+                    onClick={() => setLargeText(!largeText)}
+                  >
+                    {largeText ? 'Обычный текст' : 'Крупный текст'}
+                  </Button>
+                )}
+              </div>
+              {quiz ? (
+                <TestPage
+                  key={active.id}
+                  setIdOverride={active.set_id}
+                  embedded
+                  onActivityChange={(value) => {
+                    setQuizActive(value);
+                    if (value) setQuizFinished(false);
+                  }}
+                  onCompleted={() => setQuizFinished(true)}
+                />
+              ) : (
+                <>
+                  <p className="text-fg-muted mb-8 text-sm">
+                    {active.body?.trim()
+                      ? `Около ${Math.max(1, Math.ceil(active.body.trim().split(/\s+/).length / 180))} мин чтения`
+                      : 'Материал без теории'}{' '}
+                    · Затем квиз по теме
+                  </p>
+                  <div className={`course-reading ${largeText ? 'text-xl' : 'text-lg'}`}>
+                    {active.body ? (
+                      <ArticleContent value={active.body} headingLevel={2} />
+                    ) : (
+                      <p className="text-fg-muted">
+                        Теория пока не добавлена. Можно сразу перейти к квизу.
+                      </p>
+                    )}
+                  </div>
+                  <div className="bg-primary-subtle mt-10 rounded-2xl p-4 sm:p-6">
+                    <h2 className="text-xl font-semibold">Проверьте, что запомнили</h2>
+                    <p className="text-fg-muted mb-5 mt-2">
+                      Ответьте на вопросы по карточкам этого урока. После проверки вы увидите
+                      результат и разбор ошибок.
+                    </p>
+                    <Button onClick={() => go(active.id, 'quiz')}>Пройти квиз</Button>
+                  </div>
+                  <div className="mt-5 flex flex-wrap gap-x-5">
+                    <Link className={courseLink} to={`/sets/${active.set_id}/learn`}>
+                      Начать заучивание
+                    </Link>
+                    <Link className={courseLink} to={`/sets/${active.set_id}`}>
+                      Все режимы обучения
+                    </Link>
+                  </div>
+                </>
+              )}
+              {(!quiz || quizFinished) && (
+                <nav
+                  aria-label="Переход между уроками"
+                  className="border-border mt-8 flex flex-wrap justify-between gap-3 border-t pt-5"
+                >
+                  <Button
+                    variant="ghost"
+                    disabled={index <= 0}
+                    onClick={() => go(articles[index - 1]!.id)}
+                  >
+                    Предыдущий урок
+                  </Button>
+                  {index < articles.length - 1 ? (
+                    <Button variant="secondary" onClick={() => go(articles[index + 1]!.id)}>
+                      Следующий урок
+                    </Button>
+                  ) : (
+                    <p className="text-fg-muted flex min-h-11 items-center">
+                      Это последний урок курса
+                    </p>
+                  )}
+                </nav>
+              )}
+            </article>
+          </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

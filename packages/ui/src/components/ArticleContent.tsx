@@ -15,7 +15,14 @@ function inline(value: string): ReactNode {
 }
 
 /** Ограниченная разметка без HTML, внешних изображений и исполняемых ссылок. */
-export function ArticleContent({ value }: { value: string }) {
+export function ArticleContent({
+  value,
+  headingLevel = 3,
+}: {
+  value: string;
+  headingLevel?: 2 | 3;
+}) {
+  const Heading = headingLevel === 2 ? 'h2' : 'h3';
   const blocks: ReactNode[] = [];
   const lines = value.split('\n');
   for (let i = 0; i < lines.length; i++) {
@@ -30,9 +37,9 @@ export function ArticleContent({ value }: { value: string }) {
       );
     } else if (/^#{1,3} /.test(line)) {
       blocks.push(
-        <h3 key={i} className="pt-3 text-xl font-semibold">
+        <Heading key={i} className="pt-3 text-xl font-semibold">
           {inline(line.replace(/^#{1,3} /, ''))}
-        </h3>,
+        </Heading>,
       );
     } else if (/^[-*] /.test(line)) {
       const items = [line.slice(2)];

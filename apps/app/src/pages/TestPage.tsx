@@ -35,8 +35,19 @@ const sourceLabels: Record<NonNullable<TestConfig['source']>, string> = {
   new: 'Только невыученные',
 };
 
-export function TestPage() {
-  const { setId = '' } = useParams();
+export function TestPage({
+  setIdOverride,
+  embedded = false,
+  onActivityChange,
+  onCompleted,
+}: {
+  setIdOverride?: string;
+  embedded?: boolean;
+  onActivityChange?: (active: boolean) => void;
+  onCompleted?: () => void;
+} = {}) {
+  const { setId: routeSetId = '' } = useParams();
+  const setId = setIdOverride ?? routeSetId;
   const [attempt, setAttempt] = useState<TestAttempt | null>(null);
   const [result, setResult] = useState<TestResult | null>(null);
 
@@ -44,9 +55,11 @@ export function TestPage() {
     return (
       <TestReview
         setId={setId}
+        embedded={embedded}
         result={result}
         attempt={attempt}
         onRetake={(next) => {
+          onActivityChange?.(true);
           setAttempt(next);
           setResult(null);
         }}
@@ -58,16 +71,36 @@ export function TestPage() {
     );
   }
   if (attempt) {
-    return <TestRunner attempt={attempt} onFinished={setResult} />;
+    return (
+      <TestRunner
+        attempt={attempt}
+        onFinished={(value) => {
+          setResult(value);
+          onActivityChange?.(false);
+          onCompleted?.();
+        }}
+      />
+    );
   }
-  return <TestBuilder setId={setId} onCreated={setAttempt} />;
+  return (
+    <TestBuilder
+      setId={setId}
+      embedded={embedded}
+      onCreated={(value) => {
+        setAttempt(value);
+        onActivityChange?.(true);
+      }}
+    />
+  );
 }
 
 function TestBuilder({
   setId,
+  embedded,
   onCreated,
 }: {
   setId: string;
+  embedded: boolean;
   onCreated: (attempt: TestAttempt) => void;
 }) {
   const navigate = useNavigate();
@@ -99,12 +132,14 @@ function TestBuilder({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <Link to={`/sets/${setId}`} className="text-primary text-sm font-medium">
-        ← К набору
-      </Link>
+      {!embedded && (
+        <Link to={`/sets/${setId}`} className="text-primary text-sm font-medium">
+          ← К набору
+        </Link>
+      )}
       <h1 className="mt-5 text-2xl font-semibold tracking-tight">Тест</h1>
       <p className="text-fg-muted mt-2">
-        Вопросы собираются на сервере и не меняются, пока вы проходите тест.
+        Выберите вопросы для проверки знаний. Результат и разбор появятся после завершения.
       </p>
 
       <Card className="mt-6 space-y-5 p-6">
@@ -184,9 +219,11 @@ function TestBuilder({
           >
             Начать тест
           </Button>
-          <Button variant="ghost" onClick={() => navigate(`/sets/${setId}`)}>
-            Отмена
-          </Button>
+          {!embedded && (
+            <Button variant="ghost" onClick={() => navigate(`/sets/${setId}`)}>
+              Отмена
+            </Button>
+          )}
         </div>
       </Card>
     </div>
@@ -397,12 +434,14 @@ function QuestionCard({
 
 function TestReview({
   setId,
+  embedded,
   result,
   attempt,
   onRetake,
   onRestart,
 }: {
   setId: string;
+  embedded: boolean;
   result: TestResult;
   attempt: TestAttempt;
   onRetake: (attempt: TestAttempt) => void;
@@ -453,9 +492,11 @@ function TestReview({
         >
           Ключ с ответами
         </Button>
-        <Link to={`/sets/${setId}`}>
-          <Button variant="ghost">К набору</Button>
-        </Link>
+        {!embedded && (
+          <Link to={`/sets/${setId}`}>
+            <Button variant="ghost">К набору</Button>
+          </Link>
+        )}
       </div>
       {error && <p className="text-danger mt-4 text-center text-sm">{error}</p>}
 
