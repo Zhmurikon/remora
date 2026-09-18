@@ -7,7 +7,7 @@ from sqlalchemy import exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.content import Card, StudySet
-from app.models.courses import Course, CourseArticle, CourseSection
+from app.models.courses import Course, CourseArticle, CourseSection, LibrarySave
 from app.models.user import User, UserStatus
 
 
@@ -72,9 +72,27 @@ async def course_documents(
             "author": author,
             "languages": [],
             "cards_count": 0,
+            "saves_count": 0,
             "updated_at": int(course.updated_at.timestamp()),
             "content": [],
         }
+    saved_course_id = func.coalesce(LibrarySave.course_id, CourseSection.course_id)
+    save_counts = await db.execute(
+        select(saved_course_id, func.count(LibrarySave.id))
+        .select_from(LibrarySave)
+        .outerjoin(
+            CourseArticle,
+            or_(
+                LibrarySave.article_id == CourseArticle.id,
+                LibrarySave.set_id == CourseArticle.set_id,
+            ),
+        )
+        .outerjoin(CourseSection, CourseSection.id == CourseArticle.section_id)
+        .where(saved_course_id.in_(allowed_ids))
+        .group_by(saved_course_id)
+    )
+    for course_id, count in save_counts:
+        documents[course_id]["saves_count"] = count
     set_courses: dict[UUID, UUID] = {}
     for course_id, article, study_set in materials:
         document = documents[course_id]

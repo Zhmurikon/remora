@@ -20,9 +20,10 @@ dependencies = [
     "boto3>=1.35.0",
     "pillow>=11.0.0",
     "fsrs>=5.0.0",
-    "httpx>=0.28.1",
+    "httpx[socks]>=0.28.1",
     "reportlab>=5.0.1",
     "arq>=0.26.3",
+    "mcp>=1.28,<2",
 ]
 
 [dependency-groups]

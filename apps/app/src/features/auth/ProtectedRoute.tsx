@@ -8,7 +8,10 @@ export function ProtectedRoute() {
   const status = useAuthStore((state) => state.status);
 
   useEffect(() => {
-    if (status === 'guest') window.location.replace(`${WEB_URL}/login`);
+    if (status === 'guest') {
+      const next = window.location.pathname + window.location.search;
+      window.location.replace(`${WEB_URL}/login?next=${encodeURIComponent(next)}`);
+    }
   }, [status]);
 
   if (status === 'checking') {

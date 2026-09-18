@@ -17,7 +17,7 @@ from app.db.session import get_db
 from app.models.study import StudyDirection
 from app.models.tts import UsageMetric
 from app.models.user import User
-from app.repositories import study as study_repo
+from app.repositories import library as library_repo
 from app.services.content import ContentService
 from app.services.tts import DEFAULT_VOICES, MAX_SPEED, MIN_SPEED, TtsService
 
@@ -64,14 +64,13 @@ async def speak(
     user: User = Depends(current_user),
     db: AsyncSession = Depends(get_db),
 ) -> SpeakResponse:
-    # Доступ проверяем по владельцу набора: чужие карточки озвучивать нельзя,
-    # иначе через этот эндпоинт читался бы приватный контент.
-    cards = await study_repo.cards_owned_by(db, user.id, [body.card_id])
+    # Связанный оригинал доступен только пока его курс опубликован.
+    cards = await library_repo.cards_accessible_by(db, user.id, [body.card_id])
     card = cards.get(body.card_id)
     if card is None:
         raise NotFoundError("Карточка не найдена")
 
-    study_set = await ContentService(db).get_owned_set(user, card.set_id)
+    study_set = await ContentService(db).get_study_set(user, card.set_id)
     term_side = (body.direction is StudyDirection.term_to_def) == (body.side == "question")
     text = card.term if term_side else card.definition
     lang = study_set.lang_term if term_side else study_set.lang_definition

@@ -30,3 +30,7 @@ def test_filter_values_are_quoted():
     query = index_query(CourseSearchQuery(tag='x" OR author_id = "other', sort="updated"))
     assert query["filter"][1] == 'tags = "x\\" or author_id = \\"other"'
     assert query["sort"] == ["updated_at:desc"]
+
+
+def test_popularity_is_sorted_by_saves():
+    assert index_query(CourseSearchQuery(sort="popular"))["sort"] == ["saves_count:desc"]

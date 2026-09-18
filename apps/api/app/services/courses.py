@@ -11,16 +11,21 @@ from app.models.courses import Course, CourseArticle, CourseSection
 from app.models.user import User
 from app.repositories import content as content_repo
 from app.repositories import courses as repo
-from app.schemas.content import PublicSet
+from app.repositories.api_tokens import lock_request
+from app.repositories.search import course_documents
+from app.schemas.content import PublicSet, SetCreate
 from app.schemas.courses import (
     CourseArticlePublic,
+    CourseAuthor,
     CourseCreate,
     CourseDetail,
     CourseMetadata,
     CoursePublication,
     CourseSectionPublic,
+    CourseSitemapEntry,
     CourseSummary,
 )
+from app.schemas.search import CourseSearchItem
 from app.services.content import ContentService
 
 
@@ -36,14 +41,22 @@ class CourseService:
             raise ForbiddenError("Нет доступа к этому курсу")
         return course
 
-    async def list_owned(self, user: User) -> list[CourseSummary]:
-        return [CourseSummary.model_validate(c) for c in await repo.list_courses(self.db, user.id)]
+    async def list_owned(
+        self, user: User, *, offset: int = 0, limit: int | None = None
+    ) -> list[CourseSummary]:
+        return [
+            CourseSummary.model_validate(c)
+            for c in await repo.list_courses(self.db, user.id, offset=offset, limit=limit)
+        ]
 
     async def detail(self, user: User, course_id: UUID) -> CourseDetail:
         course = await self.owned(user, course_id)
         return await self._detail(course)
 
-    async def _detail(self, course: Course) -> CourseDetail:
+    async def _detail(self, course: Course, viewer: User | None = None) -> CourseDetail:
+        author = await self.db.get(User, course.owner_id)
+        if author is None:
+            raise NotFoundError("Автор не найден")
         articles = await repo.articles(self.db, course.id)
         sections = [
             CourseSectionPublic(
@@ -58,13 +71,67 @@ class CourseService:
             )
             for section in await repo.sections(self.db, course.id)
         ]
-        return CourseDetail(**CourseSummary.model_validate(course).model_dump(), sections=sections)
+        summary = CourseSummary.model_validate(course).model_copy(
+            update={
+                "likes_count": await repo.likes_count(self.db, course.id),
+                "saves_count": await repo.saves_count(self.db, course.id),
+                "liked_by_me": bool(viewer and await repo.is_liked(self.db, course.id, viewer.id)),
+            }
+        )
+        return CourseDetail(
+            **summary.model_dump(),
+            author=CourseAuthor(
+                id=author.id,
+                username=author.username,
+                display_name=author.display_name,
+                avatar_url=author.avatar_url,
+            ),
+            sections=sections,
+        )
 
-    async def public_detail(self, slug: str) -> CourseDetail:
+    async def public_detail(self, slug: str, viewer: User | None = None) -> CourseDetail:
         course = await repo.public_course(self.db, slug)
         if course is None:
             raise NotFoundError("Курс не найден")
-        return await self._detail(course)
+        return await self._detail(course, viewer)
+
+    async def sitemap(self) -> list[CourseSitemapEntry]:
+        return [
+            CourseSitemapEntry(slug=slug, author_username=username, updated_at=updated_at)
+            for slug, username, updated_at in await repo.sitemap_entries(self.db)
+        ]
+
+    async def related(self, slug: str, limit: int) -> list[CourseSearchItem]:
+        course = await repo.public_course(self.db, slug)
+        if course is None:
+            raise NotFoundError("Курс не найден")
+        documents = await course_documents(
+            self.db, await repo.related_course_ids(self.db, course), include_content=False
+        )
+        documents.sort(
+            key=lambda item: (
+                -len(set(course.tags) & set(item["tags"])),
+                -item["saves_count"],
+                -item["updated_at"],
+            )
+        )
+        return [CourseSearchItem.model_validate(item) for item in documents[:limit]]
+
+    async def like(self, user: User, slug: str) -> CourseDetail:
+        await lock_request(self.db, user.id)
+        course = await repo.public_course(self.db, slug)
+        if course is None:
+            raise NotFoundError("Курс не найден")
+        await repo.add_like(self.db, course.id, user.id)
+        return await self._detail(course, user)
+
+    async def unlike(self, user: User, slug: str) -> CourseDetail:
+        await lock_request(self.db, user.id)
+        course = await repo.public_course(self.db, slug)
+        if course is None:
+            raise NotFoundError("Курс не найден")
+        await repo.remove_like(self.db, course.id, user.id)
+        return await self._detail(course, user)
 
     async def public_article(
         self,
@@ -90,6 +157,7 @@ class CourseService:
         )
 
     async def publish(self, user: User, course_id: UUID, body: CoursePublication) -> CourseDetail:
+        await lock_request(self.db, user.id)
         course = await self.owned(user, course_id)
         if course.moderation_status == "blocked":
             raise ForbiddenError("Курс заблокирован модератором")
@@ -108,6 +176,7 @@ class CourseService:
         return await self._detail(course)
 
     async def unpublish(self, user: User, course_id: UUID) -> CourseDetail:
+        await lock_request(self.db, user.id)
         course = await self.owned(user, course_id)
         course.is_published = False
         await self.db.flush()
@@ -115,8 +184,14 @@ class CourseService:
         return await self._detail(course)
 
     async def create(self, user: User, body: CourseCreate) -> CourseDetail:
-        study_set = await ContentService(self.db).get_owned_set(user, body.set_id)
-        if await repo.get_article_for_set(self.db, body.set_id) is not None:
+        await lock_request(self.db, user.id)
+        content = ContentService(self.db)
+        study_set = (
+            await content.get_owned_set(user, body.set_id)
+            if body.set_id
+            else await content.create_set(user, SetCreate(title=body.title))
+        )
+        if await repo.get_article_for_set(self.db, study_set.id) is not None:
             raise ConflictError("Набор уже связан со статьёй курса")
         course_id, section_id = uuid4(), uuid4()
         try:
@@ -156,6 +231,7 @@ class CourseService:
         return await self.detail(user, course_id)
 
     async def update(self, user: User, course_id: UUID, body: CourseMetadata) -> CourseDetail:
+        await lock_request(self.db, user.id)
         course = await self.owned(user, course_id)
         course.title, course.description = body.title, body.description
         await self.db.flush()

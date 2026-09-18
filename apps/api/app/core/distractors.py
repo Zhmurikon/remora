@@ -47,9 +47,19 @@ def generate_options(
     *,
     count: int = DEFAULT_OPTION_COUNT,
     rng: random.Random,
+    preferred: list[str] | None = None,
+    alternatives: list[str] | None = None,
 ) -> list[str]:
     """Варианты ответа, включая правильный, в перемешанном порядке."""
-    seen = {_normalize(correct)}
+    seen = {_normalize(correct), *(_normalize(a) for a in alternatives or [])}
+    authored: list[str] = []
+    for candidate in preferred or []:
+        key = _normalize(candidate)
+        if key and key not in seen:
+            seen.add(key)
+            authored.append(candidate)
+    rng.shuffle(authored)
+    authored = authored[: max(0, count - 1)]
     candidates: list[str] = []
     for candidate in pool:
         key = _normalize(candidate)
@@ -61,9 +71,9 @@ def generate_options(
 
     ranked = sorted(
         candidates,
-        key=lambda candidate: (-(similarity(correct, candidate) + rng.random() * 0.15)),
+        key=lambda candidate: -(similarity(correct, candidate) + rng.random() * 0.15),
     )
-    options = [correct, *ranked[: max(0, count - 1)]]
+    options = [correct, *authored, *ranked[: max(0, count - 1 - len(authored))]]
     rng.shuffle(options)
     return options
 
@@ -75,3 +85,6 @@ def can_ask_multiple_choice(pool: list[str], count: int = DEFAULT_OPTION_COUNT) 
 
 def _normalize(value: str) -> str:
     return " ".join(value.strip().lower().replace("ё", "е").split())
+
+
+normalize_option = _normalize

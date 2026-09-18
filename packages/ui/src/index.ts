@@ -1,4 +1,6 @@
 export { cn } from './lib/cn';
+export { FishMark } from './components/FishMark';
+export { ArticleContent } from './components/ArticleContent';
 export { Button, type ButtonProps, type ButtonVariant, type ButtonSize } from './components/Button';
 export { Input, type InputProps } from './components/Input';
 export { Card, CardHeader, CardTitle, CardDescription, type CardProps } from './components/Card';

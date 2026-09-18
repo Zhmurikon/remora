@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     # Приложение
     environment: Literal["local", "staging", "production"] = "local"
     debug: bool = False
+    tg_bot_username: str = ""
+    vk_group_id: int = 0
+    bot_tg_service_token: SecretStr = SecretStr("")
+    bot_vk_service_token: SecretStr = SecretStr("")
     api_v1_prefix: str = "/api/v1"
     project_name: str = "Remora API"
 

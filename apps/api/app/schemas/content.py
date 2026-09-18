@@ -1,10 +1,12 @@
 """Схемы наборов и карточек."""
 
 from datetime import datetime
+from typing import Annotated, Self
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.core.distractors import normalize_option
 from app.models.content import ContentType, SetVisibility
 
 
@@ -20,6 +22,31 @@ class CardWrite(BaseModel):
     term_image_id: UUID | None = None
     definition_image_id: UUID | None = None
     alt_answers: list[str] = Field(default_factory=list, max_length=30)
+    wrong_term_answers: list[Annotated[str, Field(max_length=10_000)]] = Field(
+        default_factory=list, max_length=30
+    )
+    wrong_definition_answers: list[Annotated[str, Field(max_length=10_000)]] = Field(
+        default_factory=list, max_length=30
+    )
+
+    @model_validator(mode="after")
+    def validate_wrong_answers(self) -> Self:
+        for field, correct in (
+            ("wrong_term_answers", self.term),
+            ("wrong_definition_answers", self.definition),
+        ):
+            seen = {normalize_option(correct), *(normalize_option(a) for a in self.alt_answers)}
+            values = getattr(self, field)
+            for value in values:
+                key = normalize_option(value)
+                if not key or key in seen:
+                    raise ValueError(
+                        "Неверные ответы не должны быть пустыми, повторяться "
+                        "или совпадать с правильным ответом и его синонимами"
+                    )
+                seen.add(key)
+            setattr(self, field, [value.strip() for value in values])
+        return self
 
 
 class CardPublic(CardWrite):

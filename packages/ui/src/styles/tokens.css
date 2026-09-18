@@ -98,6 +98,62 @@
   }
 }
 
+/* Палитра главной из согласованного макета; применяется только внутри .home. */
+:root {
+  --rm-home-bg: 252 251 248;
+  --rm-home-surface: 255 255 255;
+  --rm-home-muted-surface: 246 247 247;
+  --rm-home-fg: 19 42 61;
+  --rm-home-muted: 78 96 111;
+  --rm-home-border: 221 229 230;
+  --rm-home-primary: 8 111 131;
+  --rm-home-primary-hover: 6 90 108;
+  --rm-home-primary-fg: 255 255 255;
+  --rm-home-primary-subtle: 226 242 245;
+  --rm-home-mint: 235 246 239;
+  --rm-home-peach: 252 239 228;
+  --rm-home-lavender: 241 238 250;
+  --rm-home-highlight: 210 236 201;
+  --rm-home-shadow: 18 43 61;
+}
+:root[data-theme='dark'],
+.dark {
+  --rm-home-bg: 19 27 34;
+  --rm-home-surface: 27 38 48;
+  --rm-home-muted-surface: 32 45 56;
+  --rm-home-fg: 233 240 244;
+  --rm-home-muted: 175 191 204;
+  --rm-home-border: 54 72 86;
+  --rm-home-primary: 100 207 216;
+  --rm-home-primary-hover: 134 224 230;
+  --rm-home-primary-fg: 17 37 44;
+  --rm-home-primary-subtle: 28 65 74;
+  --rm-home-mint: 25 45 41;
+  --rm-home-peach: 48 39 35;
+  --rm-home-lavender: 36 35 53;
+  --rm-home-highlight: 48 84 61;
+  --rm-home-shadow: 0 0 0;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --rm-home-bg: 19 27 34;
+    --rm-home-surface: 27 38 48;
+    --rm-home-muted-surface: 32 45 56;
+    --rm-home-fg: 233 240 244;
+    --rm-home-muted: 175 191 204;
+    --rm-home-border: 54 72 86;
+    --rm-home-primary: 100 207 216;
+    --rm-home-primary-hover: 134 224 230;
+    --rm-home-primary-fg: 17 37 44;
+    --rm-home-primary-subtle: 28 65 74;
+    --rm-home-mint: 25 45 41;
+    --rm-home-peach: 48 39 35;
+    --rm-home-lavender: 36 35 53;
+    --rm-home-highlight: 48 84 61;
+    --rm-home-shadow: 0 0 0;
+  }
+}
+
 /* Видимый фокус обязателен: во всех режимах обучения работает клавиатурная навигация */
 :where(a, button, input, textarea, select, [tabindex]):focus-visible {
   outline: 2px solid rgb(var(--rm-primary));

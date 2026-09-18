@@ -16,6 +16,8 @@ export interface DistractorOptions {
   correct: string;
   /** Остальные ответы набора — источник дистракторов. */
   pool: readonly string[];
+  preferred?: readonly string[];
+  alternatives?: readonly string[];
   /** Сколько всего вариантов показать, включая правильный. */
   count?: number;
   /** Обычно id карточки: фиксирует порядок вариантов между рендерами. */
@@ -29,9 +31,20 @@ export function generateOptions({
   pool,
   count = DEFAULT_OPTION_COUNT,
   seed,
+  preferred = [],
+  alternatives = [],
 }: DistractorOptions): string[] {
   const normalizedCorrect = normalize(correct);
-  const seen = new Set([normalizedCorrect]);
+  const seen = new Set([normalizedCorrect, ...alternatives.map(normalize)]);
+  const authored = shuffle(
+    preferred.filter((candidate) => {
+      const key = normalize(candidate);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }),
+    createRandom(`${seed}:preferred`),
+  ).slice(0, Math.max(0, count - 1));
   const candidates: string[] = [];
   for (const candidate of pool) {
     const key = normalize(candidate);
@@ -55,7 +68,8 @@ export function generateOptions({
 
   const options = [
     correct,
-    ...ranked.slice(0, Math.max(0, count - 1)).map((item) => item.candidate),
+    ...authored,
+    ...ranked.slice(0, Math.max(0, count - 1 - authored.length)).map((item) => item.candidate),
   ];
   return shuffle(options, createRandom(`${seed}:order`));
 }
@@ -94,6 +108,8 @@ export function similarity(left: string, right: string): number {
 function normalize(value: string): string {
   return value.trim().toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ');
 }
+
+export const normalizeOption = normalize;
 
 function shuffle<T>(items: T[], random: () => number): T[] {
   const result = [...items];

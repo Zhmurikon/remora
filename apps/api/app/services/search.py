@@ -41,7 +41,12 @@ def index_query(query: CourseSearchQuery) -> dict[str, Any]:
         "limit": query.limit,
     }
     if query.sort != "relevance":
-        payload["sort"] = ["updated_at:desc" if query.sort == "updated" else "cards_count:desc"]
+        sort_fields = {
+            "popular": "saves_count:desc",
+            "updated": "updated_at:desc",
+            "cards": "cards_count:desc",
+        }
+        payload["sort"] = [sort_fields[query.sort]]
     return payload
 
 

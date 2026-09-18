@@ -118,9 +118,7 @@ class Review(UUIDPrimaryKeyMixin, Base):
 
     __tablename__ = "reviews"
     __table_args__ = (
-        UniqueConstraint(
-            "user_id", "client_review_id", name="uq_reviews_user_id_client_review_id"
-        ),
+        UniqueConstraint("user_id", "client_review_id", name="uq_reviews_user_id_client_review_id"),
         CheckConstraint("rating BETWEEN 1 AND 4", name="rating_range"),
         Index("ix_reviews_user_id_reviewed_at", "user_id", "reviewed_at"),
         Index("ix_reviews_card_id_direction", "card_id", "direction"),
@@ -146,9 +144,7 @@ class Review(UUIDPrimaryKeyMixin, Base):
         JSONB, default=dict, server_default=text("'{}'::jsonb")
     )
     scheduler_version: Mapped[str] = mapped_column(String(32))
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class StudySession(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -167,9 +163,7 @@ class StudySession(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     status: Mapped[SessionStatus] = mapped_column(
         Enum(SessionStatus), default=SessionStatus.active, server_default=text("'active'")
     )
-    started_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     cards_seen: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
     cards_correct: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
@@ -233,3 +227,4 @@ class UserSetProgress(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     not_started_count: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
     mastery_percent: Mapped[float] = mapped_column(Float, default=0.0, server_default=text("0"))
     last_studied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reset_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

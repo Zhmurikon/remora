@@ -6,7 +6,7 @@ from collections.abc import Iterable, Sequence
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, delete, func, or_, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,13 +19,60 @@ from app.models.study import (
     StudyDirection,
     StudyMode,
     StudySession,
+    TestAttempt,
     UserSetProgress,
 )
 
 
-async def list_states_for_set(
-    db: AsyncSession, user_id: UUID, set_id: UUID
-) -> list[CardState]:
+async def lock_learning(db: AsyncSession, user_id: UUID) -> None:
+    # Ответ и сброс не должны одновременно пересоздавать удалённое состояние FSRS.
+    await db.execute(
+        text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))"),
+        {"key": f"study:{user_id}"},
+    )
+
+
+async def reset_learning(db: AsyncSession, user_id: UUID, set_id: UUID, reset_at: datetime) -> None:
+    await db.execute(
+        delete(CardState).where(CardState.user_id == user_id, CardState.set_id == set_id)
+    )
+    await db.execute(
+        update(StudySession)
+        .where(
+            StudySession.user_id == user_id,
+            StudySession.set_id == set_id,
+            StudySession.status == SessionStatus.active,
+        )
+        .values(
+            status=SessionStatus.abandoned,
+            ended_at=reset_at,
+            config=StudySession.config.op("||")({"progress_reset": True}),
+        )
+    )
+    # Старую попытку можно закончить для истории, но не вернуть ею прежнее расписание.
+    await db.execute(
+        update(TestAttempt)
+        .where(
+            TestAttempt.user_id == user_id,
+            TestAttempt.set_id == set_id,
+            TestAttempt.finished_at.is_(None),
+        )
+        .values(config=TestAttempt.config.op("||")({"write_to_schedule": False}))
+    )
+
+
+async def reset_times(db: AsyncSession, user_id: UUID, set_ids: set[UUID]) -> dict[UUID, datetime]:
+    rows = await db.execute(
+        select(UserSetProgress.set_id, UserSetProgress.reset_at).where(
+            UserSetProgress.user_id == user_id,
+            UserSetProgress.set_id.in_(set_ids),
+            UserSetProgress.reset_at.is_not(None),
+        )
+    )
+    return {set_id: reset_at for set_id, reset_at in rows if reset_at is not None}
+
+
+async def list_states_for_set(db: AsyncSession, user_id: UUID, set_id: UUID) -> list[CardState]:
     result = await db.scalars(
         select(CardState).where(CardState.user_id == user_id, CardState.set_id == set_id)
     )
@@ -52,7 +99,15 @@ async def count_reviews_since(db: AsyncSession, user_id: UUID, since: datetime) 
     value = await db.scalar(
         select(func.count())
         .select_from(Review)
-        .where(Review.user_id == user_id, Review.reviewed_at >= since)
+        .outerjoin(
+            UserSetProgress,
+            (UserSetProgress.user_id == Review.user_id) & (UserSetProgress.set_id == Review.set_id),
+        )
+        .where(
+            Review.user_id == user_id,
+            Review.reviewed_at >= since,
+            or_(UserSetProgress.reset_at.is_(None), Review.reviewed_at > UserSetProgress.reset_at),
+        )
     )
     return int(value or 0)
 
@@ -65,10 +120,16 @@ async def count_new_cards_since(db: AsyncSession, user_id: UUID, since: datetime
     сегодня» можно только из `state_before`.
     """
     value = await db.scalar(
-        select(func.count(func.distinct(Review.card_id))).where(
+        select(func.count(func.distinct(Review.card_id)))
+        .outerjoin(
+            UserSetProgress,
+            (UserSetProgress.user_id == Review.user_id) & (UserSetProgress.set_id == Review.set_id),
+        )
+        .where(
             Review.user_id == user_id,
             Review.reviewed_at >= since,
             Review.state_before["state"].astext == CardStateKind.new.value,
+            or_(UserSetProgress.reset_at.is_(None), Review.reviewed_at > UserSetProgress.reset_at),
         )
     )
     return int(value or 0)
@@ -144,9 +205,7 @@ async def get_active_session(
     return result.scalar_one_or_none()
 
 
-async def get_progress(
-    db: AsyncSession, user_id: UUID, set_id: UUID
-) -> UserSetProgress | None:
+async def get_progress(db: AsyncSession, user_id: UUID, set_id: UUID) -> UserSetProgress | None:
     result = await db.execute(
         select(UserSetProgress).where(
             UserSetProgress.user_id == user_id, UserSetProgress.set_id == set_id

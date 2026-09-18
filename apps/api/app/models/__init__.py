@@ -1,5 +1,7 @@
 """Модели SQLAlchemy. Импортируются Alembic при автогенерации миграций."""
 
+from app.models.api_tokens import AgentRequest, ApiToken
+from app.models.bots import BotEvent, BotLink, BotLinkCode
 from app.models.content import (
     Card,
     ContentType,
@@ -11,7 +13,7 @@ from app.models.content import (
     SetVisibility,
     StudySet,
 )
-from app.models.courses import Course, CourseArticle, CourseSection
+from app.models.courses import Course, CourseArticle, CourseLike, CourseSection, LibrarySave
 from app.models.exports import AccountExportJob, AccountExportStatus
 from app.models.imports import ImportJob, ImportJobStatus
 from app.models.study import (
@@ -42,6 +44,11 @@ __all__ = [
     "AccountExportJob",
     "AccountExportStatus",
     "ActionToken",
+    "AgentRequest",
+    "ApiToken",
+    "BotEvent",
+    "BotLink",
+    "BotLinkCode",
     "Card",
     "CardState",
     "CardStateKind",
@@ -50,10 +57,12 @@ __all__ = [
     "ContentType",
     "Course",
     "CourseArticle",
+    "CourseLike",
     "CourseSection",
     "Folder",
     "ImportJob",
     "ImportJobStatus",
+    "LibrarySave",
     "MediaAsset",
     "MediaKind",
     "MediaSource",

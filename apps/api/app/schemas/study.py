@@ -66,6 +66,8 @@ class QueueCard(BaseModel):
     term_image_url: str | None = None
     definition_image_url: str | None = None
     alt_answers: list[str] = Field(default_factory=list)
+    wrong_term_answers: list[str] = Field(default_factory=list)
+    wrong_definition_answers: list[str] = Field(default_factory=list)
 
 
 class QueueItem(BaseModel):

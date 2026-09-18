@@ -22,6 +22,7 @@ htmlcov/
 coverage.xml
 
 # env
+.private/
 .env
 .env.*
 !.env.example
@@ -36,6 +37,8 @@ coverage.xml
 /data/
 *.log
 logs/
+deploy/backups/
+deploy/.update.lock
 
 # generated
 # packages/api-client/src/generated/schema.ts коммитим: без него не собирается CI

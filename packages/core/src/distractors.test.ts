@@ -15,6 +15,41 @@ const POOL = [
 ];
 
 describe('generateOptions', () => {
+  it('предпочитает авторские варианты, дополняет недостающие и исключает синонимы', () => {
+    for (let count = 0; count <= 6; count += 1) {
+      const preferred = Array.from({ length: count }, (_, index) => `авторский-${index}`);
+      const options = generateOptions({
+        correct: 'ответ',
+        pool: ['a', 'b', 'c', 'синоним'],
+        preferred,
+        alternatives: ['синоним'],
+        seed: 'authored',
+      });
+      expect(options).toHaveLength(4);
+      expect(options).toContain('ответ');
+      expect(options).not.toContain('синоним');
+      expect(options.filter((option) => preferred.includes(option))).toHaveLength(
+        Math.min(3, count),
+      );
+    }
+  });
+  it('перемешивает авторские варианты воспроизводимо, без дублей', () => {
+    const params = {
+      correct: 'ёж',
+      preferred: ['ЕЖ', 'один', 'ОДИН', '', 'два', 'три', 'четыре', 'пять'],
+      pool: ['один'],
+      seed: 'first',
+    };
+    expect(generateOptions(params)).toEqual(generateOptions(params));
+    expect(new Set(generateOptions(params)).size).toBe(4);
+    expect(
+      new Set(
+        Array.from({ length: 10 }, (_, i) =>
+          generateOptions({ ...params, seed: String(i) }).join('|'),
+        ),
+      ).size,
+    ).toBeGreaterThan(1);
+  });
   it('всегда содержит правильный ответ', () => {
     const options = generateOptions({ correct: 'кролик', pool: POOL, seed: 'card-1' });
     expect(options).toContain('кролик');

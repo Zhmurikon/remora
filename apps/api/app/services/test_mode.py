@@ -22,7 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.answers import AnswerVerdict, Strictness, check_answer
 from app.core.config import get_settings
-from app.core.distractors import can_ask_multiple_choice, generate_options
+from app.core.distractors import can_ask_multiple_choice, generate_options, normalize_option
 from app.core.errors import ConflictError, ForbiddenError, NotFoundError
 from app.core.storage import get_object_storage
 from app.models.content import Card, MediaStatus, StudySet
@@ -35,6 +35,7 @@ from app.models.study import (
 )
 from app.models.user import User
 from app.repositories import content as content_repo
+from app.repositories import library as library_repo
 from app.repositories import study as study_repo
 from app.repositories import user as user_repo
 from app.schemas.study import DirectionMode
@@ -69,11 +70,14 @@ class TestModeService:
     async def create_attempt(
         self, user: User, set_id: UUID, config: TestConfig, *, retake_of: UUID | None = None
     ) -> TestAttemptOut:
-        study_set = await self.content.get_owned_set(user, set_id, with_cards=True)
-        if not study_set.cards:
+        study_set = await self.content.get_study_set(user, set_id, with_cards=True)
+        available = await library_repo.accepted_cards(
+            self.db, user.id, set_id, study_set.cards
+        )
+        if not available:
             raise ConflictError("В наборе нет карточек")
 
-        cards = await self._pick_cards(user, study_set, config)
+        cards = await self._pick_cards(user, study_set, available, config)
         if not cards:
             raise ConflictError("Под выбранный источник не нашлось карточек")
 
@@ -81,7 +85,7 @@ class TestModeService:
         # повторной генерации, но у разных попыток вопросы разные.
         attempt_id = uuid5(REVIEW_NAMESPACE, f"{user.id}:{set_id}:{datetime.now(tz=UTC)}")
         rng = random.Random(attempt_id.int)
-        questions = self._build_questions(study_set, cards, config, rng)
+        questions = self._build_questions(study_set, cards, available, config, rng)
 
         attempt = TestAttempt(
             id=attempt_id,
@@ -98,17 +102,18 @@ class TestModeService:
 
     async def get_attempt(self, user: User, attempt_id: UUID) -> TestAttemptOut:
         attempt = await self._owned_attempt(user, attempt_id)
-        study_set = await self.content.get_owned_set(user, attempt.set_id, with_cards=True)
+        study_set = await self.content.get_study_set(user, attempt.set_id, with_cards=True)
         return await self._to_out(study_set, attempt)
 
     async def submit(self, user: User, attempt_id: UUID, body: TestSubmit) -> TestResult:
+        await study_repo.lock_learning(self.db, user.id)
         attempt = await self._owned_attempt(user, attempt_id)
         if attempt.finished_at is not None:
             # Повторная отправка возвращает тот же разбор, а не вторую попытку.
             return await self._result(user, attempt)
 
         settings = await user_repo.get_or_create_settings(self.db, user.id)
-        study_set = await self.content.get_owned_set(user, attempt.set_id, with_cards=True)
+        study_set = await self.content.get_study_set(user, attempt.set_id, with_cards=True)
         strictness = Strictness(settings.answer_strictness)
         given = {item.question_id: item for item in body.answers}
 
@@ -155,8 +160,11 @@ class TestModeService:
         if not wrong_ids:
             raise ConflictError("В этой попытке нет ошибок")
 
-        study_set = await self.content.get_owned_set(user, attempt.set_id, with_cards=True)
-        cards = [card for card in study_set.cards if card.id in wrong_ids]
+        study_set = await self.content.get_study_set(user, attempt.set_id, with_cards=True)
+        available = await library_repo.accepted_cards(
+            self.db, user.id, attempt.set_id, study_set.cards
+        )
+        cards = [card for card in available if card.id in wrong_ids]
         config = TestConfig.model_validate(attempt.config)
         config = config.model_copy(
             update={"question_count": min(len(cards), config.question_count)}
@@ -169,7 +177,7 @@ class TestModeService:
             user_id=user.id,
             set_id=attempt.set_id,
             config=config.model_dump(mode="json"),
-            questions=self._build_questions(study_set, cards, config, rng),
+            questions=self._build_questions(study_set, cards, available, config, rng),
             answers=[],
             retake_of_id=attempt.id,
         )
@@ -180,9 +188,9 @@ class TestModeService:
     # ------------------------------------------------------------------ сборка
 
     async def _pick_cards(
-        self, user: User, study_set: StudySet, config: TestConfig
+        self, user: User, study_set: StudySet, available: list[Card], config: TestConfig
     ) -> list[Card]:
-        cards = list(study_set.cards)
+        cards = list(available)
         if config.source is not TestSource.all:
             states = {
                 state.card_id: state
@@ -196,6 +204,7 @@ class TestModeService:
         self,
         study_set: StudySet,
         cards: list[Card],
+        available: list[Card],
         config: TestConfig,
         rng: random.Random,
     ) -> list[dict[str, Any]]:
@@ -211,11 +220,21 @@ class TestModeService:
         for position, card in enumerate(cards):
             direction = directions[position % len(directions)]
             pool = [
-                _answer_side(other, direction)
-                for other in study_set.cards
-                if other is not card
+                _answer_side(other, direction) for other in available if other is not card
             ]
-            kind = _pick_kind(kinds, pool, rng)
+            preferred = (
+                card.wrong_definition_answers
+                if direction is StudyDirection.term_to_def
+                else card.wrong_term_answers
+            ) or []
+            options = generate_options(
+                _answer_side(card, direction),
+                pool,
+                preferred=preferred,
+                alternatives=card.alt_answers or [],
+                rng=rng,
+            )
+            kind = _pick_kind(kinds, pool, rng, choice_available=len(options) == 4)
 
             if kind is TestQuestionKind.matching:
                 matching_bucket.append((card, direction))
@@ -245,9 +264,7 @@ class TestModeService:
             set_id=attempt.set_id,
             set_title=study_set.title,
             config=TestConfig.model_validate(attempt.config),
-            questions=[
-                await self._question_out(question) for question in attempt.questions
-            ],
+            questions=[await self._question_out(question) for question in attempt.questions],
             created_at=attempt.created_at,
             finished_at=attempt.finished_at,
             score=attempt.score,
@@ -282,7 +299,7 @@ class TestModeService:
         )
 
     async def _result(self, user: User, attempt: TestAttempt) -> TestResult:
-        study_set = await self.content.get_owned_set(user, attempt.set_id, with_cards=True)
+        study_set = await self.content.get_study_set(user, attempt.set_id, with_cards=True)
         by_id = {str(question["id"]): question for question in attempt.questions}
         review = []
         for item in attempt.answers:
@@ -357,14 +374,21 @@ class TestModeService:
 
 
 def _pick_kind(
-    kinds: list[TestQuestionKind], pool: list[str], rng: random.Random
+    kinds: list[TestQuestionKind],
+    pool: list[str],
+    rng: random.Random,
+    *,
+    choice_available: bool | None = None,
 ) -> TestQuestionKind:
     """Выбирает тип вопроса, отбрасывая невозможные на этом наборе."""
     available = [
         kind
         for kind in kinds
-        if kind not in (TestQuestionKind.choice, TestQuestionKind.true_false)
-        or can_ask_multiple_choice(pool)
+        if (
+            kind is not TestQuestionKind.choice
+            or (choice_available if choice_available is not None else can_ask_multiple_choice(pool))
+        )
+        and (kind is not TestQuestionKind.true_false or can_ask_multiple_choice(pool))
     ]
     return rng.choice(available or [TestQuestionKind.typing])
 
@@ -394,7 +418,18 @@ def _single_question(
     }
 
     if kind is TestQuestionKind.choice:
-        question["options"] = generate_options(answer, pool, rng=rng)
+        question["options"] = generate_options(
+            answer,
+            pool,
+            rng=rng,
+            alternatives=card.alt_answers or [],
+            preferred=(
+                card.wrong_definition_answers
+                if direction is StudyDirection.term_to_def
+                else card.wrong_term_answers
+            )
+            or [],
+        )
     elif kind is TestQuestionKind.true_false:
         # Половина утверждений верна, половина — с чужим ответом.
         truthful = rng.random() < 0.5
@@ -462,6 +497,15 @@ def _check_question(
         result["verdict"] = AnswerVerdict.incorrect.value
         return result
 
+    if kind is TestQuestionKind.choice:
+        # При выборе кнопки нет опечаток: похожий авторский вариант обязан быть неверным.
+        correct = normalize_option(value) == normalize_option(str(question["answer"]))
+        result["correct"] = correct
+        result["verdict"] = (
+            AnswerVerdict.correct.value if correct else AnswerVerdict.incorrect.value
+        )
+        return result
+
     if kind is TestQuestionKind.true_false:
         correct = value.strip().lower() == str(question["answer"]).lower()
         result["correct"] = correct
@@ -523,9 +567,7 @@ def _answer_side(card: Card, direction: StudyDirection) -> str:
 
 def _question_image_id(card: Card, direction: StudyDirection) -> str | None:
     asset_id = (
-        card.term_image_id
-        if direction is StudyDirection.term_to_def
-        else card.definition_image_id
+        card.term_image_id if direction is StudyDirection.term_to_def else card.definition_image_id
     )
     return str(asset_id) if asset_id else None
 

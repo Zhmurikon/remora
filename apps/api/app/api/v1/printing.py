@@ -33,7 +33,7 @@ async def print_test(
 ) -> Response:
     service = TestModeService(db)
     attempt = await service.get_raw_attempt(user, attempt_id)
-    study_set = await ContentService(db).get_owned_set(user, attempt.set_id)
+    study_set = await ContentService(db).get_study_set(user, attempt.set_id)
     payload = render_test(
         title=study_set.title,
         questions=attempt.questions,
@@ -50,7 +50,7 @@ async def print_cards(
     user: User = Depends(current_user),
     db: AsyncSession = Depends(get_db),
 ) -> Response:
-    study_set = await ContentService(db).get_owned_set(user, set_id, with_cards=True)
+    study_set = await ContentService(db).get_study_set(user, set_id, with_cards=True)
     payload = render_cards(
         title=study_set.title,
         cards=[PrintCard(term=card.term, definition=card.definition) for card in study_set.cards],
@@ -63,7 +63,7 @@ async def print_cards(
 async def print_terms(
     set_id: UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
 ) -> Response:
-    study_set = await ContentService(db).get_owned_set(user, set_id, with_cards=True)
+    study_set = await ContentService(db).get_study_set(user, set_id, with_cards=True)
     payload = render_terms(
         title=study_set.title,
         cards=[PrintCard(term=card.term, definition=card.definition) for card in study_set.cards],

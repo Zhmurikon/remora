@@ -32,6 +32,7 @@ from app.models.study import (
 )
 from app.models.user import User, UserSettings
 from app.repositories import content as content_repo
+from app.repositories import library as library_repo
 from app.repositories import study as study_repo
 from app.repositories import user as user_repo
 from app.schemas.study import (
@@ -105,7 +106,8 @@ class StudyService:
         limit: int,
         shuffle: bool,
     ) -> StudyQueue:
-        study_set = await self.content.get_owned_set(user, set_id, with_cards=True)
+        study_set = await self.content.get_study_set(user, set_id, with_cards=True)
+        cards = await library_repo.accepted_cards(self.db, user.id, set_id, study_set.cards)
         settings = await user_repo.get_or_create_settings(self.db, user.id)
         scheduler = self._scheduler(settings)
         now = datetime.now(tz=UTC)
@@ -127,7 +129,7 @@ class StudyService:
         # Направление снаружи, карточки внутри: при `both` обратная сторона
         # оказывается на полный круг позже прямой, а не сразу за ней.
         for card_direction in directions:
-            for card in study_set.cards:
+            for card in cards:
                 stored = states.get((card.id, card_direction))
                 if stored is not None and stored.suspended_at is not None:
                     continue
@@ -183,12 +185,16 @@ class StudyService:
     # -------------------------------------------------------------------- ответы
 
     async def submit_reviews(self, user: User, body: ReviewBatch) -> ReviewBatchResult:
+        await study_repo.lock_learning(self.db, user.id)
         settings = await user_repo.get_or_create_settings(self.db, user.id)
         scheduler = self._scheduler(settings)
         session = await self._session_for_write(user, body.session_id)
 
-        cards = await study_repo.cards_owned_by(
+        cards = await library_repo.cards_accessible_by(
             self.db, user.id, [item.card_id for item in body.reviews]
+        )
+        resets = await study_repo.reset_times(
+            self.db, user.id, {card.set_id for card in cards.values()}
         )
         known = await study_repo.find_existing_client_review_ids(
             self.db, user.id, [item.client_review_id for item in body.reviews]
@@ -210,11 +216,20 @@ class StudyService:
                 duplicates.append(item.client_review_id)
                 continue
             reviewed_at = _to_utc(item.reviewed_at)
+            reset_at = resets.get(card.set_id)
+            if reset_at is not None and (
+                reviewed_at <= reset_at
+                or (
+                    session is not None
+                    and session.set_id == card.set_id
+                    and session.started_at <= reset_at
+                )
+            ):
+                rejected.append(item.client_review_id)
+                continue
             state_row = touched.get((item.card_id, item.direction))
             if state_row is None:
-                state_row = await self._get_or_create_state(
-                    user, card, item.direction, scheduler
-                )
+                state_row = await self._get_or_create_state(user, card, item.direction, scheduler)
             before = _to_scheduler_state(state_row, reviewed_at)
             after = scheduler.review(before, item.rating, reviewed_at=reviewed_at)
             stored = await study_repo.insert_review(
@@ -284,7 +299,8 @@ class StudyService:
     # ------------------------------------------------------------------- сессии
 
     async def start_session(self, user: User, body: SessionCreate) -> StudySession:
-        await self.content.get_owned_set(user, body.set_id)
+        await study_repo.lock_learning(self.db, user.id)
+        await self.content.get_study_set(user, body.set_id)
         existing = await study_repo.get_active_session(self.db, user.id, body.set_id, body.mode)
         if existing is not None:
             return existing
@@ -298,10 +314,11 @@ class StudyService:
     async def get_active_session(
         self, user: User, set_id: UUID, mode: StudyMode | None
     ) -> StudySession | None:
-        await self.content.get_owned_set(user, set_id)
+        await self.content.get_study_set(user, set_id)
         return await study_repo.get_active_session(self.db, user.id, set_id, mode)
 
     async def finish_session(self, user: User, session_id: UUID) -> StudySession:
+        await study_repo.lock_learning(self.db, user.id)
         session = await self._owned_session(user, session_id)
         if session.status is SessionStatus.active:
             session.status = SessionStatus.finished
@@ -310,13 +327,11 @@ class StudyService:
         await self.db.flush()
         return session
 
-    async def _session_for_write(
-        self, user: User, session_id: UUID | None
-    ) -> StudySession | None:
+    async def _session_for_write(self, user: User, session_id: UUID | None) -> StudySession | None:
         if session_id is None:
             return None
         session = await self._owned_session(user, session_id)
-        if session.status is not SessionStatus.active:
+        if session.status is not SessionStatus.active and not session.config.get("progress_reset"):
             raise ConflictError("Сессия уже завершена")
         return session
 
@@ -331,7 +346,9 @@ class StudyService:
     # --------------------------------------------------------------- статистика
 
     async def recalculate_progress(self, user: User, set_id: UUID) -> UserSetProgress:
-        study_set = await self.content.get_owned_set(user, set_id, with_cards=True)
+        await study_repo.lock_learning(self.db, user.id)
+        study_set = await self.content.get_study_set(user, set_id, with_cards=True)
+        cards = await library_repo.accepted_cards(self.db, user.id, set_id, study_set.cards)
         states = await study_repo.list_states_for_set(self.db, user.id, set_id)
         per_card: dict[UUID, list[CardState]] = defaultdict(list)
         for state in states:
@@ -339,7 +356,7 @@ class StudyService:
 
         mastered = learning = 0
         last_studied: datetime | None = None
-        for card in study_set.cards:
+        for card in cards:
             card_states = per_card.get(card.id, [])
             if not card_states:
                 continue
@@ -353,7 +370,7 @@ class StudyService:
                 ):
                     last_studied = state.last_reviewed_at
 
-        total = len(study_set.cards)
+        total = len(cards)
         progress = await study_repo.get_progress(self.db, user.id, set_id)
         if progress is None:
             progress = UserSetProgress(user_id=user.id, set_id=set_id)
@@ -367,13 +384,17 @@ class StudyService:
         return progress
 
     async def get_set_stats(self, user: User, set_id: UUID) -> SetStats:
-        study_set = await self.content.get_owned_set(user, set_id, with_cards=True)
+        await study_repo.lock_learning(self.db, user.id)
+        study_set = await self.content.get_study_set(user, set_id, with_cards=True)
+        accepted_cards = await library_repo.accepted_cards(
+            self.db, user.id, set_id, study_set.cards
+        )
         settings = await user_repo.get_or_create_settings(self.db, user.id)
         scheduler = self._scheduler(settings)
         now = datetime.now(tz=UTC)
         progress = await self.recalculate_progress(user, set_id)
         states = await study_repo.list_states_for_set(self.db, user.id, set_id)
-        cards = {card.id: card for card in study_set.cards}
+        cards = {card.id: card for card in accepted_cards}
 
         distribution = StateDistribution()
         seen_cards: set[UUID] = set()
@@ -417,12 +438,21 @@ class StudyService:
             forecast=await self.get_forecast(user, days=FORECAST_DAYS, set_id=set_id),
         )
 
+    async def reset_progress(self, user: User, set_id: UUID) -> None:
+        await study_repo.lock_learning(self.db, user.id)
+        await self.content.get_study_set(user, set_id)
+        now = datetime.now(tz=UTC)
+        await study_repo.reset_learning(self.db, user.id, set_id, now)
+        progress = await self.recalculate_progress(user, set_id)
+        progress.reset_at = now
+        await self.db.flush()
+
     async def get_forecast(
         self, user: User, *, days: int = FORECAST_DAYS, set_id: UUID | None = None
     ) -> list[ForecastDay]:
         """Нагрузка на ближайшие дни. Просроченное сваливаем в сегодняшний день."""
         if set_id is not None:
-            await self.content.get_owned_set(user, set_id)
+            await self.content.get_study_set(user, set_id)
         now = datetime.now(tz=UTC)
         today = now.date()
         until = datetime.combine(today + timedelta(days=days), datetime.min.time(), tzinfo=UTC)
@@ -504,9 +534,7 @@ def _interleave(
     due_iter, fresh_iter = iter(due), iter(fresh)
     merged: list[QueueEntry] = []
     for index in range(total):
-        primary, fallback = (
-            (fresh_iter, due_iter) if index in slots else (due_iter, fresh_iter)
-        )
+        primary, fallback = (fresh_iter, due_iter) if index in slots else (due_iter, fresh_iter)
         item = next(primary, None) or next(fallback, None)
         if item is None:
             break
@@ -552,6 +580,8 @@ def _queue_card(card: Card, urls: dict[UUID, str]) -> QueueCard:
             urls.get(card.definition_image_id) if card.definition_image_id else None
         ),
         alt_answers=list(card.alt_answers or []),
+        wrong_term_answers=list(card.wrong_term_answers or []),
+        wrong_definition_answers=list(card.wrong_definition_answers or []),
     )
 
 

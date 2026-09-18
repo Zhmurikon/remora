@@ -6,6 +6,8 @@ import { useState, type FormEvent } from 'react';
 import { useAuthStore } from '../features/auth/auth-store';
 import { StudySettingsForm } from '../features/study/StudySettingsForm';
 import { api, clearAccessToken } from '../lib/api';
+import { ApiTokens } from './ApiTokens';
+import { BotConnections } from './BotConnections';
 
 type Session = components['schemas']['SessionPublic'];
 
@@ -20,6 +22,8 @@ export function SettingsPage() {
         <StudySettingsForm />
         <AccountExport />
       </div>
+      <ApiTokens />
+      <BotConnections />
       <Sessions />
     </div>
   );

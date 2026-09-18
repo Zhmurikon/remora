@@ -21,6 +21,8 @@ from app.models.content import (
 from app.models.user import User
 from app.repositories import content as content_repo
 from app.repositories import courses as course_repo
+from app.repositories import library as library_repo
+from app.repositories.api_tokens import lock_request
 from app.schemas.content import (
     CardBatch,
     FolderCreate,
@@ -39,8 +41,10 @@ class ContentService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
-    async def list_sets(self, user: User) -> list[StudySet]:
-        return await content_repo.list_sets(self.db, user.id)
+    async def list_sets(
+        self, user: User, *, offset: int = 0, limit: int | None = None
+    ) -> list[StudySet]:
+        return await content_repo.list_sets(self.db, user.id, offset=offset, limit=limit)
 
     async def get_public_set(
         self, slug: str, *, after: int | None = None, revision: datetime | None = None
@@ -147,6 +151,16 @@ class ContentService:
             raise ForbiddenError("Нет доступа к этому набору")
         return study_set
 
+    async def get_study_set(
+        self, user: User, set_id: UUID, *, with_cards: bool = False
+    ) -> StudySet:
+        study_set = await content_repo.get_set(self.db, set_id, with_cards=with_cards)
+        if study_set is None:
+            raise NotFoundError("Набор не найден")
+        if not await library_repo.can_study_set(self.db, user.id, set_id):
+            raise ForbiddenError("Нет доступа к обучению по этому набору")
+        return study_set
+
     async def create_set(self, user: User, body: SetCreate) -> StudySet:
         if body.visibility != SetVisibility.private:
             raise ConflictError(
@@ -159,6 +173,7 @@ class ContentService:
         return await content_repo.create_set(self.db, study_set)
 
     async def update_set(self, user: User, set_id: UUID, body: SetUpdate) -> StudySet:
+        await lock_request(self.db, user.id)
         if body.folder_id is not None:
             await self.get_owned_folder(user, body.folder_id)
         study_set = await self.get_owned_set(user, set_id, with_cards=True)
@@ -175,6 +190,7 @@ class ContentService:
         return study_set
 
     async def delete_set(self, user: User, set_id: UUID) -> None:
+        await lock_request(self.db, user.id)
         await content_repo.soft_delete_set(self.db, await self.get_owned_set(user, set_id))
 
     async def duplicate_set(self, user: User, set_id: UUID) -> StudySet:
@@ -206,6 +222,8 @@ class ContentService:
                     term_image_id=source_card.term_image_id,
                     definition_image_id=source_card.definition_image_id,
                     alt_answers=source_card.alt_answers,
+                    wrong_term_answers=list(source_card.wrong_term_answers),
+                    wrong_definition_answers=list(source_card.wrong_definition_answers),
                 )
             )
         copy.cards_count = len(source.cards)
@@ -213,6 +231,7 @@ class ContentService:
         return await self.get_owned_set(user, copy.id, with_cards=True)
 
     async def sync_cards(self, user: User, set_id: UUID, body: CardBatch) -> StudySet:
+        await lock_request(self.db, user.id)
         study_set = await self.get_owned_set(user, set_id, with_cards=True)
         existing = {card.id: card for card in study_set.cards}
         for temporary_position, card in enumerate(existing.values(), start=1):

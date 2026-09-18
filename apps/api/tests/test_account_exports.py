@@ -51,7 +51,16 @@ async def _content(client: AsyncClient, headers: dict[str, str]) -> tuple[str, s
     await client.put(
         f"/api/v1/sets/{set_id}/cards",
         headers=headers,
-        json={"cards": [{"term": "memory", "definition": "память"}]},
+        json={
+            "cards": [
+                {
+                    "term": "memory",
+                    "definition": "память",
+                    "wrong_term_answers": ["memorize"],
+                    "wrong_definition_answers": ["воспоминание"],
+                }
+            ]
+        },
     )
     session = await client.post(
         "/api/v1/study/sessions",
@@ -131,6 +140,8 @@ async def test_account_export_archive_and_email(
         assert "password_hash" not in account
         assert sets["sets"][0]["id"] == set_id
         assert sets["cards"][0]["term"] == "memory"
+        assert sets["cards"][0]["wrong_term_answers"] == ["memorize"]
+        assert sets["cards"][0]["wrong_definition_answers"] == ["воспоминание"]
         assert sets["courses"][0]["id"] == course.json()["id"]
         assert sets["course_articles"][0]["set_id"] == set_id
         assert len(sets["course_sections"]) == 1

@@ -33,6 +33,17 @@ from app.services.test_mode import TestModeService
 router = APIRouter(prefix="/study", tags=["study"])
 
 
+@router.post(
+    "/sets/{set_id}/reset",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Сбросить свой прогресс набора в обоих направлениях",
+)
+async def reset_progress(
+    set_id: UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+) -> None:
+    await StudyService(db).reset_progress(user, set_id)
+
+
 @router.get("/settings", response_model=StudySettingsOut, summary="Настройки обучения")
 async def get_study_settings(
     user: User = Depends(current_user), db: AsyncSession = Depends(get_db)

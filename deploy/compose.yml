@@ -1,0 +1,190 @@
+name: remora-dev
+
+x-api: &api
+  image: remora-dev-api:local
+  build:
+    context: .
+    dockerfile: Dockerfile.api
+  env_file: .env
+  volumes:
+    - ../:/workspace:ro
+    - python-deps:/opt/venv
+  networks: [internal]
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: remora
+      POSTGRES_DB: remora
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    networks: [internal]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U remora']
+      interval: 5s
+      retries: 20
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes: [redis-data:/data]
+    networks: [internal]
+    restart: unless-stopped
+  meilisearch:
+    image: getmeili/meilisearch:v1.12
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?required}
+      MEILI_ENV: production
+    volumes: [meili-data:/meili_data]
+    networks: [internal]
+    restart: unless-stopped
+  minio:
+    image: quay.io/minio/minio:RELEASE.2024-12-18T13-15-44Z
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:?required}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:?required}
+    volumes: [minio-data:/data]
+    networks: [internal]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, mc, ready, local]
+      interval: 5s
+      retries: 20
+  minio-init:
+    image: quay.io/minio/mc:RELEASE.2024-11-21T17-21-54Z
+    env_file: .env
+    networks: [internal]
+    depends_on:
+      minio: { condition: service_healthy }
+    entrypoint: [/bin/sh, -ec]
+    command:
+      - |
+        mc alias set local http://minio:9000 "$$S3_ACCESS_KEY" "$$S3_SECRET_KEY"
+        mc mb --ignore-existing local/remora-media local/remora-audio
+        mc anonymous set none local/remora-media
+        mc anonymous set none local/remora-audio
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    networks: [internal]
+    restart: unless-stopped
+  api:
+    <<: *api
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips=*
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          CMD,
+          python,
+          -c,
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')",
+        ]
+      interval: 10s
+      retries: 12
+  worker:
+    <<: *api
+    command: arq app.worker.WorkerSettings
+  bot-api:
+    <<: *api
+    command: uvicorn app.bot_api:app --host 0.0.0.0 --port 8000 --no-access-log
+    networks: [internal, bot-private]
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          CMD,
+          python,
+          -c,
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
+        ]
+      interval: 10s
+      retries: 12
+  telegram-bot: &bot
+    image: remora-dev-api:local
+    working_dir: /workspace/apps/api
+    command: python -m app.bots.adapter
+    env_file: .env.telegram
+    environment:
+      TG_PROXY_URL: socks5h://host.docker.internal:9999
+      TG_UPDATE_MODE: polling
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - ../apps/api/app:/workspace/apps/api/app:ro
+      - python-deps:/opt/venv:ro
+    networks: [bot-private, bot-ingress, bot-egress]
+    depends_on:
+      bot-api: { condition: service_healthy }
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          CMD,
+          python,
+          -c,
+          "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')",
+        ]
+      interval: 10s
+      retries: 12
+  vk-bot:
+    <<: *bot
+    env_file: .env.vk
+    environment: {}
+    extra_hosts: []
+  web:
+    image: remora-dev-node:local
+    build:
+      context: .
+      dockerfile: Dockerfile.node
+    env_file: .env
+    command: pnpm --filter @remora/web start
+    volumes: [../:/workspace]
+    networks: [internal]
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://localhost:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      retries: 18
+  gateway:
+    image: nginx:1.28-alpine
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../apps/app/dist:/srv/app:ro
+    networks:
+      internal:
+      bot-ingress:
+      proxy:
+        aliases: [remora-dev-gateway]
+    depends_on: [api, web, minio, telegram-bot, vk-bot]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1/app/']
+      interval: 10s
+      retries: 12
+
+networks:
+  internal:
+  bot-private:
+    internal: true
+  bot-ingress:
+    internal: true
+  bot-egress:
+  proxy:
+    external: true
+volumes:
+  postgres-data:
+  redis-data:
+  meili-data:
+  minio-data:
+  python-deps:

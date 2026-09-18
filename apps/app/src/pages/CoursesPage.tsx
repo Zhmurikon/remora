@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { CoursePublicationPanel } from './CoursePublicationPanel';
+import { CopyCourseButton } from './CourseReaderPage';
 
 type Course = components['schemas']['CourseDetail'];
 const linkStyle =
@@ -52,7 +53,7 @@ export function CoursesPage() {
         <Card>
           <h2 className="text-xl font-semibold">Ваш первый курс</h2>
           <p className="text-fg-muted mt-2">
-            Выберите свой набор карточек — он станет первым материалом курса.
+            Создайте курс с нуля или выберите свой набор карточек как первый материал.
           </p>
         </Card>
       )}
@@ -145,7 +146,7 @@ function CourseForm({ course }: { course?: Course }) {
             params: { path: { course_id: course.id } },
             body: metadata,
           })
-        : await api.POST('/api/v1/courses', { body: { ...metadata, set_id: setId } });
+        : await api.POST('/api/v1/courses', { body: { ...metadata, set_id: setId || null } });
       if (!result.data || result.error) throw failure(result.error);
       return result.data;
     },
@@ -204,12 +205,11 @@ function CourseForm({ course }: { course?: Course }) {
               </label>
               <select
                 id="course-set"
-                required
                 className={fieldStyle}
                 value={setId}
                 onChange={(event) => setSetId(event.target.value)}
               >
-                <option value="">Выберите набор</option>
+                <option value="">Создать новый пустой набор</option>
                 {sets.data?.map((set) => (
                   <option key={set.id} value={set.id}>
                     {set.title}
@@ -235,7 +235,7 @@ function CourseForm({ course }: { course?: Course }) {
               )}
               {sets.data?.length === 0 && (
                 <Link className={linkStyle} to="/sets">
-                  Сначала создайте набор карточек
+                  Открыть мои наборы
                 </Link>
               )}
             </div>
@@ -244,7 +244,7 @@ function CourseForm({ course }: { course?: Course }) {
             className="min-h-11"
             type="submit"
             loading={save.isPending}
-            disabled={!title.trim() || (!course && !setId)}
+            disabled={!title.trim()}
           >
             {course ? 'Сохранить' : 'Создать курс'}
           </Button>
@@ -269,6 +269,15 @@ function CourseForm({ course }: { course?: Course }) {
       {course && (
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">Материалы курса</h2>
+          <div className="flex flex-wrap gap-5">
+            <Link className={linkStyle} to={`/courses/${course.id}/read`}>
+              Читать курс
+            </Link>
+            <Link className={linkStyle} to={`/courses/${course.id}/edit`}>
+              Редактировать структуру и теорию
+            </Link>
+          </div>
+          <CopyCourseButton courseId={course.id} />
           {course.sections.map((section) => (
             <Card key={section.id}>
               <h3 className="text-lg font-semibold">{section.title}</h3>
@@ -276,6 +285,16 @@ function CourseForm({ course }: { course?: Course }) {
                 {section.articles.map((article) => (
                   <li key={article.id} className="mt-3">
                     <p className="break-words">{article.title}</p>
+                    {article.body && (
+                      <details className="bg-surface-muted mt-2 rounded-xl p-3">
+                        <summary className="focus-visible:outline-primary flex min-h-11 cursor-pointer items-center focus-visible:outline">
+                          Читать теорию
+                        </summary>
+                        <div className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed">
+                          {article.body}
+                        </div>
+                      </details>
+                    )}
                     <div className="flex flex-wrap gap-x-5">
                       <Link className={linkStyle} to={`/sets/${article.set_id}`}>
                         Открыть набор

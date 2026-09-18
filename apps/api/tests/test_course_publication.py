@@ -48,6 +48,51 @@ async def test_course_cards_pagination_revision_and_access(client: AsyncClient) 
     assert (await client.get(path, params=query)).status_code == 404
 
 
+async def test_authenticated_user_can_like_public_course_once(client: AsyncClient) -> None:
+    owner = await auth(client, "liked-owner")
+    reader = await auth(client, "liked-reader")
+    other_reader = await auth(client, "liked-other")
+    study_set = (
+        await client.post("/api/v1/sets", headers=owner, json={"title": "Лайки"})
+    ).json()
+    await client.put(
+        f"/api/v1/sets/{study_set['id']}/cards",
+        headers=owner,
+        json={"cards": [{"term": "A", "definition": "B"}]},
+    )
+    course = (
+        await client.post(
+            "/api/v1/courses", headers=owner, json={"title": "Курс", "set_id": study_set["id"]}
+        )
+    ).json()
+    await client.post(f"/api/v1/courses/{course['id']}/publish", headers=owner, json={})
+    public_path = f"/api/v1/courses/public/{course['slug']}"
+
+    anonymous = (await client.get(public_path)).json()
+    assert anonymous["likes_count"] == 0
+    assert anonymous["liked_by_me"] is False
+    assert (await client.post(public_path + "/like")).status_code == 401
+
+    liked = await client.post(public_path + "/like", headers=reader)
+    assert liked.status_code == 200
+    assert liked.json()["likes_count"] == 1
+    assert liked.json()["liked_by_me"] is True
+    repeated = await client.post(public_path + "/like", headers=reader)
+    assert repeated.json()["likes_count"] == 1
+    second_like = await client.post(public_path + "/like", headers=other_reader)
+    assert second_like.json()["likes_count"] == 2
+    assert (await client.get(public_path, headers=reader)).json()["liked_by_me"] is True
+
+    unliked = await client.delete(public_path + "/like", headers=reader)
+    assert unliked.status_code == 200
+    assert unliked.json()["likes_count"] == 1
+    assert unliked.json()["liked_by_me"] is False
+    assert (await client.delete(public_path + "/like", headers=reader)).json()["likes_count"] == 1
+
+    await client.post(f"/api/v1/courses/{course['id']}/unpublish", headers=owner)
+    assert (await client.post(public_path + "/like", headers=reader)).status_code == 404
+
+
 @pytest.mark.parametrize("visibility", ["private", "public", "unlisted"])
 async def test_publication_access_and_nested_revocation(
     client: AsyncClient, visibility: str

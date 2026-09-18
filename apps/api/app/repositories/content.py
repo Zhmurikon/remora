@@ -43,11 +43,15 @@ async def delete_folder(db: AsyncSession, folder: Folder) -> None:
     await db.flush()
 
 
-async def list_sets(db: AsyncSession, owner_id: UUID) -> list[StudySet]:
+async def list_sets(
+    db: AsyncSession, owner_id: UUID, *, offset: int = 0, limit: int | None = None
+) -> list[StudySet]:
     result = await db.scalars(
         select(StudySet)
         .where(StudySet.owner_id == owner_id, StudySet.deleted_at.is_(None))
-        .order_by(StudySet.updated_at.desc())
+        .order_by(StudySet.updated_at.desc(), StudySet.id)
+        .offset(offset)
+        .limit(limit)
     )
     return list(result.all())
 

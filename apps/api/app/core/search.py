@@ -54,9 +54,10 @@ class SearchIndex:
                     "languages",
                     "author_id",
                     "cards_count",
+                    "saves_count",
                     "updated_at",
                 ],
-                "sortableAttributes": ["updated_at", "cards_count"],
+                "sortableAttributes": ["saves_count", "updated_at", "cards_count"],
             },
         )
 

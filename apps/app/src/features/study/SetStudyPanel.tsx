@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { PrintMenu } from './PrintMenu';
+import { ResetProgress } from './ResetProgress';
 
 export function SetStudyPanel({ setId, cardsCount }: { setId: string; cardsCount: number }) {
   const stats = useQuery({
@@ -112,6 +113,7 @@ export function SetStudyPanel({ setId, cardsCount }: { setId: string; cardsCount
           )}
         </>
       )}
+      <ResetProgress setId={setId} disabled={disabled} />
     </Card>
   );
 }

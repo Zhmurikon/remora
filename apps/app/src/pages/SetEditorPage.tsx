@@ -19,10 +19,14 @@ import {
 } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, downloadFile, uploadBinary } from '../lib/api';
+import { WrongAnswersEditor, wrongAnswersError } from './WrongAnswersEditor';
 
 type Visibility = components['schemas']['SetVisibility'];
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 interface DraftCard {
+  source?: components['schemas']['CardWrite'];
+  wrongTermAnswers?: string[];
+  wrongDefinitionAnswers?: string[];
   key: string;
   id?: string;
   term: string;
@@ -80,6 +84,9 @@ export function SetEditorPage() {
     setFolderId(query.data.folder_id);
     setCards(
       query.data.cards.map((card) => ({
+        source: card,
+        wrongTermAnswers: card.wrong_term_answers ?? [],
+        wrongDefinitionAnswers: card.wrong_definition_answers ?? [],
         key: card.id,
         id: card.id,
         term: card.term,
@@ -94,6 +101,20 @@ export function SetEditorPage() {
   }, [query.data, ready]);
 
   async function runSave(snapshot: Snapshot) {
+    if (
+      snapshot.cards.some(
+        (card) =>
+          wrongAnswersError(card.wrongTermAnswers ?? [], card.term, card.source?.alt_answers) ||
+          wrongAnswersError(
+            card.wrongDefinitionAnswers ?? [],
+            card.definition,
+            card.source?.alt_answers,
+          ),
+      )
+    ) {
+      setSaveState('error');
+      return;
+    }
     if (saving.current) {
       pending.current = snapshot;
       return;
@@ -117,7 +138,14 @@ export function SetEditorPage() {
           params: { path: { set_id: setId } },
           body: {
             cards: snapshot.cards.map((card) => ({
+              ...card.source,
               id: card.id,
+              wrong_term_answers: (card.wrongTermAnswers ?? [])
+                .map((value) => value.trim())
+                .filter(Boolean),
+              wrong_definition_answers: (card.wrongDefinitionAnswers ?? [])
+                .map((value) => value.trim())
+                .filter(Boolean),
               term: card.term,
               definition: card.definition,
               content_type: card.contentType,
@@ -327,6 +355,9 @@ export function SetEditorPage() {
             if (!refreshed.data) return;
             setCards(
               refreshed.data.cards.map((card) => ({
+                source: card,
+                wrongTermAnswers: card.wrong_term_answers ?? [],
+                wrongDefinitionAnswers: card.wrong_definition_answers ?? [],
                 key: card.id,
                 id: card.id,
                 term: card.term,
@@ -436,6 +467,20 @@ export function SetEditorPage() {
                 }
               />
             </div>
+            <WrongAnswersEditor
+              term={card.term}
+              definition={card.definition}
+              wrongTermAnswers={card.wrongTermAnswers ?? []}
+              wrongDefinitionAnswers={card.wrongDefinitionAnswers ?? []}
+              alternatives={card.source?.alt_answers ?? []}
+              onChange={(field, values) =>
+                setCards((items) =>
+                  items.map((item) =>
+                    item.key === card.key ? { ...item, [field]: values } : item,
+                  ),
+                )
+              }
+            />
           </Card>
         ))}
       </div>

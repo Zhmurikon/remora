@@ -4,10 +4,12 @@ import { ProtectedRoute } from './features/auth/ProtectedRoute';
 import { AppLayout } from './layouts/AppLayout';
 import { DashboardPage } from './pages/DashboardPage';
 import { CoursePage, CoursesPage, NewCoursePage } from './pages/CoursesPage';
+import { CourseEditorPage } from './pages/CourseEditorPage';
+import { CourseCopyPage, CourseReaderPage } from './pages/CourseReaderPage';
 import { FlashcardsPage } from './pages/FlashcardsPage';
 import { LearnPage } from './pages/LearnPage';
+import { LibraryPage } from './pages/LibraryPage';
 import { ListenPage } from './pages/ListenPage';
-import { PlaceholderPage } from './pages/PlaceholderPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SetEditorPage } from './pages/SetEditorPage';
 import { SetPage } from './pages/SetPage';
@@ -17,7 +19,7 @@ import { WritePage } from './pages/WritePage';
 
 export function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <AuthBootstrap>
         <Routes>
           <Route element={<ProtectedRoute />}>
@@ -27,6 +29,9 @@ export function App() {
               <Route path="courses" element={<CoursesPage />} />
               <Route path="courses/new" element={<NewCoursePage />} />
               <Route path="courses/:courseId" element={<CoursePage />} />
+              <Route path="courses/:courseId/edit" element={<CourseEditorPage />} />
+              <Route path="courses/:courseId/read" element={<CourseReaderPage />} />
+              <Route path="courses/copy/:slug" element={<CourseCopyPage />} />
               <Route path="sets/:setId" element={<SetPage />} />
               <Route path="sets/:setId/edit" element={<SetEditorPage />} />
               <Route path="sets/:setId/learn" element={<LearnPage />} />
@@ -34,15 +39,7 @@ export function App() {
               <Route path="sets/:setId/write" element={<WritePage />} />
               <Route path="sets/:setId/test" element={<TestPage />} />
               <Route path="sets/:setId/listen" element={<ListenPage />} />
-              <Route
-                path="library"
-                element={
-                  <PlaceholderPage
-                    title="Библиотека"
-                    description="Сохраняйте интересные публичные наборы и возвращайтесь к ним позже."
-                  />
-                }
-              />
+              <Route path="library" element={<LibraryPage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
           </Route>

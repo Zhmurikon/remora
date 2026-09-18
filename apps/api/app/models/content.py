@@ -135,5 +135,11 @@ class Card(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     alt_answers: Mapped[list[str]] = mapped_column(
         JSONB, default=list, server_default=text("'[]'::jsonb")
     )
+    wrong_term_answers: Mapped[list[str]] = mapped_column(
+        JSONB, default=list, server_default=text("'[]'::jsonb")
+    )
+    wrong_definition_answers: Mapped[list[str]] = mapped_column(
+        JSONB, default=list, server_default=text("'[]'::jsonb")
+    )
 
     study_set: Mapped[StudySet] = relationship(back_populates="cards")

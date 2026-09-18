@@ -39,3 +39,14 @@ async def current_user(
         raise UnauthorizedError("Аккаунт недоступен")
 
     return user
+
+
+async def optional_user(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    creds: HTTPAuthorizationCredentials | None = Depends(_bearer),
+) -> User | None:
+    """Возвращает активного пользователя, не требуя вход для публичного чтения."""
+    if creds is None:
+        return None
+    return await current_user(request, db, creds)

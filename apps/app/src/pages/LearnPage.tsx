@@ -8,11 +8,10 @@
  */
 
 import {
-  canAskMultipleChoice,
   checkAnswer,
   formatIntervalSeconds,
   generateOptions,
-  normalizeAnswer,
+  normalizeOption,
   pluralWithCount,
   type Rating,
 } from '@remora/core';
@@ -62,8 +61,13 @@ export function LearnPage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const pool = useMemo(
-    () => items.map((item) => answerSide(item)).filter((value) => value.length > 0),
-    [items],
+    () =>
+      items
+        .map((item) =>
+          current?.direction === 'def_to_term' ? item.card.term : item.card.definition,
+        )
+        .filter((value) => value.length > 0),
+    [items, current?.direction],
   );
 
   const kind: QuestionKind = current ? questionKind(current, pool) : 'choice';
@@ -72,9 +76,14 @@ export function LearnPage() {
     return generateOptions({
       correct: answerSide(current),
       pool: pool.filter((value) => value !== answerSide(current)),
-      seed: `${current.card.id}:${current.direction}:${index}`,
+      preferred:
+        current.direction === 'term_to_def'
+          ? current.card.wrong_definition_answers
+          : current.card.wrong_term_answers,
+      alternatives: current.card.alt_answers,
+      seed: `${sessionId}:${current.card.id}:${current.direction}:${index}`,
     });
-  }, [current, index, kind, pool]);
+  }, [current, index, kind, pool, sessionId]);
 
   const advance = useCallback(
     (rating: Rating, correct: boolean, typedValue?: string) => {
@@ -377,13 +386,24 @@ function questionKind(item: QueueItem, pool: readonly string[]): QuestionKind {
   const stability = item.state.stability ?? 0;
   if (stability >= RECALL_THRESHOLD) return 'recall';
   if (stability >= TYPING_THRESHOLD) return 'typing';
-  return canAskMultipleChoice(pool) ? 'choice' : 'typing';
+  return generateOptions({
+    correct: answerSide(item),
+    pool,
+    preferred:
+      item.direction === 'term_to_def'
+        ? item.card.wrong_definition_answers
+        : item.card.wrong_term_answers,
+    alternatives: item.card.alt_answers,
+    seed: item.card.id,
+  }).length === 4
+    ? 'choice'
+    : 'typing';
 }
 
 /** Совпадение вариантов выбора: опечаток здесь быть не может, нужна только нормализация. */
 function sameAnswer(left: string, right: string): boolean {
-  const normalized = normalizeAnswer(right);
-  return normalized.length > 0 && normalizeAnswer(left) === normalized;
+  const normalized = normalizeOption(right);
+  return normalized.length > 0 && normalizeOption(left) === normalized;
 }
 
 function optionStyle(

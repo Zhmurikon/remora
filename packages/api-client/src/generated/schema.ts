@@ -9,6 +9,181 @@
  */
 
 export interface paths {
+    "/api/v1/agent/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Courses */
+        get: operations["list_courses_api_v1_agent_courses_get"];
+        put?: never;
+        /** Create Course */
+        post: operations["create_course_api_v1_agent_courses_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent/courses/{course_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Course */
+        get: operations["get_course_api_v1_agent_courses__course_id__get"];
+        /** Update Course */
+        put: operations["update_course_api_v1_agent_courses__course_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent/courses/{course_id}/articles/{article_id}/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete Course Article */
+        post: operations["delete_course_article_api_v1_agent_courses__course_id__articles__article_id__delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent/courses/{course_id}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy Course */
+        post: operations["copy_course_api_v1_agent_courses__course_id__copy_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent/courses/{course_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish Course */
+        post: operations["publish_course_api_v1_agent_courses__course_id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent/courses/{course_id}/sections/{section_id}/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete Course Section */
+        post: operations["delete_course_section_api_v1_agent_courses__course_id__sections__section_id__delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent/courses/{course_id}/structure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Course Structure */
+        get: operations["get_course_structure_api_v1_agent_courses__course_id__structure_get"];
+        /** Update Course Structure */
+        put: operations["update_course_structure_api_v1_agent_courses__course_id__structure_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent/courses/{course_id}/unpublish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unpublish Course */
+        post: operations["unpublish_course_api_v1_agent_courses__course_id__unpublish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent/sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Sets */
+        get: operations["list_sets_api_v1_agent_sets_get"];
+        put?: never;
+        /** Create Set */
+        post: operations["create_set_api_v1_agent_sets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent/sets/{set_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Set */
+        get: operations["get_set_api_v1_agent_sets__set_id__get"];
+        /** Update Set */
+        put: operations["update_set_api_v1_agent_sets__set_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/change-password": {
         parameters: {
             query?: never;
@@ -197,6 +372,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/authors/{username}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Публичный профиль автора */
+        get: operations["author_profile_api_v1_authors__username__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/courses": {
         parameters: {
             query?: never;
@@ -249,6 +441,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/courses/public/{slug}/like": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Поставить лайк курсу */
+        post: operations["like_course_api_v1_courses_public__slug__like_post"];
+        /** Убрать лайк с курса */
+        delete: operations["unlike_course_api_v1_courses_public__slug__like_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/public/{slug}/related": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Похожие курсы */
+        get: operations["related_courses_api_v1_courses_public__slug__related_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/sitemap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Карта публичных курсов */
+        get: operations["course_sitemap_api_v1_courses_sitemap_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/courses/{course_id}": {
         parameters: {
             query?: never;
@@ -267,6 +511,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/courses/{course_id}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy Course */
+        post: operations["copy_course_api_v1_courses__course_id__copy_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/{course_id}/editor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Course Editor */
+        get: operations["course_editor_api_v1_courses__course_id__editor_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/courses/{course_id}/publish": {
         parameters: {
             query?: never;
@@ -278,6 +556,23 @@ export interface paths {
         put?: never;
         /** Опубликовать курс */
         post: operations["publish_course_api_v1_courses__course_id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/{course_id}/structure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save Structure */
+        put: operations["save_structure_api_v1_courses__course_id__structure_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -414,6 +709,92 @@ export interface paths {
         };
         /** Последние импорты набора */
         get: operations["list_import_jobs_api_v1_imports_sets__set_id__jobs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/library": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Сохранённые оригиналы */
+        get: operations["list_library_api_v1_library_get"];
+        put?: never;
+        /** Сохранить оригинал */
+        post: operations["save_to_library_api_v1_library_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/library/courses/{slug}/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Course Library State */
+        get: operations["course_library_state_api_v1_library_courses__slug__state_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/library/{save_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Убрать сохранение */
+        delete: operations["remove_from_library_api_v1_library__save_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/library/{save_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Принять обновление */
+        post: operations["accept_library_update_api_v1_library__save_id__accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/library/{save_id}/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Изменения оригинала */
+        get: operations["library_changes_api_v1_library__save_id__changes_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -766,6 +1147,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/study/sets/{set_id}/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Сбросить свой прогресс набора в обоих направлениях */
+        post: operations["reset_progress_api_v1_study_sets__set_id__reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/study/sets/{set_id}/stats": {
         parameters: {
             query?: never;
@@ -920,6 +1318,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users/me/api-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Tokens */
+        get: operations["list_tokens_api_v1_users_me_api_tokens_get"];
+        put?: never;
+        /** Create Token */
+        post: operations["create_token_api_v1_users_me_api_tokens_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/api-tokens/{token_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke Token */
+        delete: operations["revoke_token_api_v1_users_me_api_tokens__token_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/bots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Links */
+        get: operations["list_links_api_v1_users_me_bots_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/bots/code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Code */
+        post: operations["create_code_api_v1_users_me_bots_code_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/bots/{link_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke */
+        delete: operations["revoke_api_v1_users_me_bots__link_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/me/export": {
         parameters: {
             query?: never;
@@ -1006,6 +1490,232 @@ export interface components {
          * @enum {string}
          */
         AccountExportStatus: "queued" | "processing" | "completed" | "failed";
+        /** AgentArticleDetail */
+        AgentArticleDetail: {
+            /** Body */
+            body: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            material: components["schemas"]["AgentSetDetail"];
+            /** Position */
+            position: number;
+            /** Title */
+            title: string;
+        };
+        /** AgentArticleWrite */
+        AgentArticleWrite: {
+            /**
+             * Body
+             * @default
+             */
+            body: string;
+            /** Id */
+            id?: string | null;
+            material: components["schemas"]["AgentSetWrite"];
+            /** Title */
+            title: string;
+        };
+        /** AgentCourseDetail */
+        AgentCourseDetail: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Listed */
+            is_listed: boolean;
+            /** Is Published */
+            is_published: boolean;
+            /**
+             * Liked By Me
+             * @default false
+             */
+            liked_by_me: boolean;
+            /**
+             * Likes Count
+             * @default 0
+             */
+            likes_count: number;
+            /** Moderation Status */
+            moderation_status: string;
+            /** Published At */
+            published_at: string | null;
+            /** Revision */
+            revision: string;
+            /**
+             * Saves Count
+             * @default 0
+             */
+            saves_count: number;
+            /** Sections */
+            sections: components["schemas"]["AgentSectionDetail"][];
+            /** Slug */
+            slug: string;
+            /** Tags */
+            tags: string[];
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** AgentCourseUpdate */
+        AgentCourseUpdate: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Revision */
+            revision: string;
+            /** Sections */
+            sections?: components["schemas"]["AgentSectionWrite"][];
+            /** Title */
+            title: string;
+        };
+        /** AgentCourseWrite */
+        AgentCourseWrite: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Sections */
+            sections?: components["schemas"]["AgentSectionWrite"][];
+            /** Title */
+            title: string;
+        };
+        /** AgentSectionDetail */
+        AgentSectionDetail: {
+            /** Articles */
+            articles: components["schemas"]["AgentArticleDetail"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Position */
+            position: number;
+            /** Title */
+            title: string;
+        };
+        /** AgentSectionWrite */
+        AgentSectionWrite: {
+            /** Articles */
+            articles?: components["schemas"]["AgentArticleWrite"][];
+            /** Id */
+            id?: string | null;
+            /** Title */
+            title: string;
+        };
+        /** AgentSetDetail */
+        AgentSetDetail: {
+            /** Cards */
+            cards: components["schemas"]["CardPublic"][];
+            /** Cards Count */
+            cards_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description: string;
+            /** Folder Id */
+            folder_id: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Lang Definition */
+            lang_definition: string;
+            /** Lang Term */
+            lang_term: string;
+            /** Revision */
+            revision: string;
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            visibility: components["schemas"]["SetVisibility"];
+        };
+        /** AgentSetUpdate */
+        AgentSetUpdate: {
+            /** Cards */
+            cards?: components["schemas"]["CardWrite"][];
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Lang Definition
+             * @default ru
+             */
+            lang_definition: string;
+            /**
+             * Lang Term
+             * @default ru
+             */
+            lang_term: string;
+            /** Revision */
+            revision: string;
+            /** Title */
+            title: string;
+        };
+        /** AgentSetWrite */
+        AgentSetWrite: {
+            /** Cards */
+            cards?: components["schemas"]["CardWrite"][];
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Lang Definition
+             * @default ru
+             */
+            lang_definition: string;
+            /**
+             * Lang Term
+             * @default ru
+             */
+            lang_term: string;
+            /** Title */
+            title: string;
+        };
+        /** AgentStructureDelete */
+        AgentStructureDelete: {
+            /**
+             * Confirm
+             * @constant
+             */
+            confirm: true;
+            /** Revision */
+            revision: string;
+        };
         /** AnkiImportResult */
         AnkiImportResult: {
             /** Errors */
@@ -1026,6 +1736,170 @@ export interface components {
          * @enum {string}
          */
         AnswerVerdict: "correct" | "typo" | "incorrect";
+        /** ApiTokenCreate */
+        ApiTokenCreate: {
+            /**
+             * Expires In Days
+             * @default 90
+             */
+            expires_in_days: number;
+            /** Name */
+            name: string;
+            /**
+             * Scopes
+             * @default [
+             *       "materials:read",
+             *       "materials:write"
+             *     ]
+             */
+            scopes: ("materials:read" | "materials:write" | "courses:publish")[];
+        };
+        /** ApiTokenCreated */
+        ApiTokenCreated: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Last Used At */
+            last_used_at: string | null;
+            /** Name */
+            name: string;
+            /** Prefix */
+            prefix: string;
+            /** Revoked At */
+            revoked_at: string | null;
+            /** Scopes */
+            scopes: string[];
+            /** Token */
+            token: string;
+        };
+        /** ApiTokenPublic */
+        ApiTokenPublic: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Last Used At */
+            last_used_at: string | null;
+            /** Name */
+            name: string;
+            /** Prefix */
+            prefix: string;
+            /** Revoked At */
+            revoked_at: string | null;
+            /** Scopes */
+            scopes: string[];
+        };
+        /** ArticleWrite */
+        ArticleWrite: {
+            /**
+             * Body
+             * @default
+             */
+            body: string;
+            /** Id */
+            id?: string | null;
+            /** Set Id */
+            set_id?: string | null;
+            /** Title */
+            title: string;
+        };
+        /** AuthorProfile */
+        AuthorProfile: {
+            /** Avatar Url */
+            avatar_url: string | null;
+            /** Badges */
+            badges: string[];
+            /** Courses */
+            courses: components["schemas"]["CourseSearchItem"][];
+            /** Display Name */
+            display_name: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Joined At
+             * Format: date-time
+             */
+            joined_at: string;
+            stats: components["schemas"]["AuthorStats"];
+            /** Username */
+            username: string;
+        };
+        /** AuthorStats */
+        AuthorStats: {
+            /** Cards Studied */
+            cards_studied: number;
+            /** Current Streak Days */
+            current_streak_days: number;
+            /** Likes Received */
+            likes_received: number;
+            /** Publications */
+            publications: number;
+            /** Saves Received */
+            saves_received: number;
+        };
+        /** BotCodeCreated */
+        BotCodeCreated: {
+            /** Bot Url */
+            bot_url: string | null;
+            /** Code */
+            code: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+        };
+        /** BotCodeRequest */
+        BotCodeRequest: {
+            platform: components["schemas"]["BotPlatform"];
+        };
+        /** BotLinkPublic */
+        BotLinkPublic: {
+            /** Actor Id */
+            actor_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            platform: components["schemas"]["BotPlatform"];
+        };
+        /**
+         * BotPlatform
+         * @enum {string}
+         */
+        BotPlatform: "telegram" | "vk";
         /** CardBatch */
         CardBatch: {
             /** Cards */
@@ -1070,6 +1944,10 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            /** Wrong Definition Answers */
+            wrong_definition_answers?: string[];
+            /** Wrong Term Answers */
+            wrong_term_answers?: string[];
         };
         /**
          * CardStateKind
@@ -1128,6 +2006,10 @@ export interface components {
             term_image_id?: string | null;
             /** Term Transcription */
             term_transcription?: string | null;
+            /** Wrong Definition Answers */
+            wrong_definition_answers?: string[];
+            /** Wrong Term Answers */
+            wrong_term_answers?: string[];
         };
         /**
          * ContentType
@@ -1153,6 +2035,25 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** CourseAuthor */
+        CourseAuthor: {
+            /** Avatar Url */
+            avatar_url: string | null;
+            /** Display Name */
+            display_name: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Username */
+            username: string;
+        };
+        /** CourseCopyRequest */
+        CourseCopyRequest: {
+            /** Article Id */
+            article_id?: string | null;
+        };
         /** CourseCreate */
         CourseCreate: {
             /**
@@ -1160,16 +2061,14 @@ export interface components {
              * @default
              */
             description: string;
-            /**
-             * Set Id
-             * Format: uuid
-             */
-            set_id: string;
+            /** Set Id */
+            set_id?: string | null;
             /** Title */
             title: string;
         };
         /** CourseDetail */
         CourseDetail: {
+            author: components["schemas"]["CourseAuthor"];
             /**
              * Created At
              * Format: date-time
@@ -1189,10 +2088,82 @@ export interface components {
             is_listed: boolean;
             /** Is Published */
             is_published: boolean;
+            /**
+             * Liked By Me
+             * @default false
+             */
+            liked_by_me: boolean;
+            /**
+             * Likes Count
+             * @default 0
+             */
+            likes_count: number;
             /** Moderation Status */
             moderation_status: string;
             /** Published At */
             published_at: string | null;
+            /**
+             * Saves Count
+             * @default 0
+             */
+            saves_count: number;
+            /** Sections */
+            sections: components["schemas"]["CourseSectionPublic"][];
+            /** Slug */
+            slug: string;
+            /** Tags */
+            tags: string[];
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** CourseEditorDetail */
+        CourseEditorDetail: {
+            author: components["schemas"]["CourseAuthor"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Listed */
+            is_listed: boolean;
+            /** Is Published */
+            is_published: boolean;
+            /**
+             * Liked By Me
+             * @default false
+             */
+            liked_by_me: boolean;
+            /**
+             * Likes Count
+             * @default 0
+             */
+            likes_count: number;
+            /** Moderation Status */
+            moderation_status: string;
+            /** Published At */
+            published_at: string | null;
+            /** Revision */
+            revision: string;
+            /**
+             * Saves Count
+             * @default 0
+             */
+            saves_count: number;
             /** Sections */
             sections: components["schemas"]["CourseSectionPublic"][];
             /** Slug */
@@ -1242,6 +2213,8 @@ export interface components {
             id: string;
             /** Languages */
             languages: string[];
+            /** Saves Count */
+            saves_count: number;
             /** Slug */
             slug: string;
             /** Tags */
@@ -1275,6 +2248,25 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** CourseSitemapEntry */
+        CourseSitemapEntry: {
+            /** Author Username */
+            author_username: string;
+            /** Slug */
+            slug: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** CourseStructureWrite */
+        CourseStructureWrite: {
+            /** Revision */
+            revision: string;
+            /** Sections */
+            sections: components["schemas"]["SectionWrite"][];
+        };
         /** CourseSummary */
         CourseSummary: {
             /**
@@ -1296,10 +2288,25 @@ export interface components {
             is_listed: boolean;
             /** Is Published */
             is_published: boolean;
+            /**
+             * Liked By Me
+             * @default false
+             */
+            liked_by_me: boolean;
+            /**
+             * Likes Count
+             * @default 0
+             */
+            likes_count: number;
             /** Moderation Status */
             moderation_status: string;
             /** Published At */
             published_at: string | null;
+            /**
+             * Saves Count
+             * @default 0
+             */
+            saves_count: number;
             /** Slug */
             slug: string;
             /** Tags */
@@ -1468,6 +2475,124 @@ export interface components {
          * @enum {string}
          */
         ImportJobStatus: "queued" | "processing" | "completed" | "failed";
+        /** LibraryDiff */
+        LibraryDiff: {
+            /**
+             * Accepted At
+             * Format: date-time
+             */
+            accepted_at: string;
+            /**
+             * Articles Added
+             * @default 0
+             */
+            articles_added: number;
+            /**
+             * Articles Changed
+             * @default 0
+             */
+            articles_changed: number;
+            /**
+             * Articles Removed
+             * @default 0
+             */
+            articles_removed: number;
+            /**
+             * Cards Added
+             * @default 0
+             */
+            cards_added: number;
+            /**
+             * Cards Changed
+             * @default 0
+             */
+            cards_changed: number;
+            /**
+             * Cards Removed
+             * @default 0
+             */
+            cards_removed: number;
+            /** Has Updates */
+            has_updates: boolean;
+            /**
+             * Save Id
+             * Format: uuid
+             */
+            save_id: string;
+            /** Summary */
+            summary: string[];
+        };
+        /** LibraryItem */
+        LibraryItem: {
+            /**
+             * Accepted At
+             * Format: date-time
+             */
+            accepted_at: string;
+            /** Article Id */
+            article_id?: string | null;
+            /** Article Title */
+            article_title?: string | null;
+            /** Cards Count */
+            cards_count: number;
+            /**
+             * Course Id
+             * Format: uuid
+             */
+            course_id: string;
+            /** Course Slug */
+            course_slug: string;
+            /** Course Title */
+            course_title: string;
+            /** Has Updates */
+            has_updates: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Saved At
+             * Format: date-time
+             */
+            saved_at: string;
+            /** Set Id */
+            set_id?: string | null;
+            /** Set Title */
+            set_title?: string | null;
+            /**
+             * Target Id
+             * Format: uuid
+             */
+            target_id: string;
+            /**
+             * Target Type
+             * @enum {string}
+             */
+            target_type: "course" | "article" | "set";
+        };
+        /** LibrarySaveCreate */
+        LibrarySaveCreate: {
+            /**
+             * Target Id
+             * Format: uuid
+             */
+            target_id: string;
+            /**
+             * Target Type
+             * @enum {string}
+             */
+            target_type: "course" | "article" | "set";
+        };
+        /** LibraryState */
+        LibraryState: {
+            /** Course Saved */
+            course_saved: boolean;
+            /** Saved Article Ids */
+            saved_article_ids: string[];
+            /** Saved Set Ids */
+            saved_set_ids: string[];
+        };
         /** LoginRequest */
         LoginRequest: {
             /**
@@ -1663,6 +2788,10 @@ export interface components {
             term_image_url?: string | null;
             /** Term Transcription */
             term_transcription: string | null;
+            /** Wrong Definition Answers */
+            wrong_definition_answers?: string[];
+            /** Wrong Term Answers */
+            wrong_term_answers?: string[];
         };
         /** QueueItem */
         QueueItem: {
@@ -1775,6 +2904,15 @@ export interface components {
              * Format: date-time
              */
             reviewed_at: string;
+        };
+        /** SectionWrite */
+        SectionWrite: {
+            /** Articles */
+            articles?: components["schemas"]["ArticleWrite"][];
+            /** Id */
+            id?: string | null;
+            /** Title */
+            title: string;
         };
         /** SessionCreate */
         SessionCreate: {
@@ -2356,6 +3494,527 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    list_courses_api_v1_agent_courses_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_course_api_v1_agent_courses_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentCourseWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentCourseDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_course_api_v1_agent_courses__course_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentCourseDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_course_api_v1_agent_courses__course_id__put: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentCourseUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentCourseDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_course_article_api_v1_agent_courses__course_id__articles__article_id__delete_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                course_id: string;
+                article_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentStructureDelete"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseEditorDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    copy_course_api_v1_agent_courses__course_id__copy_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourseCopyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseEditorDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_course_api_v1_agent_courses__course_id__publish_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CoursePublication"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_course_section_api_v1_agent_courses__course_id__sections__section_id__delete_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                course_id: string;
+                section_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentStructureDelete"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseEditorDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_course_structure_api_v1_agent_courses__course_id__structure_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseEditorDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_course_structure_api_v1_agent_courses__course_id__structure_put: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourseStructureWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseEditorDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unpublish_course_api_v1_agent_courses__course_id__unpublish_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sets_api_v1_agent_sets_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_set_api_v1_agent_sets_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentSetWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentSetDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_set_api_v1_agent_sets__set_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentSetDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_set_api_v1_agent_sets__set_id__put: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentSetUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentSetDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     change_password_api_v1_auth_change_password_post: {
         parameters: {
             query?: never;
@@ -2690,6 +4349,37 @@ export interface operations {
             };
         };
     };
+    author_profile_api_v1_authors__username__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                username: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorProfile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_courses_api_v1_courses_get: {
         parameters: {
             query?: never;
@@ -2809,6 +4499,121 @@ export interface operations {
             };
         };
     };
+    like_course_api_v1_courses_public__slug__like_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unlike_course_api_v1_courses_public__slug__like_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    related_courses_api_v1_courses_public__slug__related_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseSearchItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    course_sitemap_api_v1_courses_sitemap_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseSitemapEntry"][];
+                };
+            };
+        };
+    };
     get_course_api_v1_courses__course_id__get: {
         parameters: {
             query?: never;
@@ -2875,6 +4680,74 @@ export interface operations {
             };
         };
     };
+    copy_course_api_v1_courses__course_id__copy_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "idempotency-key": string;
+            };
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourseCopyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseEditorDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    course_editor_api_v1_courses__course_id__editor_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseEditorDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     publish_course_api_v1_courses__course_id__publish_post: {
         parameters: {
             query?: never;
@@ -2897,6 +4770,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CourseDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_structure_api_v1_courses__course_id__structure_put: {
+        parameters: {
+            query?: never;
+            header: {
+                "idempotency-key": string;
+            };
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourseStructureWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseEditorDetail"];
                 };
             };
             /** @description Validation Error */
@@ -3206,6 +5116,181 @@ export interface operations {
             };
         };
     };
+    list_library_api_v1_library_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryItem"][];
+                };
+            };
+        };
+    };
+    save_to_library_api_v1_library_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibrarySaveCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    course_library_state_api_v1_library_courses__slug__state_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryState"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_from_library_api_v1_library__save_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                save_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    accept_library_update_api_v1_library__save_id__accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                save_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    library_changes_api_v1_library__save_id__changes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                save_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryDiff"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_upload_url_api_v1_media_upload_url_post: {
         parameters: {
             query?: never;
@@ -3458,7 +5543,7 @@ export interface operations {
                 min_cards?: number;
                 max_cards?: number | null;
                 updated_after?: string | null;
-                sort?: "relevance" | "updated" | "cards";
+                sort?: "relevance" | "popular" | "updated" | "cards";
                 cursor?: number;
                 limit?: number;
             };
@@ -3967,6 +6052,35 @@ export interface operations {
             };
         };
     };
+    reset_progress_api_v1_study_sets__set_id__reset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_set_stats_api_v1_study_sets__set_id__stats_get: {
         parameters: {
             query?: never;
@@ -4263,6 +6377,170 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TtsStatus"];
+                };
+            };
+        };
+    };
+    list_tokens_api_v1_users_me_api_tokens_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiTokenPublic"][];
+                };
+            };
+        };
+    };
+    create_token_api_v1_users_me_api_tokens_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApiTokenCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiTokenCreated"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_token_api_v1_users_me_api_tokens__token_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_links_api_v1_users_me_bots_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BotLinkPublic"][];
+                };
+            };
+        };
+    };
+    create_code_api_v1_users_me_bots_code_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BotCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BotCodeCreated"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_api_v1_users_me_bots__link_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                link_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
