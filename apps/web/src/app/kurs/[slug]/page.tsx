@@ -1,14 +1,20 @@
 import type { components } from '@remora/api-client';
-import { Badge } from '@remora/ui';
+import { ArticleContent, Badge } from '@remora/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import { PublicCourseCards } from './PublicCourseCards';
+import { CourseLikeButton } from './CourseLikeButton';
+import { SaveOriginalButton } from './SaveOriginalButton';
+import { JsonLd } from '../../../components/JsonLd';
+import { absoluteUrl, DEFAULT_OG_IMAGE } from '../../../lib/seo';
 
 const API_URL = process.env.API_INTERNAL_URL ?? 'http://localhost:8000';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:5173';
 type Course = components['schemas']['CourseDetail'];
 type Material = components['schemas']['PublicSet'];
+type SearchCourse = components['schemas']['CourseSearchItem'];
 
 const loadCourse = cache(async (slug: string): Promise<Course> => {
   const response = await fetch(`${API_URL}/api/v1/courses/public/${encodeURIComponent(slug)}`, {
@@ -29,6 +35,18 @@ async function loadMaterial(slug: string, id: string): Promise<Material | null> 
   return response.json() as Promise<Material>;
 }
 
+async function loadRelated(slug: string): Promise<SearchCourse[]> {
+  try {
+    const response = await fetch(
+      `${API_URL}/api/v1/courses/public/${encodeURIComponent(slug)}/related?limit=4`,
+      { cache: 'no-store' },
+    );
+    return response.ok ? ((await response.json()) as SearchCourse[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -41,20 +59,70 @@ export async function generateMetadata({
     description,
     robots: course.is_listed ? { index: true, follow: true } : { index: false, follow: false },
     alternates: { canonical: `/kurs/${course.slug}` },
-    openGraph: { title: course.title, description, type: 'article' },
+    openGraph: {
+      title: course.title,
+      description,
+      type: 'article',
+      url: `/kurs/${course.slug}`,
+      authors: [course.author.display_name || course.author.username],
+      publishedTime: course.published_at ?? undefined,
+      modifiedTime: course.updated_at,
+      images: [{ url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: course.title }],
+    },
+    twitter: { card: 'summary_large_image', title: course.title, description },
   };
 }
 
 export default async function PublicCoursePage({ params }: { params: Promise<{ slug: string }> }) {
   const course = await loadCourse((await params).slug);
+  const related = await loadRelated(course.slug);
   const entries = await Promise.all(
     course.sections
       .flatMap((section) => section.articles)
       .map(async (article) => [article.id, await loadMaterial(course.slug, article.id)] as const),
   );
   const materials = new Map(entries);
+  const courseUrl = absoluteUrl(`/kurs/${course.slug}`);
+  const authorName = course.author.display_name || `@${course.author.username}`;
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Course',
+        '@id': `${courseUrl}#course`,
+        url: courseUrl,
+        name: course.title,
+        description: course.description || `Учебный курс «${course.title}» на Remora.`,
+        datePublished: course.published_at,
+        dateModified: course.updated_at,
+        keywords: course.tags,
+        provider: { '@type': 'Organization', name: 'Remora', url: absoluteUrl('/') },
+        author: {
+          '@type': 'Person',
+          name: authorName,
+          url: absoluteUrl(`/avtor/${course.author.username}`),
+        },
+        hasPart: course.sections.flatMap((section) =>
+          section.articles.map((article) => ({
+            '@type': 'LearningResource',
+            name: article.title,
+            url: `${courseUrl}#article-${article.id}`,
+          })),
+        ),
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Главная', item: absoluteUrl('/') },
+          { '@type': 'ListItem', position: 2, name: 'Каталог курсов', item: absoluteUrl('/kursy') },
+          { '@type': 'ListItem', position: 3, name: course.title, item: courseUrl },
+        ],
+      },
+    ],
+  };
   return (
     <main className="mx-auto min-h-dvh max-w-6xl px-4 py-6 sm:px-8">
+      <JsonLd data={structuredData} />
       <nav className="flex items-center justify-between" aria-label="Основная навигация">
         <Link
           href="/"
@@ -84,6 +152,27 @@ export default async function PublicCoursePage({ params }: { params: Promise<{ s
             <Badge key={tag}>#{tag}</Badge>
           ))}
         </div>
+        <CourseLikeButton
+          slug={course.slug}
+          initialCount={course.likes_count}
+          initialLiked={course.liked_by_me}
+        />
+        <div className="mt-3">
+          <SaveOriginalButton targetType="course" targetId={course.id} label="Сохранить курс" />
+        </div>
+        <p className="text-fg-muted mt-3 text-sm">Сохранений: {course.saves_count}</p>
+        <Link
+          className="text-primary mt-2 inline-flex min-h-11 items-center underline"
+          href={`/avtor/${course.author.username}`}
+        >
+          Автор: {course.author.display_name || `@${course.author.username}`}
+        </Link>
+        <a
+          className="text-primary mt-4 inline-flex min-h-11 items-center underline"
+          href={`${APP_URL}/courses/copy/${course.slug}`}
+        >
+          Скопировать курс и учиться
+        </a>
       </header>
       <div className="space-y-10 pb-12">
         {course.sections.map((section) => (
@@ -101,11 +190,25 @@ export default async function PublicCoursePage({ params }: { params: Promise<{ s
                       {material.cards_count}
                     </p>
                   </header>
-                  {article.body && (
-                    <p className="max-w-prose whitespace-pre-wrap break-words leading-relaxed">
-                      {article.body}
-                    </p>
-                  )}
+                  {article.body && <ArticleContent value={article.body} />}
+                  <div className="flex flex-wrap gap-3">
+                    <SaveOriginalButton
+                      targetType="article"
+                      targetId={article.id}
+                      label="Сохранить статью"
+                    />
+                    <SaveOriginalButton
+                      targetType="set"
+                      targetId={article.set_id}
+                      label="Сохранить набор"
+                    />
+                  </div>
+                  <a
+                    className="text-primary inline-flex min-h-11 items-center underline"
+                    href={`${APP_URL}/courses/copy/${course.slug}?article=${article.id}`}
+                  >
+                    Скопировать статью с карточками
+                  </a>
                   <PublicCourseCards initial={material} slug={course.slug} articleId={article.id} />
                 </article>
               );
@@ -113,6 +216,30 @@ export default async function PublicCoursePage({ params }: { params: Promise<{ s
           </section>
         ))}
       </div>
+      {related.length > 0 && (
+        <section aria-labelledby="related-title" className="border-border border-t py-10">
+          <h2 id="related-title" className="text-2xl font-semibold">
+            Похожие курсы
+          </h2>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {related.map((item) => (
+              <article key={item.id} className="border-border bg-surface rounded-xl border p-4">
+                <h3 className="font-semibold">
+                  <Link
+                    className="inline-flex min-h-11 items-center hover:underline"
+                    href={`/kurs/${item.slug}`}
+                  >
+                    {item.title}
+                  </Link>
+                </h3>
+                <p className="text-fg-muted mt-2 text-sm">
+                  Карточек: {item.cards_count} · Сохранений: {item.saves_count}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
     </main>
   );
 }

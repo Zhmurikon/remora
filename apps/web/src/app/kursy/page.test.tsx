@@ -54,6 +54,7 @@ it('рендерит курс и ссылку фильтра по автору �
                 author: 'Ирина',
                 languages: ['ru'],
                 cards_count: 12,
+                saves_count: 7,
                 updated_at: '2026-09-01T00:00:00Z',
               },
             ],
@@ -67,6 +68,8 @@ it('рендерит курс и ссылку фильтра по автору �
   expect(html).toContain('href="/kursy?author_id=author"');
   expect(html).not.toContain('<script>');
   expect(html).toContain('Карточек: 12');
+  expect(html).toContain('Сохранений: 7');
+  expect(html).toContain('Сначала популярные');
 });
 
 it('не индексирует комбинации фильтров', async () => {

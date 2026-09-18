@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { DEFAULT_OG_IMAGE } from '../lib/seo';
 
 export const metadata: Metadata = {
   title: {
@@ -13,7 +14,12 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'ru_RU',
     siteName: 'Remora',
+    title: 'Remora — карточки для заучивания',
+    description:
+      'Карточки для заучивания и запоминания с бесплатными режимами обучения и алгоритмом FSRS.',
+    images: [{ url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: 'Remora' }],
   },
+  twitter: { card: 'summary_large_image', images: [DEFAULT_OG_IMAGE] },
 };
 
 export const viewport: Viewport = {

@@ -2,6 +2,8 @@ import type { components } from '@remora/api-client';
 import { Badge, Button, Card, Input } from '@remora/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { JsonLd } from '../../components/JsonLd';
+import { absoluteUrl, DEFAULT_OG_IMAGE } from '../../lib/seo';
 
 type Params = Record<string, string | string[] | undefined>;
 type Result = components['schemas']['CourseSearchResult'];
@@ -37,6 +39,14 @@ export async function generateMetadata({
     description: 'Найдите учебный курс и карточки по интересующей теме на Remora.',
     alternates: { canonical: '/kursy' },
     robots: { index: catalogParams(await searchParams).size === 0, follow: true },
+    openGraph: {
+      title: 'Каталог курсов',
+      description: 'Найдите учебный курс и карточки по интересующей теме на Remora.',
+      type: 'website',
+      url: '/kursy',
+      images: [{ url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: 'Каталог Remora' }],
+    },
+    twitter: { card: 'summary_large_image' },
   };
 }
 
@@ -66,6 +76,25 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
   const field = 'grid min-w-0 gap-2 text-sm font-medium';
   return (
     <main className="mx-auto min-h-dvh max-w-6xl px-4 py-6 sm:px-8">
+      {params.size === 0 && result && (
+        <JsonLd
+          data={{
+            '@context': 'https://schema.org',
+            '@type': 'CollectionPage',
+            url: absoluteUrl('/kursy'),
+            name: 'Каталог курсов Remora',
+            mainEntity: {
+              '@type': 'ItemList',
+              itemListElement: result.items.map((course, index) => ({
+                '@type': 'ListItem',
+                position: index + 1,
+                name: course.title,
+                url: absoluteUrl(`/kurs/${course.slug}`),
+              })),
+            },
+          }}
+        />
+      )}
       <nav aria-label="Основная навигация" className="flex items-center justify-between">
         <Link
           href="/"
@@ -168,6 +197,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
                 className="border-border bg-surface min-h-11 rounded-xl border px-3"
               >
                 <option value="relevance">По соответствию запросу</option>
+                <option value="popular">Сначала популярные</option>
                 <option value="updated">Недавно обновлённые</option>
                 <option value="cards">Больше карточек</option>
               </select>
@@ -216,7 +246,8 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
                 <p className="text-fg-muted line-clamp-3 break-words">{course.description}</p>
               )}
               <p className="text-fg-muted mt-auto text-sm">
-                Карточек: {course.cards_count} · {course.languages.join(', ').toUpperCase()}
+                Карточек: {course.cards_count} · Сохранений: {course.saves_count} ·{' '}
+                {course.languages.join(', ').toUpperCase()}
               </p>
               <div className="border-border flex flex-wrap items-center justify-between gap-2 border-t pt-2 text-sm">
                 <Link

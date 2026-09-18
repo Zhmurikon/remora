@@ -24,7 +24,10 @@ export function LoginForm() {
         setError(getErrorMessage(response.error));
         return;
       }
-      window.location.assign(APP_URL);
+      const next = new URLSearchParams(window.location.search).get('next');
+      const target = new URL(next ?? APP_URL, APP_URL);
+      const allowedOrigins = new Set([window.location.origin, new URL(APP_URL).origin]);
+      window.location.assign(allowedOrigins.has(target.origin) ? target.href : APP_URL);
     } catch (requestError) {
       setError(getErrorMessage(requestError));
     } finally {
