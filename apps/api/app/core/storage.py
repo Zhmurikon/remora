@@ -46,10 +46,10 @@ class ObjectStorage:
             return
 
         def remove() -> None:
-            self.client.delete_objects(
-                Bucket=self.bucket,
-                Delete={"Objects": [{"Key": key} for key in keys], "Quiet": True},
-            )
+            # Некоторые S3-совместимые прокси не реализуют DeleteObjects.
+            # Частей у загрузки не больше 64, поэтому совместимость важнее батча.
+            for key in keys:
+                self.client.delete_object(Bucket=self.bucket, Key=key)
 
         await asyncio.to_thread(remove)
 
