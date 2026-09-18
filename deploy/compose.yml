@@ -144,6 +144,8 @@ services:
     env_file: .env
     command: pnpm --filter @remora/web start
     volumes: [../:/workspace]
+    extra_hosts:
+      - host.docker.internal:host-gateway
     networks: [internal]
     restart: unless-stopped
     healthcheck:
