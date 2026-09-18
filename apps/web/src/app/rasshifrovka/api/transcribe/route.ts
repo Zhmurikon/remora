@@ -2,7 +2,7 @@ import type { NextRequest } from 'next/server';
 import { TRANSCRIBER_COOKIE, verifyTranscriberCookie } from '@/lib/transcriber-auth';
 
 export const dynamic = 'force-dynamic';
-const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 1024 * 1024 * 1024;
 
 function error(code: string, message: string, status: number) {
   return Response.json({ code, message }, { status, headers: { 'Cache-Control': 'no-store' } });
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   }
   const contentLength = Number(request.headers.get('content-length') ?? '0');
   if (Number.isFinite(contentLength) && contentLength > MAX_UPLOAD_BYTES) {
-    return error('FILE_TOO_LARGE', 'Файл должен быть не больше 100 МБ', 413);
+    return error('FILE_TOO_LARGE', 'Файл должен быть не больше 1 ГБ', 413);
   }
   const apiKey = process.env.FASTER_WHISPER_API_KEY;
   const upstreamUrl = process.env.FASTER_WHISPER_URL ?? 'http://host.docker.internal:8178';
@@ -40,6 +40,10 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch {
-    return error('TRANSCRIBER_UNAVAILABLE', 'Сервис расшифровки временно недоступен. Попробуйте ещё раз', 503);
+    return error(
+      'TRANSCRIBER_UNAVAILABLE',
+      'Сервис расшифровки временно недоступен. Попробуйте ещё раз',
+      503,
+    );
   }
 }

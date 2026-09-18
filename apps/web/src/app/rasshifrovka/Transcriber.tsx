@@ -50,9 +50,9 @@ export function Transcriber({ initialAccess }: { initialAccess: boolean }) {
 
   function selectFile(nextFile: File | undefined) {
     if (!nextFile) return;
-    if (nextFile.size > 100 * 1024 * 1024) {
+    if (nextFile.size > 1024 * 1024 * 1024) {
       setStage('error');
-      setStatus('Файл должен быть не больше 100 МБ. Для больших файлов используйте серверный CLI.');
+      setStatus('Файл должен быть не больше 1 ГБ.');
       return;
     }
     setFile(nextFile);
@@ -162,7 +162,7 @@ export function Transcriber({ initialAccess }: { initialAccess: boolean }) {
           <h2>Перетащите файл сюда</h2>
           <p>или выберите его с компьютера</p>
           <span className="transcriber-file-button">Выбрать файл</span>
-          <small>MP3, WAV, M4A, MP4, WEBM, OGG, FLAC и TS · до 100 МБ</small>
+          <small>MP3, WAV, M4A, MP4, WEBM, OGG, FLAC и TS · до 1 ГБ</small>
         </div>
         <input
           ref={fileInput}
