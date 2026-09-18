@@ -1,8 +1,33 @@
 'use client';
 
-import { useRef, useState, type ChangeEvent, type DragEvent, type FormEvent } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+  type FormEvent,
+} from 'react';
 
-type Stage = 'idle' | 'uploading' | 'done' | 'error';
+type JobStatus = 'uploading' | 'queued' | 'converting' | 'transcribing' | 'completed' | 'failed';
+type Job = {
+  id: string;
+  filename: string;
+  status: JobStatus;
+  result_text: string | null;
+  error_message: string | null;
+};
+
+const CHUNK_BYTES = 16 * 1024 * 1024;
+const JOB_KEY = 'remora-transcription-job';
+const statusText: Record<JobStatus, string> = {
+  uploading: 'Загружаем файл',
+  queued: 'Файл загружен и ожидает обработки',
+  converting: 'Извлекаем аудиодорожку',
+  transcribing: 'Распознаём речь',
+  completed: 'Расшифровка готова',
+  failed: 'Не удалось обработать файл',
+};
 
 function formatSize(bytes: number) {
   return bytes < 1024 * 1024
@@ -20,16 +45,79 @@ function downloadText(text: string, sourceName: string) {
   URL.revokeObjectURL(url);
 }
 
+async function json<T>(response: Response): Promise<T> {
+  const body = (await response.json().catch(() => ({}))) as T & { message?: string };
+  if (!response.ok) throw new Error(body.message ?? 'Сервер временно недоступен');
+  return body;
+}
+
+async function uploadWithRetry(url: string, chunk: Blob) {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      const response = await fetch(url, { method: 'PUT', body: chunk });
+      if (response.ok) return;
+      const body = (await response.json().catch(() => ({}))) as { message?: string };
+      throw new Error(body.message ?? 'Не удалось загрузить часть файла');
+    } catch (error) {
+      lastError = error;
+      await new Promise((resolve) => window.setTimeout(resolve, 1000 * (attempt + 1)));
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('Не удалось загрузить файл');
+}
+
 export function Transcriber({ initialAccess }: { initialAccess: boolean }) {
   const [hasAccess, setHasAccess] = useState(initialAccess);
   const [accessError, setAccessError] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
-  const [stage, setStage] = useState<Stage>('idle');
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [stage, setStage] = useState<JobStatus | 'idle'>('idle');
   const [status, setStatus] = useState('');
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [result, setResult] = useState('');
+  const [resultFilename, setResultFilename] = useState('transcription');
   const [copied, setCopied] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(JOB_KEY);
+    if (stored) setJobId(stored);
+  }, []);
+
+  useEffect(() => {
+    if (!jobId || !hasAccess) return;
+    let stopped = false;
+    async function check() {
+      try {
+        const job = await json<Job>(
+          await fetch(`/rasshifrovka/api/jobs/${jobId}`, { cache: 'no-store' }),
+        );
+        if (stopped) return;
+        setStage(job.status);
+        setStatus(job.error_message || statusText[job.status]);
+        setResultFilename(job.filename);
+        if (job.status === 'completed') {
+          setResult(job.result_text ?? '');
+          localStorage.removeItem(JOB_KEY);
+          setJobId(null);
+        } else if (job.status === 'failed') {
+          localStorage.removeItem(JOB_KEY);
+          setJobId(null);
+        }
+      } catch (error) {
+        if (!stopped)
+          setStatus(error instanceof Error ? error.message : 'Не удалось получить статус');
+      }
+    }
+    void check();
+    const timer = window.setInterval(check, 5000);
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+    };
+  }, [hasAccess, jobId]);
 
   async function unlock(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -51,7 +139,7 @@ export function Transcriber({ initialAccess }: { initialAccess: boolean }) {
   function selectFile(nextFile: File | undefined) {
     if (!nextFile) return;
     if (nextFile.size > 1024 * 1024 * 1024) {
-      setStage('error');
+      setStage('failed');
       setStatus('Файл должен быть не больше 1 ГБ.');
       return;
     }
@@ -59,6 +147,7 @@ export function Transcriber({ initialAccess }: { initialAccess: boolean }) {
     setResult('');
     setStatus('');
     setStage('idle');
+    setUploadProgress(0);
   }
 
   function onDrop(event: DragEvent<HTMLDivElement>) {
@@ -70,28 +159,46 @@ export function Transcriber({ initialAccess }: { initialAccess: boolean }) {
   async function transcribe(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!file) return;
-    setStage('uploading');
-    setStatus('Загружаем файл и распознаём речь. Эту вкладку пока не закрывайте.');
-    setResult('');
-    setCopied(false);
     const form = new FormData(event.currentTarget);
-    form.set('file', file, file.name);
-    form.set('vad_filter', form.has('vad_filter') ? 'true' : 'false');
-    form.set('word_timestamps', form.has('word_timestamps') ? 'true' : 'false');
+    setStage('uploading');
+    setStatus('Создаём загрузку');
+    setResult('');
+    setUploadProgress(0);
     try {
-      const response = await fetch('/rasshifrovka/api/transcribe', { method: 'POST', body: form });
-      const body = (await response.json().catch(() => ({}))) as {
-        text?: unknown;
-        message?: string;
-      };
-      if (!response.ok) throw new Error(body.message ?? 'Не удалось расшифровать запись');
-      if (typeof body.text !== 'string') throw new Error('Сервис вернул ответ без текста');
-      setResult(body.text.trim());
-      setStatus('Расшифровка готова');
-      setStage('done');
+      const totalParts = Math.ceil(file.size / CHUNK_BYTES);
+      const job = await json<Job>(
+        await fetch('/rasshifrovka/api/jobs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            filename: file.name,
+            content_type: file.type || 'application/octet-stream',
+            size_bytes: file.size,
+            total_parts: totalParts,
+            language: form.get('language') || null,
+            beam_size: Number(form.get('beam_size')),
+            vad_filter: form.has('vad_filter'),
+            word_timestamps: form.has('word_timestamps'),
+          }),
+        }),
+      );
+      setJobId(job.id);
+      localStorage.setItem(JOB_KEY, job.id);
+      for (let part = 0; part < totalParts; part += 1) {
+        setStatus(`Загружаем файл: ${part + 1} из ${totalParts}`);
+        await uploadWithRetry(
+          `/rasshifrovka/api/jobs/${job.id}/parts/${part}`,
+          file.slice(part * CHUNK_BYTES, Math.min(file.size, (part + 1) * CHUNK_BYTES)),
+        );
+        setUploadProgress(Math.round(((part + 1) / totalParts) * 100));
+      }
+      await json<Job>(await fetch(`/rasshifrovka/api/jobs/${job.id}/complete`, { method: 'POST' }));
+      setStage('queued');
+      setStatus(statusText.queued);
+      setFile(null);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Не удалось расшифровать запись');
-      setStage('error');
+      setStage('failed');
+      setStatus(error instanceof Error ? error.message : 'Не удалось загрузить файл');
     }
   }
 
@@ -101,7 +208,7 @@ export function Transcriber({ initialAccess }: { initialAccess: boolean }) {
     window.setTimeout(() => setCopied(false), 1800);
   }
 
-  if (!hasAccess) {
+  if (!hasAccess)
     return (
       <div
         className="transcriber-gate"
@@ -135,8 +242,12 @@ export function Transcriber({ initialAccess }: { initialAccess: boolean }) {
         </form>
       </div>
     );
-  }
 
+  const busy =
+    stage === 'uploading' ||
+    stage === 'queued' ||
+    stage === 'converting' ||
+    stage === 'transcribing';
   return (
     <form className="transcriber-workspace" onSubmit={transcribe}>
       <div className="transcriber-card transcriber-upload-card">
@@ -144,9 +255,9 @@ export function Transcriber({ initialAccess }: { initialAccess: boolean }) {
           className={`transcriber-dropzone${dragging ? 'is-over' : ''}`}
           role="button"
           tabIndex={0}
-          onClick={() => fileInput.current?.click()}
+          onClick={() => !busy && fileInput.current?.click()}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') fileInput.current?.click();
+            if (!busy && (event.key === 'Enter' || event.key === ' ')) fileInput.current?.click();
           }}
           onDragOver={(event) => {
             event.preventDefault();
@@ -186,7 +297,6 @@ export function Transcriber({ initialAccess }: { initialAccess: boolean }) {
           </div>
         ) : null}
       </div>
-
       <aside className="transcriber-card transcriber-settings">
         <h2>Настройки</h2>
         <label htmlFor="language">Язык записи</label>
@@ -202,25 +312,20 @@ export function Transcriber({ initialAccess }: { initialAccess: boolean }) {
           <option value="8">Максимальная</option>
         </select>
         <label className="transcriber-check">
-          <input type="checkbox" name="vad_filter" value="true" defaultChecked />{' '}
+          <input type="checkbox" name="vad_filter" defaultChecked />
           <span>Убирать длинные паузы</span>
         </label>
         <label className="transcriber-check">
-          <input type="checkbox" name="word_timestamps" value="true" />{' '}
+          <input type="checkbox" name="word_timestamps" />
           <span>Добавить таймкоды слов</span>
         </label>
-        <button
-          className="transcriber-button"
-          disabled={!file || stage === 'uploading'}
-          type="submit"
-        >
-          {stage === 'uploading' ? 'Расшифровываем…' : 'Начать расшифровку'}
+        <button className="transcriber-button" disabled={!file || busy} type="submit">
+          {busy ? 'Обрабатываем…' : 'Начать расшифровку'}
         </button>
         <p className="transcriber-hint">
-          Обработка large-v3 может занять больше времени, чем длится само аудио.
+          После загрузки вкладку можно закрыть. Обработка продолжится на сервере.
         </p>
       </aside>
-
       {(status || result) && (
         <section className={`transcriber-card transcriber-result ${stage}`} aria-live="polite">
           <div className="transcriber-result-head">
@@ -233,19 +338,29 @@ export function Transcriber({ initialAccess }: { initialAccess: boolean }) {
                 <button type="button" onClick={copyResult}>
                   {copied ? 'Скопировано' : 'Копировать'}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => downloadText(result, file?.name ?? 'transcription')}
-                >
+                <button type="button" onClick={() => downloadText(result, resultFilename)}>
                   Скачать .txt
                 </button>
               </div>
             ) : null}
           </div>
-          {stage === 'uploading' ? (
-            <div className="transcriber-progress">
-              <span />
-            </div>
+          {busy ? (
+            <>
+              <div className="transcriber-progress">
+                <span
+                  style={
+                    stage === 'uploading'
+                      ? { width: `${uploadProgress}%`, transform: 'none', animation: 'none' }
+                      : undefined
+                  }
+                />
+              </div>
+              <p className="transcriber-hint">
+                {stage === 'uploading'
+                  ? `${uploadProgress}%`
+                  : 'Статус обновляется автоматически каждые 5 секунд'}
+              </p>
+            </>
           ) : null}
           {result ? (
             <textarea

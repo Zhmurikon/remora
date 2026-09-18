@@ -27,6 +27,7 @@ from app.models.study import (
     TestAttempt,
     UserSetProgress,
 )
+from app.models.transcriptions import TranscriptionJob, TranscriptionStatus
 from app.models.tts import TtsCache, UsageCounter, UsageMetric
 from app.models.user import (
     ActionToken,
@@ -77,6 +78,8 @@ __all__ = [
     "StudySession",
     "StudySet",
     "TestAttempt",
+    "TranscriptionJob",
+    "TranscriptionStatus",
     "TtsCache",
     "UsageCounter",
     "UsageMetric",

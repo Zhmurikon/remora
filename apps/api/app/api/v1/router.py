@@ -24,6 +24,7 @@ from app.api.v1 import (
     search,
     sets,
     study,
+    transcriptions,
     tts,
     users,
 )
@@ -47,3 +48,4 @@ api_router.include_router(imports.router)
 api_router.include_router(study.router)
 api_router.include_router(tts.router)
 api_router.include_router(printing.router)
+api_router.include_router(transcriptions.router)

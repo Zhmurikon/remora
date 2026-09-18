@@ -41,6 +41,17 @@ class ObjectStorage:
     async def delete(self, key: str) -> None:
         await asyncio.to_thread(self.client.delete_object, Bucket=self.bucket, Key=key)
 
+    async def delete_many(self, keys: list[str]) -> None:
+        if not keys:
+            return
+
+        def remove() -> None:
+            self.client.delete_objects(
+                Bucket=self.bucket,
+                Delete={"Objects": [{"Key": key} for key in keys], "Quiet": True},
+            )
+
+        await asyncio.to_thread(remove)
 
     async def put(self, key: str, payload: bytes, mime: str) -> None:
         await asyncio.to_thread(

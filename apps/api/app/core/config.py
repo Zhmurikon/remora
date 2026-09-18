@@ -93,6 +93,10 @@ class Settings(BaseSettings):
     tts_max_chars_per_request: int = 500
     tts_request_timeout_seconds: float = 15.0
 
+    # Закрытый инструмент расшифровки; ключ используется только сервером и worker.
+    faster_whisper_url: str = "http://host.docker.internal:8178"
+    faster_whisper_api_key: SecretStr | None = None
+
     @property
     def is_local(self) -> bool:
         return self.environment == "local"

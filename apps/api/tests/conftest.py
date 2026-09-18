@@ -39,7 +39,7 @@ async def client() -> AsyncClient:
         await conn.execute(
             text(
                 "TRUNCATE users, user_settings, refresh_tokens, action_tokens, "
-                "oauth_accounts, consents CASCADE"
+                "oauth_accounts, consents, transcription_jobs CASCADE"
             )
         )
     redis_client = redis.from_url(str(get_settings().redis_url))
