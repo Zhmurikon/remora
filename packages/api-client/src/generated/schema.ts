@@ -2563,6 +2563,17 @@ export interface components {
          * @enum {string}
          */
         ImportJobStatus: "queued" | "processing" | "completed" | "failed";
+        /**
+         * LearnQuestionType
+         * @description Упражнения, которые можно включить в адаптивном «Заучивании».
+         * @enum {string}
+         */
+        LearnQuestionType: "choice" | "typing" | "recall";
+        /**
+         * LearnTypingCheck
+         * @enum {string}
+         */
+        LearnTypingCheck: "automatic" | "self_check";
         /** LibraryDiff */
         LibraryDiff: {
             /**
@@ -3394,6 +3405,13 @@ export interface components {
             lang_definition: string;
             /** Lang Term */
             lang_term: string;
+            /** Learn Match Percent */
+            learn_match_percent: number;
+            /** Learn Question Types */
+            learn_question_types: components["schemas"]["LearnQuestionType"][];
+            /** Learn Successes Required */
+            learn_successes_required: number;
+            learn_typing_check: components["schemas"]["LearnTypingCheck"];
             mode: components["schemas"]["StudyMode"];
             /** New Left Today */
             new_left_today: number;
@@ -3420,6 +3438,13 @@ export interface components {
             fsrs_desired_retention: number;
             /** Fsrs Max Interval Days */
             fsrs_max_interval_days: number;
+            /** Learn Match Percent */
+            learn_match_percent: number;
+            /** Learn Question Types */
+            learn_question_types: components["schemas"]["LearnQuestionType"][];
+            /** Learn Successes Required */
+            learn_successes_required: number;
+            learn_typing_check: components["schemas"]["LearnTypingCheck"];
             /** New Cards Per Day */
             new_cards_per_day: number;
             /** Reviews Per Day */
@@ -3434,6 +3459,13 @@ export interface components {
             fsrs_desired_retention?: number | null;
             /** Fsrs Max Interval Days */
             fsrs_max_interval_days?: number | null;
+            /** Learn Match Percent */
+            learn_match_percent?: number | null;
+            /** Learn Question Types */
+            learn_question_types?: components["schemas"]["LearnQuestionType"][] | null;
+            /** Learn Successes Required */
+            learn_successes_required?: number | null;
+            learn_typing_check?: components["schemas"]["LearnTypingCheck"] | null;
             /** New Cards Per Day */
             new_cards_per_day?: number | null;
             /** Reviews Per Day */

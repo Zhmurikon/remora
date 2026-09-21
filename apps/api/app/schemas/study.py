@@ -28,6 +28,19 @@ class DirectionMode(StrEnum):
     both = "both"
 
 
+class LearnQuestionType(StrEnum):
+    """Упражнения, которые можно включить в адаптивном «Заучивании»."""
+
+    choice = "choice"
+    typing = "typing"
+    recall = "recall"
+
+
+class LearnTypingCheck(StrEnum):
+    automatic = "automatic"
+    self_check = "self_check"
+
+
 class RatingPreviewOut(BaseModel):
     """Подпись на кнопке самооценки: когда карточка вернётся при такой оценке."""
 
@@ -89,6 +102,10 @@ class StudyQueue(BaseModel):
     lang_term: str
     lang_definition: str
     answer_strictness: Strictness
+    learn_question_types: list[LearnQuestionType]
+    learn_successes_required: int
+    learn_typing_check: LearnTypingCheck
+    learn_match_percent: int
     mode: StudyMode
     generated_at: datetime
     scheduler_version: str
@@ -188,6 +205,10 @@ class StudySettingsOut(BaseModel):
     new_cards_per_day: int
     reviews_per_day: int
     answer_strictness: Strictness
+    learn_question_types: list[LearnQuestionType]
+    learn_successes_required: int
+    learn_typing_check: LearnTypingCheck
+    learn_match_percent: int
 
 
 class StudySettingsUpdate(BaseModel):
@@ -197,3 +218,9 @@ class StudySettingsUpdate(BaseModel):
     new_cards_per_day: int | None = Field(default=None, ge=0, le=500)
     reviews_per_day: int | None = Field(default=None, ge=0, le=2000)
     answer_strictness: Strictness | None = None
+    learn_question_types: list[LearnQuestionType] | None = Field(
+        default=None, min_length=1, max_length=3
+    )
+    learn_successes_required: int | None = Field(default=None, ge=1, le=5)
+    learn_typing_check: LearnTypingCheck | None = None
+    learn_match_percent: int | None = Field(default=None, ge=50, le=100)

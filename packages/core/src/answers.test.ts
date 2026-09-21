@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import cases from './answer-cases.json';
 import {
+  answerSimilarity,
   checkAnswer,
   levenshtein,
   normalizeAnswer,
@@ -8,6 +9,14 @@ import {
   type AnswerVerdict,
   type Strictness,
 } from './answers';
+
+describe('answerSimilarity', () => {
+  it('возвращает понятный процент после нормализации', () => {
+    expect(answerSimilarity('  Ёлка ', 'елка')).toBe(100);
+    expect(answerSimilarity('кот', 'кит')).toBe(67);
+    expect(answerSimilarity('', 'кот')).toBe(0);
+  });
+});
 
 describe('контракт нормализатора ответов', () => {
   it.each(cases.cases.map((item) => [item.name, item] as const))('%s', (_name, item) => {

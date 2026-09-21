@@ -158,6 +158,19 @@ export function levenshtein(left: string, right: string): number {
   return previous[right.length]!;
 }
 
+/** Процент посимвольного совпадения после той же нормализации, что и у проверки ответа. */
+export function answerSimilarity(
+  typed: string,
+  expected: string,
+  options: AnswerOptions = {},
+): number {
+  const left = normalizeAnswer(typed, options);
+  const right = normalizeAnswer(expected, options);
+  if (left.length === 0 || right.length === 0) return 0;
+  const longest = Math.max(left.length, right.length);
+  return Math.round((1 - levenshtein(left, right) / longest) * 100);
+}
+
 function stripArticle(value: string, lang: string | undefined): string {
   const articles = ARTICLES[(lang ?? 'ru').slice(0, 2).toLowerCase()];
   if (!articles) return value;

@@ -8,7 +8,7 @@
  */
 
 import {
-  checkAnswer,
+  answerSimilarity,
   formatIntervalSeconds,
   generateOptions,
   normalizeOption,
@@ -35,6 +35,7 @@ const TYPING_THRESHOLD = 1;
 const RECALL_THRESHOLD = 21;
 
 type QuestionKind = 'choice' | 'typing' | 'recall';
+type CheckedAnswer = { correct: boolean | null; value: string; similarity?: number };
 
 export function LearnPage() {
   const { setId = '' } = useParams();
@@ -53,8 +54,7 @@ export function LearnPage() {
   const answer = useStudyStore((state) => state.answer);
 
   const [typed, setTyped] = useState('');
-  const [typoHint, setTypoHint] = useState<string | null>(null);
-  const [checked, setChecked] = useState<{ correct: boolean; value: string } | null>(null);
+  const [checked, setChecked] = useState<CheckedAnswer | null>(null);
   const [roundBreak, setRoundBreak] = useState(false);
   const [finished, setFinished] = useState(false);
   const shownAt = useRef(Date.now());
@@ -69,8 +69,18 @@ export function LearnPage() {
         .filter((value) => value.length > 0),
     [items, current?.direction],
   );
+  const currentSuccesses = current
+    ? answers.filter(
+        (entry) =>
+          entry.cardId === current.card.id &&
+          entry.direction === current.direction &&
+          entry.correct,
+      ).length
+    : 0;
 
-  const kind: QuestionKind = current ? questionKind(current, pool) : 'choice';
+  const kind: QuestionKind = current
+    ? questionKind(current, pool, queue?.learn_question_types ?? ['choice', 'typing', 'recall'])
+    : 'choice';
   const options = useMemo(() => {
     if (!current || kind !== 'choice') return [];
     return generateOptions({
@@ -94,12 +104,20 @@ export function LearnPage() {
         correct,
         typed: typedValue,
         durationMs: Date.now() - shownAt.current,
-        // Ошибку возвращаем в конец очереди: карточка не пройдена,
-        // пока пользователь не воспроизвёл ответ верно.
-        requeue: !correct,
+        // Карточка возвращается, пока не наберёт заданное число успешных
+        // ответов в этой сессии. Ошибка не обнуляет уже набранные успехи.
+        requeue:
+          !correct ||
+          answers.filter(
+            (entry) =>
+              entry.cardId === current.card.id &&
+              entry.direction === current.direction &&
+              entry.correct,
+          ).length +
+            1 <
+            (queue?.learn_successes_required ?? 1),
       });
       setTyped('');
-      setTypoHint(null);
       setChecked(null);
       shownAt.current = Date.now();
       const answered = index + 1;
@@ -107,24 +125,26 @@ export function LearnPage() {
         setRoundBreak(true);
       }
     },
-    [answer, current, index, items.length],
+    [answer, answers, current, index, items.length, queue?.learn_successes_required],
   );
 
   const check = useCallback(() => {
     if (!current || checked) return;
-    const verdict = checkAnswer(typed, answerSide(current), {
-      strictness: queue?.answer_strictness ?? 'moderate',
-      alternatives: current.card.alt_answers ?? [],
-      lang: answerLang(current, queue?.lang_term, queue?.lang_definition),
-    });
-    // Опечатка — не ошибка: просим ввести заново, ничего не записывая.
-    if (verdict.verdict === 'typo') {
-      setTypoHint(typed);
-      setTyped('');
+    const candidates = [answerSide(current), ...(current.card.alt_answers ?? [])];
+    const similarity = Math.max(
+      ...candidates.map((candidate) =>
+        answerSimilarity(typed, candidate, {
+          strictness: queue?.answer_strictness ?? 'moderate',
+          lang: answerLang(current, queue?.lang_term, queue?.lang_definition),
+        }),
+      ),
+    );
+    if (queue?.learn_typing_check === 'self_check') {
+      setChecked({ correct: null, value: typed, similarity });
       return;
     }
-    const correct = verdict.verdict === 'correct';
-    setChecked({ correct, value: typed });
+    const correct = similarity >= (queue?.learn_match_percent ?? 90);
+    setChecked({ correct, value: typed, similarity });
     if (correct) {
       // Верный ввод — оценка «хорошо», карточка уходит по расписанию.
       setTimeout(() => advance(3, true, typed), 450);
@@ -132,7 +152,7 @@ export function LearnPage() {
   }, [advance, checked, current, queue, typed]);
 
   useEffect(() => {
-    if (kind !== 'choice') inputRef.current?.focus();
+    if (kind === 'typing') inputRef.current?.focus();
   }, [index, kind]);
 
   useEffect(() => {
@@ -239,13 +259,17 @@ export function LearnPage() {
   return (
     <StudyShell
       title="Заучивание"
-      subtitle={
+      subtitle={`${
         kind === 'choice'
           ? 'Выберите верный ответ'
           : kind === 'typing'
             ? 'Введите ответ'
             : 'Вспомните ответ и оцените себя'
-      }
+      }${
+        (queue?.learn_successes_required ?? 1) > 1
+          ? ` · успешно ${currentSuccesses} из ${queue?.learn_successes_required}`
+          : ''
+      }`}
       done={index}
       total={items.length}
       onExit={() => {
@@ -293,7 +317,7 @@ export function LearnPage() {
           className="mt-5"
           onSubmit={(event) => {
             event.preventDefault();
-            if (checked && !checked.correct) advance(1, false, checked.value);
+            if (checked?.correct === false) advance(1, false, checked.value);
             else check();
           }}
         >
@@ -306,22 +330,39 @@ export function LearnPage() {
             autoCapitalize="off"
             spellCheck={false}
             aria-label="Ваш ответ"
-            error={typoHint ? 'Почти верно — проверьте написание и введите ещё раз' : undefined}
-            disabled={checked?.correct === true}
+            disabled={checked !== null}
           />
-          {typoHint && (
-            <p className="text-warning mt-2 text-sm">
-              Вы ввели: <Diff expected={expected} typed={typoHint} />
-            </p>
-          )}
           <div className="mt-3 flex flex-wrap gap-3">
-            <Button type="submit">{checked && !checked.correct ? 'Дальше' : 'Проверить'}</Button>
+            {!checked || checked.correct === false ? (
+              <Button type="submit">{checked?.correct === false ? 'Дальше' : 'Проверить'}</Button>
+            ) : null}
             {!checked && (
               <Button type="button" variant="ghost" onClick={() => advance(1, false, '')}>
                 Не знаю
               </Button>
             )}
           </div>
+          {checked?.correct === null && (
+            <Card className="mt-4 p-5">
+              <p className="text-fg-muted text-sm">Правильный ответ</p>
+              <p className="mt-1 font-medium">{expected}</p>
+              <p className="text-fg-subtle mt-3 text-sm">
+                Ваш ответ: <Diff expected={expected} typed={checked.value} />
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Button type="button" onClick={() => advance(3, true, checked.value)}>
+                  Засчитать
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => advance(1, false, checked.value)}
+                >
+                  Не засчитывать
+                </Button>
+              </div>
+            </Card>
+          )}
         </form>
       )}
 
@@ -362,7 +403,7 @@ export function LearnPage() {
         </div>
       )}
 
-      {checked && !checked.correct && (
+      {checked?.correct === false && (
         <Card className="border-danger mt-5 p-5">
           <p className="text-danger text-sm font-medium">Не совсем</p>
           <p className="mt-2">
@@ -371,6 +412,11 @@ export function LearnPage() {
           {checked.value && (
             <p className="text-fg-subtle mt-1 text-sm">
               Вы ввели: <Diff expected={expected} typed={checked.value} />
+            </p>
+          )}
+          {checked.similarity !== undefined && (
+            <p className="text-fg-subtle mt-2 text-sm">
+              Совпадение: {checked.similarity}% · нужно {queue?.learn_match_percent ?? 90}%
             </p>
           )}
         </Card>
@@ -382,22 +428,37 @@ export function LearnPage() {
 const ratingLabels = ['Не помню', 'Трудно', 'Хорошо', 'Легко'];
 
 /** Тип вопроса по стабильности: чем крепче карточка, тем строже спрашиваем. */
-function questionKind(item: QueueItem, pool: readonly string[]): QuestionKind {
+export function questionKind(
+  item: QueueItem,
+  pool: readonly string[],
+  enabled: readonly QuestionKind[],
+): QuestionKind {
   const stability = item.state.stability ?? 0;
-  if (stability >= RECALL_THRESHOLD) return 'recall';
-  if (stability >= TYPING_THRESHOLD) return 'typing';
-  return generateOptions({
-    correct: answerSide(item),
-    pool,
-    preferred:
-      item.direction === 'term_to_def'
-        ? item.card.wrong_definition_answers
-        : item.card.wrong_term_answers,
-    alternatives: item.card.alt_answers,
-    seed: item.card.id,
-  }).length === 4
-    ? 'choice'
-    : 'typing';
+  const hasChoice =
+    enabled.includes('choice') &&
+    generateOptions({
+      correct: answerSide(item),
+      pool,
+      preferred:
+        item.direction === 'term_to_def'
+          ? item.card.wrong_definition_answers
+          : item.card.wrong_term_answers,
+      alternatives: item.card.alt_answers,
+      seed: item.card.id,
+    }).length === 4;
+  const available = enabled.filter((kind) => kind !== 'choice' || hasChoice);
+  const fallback = available[0] ?? 'recall';
+  if (stability >= RECALL_THRESHOLD) {
+    return available.includes('recall') ? 'recall' : fallback;
+  }
+  if (stability >= TYPING_THRESHOLD) {
+    return available.includes('typing')
+      ? 'typing'
+      : available.includes('recall')
+        ? 'recall'
+        : fallback;
+  }
+  return hasChoice ? 'choice' : available.includes('typing') ? 'typing' : fallback;
 }
 
 /** Совпадение вариантов выбора: опечаток здесь быть не может, нужна только нормализация. */
@@ -406,12 +467,9 @@ function sameAnswer(left: string, right: string): boolean {
   return normalized.length > 0 && normalizeOption(left) === normalized;
 }
 
-function optionStyle(
-  option: string,
-  expected: string,
-  checked: { correct: boolean; value: string } | null,
-): string {
-  if (!checked) return 'border-border bg-surface hover:bg-surface-muted';
+function optionStyle(option: string, expected: string, checked: CheckedAnswer | null): string {
+  if (!checked || checked.correct === null)
+    return 'border-border bg-surface hover:bg-surface-muted';
   if (sameAnswer(option, expected)) return 'border-success bg-success-subtle text-success';
   if (option === checked.value) return 'border-danger bg-danger-subtle text-danger';
   return 'border-border bg-surface opacity-60';

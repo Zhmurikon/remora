@@ -104,6 +104,18 @@ class UserSettings(UUIDPrimaryKeyMixin, Base):
     answer_strictness: Mapped[str] = mapped_column(
         String(10), default="moderate", server_default=text("'moderate'")
     )
+    # Настройки «Заучивания» храним отдельно от FSRS: они меняют форму сессии,
+    # но не ограничивают доступ к карточкам и повторениям.
+    learn_question_types: Mapped[list[str]] = mapped_column(
+        JSONB,
+        default=lambda: ["choice", "typing", "recall"],
+        server_default=text("'[\"choice\", \"typing\", \"recall\"]'::jsonb"),
+    )
+    learn_successes_required: Mapped[int] = mapped_column(default=1, server_default=text("1"))
+    learn_typing_check: Mapped[str] = mapped_column(
+        String(12), default="automatic", server_default=text("'automatic'")
+    )
+    learn_match_percent: Mapped[int] = mapped_column(default=90, server_default=text("90"))
     tts_voice_preference: Mapped[str | None] = mapped_column(String(32))
     notification_channels: Mapped[dict[str, Any]] = mapped_column(
         JSONB, default=dict, server_default=text("'{}'::jsonb")

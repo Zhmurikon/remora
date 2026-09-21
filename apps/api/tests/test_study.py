@@ -405,12 +405,34 @@ async def test_settings_validation_rejects_impossible_values(
 
     defaults = await client.get("/api/v1/study/settings", headers=headers)
     assert defaults.json()["fsrs_desired_retention"] == 0.9
+    assert defaults.json()["learn_question_types"] == ["choice", "typing", "recall"]
+
+    updated = await client.patch(
+        "/api/v1/study/settings",
+        headers=headers,
+        json={
+            "learn_question_types": ["choice", "recall"],
+            "learn_successes_required": 3,
+            "learn_typing_check": "self_check",
+            "learn_match_percent": 85,
+        },
+    )
+    assert updated.status_code == 200
+    assert updated.json()["learn_question_types"] == ["choice", "recall"]
+    assert updated.json()["learn_successes_required"] == 3
+    assert updated.json()["learn_typing_check"] == "self_check"
+    assert updated.json()["learn_match_percent"] == 85
 
     rejected = await client.patch(
         "/api/v1/study/settings", headers=headers, json={"fsrs_desired_retention": 1.5}
     )
     assert rejected.status_code == 422
     assert rejected.json()["code"] == "VALIDATION_ERROR"
+
+    no_exercises = await client.patch(
+        "/api/v1/study/settings", headers=headers, json={"learn_question_types": []}
+    )
+    assert no_exercises.status_code == 422
 
 
 async def test_study_endpoints_require_authentication(client: pytest.fixture) -> None:
