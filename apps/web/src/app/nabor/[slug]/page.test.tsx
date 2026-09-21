@@ -19,6 +19,7 @@ it('не кодирует русскоязычный slug дважды', async (
   ).rejects.toThrow('NOT_FOUND');
   expect(request).toHaveBeenCalledWith(
     expect.stringContaining('/public/' + encodeURIComponent('линейная-алгебра')),
+    // Значение кэшируется на уровне cachedPublicRead, сам fetch идёт без кэша.
     { cache: 'no-store' },
   );
 });

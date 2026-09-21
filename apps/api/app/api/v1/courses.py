@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Header, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.deps import current_user, optional_user
+from app.api.v1.deps import current_user, optional_user, public_read_limit
 from app.core.config import get_settings
 from app.core.rate_limit import enforce_rate_limit
 from app.db.session import get_db
@@ -33,7 +33,12 @@ from app.services.moderation import ModerationService
 router = APIRouter(prefix="/courses", tags=["courses"])
 
 
-@router.get("/sitemap", response_model=list[CourseSitemapEntry], summary="Карта публичных курсов")
+@router.get(
+    "/sitemap",
+    response_model=list[CourseSitemapEntry],
+    summary="Карта публичных курсов",
+    dependencies=[Depends(public_read_limit)],
+)
 async def course_sitemap(db: AsyncSession = Depends(get_db)) -> list[CourseSitemapEntry]:
     return await CourseService(db).sitemap()
 
@@ -78,6 +83,7 @@ async def copy_course(
     "/public/{slug}/articles/{article_id}",
     response_model=PublicSet,
     summary="Карточки статьи курса",
+    dependencies=[Depends(public_read_limit)],
 )
 async def public_article(
     slug: str,
@@ -89,7 +95,12 @@ async def public_article(
     return await CourseService(db).public_article(slug, article_id, after=after, revision=revision)
 
 
-@router.get("/public/{slug}", response_model=CourseDetail, summary="Опубликованный курс")
+@router.get(
+    "/public/{slug}",
+    response_model=CourseDetail,
+    summary="Опубликованный курс",
+    dependencies=[Depends(public_read_limit)],
+)
 async def public_course(
     slug: str,
     viewer: User | None = Depends(optional_user),
@@ -102,6 +113,7 @@ async def public_course(
     "/public/{slug}/related",
     response_model=list[CourseSearchItem],
     summary="Похожие курсы",
+    dependencies=[Depends(public_read_limit)],
 )
 async def related_courses(
     slug: str,

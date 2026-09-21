@@ -59,6 +59,8 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
   let error = '';
   try {
     const response = await fetch(`${API_URL}/api/v1/search/courses?${apiParams}`, {
+      // Выдача каталога не кэшируется: множество комбинаций фильтров раздуло бы
+      // ключи, а снятый с публикации курс не должен оставаться в списке.
       cache: 'no-store',
       signal: AbortSignal.timeout(12000),
     });

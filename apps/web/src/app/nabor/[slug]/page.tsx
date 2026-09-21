@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { PublicCardContent } from './PublicCardContent';
+import { cachedPublicRead } from '../../../lib/cache';
 
 const API_URL = process.env.API_INTERNAL_URL ?? 'http://localhost:8000';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:5173';
@@ -33,20 +34,24 @@ type PublicSet = {
   updated_at: string;
 };
 
-async function loadSet(slug: string): Promise<PublicSet | null> {
-  // Параметр маршрута может прийти percent-encoded: не кодируем кириллицу повторно.
-  try {
-    slug = decodeURIComponent(slug);
-  } catch {
-    return null;
-  }
-  const response = await fetch(`${API_URL}/api/v1/sets/public/${encodeURIComponent(slug)}`, {
-    cache: 'no-store',
-  });
-  if (response.status === 404) return null;
-  if (!response.ok) throw new Error(`Public set API returned ${response.status}`);
-  return (await response.json()) as PublicSet;
-}
+// `null` = набор недоступен; кэшируется наравне с успешным ответом, см. lib/cache.ts.
+const loadSet = cachedPublicRead(
+  ['public-set'],
+  async (slug: string): Promise<PublicSet | null> => {
+    // Параметр маршрута может прийти percent-encoded: не кодируем кириллицу повторно.
+    try {
+      slug = decodeURIComponent(slug);
+    } catch {
+      return null;
+    }
+    const response = await fetch(`${API_URL}/api/v1/sets/public/${encodeURIComponent(slug)}`, {
+      cache: 'no-store',
+    });
+    if (response.status === 404) return null;
+    if (!response.ok) throw new Error(`Public set API returned ${response.status}`);
+    return (await response.json()) as PublicSet;
+  },
+);
 
 export async function generateMetadata({
   params,

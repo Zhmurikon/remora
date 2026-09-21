@@ -6,11 +6,14 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.deps import public_read_limit
 from app.db.session import get_db
 from app.schemas.search import CourseSearchItem, CourseSearchQuery, CourseSearchResult
 from app.services.search import search_courses, selected_courses
 
-router = APIRouter(prefix="/search", tags=["search"])
+router = APIRouter(
+    prefix="/search", tags=["search"], dependencies=[Depends(public_read_limit)]
+)
 
 
 @router.get(

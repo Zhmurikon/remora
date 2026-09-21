@@ -10,6 +10,7 @@ import { ReportCourseButton } from './ReportCourseButton';
 import { SaveOriginalButton } from './SaveOriginalButton';
 import { JsonLd } from '../../../components/JsonLd';
 import { absoluteUrl, DEFAULT_OG_IMAGE } from '../../../lib/seo';
+import { cachedPublicRead } from '../../../lib/cache';
 
 const API_URL = process.env.API_INTERNAL_URL ?? 'http://localhost:8000';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:5173';
@@ -17,26 +18,37 @@ type Course = components['schemas']['CourseDetail'];
 type Material = components['schemas']['PublicSet'];
 type SearchCourse = components['schemas']['CourseSearchItem'];
 
-const loadCourse = cache(async (slug: string): Promise<Course> => {
+// `null` = курс недоступен. Это значение кэшируется наравне с успешным,
+// поэтому снятие с публикации доходит до страницы за срок кэша, а не «никогда».
+const readCourse = cachedPublicRead(['public-course'], async (slug: string) => {
   const response = await fetch(`${API_URL}/api/v1/courses/public/${encodeURIComponent(slug)}`, {
     cache: 'no-store',
   });
-  if (response.status === 404) notFound();
+  if (response.status === 404) return null;
   if (!response.ok) throw new Error('Не удалось загрузить курс');
-  return response.json() as Promise<Course>;
+  return (await response.json()) as Course;
 });
 
-async function loadMaterial(slug: string, id: string): Promise<Material | null> {
-  const response = await fetch(
-    `${API_URL}/api/v1/courses/public/${encodeURIComponent(slug)}/articles/${encodeURIComponent(id)}`,
-    { cache: 'no-store' },
-  );
-  if (response.status === 404) return null;
-  if (!response.ok) throw new Error('Не удалось загрузить материалы курса');
-  return response.json() as Promise<Material>;
-}
+const loadCourse = cache(async (slug: string): Promise<Course> => {
+  const course = await readCourse(slug);
+  if (course === null) notFound();
+  return course;
+});
 
-async function loadRelated(slug: string): Promise<SearchCourse[]> {
+const loadMaterial = cachedPublicRead(
+  ['public-course-article'],
+  async (slug: string, id: string): Promise<Material | null> => {
+    const response = await fetch(
+      `${API_URL}/api/v1/courses/public/${encodeURIComponent(slug)}/articles/${encodeURIComponent(id)}`,
+      { cache: 'no-store' },
+    );
+    if (response.status === 404) return null;
+    if (!response.ok) throw new Error('Не удалось загрузить материалы курса');
+    return (await response.json()) as Material;
+  },
+);
+
+const loadRelated = cachedPublicRead(['public-course-related'], async (slug: string) => {
   try {
     const response = await fetch(
       `${API_URL}/api/v1/courses/public/${encodeURIComponent(slug)}/related?limit=4`,
@@ -46,7 +58,7 @@ async function loadRelated(slug: string): Promise<SearchCourse[]> {
   } catch {
     return [];
   }
-}
+});
 
 export async function generateMetadata({
   params,

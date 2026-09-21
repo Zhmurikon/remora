@@ -60,6 +60,9 @@ class Settings(BaseSettings):
     # Жалобы: защита очереди модерации от заваливания одним аккаунтом
     rate_limit_report: int = 10
     rate_limit_report_window_seconds: int = 3600
+    # Публичное чтение: применяется только к прямым обращениям с внешнего адреса
+    rate_limit_public_read: int = 120
+    rate_limit_public_read_window_seconds: int = 60
 
     # CORS: адреса обоих фронтендов
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]

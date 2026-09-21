@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Header, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.deps import current_user
+from app.api.v1.deps import current_user, public_read_limit
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.content import CardBatch, PublicSet, SetCreate, SetDetail, SetSummary, SetUpdate
@@ -15,7 +15,12 @@ from app.services.course_editor import CourseEditorService
 router = APIRouter(prefix="/sets", tags=["sets"])
 
 
-@router.get("/public/{slug}", response_model=PublicSet, summary="Публичный набор по ссылке")
+@router.get(
+    "/public/{slug}",
+    response_model=PublicSet,
+    summary="Публичный набор по ссылке",
+    dependencies=[Depends(public_read_limit)],
+)
 async def get_public_set(slug: str, db: AsyncSession = Depends(get_db)) -> PublicSet:
     return await ContentService(db).get_public_set(slug)
 

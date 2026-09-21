@@ -6,17 +6,25 @@ import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import { JsonLd } from '../../../components/JsonLd';
 import { absoluteUrl, DEFAULT_OG_IMAGE } from '../../../lib/seo';
+import { cachedPublicRead } from '../../../lib/cache';
 
 const API_URL = process.env.API_INTERNAL_URL ?? 'http://localhost:8000';
 type Profile = components['schemas']['AuthorProfile'];
 
-const loadProfile = cache(async (username: string): Promise<Profile> => {
+// `null` = автор недоступен; кэшируется наравне с успешным ответом, см. lib/cache.ts.
+const readProfile = cachedPublicRead(['public-author'], async (username: string) => {
   const response = await fetch(`${API_URL}/api/v1/authors/${encodeURIComponent(username)}`, {
     cache: 'no-store',
   });
-  if (response.status === 404) notFound();
+  if (response.status === 404) return null;
   if (!response.ok) throw new Error('Не удалось загрузить профиль автора');
-  return response.json() as Promise<Profile>;
+  return (await response.json()) as Profile;
+});
+
+const loadProfile = cache(async (username: string): Promise<Profile> => {
+  const profile = await readProfile(username);
+  if (profile === null) notFound();
+  return profile;
 });
 
 export async function generateMetadata({
