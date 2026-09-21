@@ -57,6 +57,9 @@ class Settings(BaseSettings):
     rate_limit_password_reset: int = 5
     rate_limit_window_seconds: int = 900
     rate_limit_password_reset_window_seconds: int = 3600
+    # Жалобы: защита очереди модерации от заваливания одним аккаунтом
+    rate_limit_report: int = 10
+    rate_limit_report_window_seconds: int = 3600
 
     # CORS: адреса обоих фронтендов
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]

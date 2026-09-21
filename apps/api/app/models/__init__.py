@@ -16,6 +16,7 @@ from app.models.content import (
 from app.models.courses import Course, CourseArticle, CourseLike, CourseSection, LibrarySave
 from app.models.exports import AccountExportJob, AccountExportStatus
 from app.models.imports import ImportJob, ImportJobStatus
+from app.models.moderation import CourseReport, ReportReason, ReportStatus
 from app.models.study import (
     CardState,
     CardStateKind,
@@ -59,6 +60,7 @@ __all__ = [
     "Course",
     "CourseArticle",
     "CourseLike",
+    "CourseReport",
     "CourseSection",
     "Folder",
     "ImportJob",
@@ -70,6 +72,8 @@ __all__ = [
     "MediaStatus",
     "OauthAccount",
     "RefreshToken",
+    "ReportReason",
+    "ReportStatus",
     "Review",
     "SessionStatus",
     "SetVisibility",

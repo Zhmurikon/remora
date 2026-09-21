@@ -463,6 +463,24 @@ remora/
 предыдущую/следующую статью и ссылки на обучение по её набору. История версий и откат
 автору не добавляются; сохранения связанных оригиналов остаются задачей E6A.
 
+### Реализованная постмодерация E6A
+
+`POST /courses/public/{slug}/report` принимает жалобу от авторизованного пользователя:
+`reason` из закрытого списка (`spam`, `misleading`, `copyright`, `offensive`, `adult`, `other`)
+и необязательный комментарий до 2000 символов. Автор не может пожаловаться на свой курс,
+на один курс от одного пользователя живёт одна открытая жалоба (частичный уникальный индекс),
+частота ограничена 10 жалобами в час на аккаунт.
+
+Ключевое правило: жалоба ничего не скрывает. Курс остаётся опубликованным со статусом
+`pending`, пока решение не примет модератор. `GET /moderation/reports` и
+`POST /moderation/reports/{id}/resolve` доступны только ролям `moderator` и `admin`.
+Решение `accepted` переводит курс в `blocked` и убирает его из публичной выдачи, поиска
+и сохранённых материалов; данные автора остаются нетронутыми. Решение `rejected` переводит
+курс в `ok`, но не снимает блокировку, поставленную по другой жалобе. Поисковый индекс
+подтягивает изменение ближайшей сверкой, доступ закрывается сразу на уровне PostgreSQL.
+
+Панель модератора, автоматические фильтры, журнал `moderation_actions` и аудит — задача E10.
+
 ```
 auth/         register, login, refresh, logout, verify-email, password/*,
               oauth/{provider}/start, oauth/{provider}/callback, sessions
@@ -483,7 +501,8 @@ classes/      CRUD, join, {id}/members, {id}/sets, {id}/reports/*
 assignments/  CRUD, {id}/progress, my
 gamification/ streak, achievements, daily
 billing/      plans, subscription, checkout, portal, webhooks/yookassa
-moderation/   reports (создание), admin/* (для модераторов)
+moderation/   reports (очередь и решение, роли moderator/admin);
+              подача — courses/public/{slug}/report
 ```
 
 Конвенции: курсорная пагинация, единый формат ошибок (`code`, `message`, `details`), `Idempotency-Key` на все мутирующие платёжные и батчевые операции, OpenAPI-схема как источник для генерации TS-клиента.

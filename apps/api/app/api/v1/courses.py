@@ -7,6 +7,8 @@ from fastapi import APIRouter, Depends, Header, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.deps import current_user, optional_user
+from app.core.config import get_settings
+from app.core.rate_limit import enforce_rate_limit
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.content import PublicSet
@@ -21,10 +23,12 @@ from app.schemas.courses import (
     CourseStructureWrite,
     CourseSummary,
 )
+from app.schemas.moderation import ReportCreate, ReportSubmitted
 from app.schemas.search import CourseSearchItem
 from app.services.agent import AgentService
 from app.services.course_editor import CourseEditorService
 from app.services.courses import CourseService
+from app.services.moderation import ModerationService
 
 router = APIRouter(prefix="/courses", tags=["courses"])
 
@@ -119,6 +123,29 @@ async def unlike_course(
     slug: str, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
 ) -> CourseDetail:
     return await CourseService(db).unlike(user, slug)
+
+
+@router.post(
+    "/public/{slug}/report",
+    response_model=ReportSubmitted,
+    status_code=201,
+    summary="Пожаловаться на курс",
+)
+async def report_course(
+    slug: str,
+    body: ReportCreate,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ReportSubmitted:
+    settings = get_settings()
+    await enforce_rate_limit(
+        scope="course-report",
+        ip="",
+        identity=str(user.id),
+        limit=settings.rate_limit_report,
+        window_seconds=settings.rate_limit_report_window_seconds,
+    )
+    return await ModerationService(db).report(user, slug, body)
 
 
 @router.post("/{course_id}/publish", response_model=CourseDetail, summary="Опубликовать курс")

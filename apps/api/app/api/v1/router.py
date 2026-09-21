@@ -20,6 +20,7 @@ from app.api.v1 import (
     imports,
     library,
     media,
+    moderation,
     printing,
     search,
     sets,
@@ -38,6 +39,7 @@ api_router.include_router(auth.router)
 api_router.include_router(authors.router)
 api_router.include_router(courses.router)
 api_router.include_router(library.router)
+api_router.include_router(moderation.router)
 api_router.include_router(search.router)
 api_router.include_router(users.router)
 api_router.include_router(folders.router)

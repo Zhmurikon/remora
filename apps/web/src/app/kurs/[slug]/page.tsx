@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import { PublicCourseCards } from './PublicCourseCards';
 import { CourseLikeButton } from './CourseLikeButton';
+import { ReportCourseButton } from './ReportCourseButton';
 import { SaveOriginalButton } from './SaveOriginalButton';
 import { JsonLd } from '../../../components/JsonLd';
 import { absoluteUrl, DEFAULT_OG_IMAGE } from '../../../lib/seo';
@@ -173,6 +174,7 @@ export default async function PublicCoursePage({ params }: { params: Promise<{ s
         >
           Скопировать курс и учиться
         </a>
+        <ReportCourseButton slug={course.slug} />
       </header>
       <div className="space-y-10 pb-12">
         {course.sections.map((section) => (

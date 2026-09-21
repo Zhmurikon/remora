@@ -476,6 +476,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/courses/public/{slug}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Пожаловаться на курс */
+        post: operations["report_course_api_v1_courses_public__slug__report_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/courses/sitemap": {
         parameters: {
             query?: never;
@@ -849,6 +866,40 @@ export interface paths {
         put?: never;
         /** Завершить загрузку */
         post: operations["complete_upload_api_v1_media__asset_id__complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Очередь жалоб */
+        get: operations["list_reports_api_v1_moderation_reports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/reports/{report_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Решение по жалобе */
+        post: operations["resolve_report_api_v1_moderation_reports__report_id__resolve_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2875,6 +2926,93 @@ export interface components {
             /** Username */
             username: string;
         };
+        /** ReportCreate */
+        ReportCreate: {
+            /**
+             * Comment
+             * @default
+             */
+            comment: string;
+            reason: components["schemas"]["ReportReason"];
+        };
+        /**
+         * ReportItem
+         * @description Строка очереди модератора.
+         */
+        ReportItem: {
+            /** Comment */
+            comment: string;
+            /**
+             * Course Id
+             * Format: uuid
+             */
+            course_id: string;
+            /** Course Is Published */
+            course_is_published: boolean;
+            /** Course Moderation Status */
+            course_moderation_status: string;
+            /** Course Slug */
+            course_slug: string;
+            /** Course Title */
+            course_title: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            reason: components["schemas"]["ReportReason"];
+            /** Reporter Username */
+            reporter_username: string;
+            /** Resolved At */
+            resolved_at: string | null;
+            status: components["schemas"]["ReportStatus"];
+        };
+        /**
+         * ReportReason
+         * @description Причина жалобы; список закрыт, свободный текст идёт в `comment`.
+         * @enum {string}
+         */
+        ReportReason: "spam" | "misleading" | "copyright" | "offensive" | "adult" | "other";
+        /**
+         * ReportResolution
+         * @description `accepted` блокирует курс, `rejected` снимает подозрения и оставляет его доступным.
+         */
+        ReportResolution: {
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "accepted" | "rejected";
+        };
+        /**
+         * ReportStatus
+         * @description `accepted` — жалоба обоснована и курс заблокирован, `rejected` — отклонена.
+         * @enum {string}
+         */
+        ReportStatus: "open" | "accepted" | "rejected";
+        /**
+         * ReportSubmitted
+         * @description Автору жалобы возвращаем только факт приёма, без внутренней кухни модерации.
+         */
+        ReportSubmitted: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            reason: components["schemas"]["ReportReason"];
+            status: components["schemas"]["ReportStatus"];
+        };
         /** ReviewBatch */
         ReviewBatch: {
             /** Reviews */
@@ -4611,6 +4749,41 @@ export interface operations {
             };
         };
     };
+    report_course_api_v1_courses_public__slug__report_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportSubmitted"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     course_sitemap_api_v1_courses_sitemap_get: {
         parameters: {
             query?: never;
@@ -5419,6 +5592,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MediaAssetPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_reports_api_v1_moderation_reports_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["ReportStatus"] | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_report_api_v1_moderation_reports__report_id__resolve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportResolution"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportItem"];
                 };
             };
             /** @description Validation Error */

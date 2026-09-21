@@ -12,10 +12,10 @@ from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import UnauthorizedError
+from app.core.errors import ForbiddenError, UnauthorizedError
 from app.core.security import decode_jwt
 from app.db.session import get_db
-from app.models.user import User, UserStatus
+from app.models.user import User, UserRole, UserStatus
 from app.repositories import user as user_repo
 
 _bearer = HTTPBearer(auto_error=False)
@@ -50,3 +50,10 @@ async def optional_user(
     if creds is None:
         return None
     return await current_user(request, db, creds)
+
+
+async def moderator_user(user: User = Depends(current_user)) -> User:
+    """Служебные операции постмодерации; полная панель модератора — задача E10."""
+    if user.role not in (UserRole.moderator, UserRole.admin):
+        raise ForbiddenError("Требуются права модератора")
+    return user
