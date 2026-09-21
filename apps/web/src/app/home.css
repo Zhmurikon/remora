@@ -124,9 +124,8 @@
   min-height: 44px;
 }
 .home-brand svg {
-  width: 37px;
-  height: 28px;
-  color: rgb(var(--rm-primary));
+  width: 32px;
+  height: 32px;
 }
 .home-header {
   position: relative;
@@ -250,6 +249,7 @@
 }
 .home-demo-sidebar .home-brand svg {
   width: 29px;
+  height: 29px;
 }
 .home-mini-label {
   display: flex;
@@ -1096,6 +1096,7 @@
 }
 .home-ai-course .home-brand svg {
   width: 27px;
+  height: 27px;
 }
 .home-ai-course > div {
   display: flex;

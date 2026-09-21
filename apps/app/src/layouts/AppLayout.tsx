@@ -1,4 +1,4 @@
-import { Button } from '@remora/ui';
+import { Button, FishMark } from '@remora/ui';
 import { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../features/auth/auth-store';
@@ -109,9 +109,7 @@ export function AppLayout() {
 function Brand() {
   return (
     <div className="flex items-center gap-2.5 font-semibold tracking-tight">
-      <span className="bg-primary text-primary-fg grid h-9 w-9 place-items-center rounded-xl text-lg">
-        R
-      </span>
+      <FishMark className="h-9 w-9 shrink-0" />
       <span className="text-xl">Remora</span>
     </div>
   );

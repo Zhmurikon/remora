@@ -10,6 +10,14 @@ export const metadata: Metadata = {
   description:
     'Карточки для заучивания и запоминания. Все режимы обучения бесплатны, в основе — алгоритм интервальных повторений FSRS.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
+  manifest: '/manifest.webmanifest',
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: '16x16 32x32 48x48' },
+    ],
+    apple: [{ url: '/apple-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
   openGraph: {
     type: 'website',
     locale: 'ru_RU',
@@ -25,6 +33,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  themeColor: '#0D8285',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

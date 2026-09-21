@@ -1,16 +1,19 @@
 import type { SVGProps } from 'react';
 
-/** Знак остаётся читаемым в маленьком размере и наследует цвет темы. */
+/** Официальный знак Remora; геометрия совпадает с мастер-SVG. */
 export function FishMark(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 40 28" fill="none" aria-hidden="true" {...props}>
+    <svg viewBox="0 0 1024 1024" fill="none" aria-hidden="true" focusable="false" {...props}>
       <path
-        d="M11 14C17 4 30 4 37 11C32 22 19 24 11 14ZM11 14L3 7L5 14L3 21L11 14Z"
-        fill="currentColor"
+        fill="#0D8285"
+        d="M206 132c-49 0-82 34-82 84v592c0 50 33 84 82 84h120c48 0 78-30 78-78V625c0-31 15-48 41-48 38 0 71 35 99 91l79 157c23 45 57 67 104 67h112c37 0 58-41 36-71-53-72-98-148-135-226-12-26-31-49-55-67 116-27 189-105 189-211 0-119-94-185-247-185H206Z"
       />
-      <path d="M20 7L25 3L29 7" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-      <circle cx="29" cy="12" r="2" className="fill-surface" />
-      <path d="M17 16C20 18 23 18 25 17" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        fill="#FFFFFF"
+        d="M171 139c39 24 68 62 97 111 29 32 61 37 104 16 90-44 181-49 267-17 43 16 82 40 119 76-35 37-75 64-119 82-86 35-177 31-267-12-43-21-75-16-104 16-44 49-91 86-144 106 21-57 32-121 32-187 0-68-12-131 15-191Z"
+      />
+      <path fill="#EA8D2F" d="M401 234c89-35 190-25 269 30-81-27-170-28-260-3-13 4-22-21-9-27Z" />
+      <circle cx="672" cy="327" r="19" fill="#EA8D2F" />
     </svg>
   );
 }
