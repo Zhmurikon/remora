@@ -692,15 +692,22 @@ class BotService:
     async def _reveal(self, user: User, session: StudySession | None) -> BotReply:
         if session is None or (current := self._current(session)) is None:
             return BotReply("Активная карточка не найдена.")
-        answer = (
-            current.card.definition
-            if current.direction == StudyDirection.term_to_def
-            else current.card.term
-        )
+        if session.mode == StudyMode.flashcards:
+            revealed = (
+                f"Термин:\n\n{current.card.term}\n\n"
+                f"Определение:\n\n{current.card.definition}"
+            )
+        else:
+            answer = (
+                current.card.definition
+                if current.direction == StudyDirection.term_to_def
+                else current.card.term
+            )
+            revealed = f"Ответ:\n\n{answer}"
         session.config["bot_phase"] = "rating"
         flag_modified(session, "config")
         return BotReply(
-            f"Ответ:\n\n{answer}\n\nНасколько хорошо вспомнили?",
+            f"{revealed}\n\nНасколько хорошо вспомнили?",
             [
                 [_button("1 · Снова", "rate:1"), _button("2 · Трудно", "rate:2")],
                 [_button("3 · Хорошо", "rate:3"), _button("4 · Легко", "rate:4")],

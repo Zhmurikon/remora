@@ -377,6 +377,21 @@ async def test_learning_modes_share_study_session_and_progress(client, internal)
     assert "Общие настройки" in reset["text"]
     await ack(internal, reset)
 
+    await event(internal, command=f"mode:flashcards:{study_set['id']}")
+    flashcard = (await internal.post("/internal/v1/delivery")).json()
+    assert "Карточки" in flashcard["text"]
+    assert "термин" in flashcard["text"]
+    await ack(internal, flashcard)
+    await event(internal, command="reveal")
+    revealed = (await internal.post("/internal/v1/delivery")).json()
+    assert "Термин:" in revealed["text"]
+    assert "термин" in revealed["text"]
+    assert "Определение:" in revealed["text"]
+    assert "определение" in revealed["text"]
+    await ack(internal, revealed)
+    await event(internal, command="stop")
+    await ack(internal, (await internal.post("/internal/v1/delivery")).json())
+
     await event(internal, command="sets")
     sets = (await internal.post("/internal/v1/delivery")).json()
     assert sets["keyboard"][0][0]["label"] == "Биология"
