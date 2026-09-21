@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
-from app.core.answers import AnswerVerdict, Strictness, check_answer
+from app.core.answers import AnswerVerdict, Strictness, answer_similarity, check_answer
 from app.core.config import get_settings
 from app.core.distractors import generate_options
 from app.core.errors import ConflictError, NotFoundError
@@ -37,12 +37,16 @@ from app.schemas.study import (
     ReviewBatch,
     ReviewIn,
     SessionCreate,
+    StudyQueue,
 )
 from app.services.courses import CourseService
 from app.services.study import StudyService
 from app.services.tts import TtsService
 
 CHOICE_LABELS = ("А", "Б", "В", "Г")
+SETS_PAGE_SIZE = 6
+TYPING_THRESHOLD = 1
+RECALL_THRESHOLD = 21
 
 
 @dataclass(slots=True)
@@ -171,16 +175,20 @@ class BotService:
     async def _linked_reply(self, user: User, event: BotEvent) -> BotReply:
         command = event.command
         if command in {"start", "status", "help", "home"}:
+            return await self._home(user)
+        if command == "today":
+            return await self._today(user)
+        if command == "settings":
+            settings_url = get_settings().app_url.rstrip("/") + "/settings#study"
             return BotReply(
-                "Remora подключена. Выберите, что хотите сделать.\n"
-                "/sets — наборы · /courses — курсы · /continue — продолжить · /stop — закончить",
-                [
-                    [_button("Учить карточки", "sets"), _button("Читать курсы", "courses")],
-                    [_button("Продолжить", "continue")],
-                ],
+                "Быстрые настройки появятся в боте позже. Сейчас типы упражнений, число повторений "
+                f"и проверку ответа можно изменить в кабинете:\n{settings_url}",
+                [[_button("В главное меню", "home")]],
             )
         if command == "sets":
-            return await self._sets(user)
+            return await self._sets(user, 0)
+        if command.startswith("sets:"):
+            return await self._sets(user, max(0, int(command[5:])))
         if command.startswith("set:"):
             return await self._set(user, UUID(command[4:]))
         if command.startswith("mode:"):
@@ -195,7 +203,9 @@ class BotService:
             return (
                 await self._question(user, session)
                 if session
-                else BotReply("Нет незавершённой тренировки.")
+                else BotReply(
+                    "Нет незавершённой тренировки.", [[_button("В главное меню", "home")]]
+                )
             )
         if command == "stop":
             session = await self._active_bot_session(user)
@@ -209,7 +219,15 @@ class BotService:
             return await self._reveal(user, session)
         if command.startswith("rate:"):
             session = await self._active_bot_session(user)
-            return await self._answer(user, session, int(command[5:]), None)
+            rating = int(command[5:])
+            correct = (
+                rating >= 3
+                if session
+                and session.mode == StudyMode.learn
+                and session.config.get("bot_phase") == "rating"
+                else None
+            )
+            return await self._answer(user, session, rating, correct)
         if command.startswith("choice:"):
             session = await self._active_bot_session(user)
             return await self._choice(user, session, int(command[7:]))
@@ -227,13 +245,65 @@ class BotService:
             [[_button("Наборы", "sets"), _button("Курсы", "courses")]],
         )
 
-    async def _sets(self, user: User) -> BotReply:
-        sets = await content_repo.list_sets(self.db, user.id, limit=10)
-        if not sets:
-            return BotReply("У вас пока нет наборов. Создайте набор в кабинете Remora.")
+    async def _home(self, user: User) -> BotReply:
+        session = await self._active_bot_session(user)
+        keyboard = []
+        if session:
+            keyboard.append([_button("Продолжить обучение", "continue")])
+        keyboard.extend(
+            [
+                [_button("Учить сегодня", "today")],
+                [_button("Мои наборы", "sets"), _button("Курсы", "courses")],
+                [_button("Настройки", "settings")],
+            ]
+        )
         return BotReply(
-            "Ваши наборы. Выберите один:",
-            [[_button(item.title[:40], f"set:{item.id}")] for item in sets],
+            "Remora подключена. Прогресс синхронизируется с кабинетом.\n\nЧто будем делать?",
+            keyboard,
+        )
+
+    async def _today(self, user: User) -> BotReply:
+        for study_set in await content_repo.list_sets(self.db, user.id):
+            queue = await StudyService(self.db).get_queue(
+                user,
+                study_set.id,
+                mode=StudyMode.learn,
+                scope=QueueScope.due,
+                direction=DirectionMode.term_to_def,
+                limit=60,
+                shuffle=True,
+            )
+            if queue.items:
+                return await self._start(user, study_set.id, StudyMode.learn, queue=queue)
+        return BotReply(
+            "На сегодня всё повторено. Можно пройти любой набор в режиме «Карточки».",
+            [[_button("Открыть наборы", "sets")], [_button("В главное меню", "home")]],
+        )
+
+    async def _sets(self, user: User, page: int) -> BotReply:
+        offset = page * SETS_PAGE_SIZE
+        sets = await content_repo.list_sets(
+            self.db, user.id, offset=offset, limit=SETS_PAGE_SIZE + 1
+        )
+        if not sets:
+            if page:
+                return await self._sets(user, 0)
+            return BotReply(
+                "У вас пока нет наборов. Создайте первый набор в кабинете Remora.",
+                [[_button("В главное меню", "home")]],
+            )
+        has_next = len(sets) > SETS_PAGE_SIZE
+        sets = sets[:SETS_PAGE_SIZE]
+        navigation = []
+        if page > 0:
+            navigation.append(_button("‹ Назад", f"sets:{page - 1}"))
+        navigation.append(_button(f"{page + 1}", f"sets:{page}"))
+        if has_next:
+            navigation.append(_button("Вперёд ›", f"sets:{page + 1}"))
+        return BotReply(
+            "Мои наборы\n\nВыберите набор:",
+            [[_button(item.title[:40], f"set:{item.id}")] for item in sets]
+            + [navigation, [_button("В главное меню", "home")]],
         )
 
     async def _set(self, user: User, set_id: UUID) -> BotReply:
@@ -251,7 +321,14 @@ class BotService:
             + [[_button("Назад к наборам", "sets")]],
         )
 
-    async def _start(self, user: User, set_id: UUID, mode: StudyMode) -> BotReply:
+    async def _start(
+        self,
+        user: User,
+        set_id: UUID,
+        mode: StudyMode,
+        *,
+        queue: StudyQueue | None = None,
+    ) -> BotReply:
         study = StudyService(self.db)
         session = await study.start_session(
             user,
@@ -259,7 +336,7 @@ class BotService:
                 set_id=set_id, mode=mode, config={"scope": "due", "direction": "term_to_def"}
             ),
         )
-        queue = await study.get_queue(
+        queue = queue or await study.get_queue(
             user,
             set_id,
             mode=mode,
@@ -275,6 +352,11 @@ class BotService:
             bot_answer_strictness=queue.answer_strictness.value,
             bot_lang_term=queue.lang_term,
             bot_lang_definition=queue.lang_definition,
+            bot_learn_question_types=[kind.value for kind in queue.learn_question_types],
+            bot_learn_successes_required=queue.learn_successes_required,
+            bot_learn_typing_check=queue.learn_typing_check.value,
+            bot_learn_match_percent=queue.learn_match_percent,
+            bot_learn_successes={},
         )
         flag_modified(session, "config")
         return await self._question(user, session)
@@ -339,7 +421,8 @@ class BotService:
             return BotReply(
                 f"Карточки · {progress}\n\n{question}", [[_button("Показать ответ", "reveal")]]
             )
-        if session.mode in {StudyMode.learn, StudyMode.test}:
+        kind = self._question_kind(session, current)
+        if session.mode == StudyMode.test or (session.mode == StudyMode.learn and kind == "choice"):
             items = [QueueItem.model_validate(item) for item in session.config.get("bot_items", [])]
             pool = [
                 i.card.definition
@@ -378,7 +461,16 @@ class BotService:
                         ]
                     ],
                 )
-        prompt = "Напишите ответ сообщением."
+            enabled = list(session.config.get("bot_learn_question_types", []))
+            kind = "typing" if "typing" in enabled else "recall"
+        if session.mode == StudyMode.learn and kind == "recall":
+            session.config["bot_phase"] = "recall"
+            flag_modified(session, "config")
+            return BotReply(
+                f"Заучивание · {progress}\n\n{question}\n\nВспомните ответ и откройте его.",
+                [[_button("Показать ответ", "reveal")], [_button("Закончить", "stop")]],
+            )
+        prompt = "Напишите ответ следующим сообщением."
         audio_url = None
         if session.mode == StudyMode.listen:
             lang = (
@@ -404,6 +496,8 @@ class BotService:
             if current.direction == StudyDirection.term_to_def
             else current.card.term
         )
+        session.config["bot_phase"] = "rating"
+        flag_modified(session, "config")
         return BotReply(
             f"Ответ:\n\n{answer}\n\nНасколько хорошо вспомнили?",
             [
@@ -446,20 +540,49 @@ class BotService:
             if current.direction == StudyDirection.term_to_def
             else session.config.get("bot_lang_term", "ru")
         )
-        result = check_answer(
-            typed,
-            expected,
-            strictness=Strictness(str(session.config.get("bot_answer_strictness", "moderate"))),
-            alternatives=current.card.alt_answers,
-            lang=str(lang),
+        strictness = Strictness(str(session.config.get("bot_answer_strictness", "moderate")))
+        if session.mode != StudyMode.learn:
+            result = check_answer(
+                typed,
+                expected,
+                strictness=strictness,
+                alternatives=current.card.alt_answers,
+                lang=str(lang),
+            )
+            if result.verdict == AnswerVerdict.typo:
+                return BotReply("Похоже на опечатку. Попробуйте ввести ответ ещё раз.")
+            correct = result.verdict == AnswerVerdict.correct
+            return await self._answer(user, session, 3 if correct else 1, correct, chosen=typed)
+        similarity = max(
+            answer_similarity(
+                typed,
+                candidate,
+                strictness=strictness,
+                lang=str(lang),
+            )
+            for candidate in [expected, *current.card.alt_answers]
         )
-        if result.verdict == AnswerVerdict.typo:
-            return BotReply("Похоже на опечатку. Попробуйте ввести ответ ещё раз.")
+        if (
+            session.mode == StudyMode.learn
+            and session.config.get("bot_learn_typing_check") == "self_check"
+        ):
+            session.config["bot_phase"] = "rating"
+            flag_modified(session, "config")
+            return BotReply(
+                f"Ваш ответ: {typed}\nПравильный ответ: {expected}\n"
+                f"Совпадение: {similarity}%\n\nЗасчитать ответ?",
+                [
+                    [_button("Не помню", "rate:1"), _button("Трудно", "rate:2")],
+                    [_button("Хорошо", "rate:3"), _button("Легко", "rate:4")],
+                ],
+            )
+        threshold = int(session.config.get("bot_learn_match_percent", 90))
+        correct = similarity >= threshold
         return await self._answer(
             user,
             session,
-            3 if result.verdict == AnswerVerdict.correct else 1,
-            result.verdict == AnswerVerdict.correct,
+            3 if correct else 1,
+            correct,
             chosen=typed,
         )
 
@@ -496,7 +619,19 @@ class BotService:
             if current.direction == StudyDirection.term_to_def
             else current.card.term
         )
-        session.config["bot_index"] = int(session.config.get("bot_index", 0)) + 1
+        index = int(session.config.get("bot_index", 0))
+        if session.mode == StudyMode.learn and correct is not None:
+            successes = dict(session.config.get("bot_learn_successes", {}))
+            key = f"{current.card.id}:{current.direction.value}"
+            if correct:
+                successes[key] = int(successes.get(key, 0)) + 1
+            required = int(session.config.get("bot_learn_successes_required", 1))
+            if not correct or int(successes.get(key, 0)) < required:
+                items = list(session.config.get("bot_items", []))
+                items.append(items[index])
+                session.config["bot_items"] = items
+            session.config["bot_learn_successes"] = successes
+        session.config["bot_index"] = index + 1
         flag_modified(session, "config")
         next_reply = await self._question(user, session)
         if correct is False:
@@ -507,6 +642,28 @@ class BotService:
         elif correct is True:
             next_reply.text = "Верно.\n\n" + next_reply.text
         return next_reply
+
+    def _question_kind(self, session: StudySession, current: QueueItem) -> str:
+        if session.mode != StudyMode.learn:
+            return "typing"
+        enabled = list(
+            session.config.get("bot_learn_question_types", ["choice", "typing", "recall"])
+        )
+        stability = current.state.stability or 0
+        preferred = (
+            "recall"
+            if stability >= RECALL_THRESHOLD
+            else "typing"
+            if stability >= TYPING_THRESHOLD
+            else "choice"
+        )
+        if preferred in enabled:
+            return preferred
+        if preferred == "choice" and "typing" in enabled:
+            return "typing"
+        if preferred == "typing" and "recall" in enabled:
+            return "recall"
+        return enabled[0] if enabled else "recall"
 
     async def _courses(self, user: User) -> BotReply:
         courses = await course_repo.list_courses(self.db, user.id, limit=10)
@@ -573,6 +730,7 @@ class BotService:
             actor_id=event.actor_id,
             text=event.reply,
             callback_id=event.callback_id,
+            message_id=event.message_id,
             keyboard=event.reply_keyboard,
             audio_url=event.audio_url,
         )
@@ -595,5 +753,6 @@ class BotService:
             event.reply_keyboard = []
             event.audio_url = None
             event.callback_id = None
+            event.message_id = None
         else:
             event.available_at = datetime.now(UTC) + timedelta(seconds=min(60, 2**event.attempts))

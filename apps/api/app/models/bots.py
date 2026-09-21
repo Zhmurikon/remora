@@ -53,6 +53,7 @@ class BotEvent(UUIDPrimaryKeyMixin, Base):
     input: Mapped[str | None] = mapped_column(Text)
     code_hash: Mapped[str | None] = mapped_column(String(64))
     callback_id: Mapped[str | None] = mapped_column(String(128))
+    message_id: Mapped[str | None] = mapped_column(String(64))
     reply: Mapped[str | None] = mapped_column(Text)
     reply_keyboard: Mapped[list[list[dict[str, str]]]] = mapped_column(
         JSONB, default=list, server_default=text("'[]'::jsonb")

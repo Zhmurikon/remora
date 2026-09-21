@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import enum
+import math
 import re
 import unicodedata
 from dataclasses import dataclass
@@ -114,6 +115,24 @@ def check_answer(
             )
             best = AnswerResult(verdict, candidate, distance)
     return best
+
+
+def answer_similarity(
+    typed: str,
+    expected: str,
+    *,
+    strictness: Strictness = Strictness.moderate,
+    lang: str | None = None,
+) -> int:
+    """Процент посимвольного совпадения после общей нормализации ответа."""
+    left = normalize_answer(typed, strictness=strictness, lang=lang)
+    right = normalize_answer(expected, strictness=strictness, lang=lang)
+    if not left or not right:
+        return 0
+    longest = max(len(left), len(right))
+    # Python округляет x.5 к чётному, а JS Math.round — вверх. Контракт двух
+    # клиентов должен совпадать и на пограничных процентах.
+    return math.floor((1 - levenshtein(left, right) / longest) * 100 + 0.5)
 
 
 def typo_threshold(length: int, strictness: Strictness = Strictness.moderate) -> int:

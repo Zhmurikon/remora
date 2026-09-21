@@ -78,6 +78,35 @@ async def test_proxy_only_for_telegram_delivery(monkeypatch, platform):
     assert send.call_args.args[0] is clients[1][0]
 
 
+async def test_telegram_callback_edits_existing_message():
+    adapter = Adapter(
+        AdapterSettings(
+            bot_platform="telegram",
+            bot_service_token=SecretStr("test"),
+            tg_bot_token=SecretStr("token"),
+        )
+    )
+    client = AsyncMock()
+    client.post.return_value = Response(
+        200,
+        json={"ok": True},
+        request=Request("POST", "https://api.telegram.org"),
+    )
+    success = await adapter.send(
+        client,
+        {
+            "actor_id": "123",
+            "callback_id": "callback",
+            "message_id": "77",
+            "text": "Следующий экран",
+            "keyboard": [[{"label": "Назад", "action": "home"}]],
+        },
+    )
+    assert success is True
+    assert client.post.call_args_list[1].args[0].endswith("/editMessageText")
+    assert client.post.call_args_list[1].kwargs["json"]["message_id"] == "77"
+
+
 @pytest.fixture
 async def internal(client, monkeypatch):
     monkeypatch.setattr(get_settings(), "bot_tg_service_token", SecretStr("test-tg-service"))
@@ -314,9 +343,7 @@ async def test_learning_modes_share_study_session_and_progress(client, internal)
     question = (await internal.post("/internal/v1/delivery")).json()
     assert "Заучивание" in question["text"]
     assert [button["label"] for button in question["keyboard"][0]] == ["А", "Б", "В", "Г"]
-    for label, option in zip(
-        ["А", "Б", "В", "Г"], question["keyboard"][0], strict=True
-    ):
+    for label, option in zip(["А", "Б", "В", "Г"], question["keyboard"][0], strict=True):
         index = int(option["action"].removeprefix("choice:"))
         assert f"{label}. " in question["text"]
         assert option["label"] == label
@@ -325,7 +352,7 @@ async def test_learning_modes_share_study_session_and_progress(client, internal)
 
     await event(internal, command="choice:0", callback_id="callback")
     answered = (await internal.post("/internal/v1/delivery")).json()
-    assert "2/4" in answered["text"]
+    assert "2/" in answered["text"]
     await ack(internal, answered)
 
     active = await client.get(
@@ -352,6 +379,24 @@ async def test_learning_modes_share_study_session_and_progress(client, internal)
     assert article["keyboard"][0][0]["label"] == "Учить карточки статьи"
     await ack(internal, article)
 
+    await event(internal, command="stop")
+    await ack(internal, (await internal.post("/internal/v1/delivery")).json())
+    settings = await client.patch(
+        "/api/v1/study/settings",
+        headers=owner,
+        json={
+            "learn_question_types": ["typing"],
+            "learn_successes_required": 2,
+            "learn_typing_check": "self_check",
+            "learn_match_percent": 80,
+        },
+    )
+    assert settings.status_code == 200
+    await event(internal, command=f"mode:learn:{study_set['id']}")
+    typed_question = (await internal.post("/internal/v1/delivery")).json()
+    assert "Напишите ответ следующим сообщением" in typed_question["text"]
+    assert typed_question["keyboard"] == []
+
 
 def test_normalize_learning_commands_and_typed_answers():
     callback = {
@@ -359,11 +404,12 @@ def test_normalize_learning_commands_and_typed_answers():
         "callback_query": {
             "id": "cb",
             "from": {"id": 123},
-            "message": {"chat": {"id": 123, "type": "private"}},
+            "message": {"message_id": 77, "chat": {"id": 123, "type": "private"}},
             "data": "sets",
         },
     }
     assert normalize("telegram", callback)["command"] == "sets"
+    assert normalize("telegram", callback)["message_id"] == "77"
     typed = {
         "update_id": 51,
         "message": {

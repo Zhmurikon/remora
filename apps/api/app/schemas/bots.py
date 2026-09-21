@@ -36,6 +36,7 @@ class BotEventIn(BaseModel):
     input: str | None = Field(default=None, max_length=10_000)
     code_hash: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
     callback_id: str | None = Field(default=None, min_length=1, max_length=128)
+    message_id: str | None = Field(default=None, min_length=1, max_length=64)
 
 
 class BotDelivery(BaseModel):
@@ -44,6 +45,7 @@ class BotDelivery(BaseModel):
     actor_id: str
     text: str
     callback_id: str | None
+    message_id: str | None
     keyboard: list[list[dict[str, str]]] = Field(default_factory=list)
     audio_url: str | None = None
 

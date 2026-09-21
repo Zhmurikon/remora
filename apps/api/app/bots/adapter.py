@@ -51,6 +51,9 @@ def normalize(platform: str, body: dict[str, Any]) -> dict[str, Any] | None:
         actor = str(sender["id"])
         value = callback.get("data", "") if isinstance(callback, dict) else message.get("text", "")
         callback_id = str(callback["id"]) if isinstance(callback, dict) else None
+        message_id = (
+            str(message["message_id"]) if callback_id and message.get("message_id") else None
+        )
     else:
         if body.get("type") not in {"message_new", "message_event"}:
             return None
@@ -71,6 +74,7 @@ def normalize(platform: str, body: dict[str, Any]) -> dict[str, Any] | None:
         if body["type"] == "message_event":
             callback_id = str(obj["event_id"])
             value = obj.get("payload", {}).get("command", "")
+        message_id = None
     if not isinstance(value, str):
         value = ""
     raw_value = value.strip()
@@ -106,6 +110,7 @@ def normalize(platform: str, body: dict[str, Any]) -> dict[str, Any] | None:
         "input": raw_value if command == "input" else None,
         "code_hash": code_hash,
         "callback_id": callback_id,
+        "message_id": message_id,
     }
 
 
@@ -148,11 +153,18 @@ class Adapter:
             if job.get("audio_url"):
                 payload.update({"audio": job["audio_url"], "caption": job["text"]})
                 method = "sendAudio"
+            elif job.get("message_id"):
+                payload.update({"message_id": job["message_id"], "text": job["text"]})
+                method = "editMessageText"
             else:
                 payload["text"] = job["text"]
                 method = "sendMessage"
             response = await client.post(base + method, json=payload)
-            return response.is_success and bool(response.json().get("ok"))
+            body = response.json()
+            return (response.is_success and bool(body.get("ok"))) or (
+                response.status_code == 400
+                and "message is not modified" in body.get("description", "")
+            )
         common = {"access_token": cfg.vk_group_token.get_secret_value(), "v": cfg.vk_api_version}
         if job.get("callback_id"):
             await client.post(

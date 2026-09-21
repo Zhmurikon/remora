@@ -13,16 +13,22 @@ import pytest
 from app.core.answers import (
     AnswerVerdict,
     Strictness,
+    answer_similarity,
     check_answer,
     levenshtein,
     normalize_answer,
     typo_threshold,
 )
 
-CASES_PATH = (
-    Path(__file__).resolve().parents[3] / "packages" / "core" / "src" / "answer-cases.json"
-)
+CASES_PATH = Path(__file__).resolve().parents[3] / "packages" / "core" / "src" / "answer-cases.json"
 CASES = json.loads(CASES_PATH.read_text())["cases"]
+
+
+def test_answer_similarity_uses_shared_normalization() -> None:
+    assert answer_similarity("  Ёлка ", "елка") == 100
+    assert answer_similarity("кот", "кит") == 67
+    assert answer_similarity("abcdefgh", "abcdxxxh") == 63
+    assert answer_similarity("", "кот") == 0
 
 
 def test_contract_file_is_shared_with_the_frontend() -> None:
