@@ -7,13 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ConflictError, NotFoundError
 from app.core.storage import get_object_storage
-from app.models.content import Card, MediaAsset, MediaStatus, SetVisibility
+from app.models.content import Card, MediaAsset, MediaStatus, SetVisibility, StudySet
 from app.models.courses import Course, CourseArticle, CourseSection
 from app.models.user import User
 from app.repositories import content as content_repo
 from app.repositories import courses as repo
 from app.repositories.api_tokens import lock_request
-from app.schemas.content import CardWrite, SetCreate
+from app.schemas.content import CardWrite, SetCreate, SetDetail
 from app.schemas.courses import (
     CourseCopyRequest,
     CourseEditorDetail,
@@ -153,6 +153,104 @@ class CourseEditorService:
         await self.db.flush()
         return await self.detail(user, course_id)
 
+    async def _copy_set_content(
+        self,
+        user: User,
+        material: StudySet,
+        source_owner_id: UUID,
+        media: dict[UUID, UUID],
+        uploaded: list[str],
+    ) -> StudySet:
+        """Независимая копия набора: новые ID карточек и собственные копии изображений.
+
+        Чужие `media_id` переиспользовать нельзя — подписанные ссылки проверяют владельца,
+        а удаление оригинала оставило бы копию без картинок.
+        """
+        storage = get_object_storage()
+        new_set = await self.content.create_set(
+            user,
+            SetCreate(
+                title=material.title,
+                description=material.description,
+                lang_term=material.lang_term,
+                lang_definition=material.lang_definition,
+            ),
+        )
+        new_set.copied_from_id = material.id
+        for card in material.cards:
+            values = CardWrite.model_validate(card, from_attributes=True).model_dump(
+                exclude={"id"}
+            )
+            for field in ("term_image_id", "definition_image_id"):
+                asset_id = values[field]
+                if asset_id is None:
+                    continue
+                if asset_id not in media:
+                    asset = await content_repo.get_media_asset(self.db, asset_id)
+                    if (
+                        not asset
+                        or asset.owner_id != source_owner_id
+                        or asset.status != MediaStatus.ready
+                    ):
+                        raise ConflictError("Изображение материала недоступно")
+                    new_id = uuid4()
+                    key = f"{user.id}/copies/{new_id}"
+                    payload, _ = await storage.read(asset.s3_key, asset.size_bytes)
+                    uploaded.append(key)
+                    await storage.put(key, payload, asset.mime)
+                    self.db.add(
+                        MediaAsset(
+                            id=new_id,
+                            owner_id=user.id,
+                            s3_key=key,
+                            kind=asset.kind,
+                            mime=asset.mime,
+                            size_bytes=asset.size_bytes,
+                            width=asset.width,
+                            height=asset.height,
+                            checksum=asset.checksum,
+                            source=asset.source,
+                            status=MediaStatus.ready,
+                        )
+                    )
+                    await self.db.flush()
+                    media[asset_id] = new_id
+                values[field] = media[asset_id]
+            self.db.add(Card(set_id=new_set.id, position=card.position, **values))
+        new_set.cards_count = len(material.cards)
+        await self.db.flush()
+        return new_set
+
+    async def copy_set(self, user: User, set_id: UUID) -> SetDetail:
+        """Копия набора из доступного публичного курса становится отдельным приватным набором."""
+        material = await content_repo.get_set(self.db, set_id, with_cards=True)
+        if material is None:
+            raise NotFoundError("Набор не найден")
+        source_owner_id = material.owner_id
+        for owner_id in sorted({user.id, source_owner_id}, key=str):
+            await lock_request(self.db, owner_id)
+        if source_owner_id != user.id:
+            material = await content_repo.accessible_public_set(self.db, set_id)
+            if material is None:
+                raise NotFoundError("Набор недоступен")
+        uploaded: list[str] = []
+        try:
+            copied = await self._copy_set_content(user, material, source_owner_id, {}, uploaded)
+        except Exception:
+            storage = get_object_storage()
+            for key in uploaded:
+                await storage.delete(key)
+            raise
+        return SetDetail.model_validate(
+            await self.content.get_owned_set(user, copied.id, with_cards=True)
+        )
+
+    async def copy_set_once(self, user: User, set_id: UUID, key: str) -> SetDetail:
+        result = await AgentService(self.db).once(
+            user, key, f"set-copy:{set_id}", None, lambda: self.copy_set(user, set_id)
+        )
+        return SetDetail.model_validate(result)
+
     async def copy(
         self, user: User, course_id: UUID, article_id: UUID | None
     ) -> CourseEditorDetail:
@@ -199,57 +297,9 @@ class CourseEditorService:
                     material = await content_repo.get_set(self.db, article.set_id, with_cards=True)
                     if material is None or material.owner_id != source.owner_id:
                         raise ConflictError("Один из материалов недоступен")
-                    new_set = await self.content.create_set(
-                        user,
-                        SetCreate(
-                            title=material.title,
-                            description=material.description,
-                            lang_term=material.lang_term,
-                            lang_definition=material.lang_definition,
-                        ),
+                    new_set = await self._copy_set_content(
+                        user, material, source.owner_id, media, uploaded
                     )
-                    new_set.copied_from_id = material.id
-                    for card in material.cards:
-                        values = CardWrite.model_validate(card, from_attributes=True).model_dump(
-                            exclude={"id"}
-                        )
-                        for field in ("term_image_id", "definition_image_id"):
-                            asset_id = values[field]
-                            if asset_id is None:
-                                continue
-                            if asset_id not in media:
-                                asset = await content_repo.get_media_asset(self.db, asset_id)
-                                if (
-                                    not asset
-                                    or asset.owner_id != source.owner_id
-                                    or asset.status != MediaStatus.ready
-                                ):
-                                    raise ConflictError("Изображение материала недоступно")
-                                new_id = uuid4()
-                                key = f"{user.id}/copies/{new_id}"
-                                payload, _ = await storage.read(asset.s3_key, asset.size_bytes)
-                                uploaded.append(key)
-                                await storage.put(key, payload, asset.mime)
-                                self.db.add(
-                                    MediaAsset(
-                                        id=new_id,
-                                        owner_id=user.id,
-                                        s3_key=key,
-                                        kind=asset.kind,
-                                        mime=asset.mime,
-                                        size_bytes=asset.size_bytes,
-                                        width=asset.width,
-                                        height=asset.height,
-                                        checksum=asset.checksum,
-                                        source=asset.source,
-                                        status=MediaStatus.ready,
-                                    )
-                                )
-                                await self.db.flush()
-                                media[asset_id] = new_id
-                            values[field] = media[asset_id]
-                        self.db.add(Card(set_id=new_set.id, position=card.position, **values))
-                    new_set.cards_count = len(material.cards)
                     self.db.add(
                         CourseArticle(
                             section_id=new_section.id,

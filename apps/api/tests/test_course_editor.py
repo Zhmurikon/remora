@@ -6,7 +6,10 @@ from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 from httpx import AsyncClient
+from sqlalchemy import update
 
+from app.db.session import get_engine
+from app.models.courses import Course
 from tests.test_courses import auth
 from tests.test_media import FakeStorage, _png
 
@@ -238,3 +241,73 @@ async def test_copy_public_course_and_article_independent_and_idempotent(
     ).status_code == 404
     assert (await client.get(f"/api/v1/courses/{copied['id']}", headers=learner)).status_code == 200
     assert (await save(client, learner, copied, copied["sections"])).status_code == 200
+
+
+async def test_copy_set_from_public_course_is_independent_and_isolated(
+    client: AsyncClient,
+) -> None:
+    """Набор копируется только из доступного курса; копия не зависит от оригинала."""
+    owner, learner = await auth(client, "setcopyowner"), await auth(client, "setcopylearner")
+    course = await setup_course(client, owner)
+    set_id = course["sections"][0]["articles"][0]["set_id"]
+    path = f"/api/v1/sets/{set_id}/copy"
+    headers = {**learner, "Idempotency-Key": str(uuid4())}
+
+    assert (await client.post(path)).status_code == 401
+    # Курс ещё черновик: чужой набор недоступен даже по прямому идентификатору.
+    assert (await client.post(path, headers=headers)).status_code == 404
+    assert (await client.get(f"/api/v1/sets/{set_id}", headers=learner)).status_code == 403
+
+    await client.post(f"/api/v1/courses/{course['id']}/publish", headers=owner, json={})
+    created = await client.post(path, headers=headers)
+    assert created.status_code == 201, created.text
+    copied = created.json()
+    assert copied["id"] != set_id
+    assert copied["visibility"] == "private"
+    assert copied["cards"][0]["term"] == "Определитель"
+    assert copied["cards"][0]["wrong_term_answers"] == ["След"]
+    assert copied["cards"][0]["wrong_definition_answers"] == ["Матрица"]
+    assert copied["cards"][0]["id"] != set_id
+    # Повтор с тем же ключом не создаёт второй набор.
+    assert (await client.post(path, headers=headers)).json() == copied
+    assert len((await client.get("/api/v1/sets", headers=learner)).json()) == 1
+
+    # Копия принадлежит учащемуся и живёт отдельно от оригинала.
+    edited = await client.put(
+        f"/api/v1/sets/{copied['id']}/cards",
+        headers=learner,
+        json={"cards": [{"term": "Своё", "definition": "Значение"}]},
+    )
+    assert edited.status_code == 200
+    original = (await client.get(f"/api/v1/sets/{set_id}", headers=owner)).json()
+    assert original["cards"][0]["term"] == "Определитель"
+
+    # После снятия с публикации копировать нельзя, но готовая копия остаётся.
+    await client.post(f"/api/v1/courses/{course['id']}/unpublish", headers=owner)
+    assert (
+        await client.post(path, headers={**learner, "Idempotency-Key": str(uuid4())})
+    ).status_code == 404
+    assert (await client.get(f"/api/v1/sets/{copied['id']}", headers=learner)).status_code == 200
+
+
+async def test_copy_set_is_blocked_for_moderated_and_missing_sources(client: AsyncClient) -> None:
+    """Заблокированный модератором курс перестаёт быть источником копий."""
+    owner, learner = await auth(client, "blockedowner"), await auth(client, "blockedlearner")
+    course = await setup_course(client, owner)
+    set_id = course["sections"][0]["articles"][0]["set_id"]
+    path = f"/api/v1/sets/{set_id}/copy"
+    await client.post(f"/api/v1/courses/{course['id']}/publish", headers=owner, json={})
+    assert (
+        await client.post(path, headers={**learner, "Idempotency-Key": str(uuid4())})
+    ).status_code == 201
+
+    async with get_engine().begin() as conn:
+        await conn.execute(update(Course).values(moderation_status="blocked"))
+    assert (
+        await client.post(path, headers={**learner, "Idempotency-Key": str(uuid4())})
+    ).status_code == 404
+
+    missing = f"/api/v1/sets/{uuid4()}/copy"
+    assert (
+        await client.post(missing, headers={**learner, "Idempotency-Key": str(uuid4())})
+    ).status_code == 404

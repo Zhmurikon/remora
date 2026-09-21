@@ -205,12 +205,20 @@ export default async function PublicCoursePage({ params }: { params: Promise<{ s
                       label="Сохранить набор"
                     />
                   </div>
-                  <a
-                    className="text-primary inline-flex min-h-11 items-center underline"
-                    href={`${APP_URL}/courses/copy/${course.slug}?article=${article.id}`}
-                  >
-                    Скопировать статью с карточками
-                  </a>
+                  <div className="flex flex-wrap gap-4">
+                    <a
+                      className="text-primary inline-flex min-h-11 items-center underline"
+                      href={`${APP_URL}/courses/copy/${course.slug}?article=${article.id}`}
+                    >
+                      Скопировать статью с карточками
+                    </a>
+                    <a
+                      className="text-primary inline-flex min-h-11 items-center underline"
+                      href={`${APP_URL}/courses/copy/${course.slug}?set=${article.set_id}`}
+                    >
+                      Скопировать только набор
+                    </a>
+                  </div>
                   <PublicCourseCards initial={material} slug={course.slug} articleId={article.id} />
                 </article>
               );

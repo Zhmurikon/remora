@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { CourseEditorPage } from './CourseEditorPage';
-import { CourseReaderPage, CopyCourseButton } from './CourseReaderPage';
+import { CourseReaderPage, CopyCourseButton, CopySetButton } from './CourseReaderPage';
 import { ArticleContent } from '@remora/ui';
 import { api } from '../lib/api';
 
@@ -39,6 +39,7 @@ function mount(mode = 'edit') {
           <Route path="/courses/:courseId/edit" element={<CourseEditorPage />} />
           <Route path="/courses/:courseId/read" element={<CourseReaderPage />} />
           <Route path="/courses/:courseId/copy" element={<CopyCourseButton courseId="course" />} />
+          <Route path="/courses/:courseId/copy-set" element={<CopySetButton setId="set" />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -114,6 +115,22 @@ it('повторяет копирование с тем же ключом пос
   await screen.findByRole('alert');
   await userEvent.click(screen.getByRole('button', { name: 'Создать копию курса' }));
   await waitFor(() => expect(api.POST).toHaveBeenCalledTimes(2));
+  expect(vi.mocked(api.POST).mock.calls[0]?.[1]).toEqual(vi.mocked(api.POST).mock.calls[1]?.[1]);
+});
+
+it('копирует отдельный набор и повторяет запрос тем же ключом', async () => {
+  vi.mocked(api.POST)
+    .mockRejectedValueOnce(new Error('offline'))
+    .mockResolvedValueOnce({
+      data: { id: 'copied-set' },
+      response: new Response(),
+    } as never);
+  mount('copy-set');
+  await userEvent.click(screen.getByRole('button', { name: 'Создать копию набора' }));
+  await screen.findByRole('alert');
+  await userEvent.click(screen.getByRole('button', { name: 'Создать копию набора' }));
+  await waitFor(() => expect(api.POST).toHaveBeenCalledTimes(2));
+  expect(vi.mocked(api.POST).mock.calls[0]?.[0]).toBe('/api/v1/sets/{set_id}/copy');
   expect(vi.mocked(api.POST).mock.calls[0]?.[1]).toEqual(vi.mocked(api.POST).mock.calls[1]?.[1]);
 });
 

@@ -87,6 +87,29 @@ async def get_public_set_by_slug(db: AsyncSession, slug: str) -> tuple[StudySet,
     return (row[0], row[1]) if row is not None else None
 
 
+async def accessible_public_set(db: AsyncSession, set_id: UUID) -> StudySet | None:
+    """Набор доступен, если он лежит в статье опубликованного и не заблокированного курса."""
+    result = await db.execute(
+        select(StudySet)
+        .join(User, User.id == StudySet.owner_id)
+        .join(CourseArticle, CourseArticle.set_id == StudySet.id)
+        .join(CourseSection, CourseSection.id == CourseArticle.section_id)
+        .join(Course, Course.id == CourseSection.course_id)
+        .where(
+            StudySet.id == set_id,
+            StudySet.deleted_at.is_(None),
+            Course.is_published.is_(True),
+            Course.moderation_status != "blocked",
+            Course.owner_id == StudySet.owner_id,
+            User.status == UserStatus.active,
+            User.deleted_at.is_(None),
+        )
+        .options(selectinload(StudySet.cards))
+        .execution_options(populate_existing=True)
+    )
+    return result.scalars().one_or_none()
+
+
 async def public_cards_page(db: AsyncSession, set_id: UUID, after: int | None) -> list[Card]:
     query = select(Card).where(Card.set_id == set_id)
     if after is not None:

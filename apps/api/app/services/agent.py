@@ -50,11 +50,13 @@ class AgentService:
         user: User,
         key: str,
         operation: str,
-        body: BaseModel,
+        body: BaseModel | None,
         action: Callable[[], Awaitable[BaseModel]],
     ) -> dict[str, Any]:
         await token_repo.lock_request(self.db, user.id)
-        fingerprint = digest({"operation": operation, "body": body.model_dump(mode="json")})
+        # None — операция без тела: отпечаток определяется одним `operation`.
+        payload = body.model_dump(mode="json") if body is not None else {}
+        fingerprint = digest({"operation": operation, "body": payload})
         previous = await token_repo.previous_request(self.db, user.id, key)
         if previous is not None:
             if previous.fingerprint != fingerprint:

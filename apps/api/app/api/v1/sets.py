@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Header, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.deps import current_user
@@ -10,6 +10,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.content import CardBatch, PublicSet, SetCreate, SetDetail, SetSummary, SetUpdate
 from app.services.content import ContentService
+from app.services.course_editor import CourseEditorService
 
 router = APIRouter(prefix="/sets", tags=["sets"])
 
@@ -75,6 +76,22 @@ async def duplicate_set(
 ) -> SetDetail:
     study_set = await ContentService(db).duplicate_set(user, set_id)
     return SetDetail.model_validate(study_set)
+
+
+@router.post(
+    "/{set_id}/copy",
+    response_model=SetDetail,
+    status_code=status.HTTP_201_CREATED,
+    summary="Независимая копия набора из доступного курса",
+)
+async def copy_set(
+    set_id: UUID,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+    idempotency_key: str = Header(min_length=1, max_length=128, pattern=r"^[a-zA-Z0-9_.:-]+$"),
+) -> SetDetail:
+    """В отличие от `/duplicate`, копирует и чужой доступный набор с собственными медиа."""
+    return await CourseEditorService(db).copy_set_once(user, set_id, idempotency_key)
 
 
 @router.put("/{set_id}/cards", response_model=SetDetail, summary="Сохранить карточки")

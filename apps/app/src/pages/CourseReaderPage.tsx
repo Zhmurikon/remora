@@ -7,6 +7,46 @@ import { api } from '../lib/api';
 import { TestPage } from './TestPage';
 import { courseLink } from './CourseEditorPage';
 
+export function CopySetButton({ setId }: { setId: string }) {
+  const key = useRef(crypto.randomUUID());
+  const navigate = useNavigate();
+  const client = useQueryClient();
+  const copy = useMutation({
+    mutationFn: async () => {
+      const result = await api.POST('/api/v1/sets/{set_id}/copy', {
+        params: { path: { set_id: setId }, header: { 'idempotency-key': key.current } },
+        headers: { 'Idempotency-Key': key.current },
+      });
+      if (!result.data)
+        throw new Error(
+          'Не удалось скопировать набор. Возможно, автор закрыл доступ. Проверьте соединение и повторите попытку.',
+        );
+      return result.data;
+    },
+    onSuccess: (data) => {
+      void client.invalidateQueries({ queryKey: ['sets'] });
+      navigate(`/sets/${data.id}`);
+    },
+  });
+  return (
+    <div className="space-y-2">
+      <Button
+        className="min-h-11"
+        variant="secondary"
+        loading={copy.isPending}
+        onClick={() => copy.mutate()}
+      >
+        Создать копию набора
+      </Button>
+      {copy.isError && (
+        <p role="alert" className="text-danger">
+          {copy.error.message}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function CopyCourseButton({
   courseId,
   articleId,
@@ -60,6 +100,7 @@ export function CourseCopyPage() {
   const { slug = '' } = useParams();
   const [params] = useSearchParams();
   const articleId = params.get('article') ?? undefined;
+  const setId = params.get('set') ?? undefined;
   const query = useQuery({
     queryKey: ['public-course', slug],
     queryFn: async () => {
@@ -85,6 +126,19 @@ export function CourseCopyPage() {
       {query.data &&
         (articleId && !article ? (
           <p role="alert">Статья не найдена.</p>
+        ) : setId ? (
+          <Card className="space-y-4">
+            <h2 className="text-xl font-semibold">
+              {query.data.sections.flatMap((s) => s.articles).find((a) => a.set_id === setId)
+                ?.title ?? query.data.title}
+            </h2>
+            <p>
+              В вашей библиотеке появится приватный набор с независимой копией карточек, без теории
+              и без курса. Вы сможете менять его и учиться, даже если автор снимет оригинал с
+              публикации. Прогресс автора не копируется.
+            </p>
+            <CopySetButton setId={setId} />
+          </Card>
         ) : (
           <Card className="space-y-4">
             <h2 className="text-xl font-semibold">{article?.title ?? query.data.title}</h2>

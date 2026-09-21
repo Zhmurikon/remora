@@ -1,10 +1,23 @@
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { ImageResponse } from 'next/og';
 
 export const alt = 'Remora — карточки для заучивания';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
-export default function OpenGraphImage() {
+// Без явных шрифтов Satori идёт за кириллицей в сеть и сборка ловит тайм-аут.
+// Сабсеты DejaVu лежат в репозитории: apps/web/assets/fonts/LICENSE.md.
+function loadFont(file: string) {
+  return readFile(join(process.cwd(), 'assets', 'fonts', file));
+}
+
+export default async function OpenGraphImage() {
+  const [regular, bold] = await Promise.all([
+    loadFont('dejavu-sans-subset.ttf'),
+    loadFont('dejavu-sans-bold-subset.ttf'),
+  ]);
+
   return new ImageResponse(
     <div
       style={{
@@ -26,6 +39,12 @@ export default function OpenGraphImage() {
         <div style={{ color: '#506176', fontSize: 32 }}>Интервальные повторения на основе FSRS</div>
       </div>
     </div>,
-    size,
+    {
+      ...size,
+      fonts: [
+        { name: 'DejaVu Sans', data: regular, weight: 400, style: 'normal' },
+        { name: 'DejaVu Sans', data: bold, weight: 700, style: 'normal' },
+      ],
+    },
   );
 }
