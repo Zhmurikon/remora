@@ -4,6 +4,10 @@
 Существующий Nginx Proxy Manager не изменяется: сеть `proxy`, upstream
 `http://remora-dev-gateway:80`, оба домена `edu-remora.ru` и `test.edu-remora.ru`, TLS.
 Канонический адрес кабинета: `https://test.edu-remora.ru/app`.
+В серверном `deploy/.env` значение `CORS_ORIGINS` должно включать оба источника:
+`["https://test.edu-remora.ru","https://edu-remora.ru"]`. Фронтенды обращаются к API
+на `test.edu-remora.ru`, поэтому основной домен также требует разрешения CORS.
+После изменения пересоздать api/worker/bot-api и перезагрузить gateway.
 
 ## Первая установка
 
@@ -24,8 +28,10 @@ docker build -t remora-dev-api:local -f deploy/Dockerfile.api deploy
 в [docs/08-bots.md](../docs/08-bots.md).
 
 `deploy/.env` создаётся один раз с независимыми секретами и правами 0600.
-Не коммитить и не перезаписывать его при синхронизации. MailHog перехватывает письма:
-реальная отправка не включена. Его интерфейс не публикуется в интернете.
+Не коммитить и не перезаписывать его при синхронизации. С 21.09.2026 на дев-сервере
+включена реальная отправка через SMTP Timeweb (587, STARTTLS). Реквизиты хранятся
+в `deploy/.env`. MailHog остаётся в compose для тестов, приложение его не использует.
+Его интерфейс не публикуется в интернете.
 
 ## Обновление
 
