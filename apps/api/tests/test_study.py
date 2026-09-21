@@ -60,9 +60,7 @@ async def test_queue_returns_new_cards_with_interval_previews(
     headers = await _auth(client, "queue")
     study_set = await _set_with_cards(client, headers)
 
-    response = await client.get(
-        f"/api/v1/study/sets/{study_set['id']}/queue", headers=headers
-    )
+    response = await client.get(f"/api/v1/study/sets/{study_set['id']}/queue", headers=headers)
     assert response.status_code == 200
     body = response.json()
     assert body["new_total"] == 4
@@ -128,9 +126,7 @@ async def test_reviews_create_state_and_schedule_next_repetition(
     assert states[cards[0]["id"]]["reps"] == 1
     assert states[cards[1]["id"]]["lapses"] == 0  # первый ответ «не помню» — ещё не lapse
 
-    finished = await client.post(
-        f"/api/v1/study/sessions/{session_id}/finish", headers=headers
-    )
+    finished = await client.post(f"/api/v1/study/sessions/{session_id}/finish", headers=headers)
     assert finished.status_code == 200
     assert finished.json()["status"] == "finished"
     assert finished.json()["cards_seen"] == 2
@@ -138,9 +134,7 @@ async def test_reviews_create_state_and_schedule_next_repetition(
 
 
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
-async def test_repeated_batch_is_idempotent(
-    _mock_send: AsyncMock, client: pytest.fixture
-) -> None:
+async def test_repeated_batch_is_idempotent(_mock_send: AsyncMock, client: pytest.fixture) -> None:
     """Ретрай после обрыва сети не должен ни потерять ответ, ни удвоить его."""
     headers = await _auth(client, "idempotent")
     study_set = await _set_with_cards(client, headers)
@@ -285,9 +279,7 @@ async def test_stats_and_forecast_report_scheduled_load(
     assert len(body["forecast"]) == 14
     assert sum(day["count"] for day in body["forecast"]) >= 1
 
-    forecast = await client.get(
-        "/api/v1/study/forecast", headers=headers, params={"days": 7}
-    )
+    forecast = await client.get("/api/v1/study/forecast", headers=headers, params={"days": 7})
     assert len(forecast.json()) == 7
 
 
@@ -391,9 +383,7 @@ async def test_study_data_is_isolated_between_users(
     assert foreign.json()["accepted"] == []
     assert len(foreign.json()["rejected"]) == 1
 
-    owner_stats = await client.get(
-        f"/api/v1/study/sets/{study_set['id']}/stats", headers=owner
-    )
+    owner_stats = await client.get(f"/api/v1/study/sets/{study_set['id']}/stats", headers=owner)
     assert owner_stats.json()["distribution"]["new"] == 4
 
 
@@ -433,6 +423,57 @@ async def test_settings_validation_rejects_impossible_values(
         "/api/v1/study/settings", headers=headers, json={"learn_question_types": []}
     )
     assert no_exercises.status_code == 422
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_set_learn_settings_override_global_and_are_private(
+    _mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    owner = await _auth(client, "set-settings-owner")
+    stranger = await _auth(client, "set-settings-stranger")
+    study_set = await _set_with_cards(client, owner)
+    url = f"/api/v1/study/sets/{study_set['id']}/learn-settings"
+
+    inherited = await client.get(url, headers=owner)
+    assert inherited.status_code == 200
+    assert inherited.json()["customized"] is False
+
+    customized = await client.put(
+        url,
+        headers=owner,
+        json={
+            "question_types": ["recall"],
+            "successes_required": 3,
+            "typing_check": "self_check",
+            "match_percent": 85,
+        },
+    )
+    assert customized.status_code == 200
+    assert customized.json()["customized"] is True
+
+    queue = await client.get(f"/api/v1/study/sets/{study_set['id']}/queue", headers=owner)
+    assert queue.json()["learn_question_types"] == ["recall"]
+    assert queue.json()["learn_successes_required"] == 3
+
+    assert (await client.get(url, headers=stranger)).status_code == 403
+    assert (
+        await client.put(
+            url,
+            headers=stranger,
+            json={
+                "question_types": ["choice"],
+                "successes_required": 1,
+                "typing_check": "automatic",
+                "match_percent": 90,
+            },
+        )
+    ).status_code == 403
+
+    reset = await client.delete(url, headers=owner)
+    assert reset.status_code == 204
+    restored = await client.get(url, headers=owner)
+    assert restored.json()["customized"] is False
+    assert restored.json()["question_types"] == ["choice", "typing", "recall"]
 
 
 async def test_study_endpoints_require_authentication(client: pytest.fixture) -> None:

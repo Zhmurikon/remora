@@ -21,6 +21,8 @@ from app.schemas.study import (
     ReviewBatchResult,
     SessionCreate,
     SessionOut,
+    SetLearnSettingsOut,
+    SetLearnSettingsUpdate,
     SetStats,
     StudyQueue,
     StudySettingsOut,
@@ -50,6 +52,42 @@ async def get_study_settings(
 ) -> StudySettingsOut:
     settings = await StudyService(db).get_settings(user)
     return StudySettingsOut.model_validate(settings)
+
+
+@router.get(
+    "/sets/{set_id}/learn-settings",
+    response_model=SetLearnSettingsOut,
+    summary="Настройки заучивания для набора",
+)
+async def get_set_learn_settings(
+    set_id: UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+) -> SetLearnSettingsOut:
+    return await StudyService(db).get_set_learn_settings(user, set_id)
+
+
+@router.put(
+    "/sets/{set_id}/learn-settings",
+    response_model=SetLearnSettingsOut,
+    summary="Переопределить настройки заучивания для набора",
+)
+async def update_set_learn_settings(
+    set_id: UUID,
+    body: SetLearnSettingsUpdate,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SetLearnSettingsOut:
+    return await StudyService(db).update_set_learn_settings(user, set_id, body)
+
+
+@router.delete(
+    "/sets/{set_id}/learn-settings",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Вернуть общие настройки заучивания для набора",
+)
+async def reset_set_learn_settings(
+    set_id: UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+) -> None:
+    await StudyService(db).reset_set_learn_settings(user, set_id)
 
 
 @router.patch("/settings", response_model=StudySettingsOut, summary="Изменить настройки обучения")

@@ -20,8 +20,65 @@ from app.models.study import (
     StudyMode,
     StudySession,
     TestAttempt,
+    UserSetLearnSettings,
     UserSetProgress,
 )
+
+
+async def get_set_learn_settings(
+    db: AsyncSession, user_id: UUID, set_id: UUID
+) -> UserSetLearnSettings | None:
+    result = await db.scalars(
+        select(UserSetLearnSettings).where(
+            UserSetLearnSettings.user_id == user_id,
+            UserSetLearnSettings.set_id == set_id,
+        )
+    )
+    return result.one_or_none()
+
+
+async def upsert_set_learn_settings(
+    db: AsyncSession,
+    user_id: UUID,
+    set_id: UUID,
+    *,
+    question_types: list[str],
+    successes_required: int,
+    typing_check: str,
+    match_percent: int,
+) -> UserSetLearnSettings:
+    statement = (
+        insert(UserSetLearnSettings)
+        .values(
+            user_id=user_id,
+            set_id=set_id,
+            question_types=question_types,
+            successes_required=successes_required,
+            typing_check=typing_check,
+            match_percent=match_percent,
+        )
+        .on_conflict_do_update(
+            constraint="uq_user_set_learn_settings_user_id_set_id",
+            set_={
+                "question_types": question_types,
+                "successes_required": successes_required,
+                "typing_check": typing_check,
+                "match_percent": match_percent,
+                "updated_at": func.now(),
+            },
+        )
+        .returning(UserSetLearnSettings)
+    )
+    return (await db.scalars(statement)).one()
+
+
+async def delete_set_learn_settings(db: AsyncSession, user_id: UUID, set_id: UUID) -> None:
+    await db.execute(
+        delete(UserSetLearnSettings).where(
+            UserSetLearnSettings.user_id == user_id,
+            UserSetLearnSettings.set_id == set_id,
+        )
+    )
 
 
 async def lock_learning(db: AsyncSession, user_id: UUID) -> None:

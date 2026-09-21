@@ -47,6 +47,8 @@ from app.schemas.study import (
     ReviewBatch,
     ReviewBatchResult,
     SessionCreate,
+    SetLearnSettingsOut,
+    SetLearnSettingsUpdate,
     SetStats,
     StateDistribution,
     StudyQueue,
@@ -87,6 +89,53 @@ class StudyService:
         await self.db.flush()
         return settings
 
+    async def get_set_learn_settings(self, user: User, set_id: UUID) -> SetLearnSettingsOut:
+        await self.content.get_study_set(user, set_id)
+        global_settings = await user_repo.get_or_create_settings(self.db, user.id)
+        override = await study_repo.get_set_learn_settings(self.db, user.id, set_id)
+        if override is None:
+            return SetLearnSettingsOut(
+                question_types=global_settings.learn_question_types,
+                successes_required=global_settings.learn_successes_required,
+                typing_check=global_settings.learn_typing_check,
+                match_percent=global_settings.learn_match_percent,
+                customized=False,
+            )
+        return SetLearnSettingsOut(
+            question_types=override.question_types,
+            successes_required=override.successes_required,
+            typing_check=override.typing_check,
+            match_percent=override.match_percent,
+            customized=True,
+        )
+
+    async def update_set_learn_settings(
+        self, user: User, set_id: UUID, body: SetLearnSettingsUpdate
+    ) -> SetLearnSettingsOut:
+        await self.content.get_study_set(user, set_id)
+        override = await study_repo.upsert_set_learn_settings(
+            self.db,
+            user.id,
+            set_id,
+            question_types=[item.value for item in body.question_types],
+            successes_required=body.successes_required,
+            typing_check=body.typing_check.value,
+            match_percent=body.match_percent,
+        )
+        await self.db.flush()
+        return SetLearnSettingsOut(
+            question_types=override.question_types,
+            successes_required=override.successes_required,
+            typing_check=override.typing_check,
+            match_percent=override.match_percent,
+            customized=True,
+        )
+
+    async def reset_set_learn_settings(self, user: User, set_id: UUID) -> None:
+        await self.content.get_study_set(user, set_id)
+        await study_repo.delete_set_learn_settings(self.db, user.id, set_id)
+        await self.db.flush()
+
     def _scheduler(self, settings: UserSettings) -> SchedulerService:
         return SchedulerService(
             desired_retention=settings.fsrs_desired_retention,
@@ -109,6 +158,7 @@ class StudyService:
         study_set = await self.content.get_study_set(user, set_id, with_cards=True)
         cards = await library_repo.accepted_cards(self.db, user.id, set_id, study_set.cards)
         settings = await user_repo.get_or_create_settings(self.db, user.id)
+        learn_settings = await study_repo.get_set_learn_settings(self.db, user.id, set_id)
         scheduler = self._scheduler(settings)
         now = datetime.now(tz=UTC)
         limit = max(1, min(limit, MAX_QUEUE_LIMIT))
@@ -172,10 +222,20 @@ class StudyService:
             lang_term=study_set.lang_term,
             lang_definition=study_set.lang_definition,
             answer_strictness=Strictness(settings.answer_strictness),
-            learn_question_types=settings.learn_question_types,
-            learn_successes_required=settings.learn_successes_required,
-            learn_typing_check=settings.learn_typing_check,
-            learn_match_percent=settings.learn_match_percent,
+            learn_question_types=(
+                learn_settings.question_types if learn_settings else settings.learn_question_types
+            ),
+            learn_successes_required=(
+                learn_settings.successes_required
+                if learn_settings
+                else settings.learn_successes_required
+            ),
+            learn_typing_check=(
+                learn_settings.typing_check if learn_settings else settings.learn_typing_check
+            ),
+            learn_match_percent=(
+                learn_settings.match_percent if learn_settings else settings.learn_match_percent
+            ),
             mode=mode,
             generated_at=now,
             scheduler_version=scheduler.version,

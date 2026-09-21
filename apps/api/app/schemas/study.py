@@ -224,3 +224,18 @@ class StudySettingsUpdate(BaseModel):
     learn_successes_required: int | None = Field(default=None, ge=1, le=5)
     learn_typing_check: LearnTypingCheck | None = None
     learn_match_percent: int | None = Field(default=None, ge=50, le=100)
+
+
+class SetLearnSettingsOut(BaseModel):
+    question_types: list[LearnQuestionType]
+    successes_required: int
+    typing_check: LearnTypingCheck
+    match_percent: int
+    customized: bool
+
+
+class SetLearnSettingsUpdate(BaseModel):
+    question_types: list[LearnQuestionType] = Field(min_length=1, max_length=3)
+    successes_required: int = Field(ge=1, le=5)
+    typing_check: LearnTypingCheck
+    match_percent: int = Field(ge=50, le=100)

@@ -1218,6 +1218,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/study/sets/{set_id}/learn-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Настройки заучивания для набора */
+        get: operations["get_set_learn_settings_api_v1_study_sets__set_id__learn_settings_get"];
+        /** Переопределить настройки заучивания для набора */
+        put: operations["update_set_learn_settings_api_v1_study_sets__set_id__learn_settings_put"];
+        post?: never;
+        /** Вернуть общие настройки заучивания для набора */
+        delete: operations["reset_set_learn_settings_api_v1_study_sets__set_id__learn_settings_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/study/sets/{set_id}/queue": {
         parameters: {
             query?: never;
@@ -3225,6 +3244,28 @@ export interface components {
              */
             updated_at: string;
             visibility: components["schemas"]["SetVisibility"];
+        };
+        /** SetLearnSettingsOut */
+        SetLearnSettingsOut: {
+            /** Customized */
+            customized: boolean;
+            /** Match Percent */
+            match_percent: number;
+            /** Question Types */
+            question_types: components["schemas"]["LearnQuestionType"][];
+            /** Successes Required */
+            successes_required: number;
+            typing_check: components["schemas"]["LearnTypingCheck"];
+        };
+        /** SetLearnSettingsUpdate */
+        SetLearnSettingsUpdate: {
+            /** Match Percent */
+            match_percent: number;
+            /** Question Types */
+            question_types: components["schemas"]["LearnQuestionType"][];
+            /** Successes Required */
+            successes_required: number;
+            typing_check: components["schemas"]["LearnTypingCheck"];
         };
         /** SetStats */
         SetStats: {
@@ -6377,6 +6418,101 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SessionOut"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_set_learn_settings_api_v1_study_sets__set_id__learn_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetLearnSettingsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_set_learn_settings_api_v1_study_sets__set_id__learn_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetLearnSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetLearnSettingsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_set_learn_settings_api_v1_study_sets__set_id__learn_settings_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

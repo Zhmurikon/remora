@@ -63,6 +63,24 @@ class SessionStatus(enum.Enum):
     abandoned = "abandoned"
 
 
+class UserSetLearnSettings(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """Пользовательское переопределение «Заучивания» для одного доступного набора."""
+
+    __tablename__ = "user_set_learn_settings"
+    __table_args__ = (
+        UniqueConstraint("user_id", "set_id", name="uq_user_set_learn_settings_user_id_set_id"),
+    )
+
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    set_id: Mapped[UUID] = mapped_column(
+        ForeignKey("study_sets.id", ondelete="CASCADE"), index=True
+    )
+    question_types: Mapped[list[str]] = mapped_column(JSONB)
+    successes_required: Mapped[int] = mapped_column(Integer)
+    typing_check: Mapped[str] = mapped_column(String(12))
+    match_percent: Mapped[int] = mapped_column(Integer)
+
+
 class CardState(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     """Состояние FSRS для тройки (пользователь, карточка, направление).
 

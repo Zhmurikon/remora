@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { PrintMenu } from './PrintMenu';
 import { ResetProgress } from './ResetProgress';
+import { SetLearnSettings } from './SetLearnSettings';
 
 export function SetStudyPanel({ setId, cardsCount }: { setId: string; cardsCount: number }) {
   const stats = useQuery({
@@ -74,6 +75,8 @@ export function SetStudyPanel({ setId, cardsCount }: { setId: string; cardsCount
           </Button>
         </Link>
       </div>
+
+      <SetLearnSettings setId={setId} disabled={disabled} />
 
       {stats.data && stats.data.cards_total > 0 && (
         <>

@@ -26,6 +26,7 @@ from app.models.study import (
     StudyMode,
     StudySession,
     TestAttempt,
+    UserSetLearnSettings,
     UserSetProgress,
 )
 from app.models.transcriptions import TranscriptionJob, TranscriptionStatus
@@ -89,6 +90,7 @@ __all__ = [
     "UsageMetric",
     "User",
     "UserRole",
+    "UserSetLearnSettings",
     "UserSetProgress",
     "UserSettings",
     "UserStatus",
