@@ -439,6 +439,30 @@ async def test_learning_modes_share_study_session_and_progress(client, internal)
 
     await event(internal, command="stop")
     await ack(internal, (await internal.post("/internal/v1/delivery")).json())
+
+    await event(internal, command=f"mode:test:{study_set['id']}")
+    test_question = (await internal.post("/internal/v1/delivery")).json()
+    previous_question = test_question["text"].split("\n\n", 2)[1]
+    card_index = previous_question.removeprefix("термин ")
+    correct_answer = f"определение {card_index}"
+    option_lines = [
+        line
+        for line in test_question["text"].splitlines()
+        if line.startswith(("А. ", "Б. ", "В. ", "Г. "))
+    ]
+    wrong_index = next(
+        index for index, line in enumerate(option_lines) if line[3:] != correct_answer
+    )
+    await ack(internal, test_question)
+    await event(internal, command=f"choice:{wrong_index}")
+    test_feedback = (await internal.post("/internal/v1/delivery")).json()
+    assert test_feedback["text"].startswith(f"Вопрос:\n\n{previous_question}\n\nНеверно:")
+    assert f"Правильный ответ: {correct_answer}" in test_feedback["text"]
+    assert "Тест · 2/" in test_feedback["text"]
+    await ack(internal, test_feedback)
+    await event(internal, command="stop")
+    await ack(internal, (await internal.post("/internal/v1/delivery")).json())
+
     settings = await client.patch(
         "/api/v1/study/settings",
         headers=owner,

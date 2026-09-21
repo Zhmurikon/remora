@@ -827,6 +827,11 @@ class BotService:
             if current.direction == StudyDirection.term_to_def
             else current.card.term
         )
+        question = (
+            current.card.term
+            if current.direction == StudyDirection.term_to_def
+            else current.card.definition
+        )
         index = int(session.config.get("bot_index", 0))
         if session.mode == StudyMode.learn and correct is not None:
             successes = dict(session.config.get("bot_learn_successes", {}))
@@ -843,8 +848,11 @@ class BotService:
         flag_modified(session, "config")
         next_reply = await self._question(user, session)
         if correct is False:
+            question_prefix = f"Вопрос:\n\n{question}\n\n" if session.mode == StudyMode.test else ""
             next_reply.text = (
-                f"Неверно: {chosen or 'ответ не вспомнился'}\nПравильный ответ: {expected}\n\n"
+                question_prefix
+                + f"Неверно: {chosen or 'ответ не вспомнился'}\n"
+                f"Правильный ответ: {expected}\n\n"
                 + next_reply.text
             )
         elif correct is True:
