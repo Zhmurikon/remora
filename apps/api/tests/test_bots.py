@@ -334,6 +334,49 @@ async def test_learning_modes_share_study_session_and_progress(client, internal)
     linked = (await internal.post("/internal/v1/delivery")).json()
     await ack(internal, linked)
 
+    await event(internal, command="settings")
+    bot_settings = (await internal.post("/internal/v1/delivery")).json()
+    assert "Настройки заучивания" in bot_settings["text"]
+    assert [button["label"] for button in bot_settings["keyboard"][0]] == [
+        "Быстро",
+        "Обычно",
+        "Тщательно",
+    ]
+    await ack(internal, bot_settings)
+
+    await event(internal, command="learncfg:p:thorough", callback_id="settings-callback")
+    thorough = (await internal.post("/internal/v1/delivery")).json()
+    assert "Успешных ответов: 3" in thorough["text"]
+    await ack(internal, thorough)
+    saved = (await client.get("/api/v1/study/settings", headers=owner)).json()
+    assert saved["learn_successes_required"] == 3
+    assert saved["learn_match_percent"] == 95
+
+    await event(internal, command=f"setcfg:view:1:{study_set['id']}")
+    set_settings = (await internal.post("/internal/v1/delivery")).json()
+    assert "Общие настройки" in set_settings["text"]
+    await ack(internal, set_settings)
+    await event(internal, command=f"setcfg:p:fast:{study_set['id']}")
+    customized = (await internal.post("/internal/v1/delivery")).json()
+    assert "Индивидуальные настройки" in customized["text"]
+    assert "Успешных ответов: 1" in customized["text"]
+    assert any(
+        button["label"] == "Вернуть общие настройки"
+        for row in customized["keyboard"]
+        for button in row
+    )
+    await ack(internal, customized)
+    override = (
+        await client.get(f"/api/v1/study/sets/{study_set['id']}/learn-settings", headers=owner)
+    ).json()
+    assert override["customized"] is True
+    assert override["question_types"] == ["choice", "recall"]
+
+    await event(internal, command=f"setcfg:reset:1:{study_set['id']}")
+    reset = (await internal.post("/internal/v1/delivery")).json()
+    assert "Общие настройки" in reset["text"]
+    await ack(internal, reset)
+
     await event(internal, command="sets")
     sets = (await internal.post("/internal/v1/delivery")).json()
     assert sets["keyboard"][0][0]["label"] == "Биология"

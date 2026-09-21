@@ -32,12 +32,16 @@ from app.schemas.bots import (
 )
 from app.schemas.study import (
     DirectionMode,
+    LearnQuestionType,
+    LearnTypingCheck,
     QueueItem,
     QueueScope,
     ReviewBatch,
     ReviewIn,
     SessionCreate,
+    SetLearnSettingsUpdate,
     StudyQueue,
+    StudySettingsUpdate,
 )
 from app.services.courses import CourseService
 from app.services.study import StudyService
@@ -47,6 +51,31 @@ CHOICE_LABELS = ("А", "Б", "В", "Г")
 SETS_PAGE_SIZE = 6
 TYPING_THRESHOLD = 1
 RECALL_THRESHOLD = 21
+LEARN_PRESETS = {
+    "fast": (
+        [LearnQuestionType.choice, LearnQuestionType.recall],
+        1,
+        LearnTypingCheck.automatic,
+        80,
+    ),
+    "normal": (
+        [LearnQuestionType.choice, LearnQuestionType.typing, LearnQuestionType.recall],
+        1,
+        LearnTypingCheck.automatic,
+        90,
+    ),
+    "thorough": (
+        [LearnQuestionType.choice, LearnQuestionType.typing, LearnQuestionType.recall],
+        3,
+        LearnTypingCheck.automatic,
+        95,
+    ),
+}
+QUESTION_LABELS = {
+    LearnQuestionType.choice: "Выбор ответа",
+    LearnQuestionType.typing: "Написание ответа",
+    LearnQuestionType.recall: "Карточка с самооценкой",
+}
 
 
 @dataclass(slots=True)
@@ -179,18 +208,17 @@ class BotService:
         if command == "today":
             return await self._today(user)
         if command == "settings":
-            settings_url = get_settings().app_url.rstrip("/") + "/settings#study"
-            return BotReply(
-                "Быстрые настройки появятся в боте позже. Сейчас типы упражнений, число повторений "
-                f"и проверку ответа можно изменить в кабинете:\n{settings_url}",
-                [[_button("В главное меню", "home")]],
-            )
+            return await self._learn_settings(user)
+        if command.startswith("learncfg:"):
+            return await self._update_learn_settings(user, command)
         if command == "sets":
             return await self._sets(user, 0)
         if command.startswith("sets:"):
             return await self._sets(user, max(0, int(command[5:])))
         if command.startswith("set:"):
             return await self._set(user, UUID(command[4:]))
+        if command.startswith("setcfg:"):
+            return await self._set_learn_settings(user, command)
         if command.startswith("mode:"):
             _, mode, set_id = command.split(":", 2)
             return await self._start(user, UUID(set_id), StudyMode(mode))
@@ -318,7 +346,180 @@ class BotService:
         return BotReply(
             f"{study_set.title}\nКарточек: {study_set.cards_count}. Выберите режим:",
             [[_button(label, f"mode:{mode}:{set_id}")] for label, mode in modes]
-            + [[_button("Назад к наборам", "sets")]],
+            + [
+                [_button("Настроить заучивание", f"setcfg:view:1:{set_id}")],
+                [_button("Назад к наборам", "sets")],
+            ],
+        )
+
+    def _learn_settings_reply(
+        self,
+        *,
+        question_types: list[LearnQuestionType],
+        successes_required: int,
+        typing_check: LearnTypingCheck,
+        match_percent: int,
+        prefix: str,
+        title: str,
+        back_action: str,
+        customized: bool | None = None,
+        set_id: UUID | None = None,
+    ) -> BotReply:
+        def action(field: str, value: str | int) -> str:
+            base = f"{prefix}:{field}:{value}"
+            return f"{base}:{set_id}" if set_id else base
+
+        enabled = set(question_types)
+        exercise_rows = [
+            [
+                _button(
+                    ("✓ " if kind in enabled else "○ ") + label,
+                    action("q", kind.value),
+                )
+            ]
+            for kind, label in QUESTION_LABELS.items()
+        ]
+        check_label = (
+            "Автоматически по совпадению"
+            if typing_check == LearnTypingCheck.automatic
+            else "Самооценка"
+        )
+        scope = "Индивидуальные настройки" if customized else "Общие настройки"
+        if customized is None:
+            scope = "Для всех наборов"
+        text = (
+            f"{title}\n{scope}\n\n"
+            f"Упражнения: {', '.join(QUESTION_LABELS[item] for item in question_types)}\n"
+            f"Успешных ответов: {successes_required}\n"
+            f"Проверка написанного: {check_label}\n"
+            f"Минимальное совпадение: {match_percent}%"
+        )
+        keyboard = [
+            [
+                _button("Быстро", action("p", "fast")),
+                _button("Обычно", action("p", "normal")),
+                _button("Тщательно", action("p", "thorough")),
+            ],
+            *exercise_rows,
+            [_button(str(value), action("r", value)) for value in range(1, 6)],
+            [
+                _button(
+                    ("✓ " if typing_check == LearnTypingCheck.automatic else "") + "Авто",
+                    action("c", "automatic"),
+                ),
+                _button(
+                    ("✓ " if typing_check == LearnTypingCheck.self_check else "") + "Самооценка",
+                    action("c", "self_check"),
+                ),
+            ],
+        ]
+        if typing_check == LearnTypingCheck.automatic:
+            keyboard.append(
+                [_button(f"{value}%", action("m", value)) for value in (70, 80, 90, 95, 100)]
+            )
+        if customized:
+            keyboard.append([_button("Вернуть общие настройки", action("reset", 1))])
+        keyboard.append([_button("Назад", back_action)])
+        return BotReply(text, keyboard)
+
+    async def _learn_settings(self, user: User) -> BotReply:
+        settings = await StudyService(self.db).get_settings(user)
+        return self._learn_settings_reply(
+            question_types=[LearnQuestionType(item) for item in settings.learn_question_types],
+            successes_required=settings.learn_successes_required,
+            typing_check=LearnTypingCheck(settings.learn_typing_check),
+            match_percent=settings.learn_match_percent,
+            prefix="learncfg",
+            title="Настройки заучивания",
+            back_action="home",
+        )
+
+    async def _update_learn_settings(self, user: User, command: str) -> BotReply:
+        _, field, value = command.split(":", 2)
+        study = StudyService(self.db)
+        current = await study.get_settings(user)
+        types = [LearnQuestionType(item) for item in current.learn_question_types]
+        update: dict[str, object] = {}
+        if field == "p":
+            types, repeats, check, percent = LEARN_PRESETS[value]
+            update = {
+                "learn_question_types": types,
+                "learn_successes_required": repeats,
+                "learn_typing_check": check,
+                "learn_match_percent": percent,
+            }
+        elif field == "q":
+            kind = LearnQuestionType(value)
+            if kind in types:
+                if len(types) == 1:
+                    reply = await self._learn_settings(user)
+                    reply.text = "Нужно оставить хотя бы одно упражнение.\n\n" + reply.text
+                    return reply
+                types.remove(kind)
+            else:
+                types.append(kind)
+            update["learn_question_types"] = types
+        elif field == "r":
+            update["learn_successes_required"] = int(value)
+        elif field == "c":
+            update["learn_typing_check"] = LearnTypingCheck(value)
+        elif field == "m":
+            update["learn_match_percent"] = int(value)
+        await study.update_settings(user, StudySettingsUpdate(**update))
+        return await self._learn_settings(user)
+
+    async def _set_learn_settings(self, user: User, command: str) -> BotReply:
+        _, field, value, set_id_raw = command.split(":", 3)
+        set_id = UUID(set_id_raw)
+        study = StudyService(self.db)
+        current = await study.get_set_learn_settings(user, set_id)
+        if field == "reset":
+            await study.reset_set_learn_settings(user, set_id)
+        elif field != "view":
+            types = list(current.question_types)
+            repeats = current.successes_required
+            check = current.typing_check
+            percent = current.match_percent
+            if field == "p":
+                types, repeats, check, percent = LEARN_PRESETS[value]
+            elif field == "q":
+                kind = LearnQuestionType(value)
+                if kind in types:
+                    if len(types) == 1:
+                        reply = await self._set_learn_settings(user, f"setcfg:view:1:{set_id}")
+                        reply.text = "Нужно оставить хотя бы одно упражнение.\n\n" + reply.text
+                        return reply
+                    types.remove(kind)
+                else:
+                    types.append(kind)
+            elif field == "r":
+                repeats = int(value)
+            elif field == "c":
+                check = LearnTypingCheck(value)
+            elif field == "m":
+                percent = int(value)
+            await study.update_set_learn_settings(
+                user,
+                set_id,
+                SetLearnSettingsUpdate(
+                    question_types=types,
+                    successes_required=repeats,
+                    typing_check=check,
+                    match_percent=percent,
+                ),
+            )
+        current = await study.get_set_learn_settings(user, set_id)
+        study_set = await study.content.get_study_set(user, set_id)
+        return self._learn_settings_reply(
+            question_types=current.question_types,
+            successes_required=current.successes_required,
+            typing_check=current.typing_check,
+            match_percent=current.match_percent,
+            prefix="setcfg",
+            title=f"Заучивание · {study_set.title}",
+            back_action=f"set:{set_id}",
+            customized=current.customized,
+            set_id=set_id,
         )
 
     async def _start(
