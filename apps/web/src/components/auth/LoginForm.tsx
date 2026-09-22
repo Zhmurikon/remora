@@ -2,11 +2,16 @@
 
 import { Button, Input } from '@remora/ui';
 import Link from 'next/link';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { APP_URL, authApi, getErrorMessage } from '../../lib/auth-api';
 import { FormDivider, FormError, PasswordField, SocialButtons } from './AuthFields';
+import { usePublicSession } from './PublicSession';
 
 export function LoginForm() {
+  const session = usePublicSession();
+  useEffect(() => {
+    if (session === 'authenticated') window.location.replace(APP_URL);
+  }, [session]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,6 +39,11 @@ export function LoginForm() {
       setLoading(false);
     }
   }
+
+  if (session !== 'guest')
+    return (
+      <p role="status">{session === 'checking' ? 'Проверяем вход…' : 'Открываем приложение…'}</p>
+    );
 
   return (
     <>

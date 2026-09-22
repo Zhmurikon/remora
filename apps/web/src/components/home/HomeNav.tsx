@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { FishMark } from '@remora/ui';
+import { PublicAuthLink } from '../auth/PublicSession';
 
 export function HomeNav() {
   const [open, setOpen] = useState(false);
@@ -19,7 +20,7 @@ export function HomeNav() {
         <a href="#questions">Вопросы</a>
       </nav>
       <div className="home-nav-actions">
-        <a href="/login">Войти</a>
+        <PublicAuthLink />
         <a className="home-button home-button-small" href="#demo">
           Попробовать
         </a>
@@ -65,7 +66,7 @@ export function HomeNav() {
         <a href="#questions" onClick={() => setOpen(false)}>
           Вопросы и ответы
         </a>
-        <a href="/login">Войти</a>
+        <PublicAuthLink />
         <a href="#demo" onClick={() => setOpen(false)}>
           Попробовать без регистрации
         </a>

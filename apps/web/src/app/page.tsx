@@ -342,9 +342,10 @@ export default function HomePage() {
           <a href="/blog">Блог</a>
           <a href="/podborki">Подборки</a>
           <a href="#questions">Вопросы и ответы</a>
-          <a href="/login">Войти</a>
+          <PublicAuthLink />
         </nav>
       </footer>
     </div>
   );
 }
+import { PublicAuthLink } from '../components/auth/PublicSession';

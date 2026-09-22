@@ -11,6 +11,7 @@ import { SaveOriginalButton } from './SaveOriginalButton';
 import { JsonLd } from '../../../components/JsonLd';
 import { absoluteUrl, DEFAULT_OG_IMAGE } from '../../../lib/seo';
 import { cachedPublicRead } from '../../../lib/cache';
+import { PublicAuthLink } from '../../../components/auth/PublicSession';
 
 const API_URL = process.env.API_INTERNAL_URL ?? 'http://localhost:8000';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:5173';
@@ -136,19 +137,24 @@ export default async function PublicCoursePage({ params }: { params: Promise<{ s
   return (
     <main className="mx-auto min-h-dvh max-w-6xl px-4 py-6 sm:px-8">
       <JsonLd data={structuredData} />
-      <nav className="flex items-center justify-between" aria-label="Основная навигация">
+      <nav
+        className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2"
+        aria-label="Основная навигация"
+      >
         <Link
-          href="/"
+          href={APP_URL}
+          aria-label="Remora — приложение"
           className="text-primary inline-flex min-h-11 items-center text-xl font-semibold"
         >
           Remora
         </Link>
+        <Link href="/" className="text-primary inline-flex min-h-11 items-center underline">
+          Главная
+        </Link>
         <Link href="/kursy" className="text-primary inline-flex min-h-11 items-center underline">
           Каталог курсов
         </Link>
-        <Link href="/login" className="text-primary inline-flex min-h-11 items-center underline">
-          Войти
-        </Link>
+        <PublicAuthLink className="text-primary inline-flex min-h-11 items-center underline" />
       </nav>
       <header className="max-w-3xl py-12">
         <p className="text-primary text-sm font-medium">Учебный курс</p>
@@ -207,7 +213,9 @@ export default async function PublicCoursePage({ params }: { params: Promise<{ s
                   {article.body && (
                     <ArticleContent
                       value={article.body}
-                      media={Object.fromEntries((article.media ?? []).map((item) => [item.id, item]))}
+                      media={Object.fromEntries(
+                        (article.media ?? []).map((item) => [item.id, item]),
+                      )}
                     />
                   )}
                   <div className="flex flex-wrap gap-3">

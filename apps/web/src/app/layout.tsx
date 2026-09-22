@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { DEFAULT_OG_IMAGE } from '../lib/seo';
+import { PublicSessionProvider } from '../components/auth/PublicSession';
 
 export const metadata: Metadata = {
   title: {
@@ -39,7 +40,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ru">
-      <body>{children}</body>
+      <body>
+        <PublicSessionProvider>{children}</PublicSessionProvider>
+      </body>
     </html>
   );
 }

@@ -92,12 +92,7 @@ export default async function PublicSetPage({ params }: { params: Promise<{ slug
             </span>
             Remora
           </Link>
-          <Link
-            href={`${APP_URL}/login`}
-            className="border-border bg-surface hover:bg-surface-muted inline-flex h-11 items-center rounded-full border px-5 text-sm font-medium transition-colors"
-          >
-            Войти
-          </Link>
+          <PublicAuthLink className="border-border bg-surface hover:bg-surface-muted inline-flex h-11 items-center rounded-full border px-5 text-sm font-medium transition-colors" />
         </nav>
 
         <header className="grid gap-8 pb-10 pt-14 lg:grid-cols-[1fr_auto] lg:items-end">
@@ -220,3 +215,4 @@ function formatCardCount(count: number) {
           : 'карточек';
   return `${count} ${word}`;
 }
+import { PublicAuthLink } from '../../../components/auth/PublicSession';

@@ -39,9 +39,10 @@ export default function BlogLayout({ children }: { children: ReactNode }) {
         <nav aria-label="Навигация в подвале">
           <a href="/blog">Все статьи</a>
           <a href="/kursy">Каталог</a>
-          <a href="/login">Войти</a>
+          <PublicAuthLink />
         </nav>
       </footer>
     </div>
   );
 }
+import { PublicAuthLink } from '../../components/auth/PublicSession';

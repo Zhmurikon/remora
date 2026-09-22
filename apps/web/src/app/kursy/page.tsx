@@ -104,9 +104,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
         >
           Remora
         </Link>
-        <Link href="/login" className="text-primary inline-flex min-h-11 items-center underline">
-          Войти
-        </Link>
+        <PublicAuthLink className="text-primary inline-flex min-h-11 items-center underline" />
       </nav>
       <header className="py-10 sm:py-12">
         <p className="text-primary text-sm font-medium">Учебные материалы сообщества</p>
@@ -284,3 +282,4 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
     </main>
   );
 }
+import { PublicAuthLink } from '../../components/auth/PublicSession';
