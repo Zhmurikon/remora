@@ -698,3 +698,254 @@ async def test_sessions_are_isolated_by_user(mock_send: AsyncMock, client: pytes
         f"/api/v1/auth/sessions/{sessions.json()[0]['id']}", headers=first_headers
     )
     assert revoked.status_code == 204
+
+
+# ── Мобильный auth-flow (X-Client: mobile) ───────────────────────────
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_mobile_login_returns_refresh_in_body(
+    mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    """Мобильный клиент (X-Client: mobile) получает refresh-токен в теле ответа."""
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "mobile@example.com",
+            "password": "Str0ngP@ss!",
+            "username": "mobileuser",
+        },
+    )
+    token = mock_send.await_args.args[1]
+    await client.post("/api/v1/auth/verify-email", json={"token": token})
+
+    mobile_headers = {"X-Client": "mobile"}
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "mobile@example.com", "password": "Str0ngP@ss!"},
+        headers=mobile_headers,
+    )
+    assert login.status_code == 200
+    body = login.json()
+    assert body["access_token"]
+    assert body["refresh_token"] is not None
+    assert len(body["refresh_token"]) > 20
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_web_login_no_refresh_in_body(
+    mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    """Веб-клиент НЕ получает refresh-токен в теле — только через cookie."""
+    resp = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "web@example.com",
+            "password": "Str0ngP@ss!",
+            "username": "webuser",
+        },
+    )
+    assert resp.status_code == 201
+
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "web@example.com", "password": "Str0ngP@ss!"},
+    )
+    assert login.status_code == 200
+    body = login.json()
+    assert body["access_token"]
+    assert body["refresh_token"] is None
+    # Но cookie установлена
+    assert "remora_refresh" in login.cookies
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_mobile_refresh_via_body(
+    mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    """Мобильный refresh через тело (без cookie) — возвращает новый refresh."""
+    resp = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "mrefresh@example.com",
+            "password": "Str0ngP@ss!",
+            "username": "mrefresh",
+        },
+    )
+    assert resp.status_code == 201
+
+    mobile_headers = {"X-Client": "mobile"}
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "mrefresh@example.com", "password": "Str0ngP@ss!"},
+        headers=mobile_headers,
+    )
+    refresh_token = login.json()["refresh_token"]
+
+    # Refresh через тело, без cookie
+    refreshed = await client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": refresh_token},
+        headers=mobile_headers,
+    )
+    assert refreshed.status_code == 200
+    assert refreshed.json()["access_token"]
+    assert refreshed.json()["refresh_token"] is not None
+    # Новый refresh-токен отличается от старого
+    assert refreshed.json()["refresh_token"] != refresh_token
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_mobile_refresh_via_header(
+    mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    """Refresh через заголовок X-Refresh-Token тоже работает."""
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "mheader@example.com",
+            "password": "Str0ngP@ss!",
+            "username": "mheader",
+        },
+    )
+    mobile_headers = {"X-Client": "mobile"}
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "mheader@example.com", "password": "Str0ngP@ss!"},
+        headers=mobile_headers,
+    )
+    refresh_token = login.json()["refresh_token"]
+
+    refreshed = await client.post(
+        "/api/v1/auth/refresh",
+        headers={**mobile_headers, "X-Refresh-Token": refresh_token},
+    )
+    assert refreshed.status_code == 200
+    assert refreshed.json()["access_token"]
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_mobile_logout_via_body(
+    mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    """Мобильный logout через тело (без cookie) отзывает токен."""
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "mlogout@example.com",
+            "password": "Str0ngP@ss!",
+            "username": "mlogout",
+        },
+    )
+    mobile_headers = {"X-Client": "mobile"}
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "mlogout@example.com", "password": "Str0ngP@ss!"},
+        headers=mobile_headers,
+    )
+    refresh_token = login.json()["refresh_token"]
+
+    logout = await client.post(
+        "/api/v1/auth/logout",
+        json={"refresh_token": refresh_token},
+        headers=mobile_headers,
+    )
+    assert logout.status_code == 204
+
+    # После logout refresh-токен больше не работает
+    reuse = await client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": refresh_token},
+        headers=mobile_headers,
+    )
+    assert reuse.status_code == 401
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_mobile_verify_email_returns_tokens(
+    mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    """Мобильный verify-email возвращает access + refresh, чтобы сразу войти."""
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "mverify@example.com",
+            "password": "Str0ngP@ss!",
+            "username": "mverify",
+        },
+    )
+    token = mock_send.await_args.args[1]
+
+    mobile_headers = {"X-Client": "mobile"}
+    verified = await client.post(
+        "/api/v1/auth/verify-email",
+        json={"token": token},
+        headers=mobile_headers,
+    )
+    assert verified.status_code == 200
+    body = verified.json()
+    assert body["access_token"]
+    assert body["refresh_token"] is not None
+    assert body["user"]["email_verified"] is True
+
+    # Полученный access-токен работает для /me
+    me = await client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {body['access_token']}"},
+    )
+    assert me.status_code == 200
+    assert me.json()["email"] == "mverify@example.com"
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_mobile_refresh_reuse_revokes_family(
+    mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    """Повторное использование мобильного refresh-токена отзывает всю семью."""
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "mreuse@example.com",
+            "password": "Str0ngP@ss!",
+            "username": "mreuse",
+        },
+    )
+    mobile_headers = {"X-Client": "mobile"}
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "mreuse@example.com", "password": "Str0ngP@ss!"},
+        headers=mobile_headers,
+    )
+    old_refresh = login.json()["refresh_token"]
+
+    # Убираем cookie — мобильный клиент не использует cookie
+    client.cookies.clear()
+
+    # Первый refresh — успех
+    refreshed = await client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": old_refresh},
+        headers=mobile_headers,
+    )
+    assert refreshed.status_code == 200
+
+    # Убираем cookie перед повторной попыткой
+    client.cookies.clear()
+
+    # Повторное использование старого токена — отзыв семьи
+    reuse = await client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": old_refresh},
+        headers=mobile_headers,
+    )
+    assert reuse.status_code == 401
+
+    # Новый токен тоже отозван (вся семья)
+    client.cookies.clear()
+    new_refresh = refreshed.json()["refresh_token"]
+    reuse2 = await client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": new_refresh},
+        headers=mobile_headers,
+    )
+    assert reuse2.status_code == 401

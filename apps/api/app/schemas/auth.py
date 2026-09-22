@@ -22,12 +22,18 @@ class LoginRequest(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: str | None = None
     token_type: str = "bearer"
     user: UserPublic
 
 
+class RefreshRequest(BaseModel):
+    refresh_token: str | None = None
+
+
 class RefreshResponse(BaseModel):
     access_token: str
+    refresh_token: str | None = None
     token_type: str = "bearer"
 
 

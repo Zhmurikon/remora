@@ -91,7 +91,20 @@ class AuthService:
         log.info("auth.register", user_id=str(user.id), email=email)
         return user, token
 
-    async def verify_email(self, token: str) -> User:
+    async def verify_email(
+        self,
+        token: str,
+        *,
+        create_session: bool = False,
+        user_agent: str | None = None,
+        ip: str | None = None,
+    ) -> tuple[User, str, str, datetime]:
+        """Подтверждает email.
+
+        При create_session=True (мобильный клиент) создаёт refresh-сессию
+        и возвращает токены, чтобы пользователь сразу оказался авторизован.
+        Для веб-клиента access и refresh — пустые строки.
+        """
         payload = decode_jwt(token, "email_verification")
         if payload is None:
             raise UnauthorizedError("Недействительная или истекшая ссылка")
@@ -112,7 +125,26 @@ class AuthService:
 
         await user_repo.verify_email(self.db, user_id)
         log.info("auth.email_verified", user_id=str(user_id))
-        return user
+
+        if create_session:
+            access_token = create_jwt(str(user.id), "access")
+            raw_token, token_hash = generate_refresh_token()
+            settings = get_settings()
+            expires_at = datetime.now(tz=UTC) + timedelta(
+                days=settings.refresh_token_ttl_days
+            )
+            await token_repo.create_token(
+                self.db,
+                user_id=user.id,
+                token_hash=token_hash,
+                family_id=uuid4(),
+                expires_at=expires_at,
+                user_agent=user_agent,
+                ip=ip,
+            )
+            return user, access_token, raw_token, expires_at
+
+        return user, "", "", datetime.now(tz=UTC)
 
     async def login(
         self,

@@ -4,11 +4,15 @@
 - POST /auth/register    — регистрация по email+пароль
 - POST /auth/verify-email — подтверждение email
 - POST /auth/login       — вход
-- POST /auth/refresh      — ротация refresh-токена (читает cookie)
+- POST /auth/refresh      — ротация refresh-токена (cookie или тело/заголовок)
 - POST /auth/logout       — отзыв сессии
 - POST /auth/password-reset      — запрос сброса пароля
 - POST /auth/password-reset/confirm — сброс пароля
 - GET  /auth/me           — текущий пользователь
+
+Мобильный клиент (X-Client: mobile) получает refresh-токен в теле ответа;
+веб-клиент получает его через httpOnly-cookie. Ротация и детекция
+переиспользования семьи токенов одинаковы для обоих клиентов.
 """
 
 from __future__ import annotations
@@ -31,6 +35,7 @@ from app.schemas.auth import (
     PasswordResetConfirmRequest,
     PasswordResetRequest,
     ProfileUpdateRequest,
+    RefreshRequest,
     RefreshResponse,
     RegisterRequest,
     SessionPublic,
@@ -41,6 +46,22 @@ from app.schemas.auth import (
 from app.services.auth import AuthService, to_user_public
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _is_mobile_client(request: Request) -> bool:
+    """Признак мобильного клиента: заголовок X-Client: mobile."""
+    return request.headers.get("x-client", "").lower() == "mobile"
+
+
+def _get_refresh_token(request: Request, body_token: str | None = None) -> str | None:
+    """Извлекает refresh-токен: cookie → заголовок X-Refresh-Token → тело."""
+    cookie_token = request.cookies.get(get_settings().refresh_cookie_name)
+    if cookie_token:
+        return cookie_token
+    header_token = request.headers.get("x-refresh-token")
+    if header_token:
+        return header_token
+    return body_token
 
 
 def _set_refresh_cookie(
@@ -79,6 +100,7 @@ def _clear_refresh_cookie(response: Response) -> None:
 async def register(
     request: Request,
     body: RegisterRequest,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
     settings = get_settings()
@@ -105,12 +127,27 @@ async def register(
     summary="Подтверждение email",
 )
 async def verify_email(
+    request: Request,
     body: VerifyEmailRequest,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
     service = AuthService(db)
-    user = await service.verify_email(body.token)
-    return TokenResponse(access_token="", user=to_user_public(user))
+    is_mobile = _is_mobile_client(request)
+    user_agent = request.headers.get("user-agent")
+    ip = request.client.host if request.client else None
+    user, access, refresh_raw, expires_at = await service.verify_email(
+        body.token,
+        create_session=is_mobile,
+        user_agent=user_agent,
+        ip=ip,
+    )
+    _set_refresh_cookie(response, refresh_raw, expires_at)
+    return TokenResponse(
+        access_token=access,
+        refresh_token=refresh_raw if is_mobile else None,
+        user=to_user_public(user),
+    )
 
 
 @router.post(
@@ -127,6 +164,7 @@ async def login(
     user_agent = request.headers.get("user-agent")
     client = request.client
     ip = client.host if client else None
+    is_mobile = _is_mobile_client(request)
 
     settings = get_settings()
     await enforce_rate_limit(
@@ -145,7 +183,11 @@ async def login(
         ip=ip,
     )
     _set_refresh_cookie(response, refresh_raw, expires_at)
-    return TokenResponse(access_token=access, user=to_user_public(user))
+    return TokenResponse(
+        access_token=access,
+        refresh_token=refresh_raw if is_mobile else None,
+        user=to_user_public(user),
+    )
 
 
 @router.post(
@@ -156,15 +198,18 @@ async def login(
 async def refresh(
     request: Request,
     response: Response,
+    body: RefreshRequest | None = None,
     db: AsyncSession = Depends(get_db),
 ) -> RefreshResponse:
-    refresh_token = request.cookies.get(get_settings().refresh_cookie_name)
+    body_token = body.refresh_token if body else None
+    refresh_token = _get_refresh_token(request, body_token)
     if refresh_token is None:
         raise UnauthorizedError("Отсутствует refresh-токен")
 
     user_agent = request.headers.get("user-agent")
     client = request.client
     ip = client.host if client else None
+    is_mobile = _is_mobile_client(request)
 
     service = AuthService(db)
     _user, access, new_refresh, expires_at = await service.refresh(
@@ -173,7 +218,10 @@ async def refresh(
         ip=ip,
     )
     _set_refresh_cookie(response, new_refresh, expires_at)
-    return RefreshResponse(access_token=access)
+    return RefreshResponse(
+        access_token=access,
+        refresh_token=new_refresh if is_mobile else None,
+    )
 
 
 @router.post(
@@ -184,9 +232,11 @@ async def refresh(
 async def logout(
     request: Request,
     response: Response,
+    body: RefreshRequest | None = None,
     db: AsyncSession = Depends(get_db),
 ) -> None:
-    refresh_token = request.cookies.get(get_settings().refresh_cookie_name)
+    body_token = body.refresh_token if body else None
+    refresh_token = _get_refresh_token(request, body_token)
     if refresh_token is not None:
         service = AuthService(db)
         await service.logout(refresh_token)
