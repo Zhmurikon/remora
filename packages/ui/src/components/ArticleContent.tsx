@@ -1,20 +1,22 @@
 'use client';
 
 import { createElement, lazy, Suspense, type ReactNode } from 'react';
-import MarkdownIt from 'markdown-it';
 import type { Token } from 'markdown-it';
-import { markdownMath } from './markdown-math';
+import { md, mediaId } from './article-markdown';
 import './card-content.css';
 
 // Тяжёлые зависимости (shiki, katex) грузятся только когда в теории есть код или формула.
 const HighlightedCode = lazy(() => import('./HighlightedCode'));
 const FormulaContent = lazy(() => import('./FormulaContent'));
 
-// html:false запрещает сырой HTML в теории (XSS): теги остаются текстом, а не разметкой.
-const md = new MarkdownIt({ html: false, linkify: true, typographer: false, breaks: false });
-md.use(markdownMath);
-
 const FENCE_MATH = new Set(['math', 'latex', 'tex', 'katex']);
+
+// Подписанные ссылки на изображения теории приходят с сервера картой UUID → ресурс.
+export interface ArticleMedia {
+  url: string;
+  width?: number | null;
+  height?: number | null;
+}
 
 // В теории нет своего роутинга, поэтому ссылка допустима только абсолютная http(s) или mailto.
 function safeHref(href: string | number | null): string | null {
@@ -32,9 +34,11 @@ function alignClass(token: Token): string {
 export function ArticleContent({
   value,
   headingLevel = 3,
+  media = {},
 }: {
   value: string;
   headingLevel?: 2 | 3;
+  media?: Record<string, ArticleMedia>;
 }) {
   let key = 0;
   const nextKey = () => (key += 1);
@@ -215,13 +219,27 @@ export function ArticleContent({
           </Suspense>
         );
       case 'image': {
-        // Изображения теории появятся на Этапе 2 (протокол media:), пока показываем подпись.
-        const alt = token.content?.trim();
-        return alt ? (
-          <span key={nextKey()} className="text-fg-muted">
-            {alt}
-          </span>
-        ) : null;
+        const alt = token.content?.trim() ?? '';
+        const id = mediaId(token.attrGet('src'));
+        const asset = id ? media[id] : undefined;
+        // Незнакомый media или внешняя ссылка не рендерятся картинкой — максимум подпись.
+        if (!asset)
+          return alt ? (
+            <span key={nextKey()} className="text-fg-muted">
+              {alt}
+            </span>
+          ) : null;
+        return (
+          <img
+            key={nextKey()}
+            src={asset.url}
+            alt={alt}
+            width={asset.width ?? undefined}
+            height={asset.height ?? undefined}
+            loading="lazy"
+            className="border-border my-2 max-h-[32rem] max-w-full rounded-xl border object-contain"
+          />
+        );
       }
       default:
         return null;

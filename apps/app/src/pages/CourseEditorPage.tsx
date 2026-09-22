@@ -1,7 +1,7 @@
 import type { components } from '@remora/api-client';
-import { ArticleContent, Button, Card, Input } from '@remora/ui';
+import { ArticleContent, type ArticleMedia, Button, Card, Input } from '@remora/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 
@@ -62,6 +62,31 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
   const request = useRef<{ payload: string; key: string } | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Подписанные ссылки картинок из последней загрузки редактора плюс добавленные в этой сессии.
+  const serverMedia = useMemo<Record<string, ArticleMedia>>(() => {
+    const map: Record<string, ArticleMedia> = {};
+    for (const s of initial.sections)
+      for (const a of s.articles) for (const m of a.media ?? []) map[m.id] = m;
+    return map;
+  }, [initial]);
+  const [uploadedMedia, setUploadedMedia] = useState<Record<string, ArticleMedia>>({});
+  const previewMedia = { ...serverMedia, ...uploadedMedia };
+  function insertImageMarker(id: string) {
+    const marker = `\n\n![](media:${id})\n\n`;
+    const current =
+      sections.flatMap((s) => s.articles ?? []).find((a) => a.id === articleId)?.body ?? '';
+    const area = textareaRef.current;
+    const start = area?.selectionStart ?? current.length;
+    const end = area?.selectionEnd ?? current.length;
+    const next = current.slice(0, start) + marker + current.slice(end);
+    change(
+      sections.map((s) => ({
+        ...s,
+        articles: s.articles?.map((a) => (a.id === articleId ? { ...a, body: next } : a)),
+      })),
+    );
+  }
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => {
       if (dirty) event.preventDefault();
@@ -365,13 +390,24 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
                       />
                       {articleId &&
                         (preview ? (
-                          <ArticleContent value={article.body ?? ''} />
+                          <ArticleContent
+                            value={article.body ?? ''}
+                            headingLevel={2}
+                            media={previewMedia}
+                          />
                         ) : (
                           <label className="block space-y-2">
                             <span>
                               Теория статьи {si + 1}.{ai + 1}
                             </span>
+                            <MaterialImageButton
+                              onUploaded={(id, media) => {
+                                setUploadedMedia((prev) => ({ ...prev, [id]: media }));
+                                insertImageMarker(id);
+                              }}
+                            />
                             <textarea
+                              ref={textareaRef}
                               className={field}
                               rows={22}
                               maxLength={100000}
@@ -387,7 +423,7 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
                             <span className="text-fg-muted block text-sm">
                               Разметка Markdown: # заголовки, **жирный** и *курсив*, списки и
                               нумерация, таблицы, цитаты через «&gt;», разделитель «---», ссылки,
-                              формулы $…$ и $$…$$, блоки кода с указанием языка.
+                              изображения, формулы $…$ и $$…$$, блоки кода с указанием языка.
                             </span>
                           </label>
                         ))}
@@ -577,6 +613,67 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
           )}
         </fieldset>
       </form>
+    </div>
+  );
+}
+
+function MaterialImageButton({
+  onUploaded,
+}: {
+  onUploaded: (id: string, media: ArticleMedia) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+  async function upload(file: File) {
+    setUploading(true);
+    setError('');
+    try {
+      const ticket = await api.POST('/api/v1/media/upload-url', {
+        body: { filename: file.name, mime: file.type, size_bytes: file.size },
+      });
+      if (ticket.error || !ticket.data) throw new Error();
+      const put = await fetch(ticket.data.upload_url, {
+        method: ticket.data.method,
+        headers: ticket.data.headers,
+        body: file,
+      });
+      if (!put.ok) throw new Error();
+      const done = await api.POST('/api/v1/media/{asset_id}/complete', {
+        params: { path: { asset_id: ticket.data.id } },
+      });
+      if (done.error || !done.data?.download_url) throw new Error();
+      onUploaded(done.data.id, {
+        url: done.data.download_url,
+        width: done.data.width,
+        height: done.data.height,
+      });
+    } catch {
+      setError('Не удалось загрузить изображение. Поддерживаются JPEG, PNG, WebP и GIF.');
+    } finally {
+      setUploading(false);
+    }
+  }
+  return (
+    <div className="space-y-2">
+      <label className="border-border text-fg hover:bg-surface-muted inline-flex h-11 cursor-pointer items-center rounded-xl border px-4 text-sm font-medium">
+        {uploading ? 'Загружаем…' : '＋ Вставить изображение'}
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          className="sr-only"
+          disabled={uploading}
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) void upload(file);
+            event.target.value = '';
+          }}
+        />
+      </label>
+      {error && (
+        <p role="alert" className="text-danger text-sm">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

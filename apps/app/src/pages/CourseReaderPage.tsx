@@ -364,7 +364,13 @@ function Reader({ course }: { course: components['schemas']['CourseDetail'] }) {
                   </p>
                   <div className={`course-reading ${largeText ? 'text-xl' : 'text-lg'}`}>
                     {active.body ? (
-                      <ArticleContent value={active.body} headingLevel={2} />
+                      <ArticleContent
+                        value={active.body}
+                        headingLevel={2}
+                        media={Object.fromEntries(
+                          (active.media ?? []).map((item) => [item.id, item]),
+                        )}
+                      />
                     ) : (
                       <p className="text-fg-muted">
                         Теория пока не добавлена. Можно сразу перейти к квизу.

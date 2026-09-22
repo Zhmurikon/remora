@@ -204,7 +204,12 @@ export default async function PublicCoursePage({ params }: { params: Promise<{ s
                       {material.cards_count}
                     </p>
                   </header>
-                  {article.body && <ArticleContent value={article.body} />}
+                  {article.body && (
+                    <ArticleContent
+                      value={article.body}
+                      media={Object.fromEntries((article.media ?? []).map((item) => [item.id, item]))}
+                    />
+                  )}
                   <div className="flex flex-wrap gap-3">
                     <SaveOriginalButton
                       targetType="article"

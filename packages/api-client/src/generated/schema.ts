@@ -1919,6 +1919,23 @@ export interface components {
             /** Scopes */
             scopes: string[];
         };
+        /**
+         * ArticleMediaRef
+         * @description Подписанная ссылка на изображение теории; body ссылается на неё через media:id.
+         */
+        ArticleMediaRef: {
+            /** Height */
+            height?: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Url */
+            url: string;
+            /** Width */
+            width?: number | null;
+        };
         /** ArticleWrite */
         ArticleWrite: {
             /**
@@ -2132,6 +2149,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Media */
+            media?: components["schemas"]["ArticleMediaRef"][];
             /** Position */
             position: number;
             /**

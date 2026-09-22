@@ -56,6 +56,15 @@ class CourseSummary(CourseMetadata):
     liked_by_me: bool = False
 
 
+class ArticleMediaRef(BaseModel):
+    """Подписанная ссылка на изображение теории; body ссылается на неё через media:id."""
+
+    id: UUID
+    url: str
+    width: int | None = None
+    height: int | None = None
+
+
 class CourseArticlePublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -64,6 +73,7 @@ class CourseArticlePublic(BaseModel):
     title: str
     body: str
     position: int
+    media: list[ArticleMediaRef] = Field(default_factory=list)
 
 
 class CourseSectionPublic(BaseModel):

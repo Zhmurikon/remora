@@ -1,10 +1,12 @@
 """Редактор структуры и независимые копии, без изменения учебного прогресса."""
 
+import re
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.article_media import extract_media_ids
 from app.core.errors import ConflictError, NotFoundError
 from app.core.storage import get_object_storage
 from app.models.content import Card, MediaAsset, MediaStatus, SetVisibility, StudySet
@@ -104,6 +106,16 @@ class CourseEditorService:
                     ):
                         raise ConflictError("Набор уже связан со статьёй")
                     used_sets.add(article_input.set_id)
+        # Изображения в теории обязаны принадлежать автору: чужой media: в body недопустим.
+        await self.content.validate_media_owned(
+            user,
+            {
+                media_id
+                for section_input in body.sections
+                for article_input in section_input.articles
+                for media_id in extract_media_ids(article_input.body)
+            },
+        )
         # Отрицательные позиции исключают конфликт уникальности при перестановке.
         for index, section in enumerate(sections.values(), 1):
             section.position = -index
@@ -153,6 +165,67 @@ class CourseEditorService:
         await self.db.flush()
         return await self.detail(user, course_id)
 
+    async def _copy_media_asset(
+        self,
+        user: User,
+        asset_id: UUID,
+        source_owner_id: UUID,
+        media: dict[UUID, UUID],
+        uploaded: list[str],
+    ) -> UUID:
+        """Независимая копия одного изображения: свой ключ в хранилище, запись и новый UUID.
+
+        Чужие `media_id` переиспользовать нельзя — подписанные ссылки проверяют владельца,
+        а удаление оригинала оставило бы копию без картинок. `media` кэширует уже скопированные,
+        чтобы одна картинка (в карточке и в теории) не дублировалась в пределах операции.
+        """
+        if asset_id in media:
+            return media[asset_id]
+        asset = await content_repo.get_media_asset(self.db, asset_id)
+        if not asset or asset.owner_id != source_owner_id or asset.status != MediaStatus.ready:
+            raise ConflictError("Изображение материала недоступно")
+        new_id = uuid4()
+        key = f"{user.id}/copies/{new_id}"
+        storage = get_object_storage()
+        payload, _ = await storage.read(asset.s3_key, asset.size_bytes)
+        uploaded.append(key)
+        await storage.put(key, payload, asset.mime)
+        self.db.add(
+            MediaAsset(
+                id=new_id,
+                owner_id=user.id,
+                s3_key=key,
+                kind=asset.kind,
+                mime=asset.mime,
+                size_bytes=asset.size_bytes,
+                width=asset.width,
+                height=asset.height,
+                checksum=asset.checksum,
+                source=asset.source,
+                status=MediaStatus.ready,
+            )
+        )
+        await self.db.flush()
+        media[asset_id] = new_id
+        return new_id
+
+    async def _copy_body_media(
+        self,
+        user: User,
+        body: str,
+        source_owner_id: UUID,
+        media: dict[UUID, UUID],
+        uploaded: list[str],
+    ) -> str:
+        """Копия теории с независимыми картинками: media:старый → media:новый в тексте."""
+        result = body
+        for old_id in extract_media_ids(body):
+            new_id = await self._copy_media_asset(user, old_id, source_owner_id, media, uploaded)
+            result = re.sub(
+                rf"media:{re.escape(str(old_id))}", f"media:{new_id}", result, flags=re.IGNORECASE
+            )
+        return result
+
     async def _copy_set_content(
         self,
         user: User,
@@ -161,12 +234,7 @@ class CourseEditorService:
         media: dict[UUID, UUID],
         uploaded: list[str],
     ) -> StudySet:
-        """Независимая копия набора: новые ID карточек и собственные копии изображений.
-
-        Чужие `media_id` переиспользовать нельзя — подписанные ссылки проверяют владельца,
-        а удаление оригинала оставило бы копию без картинок.
-        """
-        storage = get_object_storage()
+        """Независимая копия набора: новые ID карточек и собственные копии изображений."""
         new_set = await self.content.create_set(
             user,
             SetCreate(
@@ -183,39 +251,10 @@ class CourseEditorService:
             )
             for field in ("term_image_id", "definition_image_id"):
                 asset_id = values[field]
-                if asset_id is None:
-                    continue
-                if asset_id not in media:
-                    asset = await content_repo.get_media_asset(self.db, asset_id)
-                    if (
-                        not asset
-                        or asset.owner_id != source_owner_id
-                        or asset.status != MediaStatus.ready
-                    ):
-                        raise ConflictError("Изображение материала недоступно")
-                    new_id = uuid4()
-                    key = f"{user.id}/copies/{new_id}"
-                    payload, _ = await storage.read(asset.s3_key, asset.size_bytes)
-                    uploaded.append(key)
-                    await storage.put(key, payload, asset.mime)
-                    self.db.add(
-                        MediaAsset(
-                            id=new_id,
-                            owner_id=user.id,
-                            s3_key=key,
-                            kind=asset.kind,
-                            mime=asset.mime,
-                            size_bytes=asset.size_bytes,
-                            width=asset.width,
-                            height=asset.height,
-                            checksum=asset.checksum,
-                            source=asset.source,
-                            status=MediaStatus.ready,
-                        )
+                if asset_id is not None:
+                    values[field] = await self._copy_media_asset(
+                        user, asset_id, source_owner_id, media, uploaded
                     )
-                    await self.db.flush()
-                    media[asset_id] = new_id
-                values[field] = media[asset_id]
             self.db.add(Card(set_id=new_set.id, position=card.position, **values))
         new_set.cards_count = len(material.cards)
         await self.db.flush()
@@ -300,12 +339,15 @@ class CourseEditorService:
                     new_set = await self._copy_set_content(
                         user, material, source.owner_id, media, uploaded
                     )
+                    new_body = await self._copy_body_media(
+                        user, article.body, source.owner_id, media, uploaded
+                    )
                     self.db.add(
                         CourseArticle(
                             section_id=new_section.id,
                             set_id=new_set.id,
                             title=article.title,
-                            body=article.body,
+                            body=new_body,
                             position=article.position,
                         )
                     )

@@ -75,13 +75,38 @@ describe('ArticleContent', () => {
     expect(container.textContent).toContain('5$');
   });
 
-  it('показывает исходный код блока (fallback до подсветки)', () => {
+  it('показывает исходный код блока и подсвечивает его', async () => {
     const { container } = render(<ArticleContent value={'```python\nprint(1)\n```'} />);
+    // Fallback виден сразу, а затем shiki заменяет его подсветкой.
     expect(container.textContent).toContain('print(1)');
+    await waitFor(() => expect(container.querySelector('.shiki')).not.toBeNull());
   });
 
   it('рендерит блок формулы через ```math', async () => {
     const { container } = render(<ArticleContent value={'```math\n\\frac{1}{2}\n```'} />);
     await waitFor(() => expect(container.querySelector('.katex')).not.toBeNull());
+  });
+
+  it('рендерит изображение media: из карты media', () => {
+    const id = '11111111-1111-4111-8111-111111111111';
+    const { container } = render(
+      <ArticleContent
+        value={`![Схема](media:${id})`}
+        media={{ [id]: { url: 'blob:preview', width: 320, height: 200 } }}
+      />,
+    );
+    const img = container.querySelector('img');
+    expect(img?.getAttribute('src')).toBe('blob:preview');
+    expect(img?.getAttribute('alt')).toBe('Схема');
+    expect(img?.getAttribute('loading')).toBe('lazy');
+  });
+
+  it('не рендерит внешние изображения и неизвестный media', () => {
+    const { container } = render(
+      <ArticleContent
+        value={'![внешнее](https://e.com/x.png) ![нет карты](media:22222222-2222-4222-8222-222222222222)'}
+      />,
+    );
+    expect(container.querySelector('img')).toBeNull();
   });
 });

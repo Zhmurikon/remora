@@ -6,7 +6,11 @@ from uuid import UUID, uuid4
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.article_media import extract_media_ids
+from app.core.config import get_settings
 from app.core.errors import ConflictError, ForbiddenError, NotFoundError
+from app.core.storage import get_object_storage
+from app.models.content import MediaStatus
 from app.models.courses import Course, CourseArticle, CourseSection
 from app.models.user import User
 from app.repositories import content as content_repo
@@ -15,6 +19,7 @@ from app.repositories.api_tokens import lock_request
 from app.repositories.search import course_documents
 from app.schemas.content import PublicSet, SetCreate
 from app.schemas.courses import (
+    ArticleMediaRef,
     CourseArticlePublic,
     CourseAuthor,
     CourseCreate,
@@ -53,18 +58,49 @@ class CourseService:
         course = await self.owned(user, course_id)
         return await self._detail(course)
 
+    async def _resolve_article_media(
+        self, articles: list[CourseArticle], owner_id: UUID
+    ) -> dict[UUID, list[ArticleMediaRef]]:
+        """Подписанные ссылки на изображения теории. Доступ, как у карточек: изображение
+        должно принадлежать автору курса и быть готовым — иначе оно просто не отдаётся."""
+        per_article = {article.id: extract_media_ids(article.body) for article in articles}
+        wanted = {media_id for ids in per_article.values() for media_id in ids}
+        assets = {
+            asset.id: asset
+            for asset in await content_repo.get_media_assets(self.db, wanted)
+            if asset.status == MediaStatus.ready and asset.owner_id == owner_id
+        }
+        storage = get_object_storage()
+        ttl = get_settings().media_download_ttl_seconds
+        resolved: dict[UUID, list[ArticleMediaRef]] = {}
+        for article_id, ids in per_article.items():
+            resolved[article_id] = [
+                ArticleMediaRef(
+                    id=asset.id,
+                    url=storage.download_url(asset.s3_key, ttl),
+                    width=asset.width,
+                    height=asset.height,
+                )
+                for media_id in ids
+                if (asset := assets.get(media_id)) is not None
+            ]
+        return resolved
+
     async def _detail(self, course: Course, viewer: User | None = None) -> CourseDetail:
         author = await self.db.get(User, course.owner_id)
         if author is None:
             raise NotFoundError("Автор не найден")
         articles = await repo.articles(self.db, course.id)
+        media = await self._resolve_article_media(articles, course.owner_id)
         sections = [
             CourseSectionPublic(
                 id=section.id,
                 title=section.title,
                 position=section.position,
                 articles=[
-                    CourseArticlePublic.model_validate(a)
+                    CourseArticlePublic.model_validate(a).model_copy(
+                        update={"media": media.get(a.id, [])}
+                    )
                     for a in articles
                     if a.section_id == section.id
                 ],
@@ -168,6 +204,9 @@ class CourseService:
             study_set = await content_repo.get_set(self.db, article.set_id, with_cards=True)
             if study_set is None or study_set.owner_id != user.id or not study_set.cards:
                 raise ConflictError("Каждая статья должна содержать доступный набор с карточками")
+        await ContentService(self.db).validate_media_owned(
+            user, {media_id for article in articles for media_id in extract_media_ids(article.body)}
+        )
         course.is_published = True
         course.published_at = course.published_at or datetime.now(UTC)
         course.tags = body.tags

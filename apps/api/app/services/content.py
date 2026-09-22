@@ -270,6 +270,17 @@ class ContentService:
             if asset is None or asset.owner_id != user.id or asset.status != MediaStatus.ready:
                 raise ConflictError("Изображение недоступно или ещё не обработано")
 
+    async def validate_media_owned(self, user: User, media_ids: set[UUID]) -> None:
+        """Батч-проверка изображений теории: каждое принадлежит пользователю и готово."""
+        if not media_ids:
+            return
+        found = await content_repo.get_media_assets(self.db, media_ids)
+        assets = {asset.id: asset for asset in found}
+        for media_id in media_ids:
+            asset = assets.get(media_id)
+            if asset is None or asset.owner_id != user.id or asset.status != MediaStatus.ready:
+                raise ConflictError("Изображение недоступно или ещё не обработано")
+
     @staticmethod
     def _public_card(card: Card, assets: dict[UUID, MediaAsset]) -> PublicCard:
         storage = get_object_storage()
