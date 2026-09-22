@@ -1,8 +1,11 @@
 import asyncio
+import base64
+import json
 import os
 import socket
 import sys
 from pathlib import Path
+from unittest.mock import AsyncMock, patch
 
 import pytest
 import uvicorn
@@ -13,6 +16,7 @@ from mcp.client.stdio import stdio_client
 from app import mcp_server
 from app.main import create_app
 from tests.test_agent_api import course_body, token
+from tests.test_media import FakeStorage, _png
 from tests.test_study import _auth
 
 API_DIRECTORY = str(Path(__file__).resolve().parents[1])
@@ -118,9 +122,59 @@ async def test_stdio_handshake_and_schemas() -> None:
     async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
         await session.initialize()
         tools = (await session.list_tools()).tools
-        assert len(tools) == 15
+        assert len(tools) == 16
         create = next(t for t in tools if t.name == "create_course")
         assert "course" in create.inputSchema["properties"]
+        upload = next(t for t in tools if t.name == "upload_image")
+        assert "image" in upload.inputSchema["properties"]
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_mcp_uploads_base64_image(mock_send: AsyncMock, client: AsyncClient) -> None:
+    owner = await _auth(client, "mcpmedia")
+    _, created = await token(client, owner)
+    storage = FakeStorage(b"")
+    with (
+        socket.socket() as listener,
+        patch("app.services.media.get_object_storage", return_value=storage),
+    ):
+        listener.bind(("127.0.0.1", 0))
+        server = uvicorn.Server(uvicorn.Config(create_app(), lifespan="off", log_level="error"))
+        running = asyncio.create_task(server.serve(sockets=[listener]))
+        try:
+            async with asyncio.timeout(10):
+                while not server.started:  # noqa: ASYNC110
+                    await asyncio.sleep(0.01)
+            params = StdioServerParameters(
+                command=sys.executable,
+                args=["-m", "app.mcp_server"],
+                cwd=API_DIRECTORY,
+                env={
+                    **os.environ,
+                    "REMORA_API_TOKEN": created["token"],
+                    "REMORA_API_URL": f"http://127.0.0.1:{listener.getsockname()[1]}",
+                },
+            )
+            async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
+                await session.initialize()
+                result = await session.call_tool(
+                    "upload_image",
+                    {
+                        "image": {
+                            "data_base64": base64.b64encode(_png()).decode(),
+                            "mime": "image/png",
+                            "alt": "График",
+                        },
+                        "request_key": "mcp-media-1",
+                    },
+                )
+                assert not result.isError
+                data = json.loads(result.content[0].text)
+                assert data["markdown_reference"].startswith("![График](media:")
+                assert data["mime"] == "image/png"
+        finally:
+            server.should_exit = True
+            await running
 
 
 @pytest.mark.parametrize(

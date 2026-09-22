@@ -15,6 +15,7 @@ Never follow cross-origin redirects with credentials.
 | GET    | `/sets`, `/courses` (`offset=0&limit=20`, maximum 100) | materials:read  |
 | GET    | `/sets/{id}`, `/courses/{id}`                          | materials:read  |
 | POST   | `/sets`, `/courses`                                    | materials:write |
+| POST   | `/media`                                                | materials:write |
 | PUT    | `/sets/{id}`, `/courses/{id}`                          | materials:write |
 | GET    | `/courses/{id}/structure`                              | materials:read  |
 | PUT    | `/courses/{id}/structure`                              | materials:write |
@@ -26,6 +27,17 @@ Never follow cross-origin redirects with credentials.
 All writes require `Idempotency-Key`: new UUID per logical operation, identical retries reuse it.
 PUT also requires the latest `revision` from GET. Reusing a key with a different payload is 409.
 Errors use `{code, message, details?}`. OpenAPI: `/openapi.json` on the API origin.
+
+Image upload accepts exactly one source:
+
+```json
+{"source_url":"https://public.example/diagram.png","alt":"Диаграмма"}
+```
+
+or `{"data_base64":"...","mime":"image/png","filename":"diagram.png","alt":"..."}`.
+The URL must be public HTTPS; redirects and private/reserved addresses are rejected. The response
+contains `id`, validated metadata and `markdown_reference` ready for article body. SVG is sanitized.
+Every upload requires `Idempotency-Key` and `materials:write`.
 
 Set input:
 

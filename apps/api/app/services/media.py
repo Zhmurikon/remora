@@ -102,7 +102,9 @@ class MediaService:
         await self.db.flush()
         return self._public(asset)
 
-    async def import_image(self, user: User, filename: str, payload: bytes) -> MediaAsset:
+    async def import_image(
+        self, user: User, filename: str, payload: bytes, *, declared_mime: str | None = None
+    ) -> MediaAsset:
         """Проверяет и сохраняет картинку из доверенного серверного импортера."""
         if len(payload) > self.settings.media_image_max_size_bytes:
             raise ConflictError("Изображение из архива слишком большое")
@@ -110,7 +112,11 @@ class MediaService:
             processed, width, height, mime = _prepare_image(
                 payload,
                 self.settings.media_image_max_pixels,
-                svg=Path(filename).suffix.lower() == ".svg",
+                svg=(
+                    declared_mime == SVG_MIME
+                    if declared_mime is not None
+                    else Path(filename).suffix.lower() == ".svg"
+                ),
             )
         except (UnidentifiedImageError, OSError, ValueError) as exc:
             raise ConflictError("В архиве найдено недопустимое изображение") from exc

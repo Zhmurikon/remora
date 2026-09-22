@@ -1742,13 +1742,6 @@ export interface components {
         };
         /** AgentMediaUploadResult */
         AgentMediaUploadResult: {
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Download Url */
-            download_url: string | null;
             /** Height */
             height: number | null;
             /**
@@ -1762,7 +1755,6 @@ export interface components {
             mime: string;
             /** Size Bytes */
             size_bytes: number;
-            status: components["schemas"]["MediaStatus"];
             /** Width */
             width: number | null;
         };

@@ -14,6 +14,8 @@ from app.schemas.agent import (
     AgentCourseDetail,
     AgentCourseUpdate,
     AgentCourseWrite,
+    AgentMediaUpload,
+    AgentMediaUploadResult,
     AgentSetDetail,
     AgentSetUpdate,
     AgentSetWrite,
@@ -30,6 +32,7 @@ from app.schemas.courses import (
     CourseSummary,
 )
 from app.services.agent import AgentService
+from app.services.agent_media import AgentMediaService
 from app.services.api_tokens import ApiTokenService
 from app.services.content import ContentService
 from app.services.course_editor import CourseEditorService
@@ -64,6 +67,22 @@ def require_scope(scope: AgentScope) -> Callable[..., Awaitable[User]]:
 read_user = require_scope("materials:read")
 write_user = require_scope("materials:write")
 publish_user = require_scope("courses:publish")
+
+
+@router.post("/media", response_model=AgentMediaUploadResult, status_code=201)
+async def upload_media(
+    body: AgentMediaUpload,
+    key: RequestKey,
+    user: User = Depends(write_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    return await AgentService(db).once(
+        user,
+        key,
+        "upload-media",
+        body,
+        lambda: AgentMediaService(db).upload(user, body),
+    )
 
 
 @router.get("/courses/{course_id}/structure", response_model=CourseEditorDetail)

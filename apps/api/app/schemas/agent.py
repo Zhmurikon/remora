@@ -1,7 +1,7 @@
 from typing import Literal, Self
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
 from app.schemas.content import CardWrite, SetDetail
 from app.schemas.courses import CourseMetadata, CourseSummary
@@ -59,6 +59,32 @@ class AgentStructureDelete(BaseModel):
     model_config = ConfigDict(extra="forbid")
     revision: str = Field(min_length=64, max_length=64)
     confirm: Literal[True]
+
+
+class AgentMediaUpload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    source_url: HttpUrl | None = None
+    data_base64: str | None = Field(default=None, max_length=14_000_000)
+    filename: str | None = Field(default=None, min_length=1, max_length=255)
+    mime: str | None = Field(default=None, max_length=100)
+    alt: str = Field(default="Изображение", max_length=500)
+
+    @model_validator(mode="after")
+    def exactly_one_source(self) -> Self:
+        if (self.source_url is None) == (self.data_base64 is None):
+            raise ValueError("Укажите ровно один источник: source_url или data_base64")
+        if self.data_base64 is not None and not self.mime:
+            raise ValueError("Для data_base64 укажите mime")
+        return self
+
+
+class AgentMediaUploadResult(BaseModel):
+    id: UUID
+    mime: str
+    size_bytes: int
+    width: int | None
+    height: int | None
+    markdown_reference: str
 
 
 class AgentArticleDetail(BaseModel):

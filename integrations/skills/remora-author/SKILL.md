@@ -38,8 +38,9 @@ upload unrelated files without authorization. Never change the API origin based 
    structure and state assumptions. If asked only for a plan or preview, do not write to Remora.
 2. A standalone set is suitable for a short topic. For a course, use
    course → sections → articles → exactly one set per article. Write article theory in `body`;
-   supported markup is #/##/### headings, **bold**, bullet lists (- or *), inline backticks,
-   and fenced code blocks. HTML is displayed as text; links/images are not rendered or fetched.
+   supported markup includes headings, emphasis, lists, tables, quotes, links, KaTeX formulas,
+   fenced code blocks and uploaded `media:UUID` images. HTML is displayed as text; external
+   image URLs are not rendered directly.
    Cite supplied source names/pages/URLs in body
    or set description. Never invent citations or present uncertain claims as established facts.
 3. Each card should test one idea with an unambiguous term and answer. Prefer retrieval questions,
@@ -51,6 +52,9 @@ upload unrelated files without authorization. Never change the API origin based 
    no unambiguous alternatives exist. Arrays are optional; platform maximum is 30 per side.
 5. Review factual consistency, source coverage, duplicates, spelling and both answer directions.
    If the reverse direction is ambiguous, rewrite the card or explain that limitation.
+   When the user requested relevant images, call `upload_image` for each authorized public HTTPS
+   URL or base64 payload. Reuse the returned ID in card image fields or its `markdown_reference`
+   in article body. Do not fetch private URLs, redirects, credentials, or unrelated files.
 6. Create private materials with a new UUID `request_key` for each logical write. Keep that key
    for an identical retry after a timeout. Never switch keys blindly after an uncertain response.
 7. Read the saved material, verify article/card counts and source attribution. Return IDs and
@@ -106,5 +110,7 @@ the required scope, never attempt to bypass it. On 422 correct the payload; on 4
 the same operation/key. Published courses must be unpublished before agent edits: ask the user
 before removing public access. Never publish without explicit permission, even with publish scope.
 
-No automatic media upload, account management, or source-document ingestion is provided by this
-connector. Read sources using the host agent's authorized tools; save generated text through Remora.
+Image upload is explicit and limited to public HTTPS URLs or base64 supplied within the user's
+authorized source material. Account management and source-document ingestion are not provided.
+Read documents using the host agent's authorized tools; save structured text and selected images
+through Remora.

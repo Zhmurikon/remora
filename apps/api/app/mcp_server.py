@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from app.schemas.agent import (
     AgentCourseUpdate,
     AgentCourseWrite,
+    AgentMediaUpload,
     AgentSetUpdate,
     AgentSetWrite,
     AgentStructureDelete,
@@ -31,6 +32,9 @@ mcp = FastMCP(
 READ = ToolAnnotations(readOnlyHint=True, openWorldHint=False)
 WRITE = ToolAnnotations(
     readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=False
+)
+MEDIA_WRITE = ToolAnnotations(
+    readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True
 )
 
 
@@ -100,6 +104,16 @@ async def list_sets(offset: int = 0, limit: int = 20) -> Any:
 async def get_set(set_id: UUID) -> Any:
     """Read all cards and revision before editing a set."""
     return await request("GET", f"/sets/{set_id}")
+
+
+@mcp.tool(annotations=MEDIA_WRITE)
+async def upload_image(image: AgentMediaUpload, request_key: str) -> Any:
+    """Upload an image from one public HTTPS URL or base64 data.
+
+    Requires materials:write. Use a new UUID request_key and retain it for identical retries.
+    The response includes markdown_reference ready to insert into article body. SVG is sanitized.
+    """
+    return await request("POST", "/media", image, request_key)
 
 
 @mcp.tool(annotations=WRITE)
