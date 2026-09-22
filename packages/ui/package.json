@@ -11,11 +11,13 @@
     "./styles/tokens.css": "./src/styles/tokens.css"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "clsx": "^2.1.1",
     "katex": "^0.18.7",
+    "markdown-it": "^15.0.2",
     "shiki": "^4.4.3",
     "tailwind-merge": "^2.6.0"
   },
@@ -25,11 +27,16 @@
   },
   "devDependencies": {
     "@remora/config": "workspace:*",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.3",
     "@types/katex": "^0.16.8",
+    "@types/markdown-it": "^14.2.0",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
+    "jsdom": "^30.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.2"
   }
 }
