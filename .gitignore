@@ -43,3 +43,4 @@ deploy/.update.lock
 # generated
 # packages/api-client/src/generated/schema.ts коммитим: без него не собирается CI
 apps/api/openapi.json
+.claude
