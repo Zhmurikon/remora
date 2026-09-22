@@ -148,6 +148,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/agent/media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Media */
+        post: operations["upload_media_api_v1_agent_media_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/agent/sets": {
         parameters: {
             query?: never;
@@ -1707,6 +1724,48 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** AgentMediaUpload */
+        AgentMediaUpload: {
+            /**
+             * Alt
+             * @default Изображение
+             */
+            alt: string;
+            /** Data Base64 */
+            data_base64?: string | null;
+            /** Filename */
+            filename?: string | null;
+            /** Mime */
+            mime?: string | null;
+            /** Source Url */
+            source_url?: string | null;
+        };
+        /** AgentMediaUploadResult */
+        AgentMediaUploadResult: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Download Url */
+            download_url: string | null;
+            /** Height */
+            height: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Markdown Reference */
+            markdown_reference: string;
+            /** Mime */
+            mime: string;
+            /** Size Bytes */
+            size_bytes: number;
+            status: components["schemas"]["MediaStatus"];
+            /** Width */
+            width: number | null;
+        };
         /** AgentSectionDetail */
         AgentSectionDetail: {
             /** Articles */
@@ -2971,10 +3030,17 @@ export interface components {
              */
             status: "ok" | "degraded";
         };
+        /** RefreshRequest */
+        RefreshRequest: {
+            /** Refresh Token */
+            refresh_token?: string | null;
+        };
         /** RefreshResponse */
         RefreshResponse: {
             /** Access Token */
             access_token: string;
+            /** Refresh Token */
+            refresh_token?: string | null;
             /**
              * Token Type
              * @default bearer
@@ -3690,6 +3756,8 @@ export interface components {
         TokenResponse: {
             /** Access Token */
             access_token: string;
+            /** Refresh Token */
+            refresh_token?: string | null;
             /**
              * Token Type
              * @default bearer
@@ -4147,6 +4215,41 @@ export interface operations {
             };
         };
     };
+    upload_media_api_v1_agent_media_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentMediaUpload"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentMediaUploadResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_sets_api_v1_agent_sets_get: {
         parameters: {
             query?: {
@@ -4353,7 +4456,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RefreshRequest"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             204: {
@@ -4361,6 +4468,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };
@@ -4488,7 +4604,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RefreshRequest"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -4497,6 +4617,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RefreshResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
