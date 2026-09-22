@@ -178,7 +178,7 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
     return (
       <Card>
         Материал не найден.{' '}
-        <Link className={courseLink} to={`/courses/${base.id}/edit`}>
+        <Link className={courseLink} to={`/courses/${base.id}/structure`}>
           К структуре курса
         </Link>
       </Card>
@@ -195,11 +195,11 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
         <Link
           className={courseLink}
           aria-current={!articleId ? 'page' : undefined}
-          to={`/courses/${base.id}/edit`}
+          to={`/courses/${base.id}/structure`}
         >
           Структура курса
         </Link>
-        <Link className={courseLink} to={`/courses/${base.id}`}>
+        <Link className={courseLink} to={`/courses/${base.id}/edit`}>
           Настройки и публикация
         </Link>
       </nav>
@@ -396,36 +396,38 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
                             media={previewMedia}
                           />
                         ) : (
-                          <label className="block space-y-2">
-                            <span>
-                              Теория статьи {si + 1}.{ai + 1}
-                            </span>
+                          <>
                             <MaterialImageButton
                               onUploaded={(id, media) => {
                                 setUploadedMedia((prev) => ({ ...prev, [id]: media }));
                                 insertImageMarker(id);
                               }}
                             />
-                            <textarea
-                              ref={textareaRef}
-                              className={field}
-                              rows={22}
-                              maxLength={100000}
-                              value={article.body ?? ''}
-                              onChange={(e) =>
-                                updateSection(si, {
-                                  articles: section.articles?.map((a, i) =>
-                                    i === ai ? { ...a, body: e.target.value } : a,
-                                  ),
-                                })
-                              }
-                            />
-                            <span className="text-fg-muted block text-sm">
-                              Разметка Markdown: # заголовки, **жирный** и *курсив*, списки и
-                              нумерация, таблицы, цитаты через «&gt;», разделитель «---», ссылки,
-                              изображения, формулы $…$ и $$…$$, блоки кода с указанием языка.
-                            </span>
-                          </label>
+                            <label className="block space-y-2">
+                              <span>
+                                Теория статьи {si + 1}.{ai + 1}
+                              </span>
+                              <textarea
+                                ref={textareaRef}
+                                className={field}
+                                rows={22}
+                                maxLength={100000}
+                                value={article.body ?? ''}
+                                onChange={(e) =>
+                                  updateSection(si, {
+                                    articles: section.articles?.map((a, i) =>
+                                      i === ai ? { ...a, body: e.target.value } : a,
+                                    ),
+                                  })
+                                }
+                              />
+                              <span className="text-fg-muted block text-sm">
+                                Разметка Markdown: # заголовки, **жирный** и *курсив*, списки и
+                                нумерация, таблицы, цитаты через «&gt;», разделитель «---», ссылки,
+                                изображения, формулы $…$ и $$…$$, блоки кода с указанием языка.
+                              </span>
+                            </label>
+                          </>
                         ))}
                       {!articleId && article.id && (
                         <div className="flex flex-wrap items-center justify-between gap-3">

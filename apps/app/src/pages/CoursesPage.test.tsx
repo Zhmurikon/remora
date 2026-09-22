@@ -36,6 +36,7 @@ function mount(path = '/courses') {
           <Route path="/courses" element={<CoursesPage />} />
           <Route path="/courses/new" element={<NewCoursePage />} />
           <Route path="/courses/:courseId" element={<CoursePage />} />
+          <Route path="/courses/:courseId/edit" element={<CoursePage />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,

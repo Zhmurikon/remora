@@ -8,6 +8,7 @@ import { CourseEditorPage } from './CourseEditorPage';
 import { CourseReaderPage, CopyCourseButton, CopySetButton } from './CourseReaderPage';
 import { ArticleContent } from '@remora/ui';
 import { api } from '../lib/api';
+import { AppLayout } from '../layouts/AppLayout';
 
 vi.mock('../lib/api', () => ({ api: { GET: vi.fn(), POST: vi.fn(), PUT: vi.fn() } }));
 const course = {
@@ -24,7 +25,7 @@ const course = {
     },
   ],
 };
-function mount(mode = 'edit') {
+function mount(mode = 'structure') {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -36,8 +37,11 @@ function mount(mode = 'edit') {
             path="/courses/:courseId/materials/:articleId/edit"
             element={<CourseEditorPage />}
           />
-          <Route path="/courses/:courseId/edit" element={<CourseEditorPage />} />
-          <Route path="/courses/:courseId/read" element={<CourseReaderPage />} />
+          <Route path="/courses/:courseId/structure" element={<CourseEditorPage />} />
+          <Route element={<AppLayout />}>
+            <Route path="/courses/:courseId" element={<CourseReaderPage />} />
+            <Route path="/courses/:courseId/read" element={<CourseReaderPage />} />
+          </Route>
           <Route path="/courses/:courseId/copy" element={<CopyCourseButton courseId="course" />} />
           <Route path="/courses/:courseId/copy-set" element={<CopySetButton setId="set" />} />
         </Routes>
@@ -55,13 +59,36 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
+it.each(['', 'read'])('открывает оглавление с навигацией кабинета: %s', async (path) => {
+  mount(path);
+  await screen.findByRole('heading', { name: 'Алгебра' });
+  expect(screen.queryByText('Конспект')).toBeNull();
+  expect(screen.getByRole('navigation', { name: 'Основная навигация' })).toBeTruthy();
+  expect(screen.getByRole('link', { name: 'Редактировать курс' }).getAttribute('href')).toBe(
+    `/courses/${course.id}/edit`,
+  );
+  await userEvent.click(screen.getByRole('link', { name: /Определитель/ }));
+  expect(await screen.findByText('Конспект')).toBeTruthy();
+  await userEvent.click(screen.getByRole('button', { name: 'О курсе и оглавление' }));
+  expect(await screen.findByRole('heading', { name: 'Оглавление' })).toBeTruthy();
+  expect(screen.queryByText('Конспект')).toBeNull();
+});
+
+it('не открывает первый урок вместо отсутствующего', async () => {
+  mount('read?article=missing');
+  expect(
+    await screen.findByText('Этот урок не найден. Выберите другой в оглавлении.'),
+  ).toBeTruthy();
+  expect(screen.queryByText('Конспект')).toBeNull();
+});
+
 it('сохраняет теорию на отдельной странице без перезаписи карточек', async () => {
   vi.mocked(api.PUT).mockResolvedValue({
     data: { ...course, revision: 'v2' },
     response: new Response(),
   } as never);
   mount('materials/article/edit');
-  await userEvent.type(await screen.findByLabelText(/Теория статьи/), ' дополнен');
+  await userEvent.type(await screen.findByRole('textbox', { name: /Теория статьи/ }), ' дополнен');
   expect(screen.queryByRole('button', { name: 'Добавить раздел' })).toBeNull();
   await userEvent.click(screen.getByRole('button', { name: 'Сохранить материал' }));
   await screen.findByText('Материал сохранён');
@@ -81,7 +108,7 @@ it('сохраняет текст материала при конфликте',
     response: new Response(),
   } as never);
   mount('materials/article/edit');
-  const body = await screen.findByLabelText(/Теория статьи/);
+  const body = await screen.findByRole('textbox', { name: /Теория статьи/ });
   await userEvent.type(body, ' мой');
   await userEvent.click(screen.getByRole('button', { name: 'Сохранить материал' }));
   expect((await screen.findByRole('alert')).textContent).toContain('другой вкладке');
@@ -101,7 +128,7 @@ it('переносит статью в другой раздел и оставл
 });
 
 it('показывает теорию и прямой переход к заучиванию', async () => {
-  mount('read');
+  mount('read?article=article');
   expect(await screen.findByText('Конспект')).toBeTruthy();
   expect(screen.getByRole('link', { name: 'Начать заучивание' }).getAttribute('href')).toBe(
     '/sets/set/learn',
@@ -158,7 +185,7 @@ it('разделяет структуру и текст и подтвержда�
 });
 
 it('открывает квиз внутри урока и возвращает к материалу', async () => {
-  mount('read');
+  mount('read?article=article');
   await userEvent.click(await screen.findByRole('button', { name: 'Пройти квиз' }));
   expect(await screen.findByRole('button', { name: 'Начать тест' })).toBeTruthy();
   expect(screen.getByRole('navigation', { name: 'Оглавление курса' })).toBeTruthy();
@@ -210,7 +237,7 @@ it('проверяет квиз по набору урока и позволяе
         response: new Response(),
       }) as never,
   );
-  mount('read');
+  mount('read?article=article');
   await userEvent.click(await screen.findByRole('button', { name: 'Пройти квиз' }));
   await userEvent.click(screen.getByRole('button', { name: 'Начать тест' }));
   await userEvent.type(await screen.findByRole('textbox', { name: 'Ответ на вопрос 1' }), '4');

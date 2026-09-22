@@ -175,7 +175,7 @@ export function CourseReaderPage() {
           <Button onClick={() => void query.refetch()}>Повторить</Button>
         </div>
       )}
-      {query.data && <Reader course={query.data} />}
+      {query.data && <Reader key={query.data.id} course={query.data} />}
     </div>
   );
 }
@@ -192,7 +192,7 @@ function Reader({ course }: { course: components['schemas']['CourseDetail'] }) {
   const previousStep = useRef<string | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const articles = course.sections.flatMap((s) => s.articles);
-  const active = articles.find((a) => a.id === params.get('article')) ?? articles[0];
+  const active = articles.find((a) => a.id === params.get('article'));
   const index = articles.findIndex((a) => a.id === active?.id);
   const quiz = params.get('step') === 'quiz';
   const section = course.sections.find((s) => s.articles.some((a) => a.id === active?.id));
@@ -226,14 +226,14 @@ function Reader({ course }: { course: components['schemas']['CourseDetail'] }) {
       document.removeEventListener('click', leave, true);
     };
   }, [quizActive]);
-  function go(article: string, step = 'read') {
+  function go(article?: string, step = 'read') {
     if (
       quizActive &&
       !window.confirm('Выйти из квиза? Ответы незавершённого квиза будут потеряны.')
     )
       return;
     if (window.matchMedia?.('(max-width: 1279px)').matches) setOutlineOpen(false);
-    setParams({ article, ...(step === 'quiz' ? { step } : {}) });
+    setParams(article ? { article, ...(step === 'quiz' ? { step } : {}) } : {});
   }
   return (
     <div className="space-y-6 [overflow-wrap:anywhere] [&_a]:max-w-full [&_button]:h-auto [&_button]:min-h-11 [&_button]:max-w-full [&_button]:whitespace-normal [&_button]:py-2 [&_button]:[overflow-wrap:anywhere]">
@@ -242,22 +242,90 @@ function Reader({ course }: { course: components['schemas']['CourseDetail'] }) {
           Мои курсы
         </Link>
         <div className="flex min-w-0 max-w-full flex-wrap gap-4">
-          <Button variant="ghost" aria-pressed={focusMode} onClick={() => setFocusMode(!focusMode)}>
-            {focusMode ? 'Показать оглавление' : 'Сосредоточиться на чтении'}
-          </Button>
+          {active && (
+            <>
+              <Button variant="ghost" onClick={() => go()}>
+                О курсе и оглавление
+              </Button>
+              <Button
+                variant="ghost"
+                aria-pressed={focusMode}
+                onClick={() => setFocusMode(!focusMode)}
+              >
+                {focusMode ? 'Показать список уроков' : 'Скрыть список уроков'}
+              </Button>
+            </>
+          )}
           <Link to={`/courses/${course.id}/edit`} className={courseLink}>
             Редактировать курс
           </Link>
         </div>
       </header>
       {!active ? (
-        <Card>
-          <h1 className="text-3xl font-semibold">{course.title}</h1>
-          <p className="mt-4">В курсе пока нет статей.</p>
-          <Link className={courseLink} to={`/courses/${course.id}/edit`}>
-            Добавить материалы
-          </Link>
-        </Card>
+        <div className="mx-auto max-w-3xl space-y-8">
+          <header>
+            <p className="text-fg-muted mb-3 text-sm">Учебный курс · Уроков: {articles.length}</p>
+            <h1
+              ref={heading}
+              tabIndex={-1}
+              className="text-3xl font-semibold tracking-tight focus:outline-none"
+            >
+              {course.title}
+            </h1>
+            {course.description && (
+              <p className="text-fg-muted mt-4 whitespace-pre-wrap text-lg leading-relaxed">
+                {course.description}
+              </p>
+            )}
+            <p className="text-fg-muted mt-4">
+              Выберите урок, прочитайте материал и проверьте себя в квизе.
+            </p>
+          </header>
+          {params.has('article') && (
+            <p role="status">Этот урок не найден. Выберите другой в оглавлении.</p>
+          )}
+          {articles.length === 0 && (
+            <Card>
+              <p>В курсе пока нет уроков.</p>
+              <Link className={courseLink} to={`/courses/${course.id}/structure`}>
+                Добавить материалы
+              </Link>
+            </Card>
+          )}
+          <nav aria-label="Оглавление курса" className="space-y-6">
+            <h2 className="text-2xl font-semibold">Оглавление</h2>
+            {course.sections.map((s, si) => (
+              <section key={s.id} className="space-y-3">
+                <h3 className="text-lg font-semibold">
+                  {si + 1}. {s.title}
+                </h3>
+                {s.articles.length === 0 && (
+                  <p className="text-fg-muted">В этом разделе пока нет уроков.</p>
+                )}
+                <ol className="border-border divide-border bg-surface divide-y overflow-hidden rounded-2xl border">
+                  {s.articles.map((a, ai) => (
+                    <li key={a.id}>
+                      <Link
+                        to={`?article=${a.id}`}
+                        className="hover:bg-surface-muted focus-visible:outline-primary flex min-h-11 items-start gap-4 p-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px]"
+                      >
+                        <span className="text-fg-muted shrink-0">
+                          {si + 1}.{ai + 1}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block font-medium">{a.title}</span>
+                          <span className="text-fg-muted mt-1 block text-sm">
+                            {a.body?.trim() ? 'Материал и квиз' : 'Квиз по карточкам'}
+                          </span>
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            ))}
+          </nav>
+        </div>
       ) : (
         <div
           className={`grid min-w-0 gap-8 ${focusMode ? '' : 'xl:grid-cols-[16rem_minmax(0,1fr)]'}`}

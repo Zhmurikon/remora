@@ -154,7 +154,7 @@ function CourseForm({ course }: { course?: Course }) {
       client.setQueryData(['course', data.id], data);
       void client.invalidateQueries({ queryKey: ['courses'] });
       setSaved(true);
-      if (!course) navigate(`/courses/${data.id}`, { replace: true });
+      if (!course) navigate(`/courses/${data.id}/edit`, { replace: true });
     },
   });
   return (
@@ -273,7 +273,7 @@ function CourseForm({ course }: { course?: Course }) {
             <Link className={linkStyle} to={`/courses/${course.id}/read`}>
               Читать курс
             </Link>
-            <Link className={linkStyle} to={`/courses/${course.id}/edit`}>
+            <Link className={linkStyle} to={`/courses/${course.id}/structure`}>
               Редактировать структуру
             </Link>
           </div>
