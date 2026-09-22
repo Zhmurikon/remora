@@ -120,17 +120,20 @@ def normalize(platform: str, body: dict[str, Any]) -> dict[str, Any] | None:
 def _vk_keyboard(
     keyboard: list[list[dict[str, str]]],
 ) -> list[list[dict[str, str]]]:
-    """VK: максимум 6 рядов и 5 кнопок в ряду inline-клавиатуры."""
+    """VK: максимум 6 рядов, 5 кнопок в ряду и 10 кнопок всего."""
     capped = [row[:5] for row in keyboard]
-    if len(capped) <= 6:
-        return capped
-    # Лишние ряды объединяем в один, обрезая до 5 кнопок.
-    merged: list[dict[str, str]] = []
-    for row in capped[5:]:
-        merged.extend(row)
-    if merged:
-        return [*capped[:5], merged[:5]]
-    return capped[:5]
+    if len(capped) > 6:
+        # Лишние ряды объединяем в один, обрезая до 5 кнопок.
+        merged = [button for row in capped[5:] for button in row]
+        capped = [*capped[:5], merged[:5]] if merged else capped[:5]
+    result: list[list[dict[str, str]]] = []
+    remaining = 10
+    for row in capped:
+        if remaining <= 0:
+            break
+        result.append(row[:remaining])
+        remaining -= len(result[-1])
+    return [row for row in result if row]
 
 
 class Adapter:
@@ -245,7 +248,36 @@ class Adapter:
                     **({"keyboard": keyboard} if keyboard else {}),
                 },
             )
-        return response.is_success and "response" in response.json()
+        response_body = response.json()
+        if response.is_success and "response" in response_body:
+            return True
+
+        error = response_body.get("error", {})
+        log.warning(
+            "VK delivery rejected: method=%s code=%s",
+            "messages.edit"
+            if job.get("message_id") and not job.get("audio_url")
+            else "messages.send",
+            error.get("error_code", "unknown") if isinstance(error, dict) else "unknown",
+        )
+        # Невалидная клавиатура или слишком длинный экран не должны блокировать
+        # всю очередь диалога: отправляем новое сообщение без дополнений.
+        fallback = await client.post(
+            "https://api.vk.com/method/messages.send",
+            data={
+                **common,
+                "peer_id": job["actor_id"],
+                "message": (
+                    "Не удалось показать этот экран. "
+                    "Попробуйте ещё раз или откройте главное меню командой /start."
+                ),
+                "random_id": str(
+                    int(hashlib.sha256((job["id"] + ":fallback").encode()).hexdigest()[:7], 16) + 1
+                ),
+            },
+        )
+        fallback_body = fallback.json()
+        return fallback.is_success and "response" in fallback_body
 
     async def poll_once(
         self, telegram: httpx.AsyncClient, internal: httpx.AsyncClient, offset: int

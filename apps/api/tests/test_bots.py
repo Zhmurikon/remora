@@ -14,6 +14,8 @@ from app.bots.adapter import Adapter, AdapterSettings, _vk_keyboard, create_app,
 from app.core.config import get_settings
 from app.db.session import get_session_factory
 from app.models.bots import BotEvent, BotLinkCode
+from app.schemas.study import LearnQuestionType, LearnTypingCheck
+from app.services.bots import BotReply, BotService
 from tests.test_study import _auth, _set_with_cards
 
 
@@ -247,6 +249,22 @@ async def test_lease_retry_and_other_dialog_progress(client, internal):
         )
     ).status_code == 409
     await ack(internal, again)
+
+
+async def test_handler_error_returns_message_and_does_not_block_dialog(monkeypatch, internal):
+    failure = AsyncMock(side_effect=RuntimeError("broken handler"))
+    monkeypatch.setattr(BotService, "reply", failure)
+    await event(internal, command="settings")
+    failed = (await internal.post("/internal/v1/delivery")).json()
+    assert "Не удалось выполнить" in failed["text"]
+    assert failed["keyboard"] == [[{"label": "В главное меню", "action": "home"}]]
+    await ack(internal, failed)
+
+    success = AsyncMock(return_value=BotReply("Следующее событие обработано"))
+    monkeypatch.setattr(BotService, "reply", success)
+    await event(internal, command="sets")
+    following = (await internal.post("/internal/v1/delivery")).json()
+    assert following["text"] == "Следующее событие обработано"
 
 
 async def test_vk_confirmation_and_webhook_auth(monkeypatch):
@@ -664,6 +682,62 @@ async def test_vk_audio_sends_new_message_even_with_message_id():
     assert "Аудио:" in data["message"]
 
 
+async def test_vk_rejection_sends_plain_fallback_message():
+    adapter = Adapter(
+        AdapterSettings(
+            bot_platform="vk",
+            bot_service_token=SecretStr("test"),
+            vk_group_token=SecretStr("token"),
+            vk_group_id=123,
+        )
+    )
+    client = AsyncMock()
+    client.post.side_effect = [
+        Response(
+            200,
+            json={"error": {"error_code": 100, "error_msg": "invalid keyboard"}},
+            request=Request("POST", "https://api.vk.com"),
+        ),
+        Response(200, json={"response": 1}, request=Request("POST", "https://api.vk.com")),
+    ]
+    success = await adapter.send(
+        client,
+        {
+            "id": "job-with-invalid-keyboard",
+            "actor_id": "10",
+            "text": "Настройки",
+            "keyboard": [[{"label": "Кнопка", "action": "action"}]],
+        },
+    )
+    assert success is True
+    fallback = client.post.call_args_list[1].kwargs["data"]
+    assert "Не удалось показать" in fallback["message"]
+    assert "keyboard" not in fallback
+
+
+def test_vk_learning_settings_use_compact_submenus():
+    service = BotService(AsyncMock())
+    reply = service._learn_settings_reply(
+        question_types=[
+            LearnQuestionType.choice,
+            LearnQuestionType.typing,
+            LearnQuestionType.recall,
+        ],
+        successes_required=3,
+        typing_check=LearnTypingCheck.automatic,
+        match_percent=95,
+        prefix="learncfg",
+        title="Настройки заучивания",
+        back_action="home",
+        platform="vk",
+    )
+    buttons = [button for row in reply.keyboard for button in row]
+    assert len(reply.keyboard) <= 6
+    assert len(buttons) <= 10
+    assert any(button["action"] == "learncfg:view:repeats" for button in buttons)
+    assert any(button["action"] == "learncfg:view:check" for button in buttons)
+
+
 def test_vk_keyboard_under_limit_unchanged():
     keyboard = [[{"label": f"Кнопка {i}", "action": f"act:{i}"}] for i in range(5)]
     result = _vk_keyboard(keyboard)
@@ -678,9 +752,7 @@ def test_vk_keyboard_exactly_six_rows_unchanged():
 
 
 def test_vk_keyboard_eight_rows_merges_to_six():
-    keyboard = [
-        [{"label": f"Набор {i}", "action": f"set:{i}"}] for i in range(6)
-    ] + [
+    keyboard = [[{"label": f"Набор {i}", "action": f"set:{i}"}] for i in range(6)] + [
         [{"label": "‹ Назад", "action": "sets:0"}],
         [{"label": "В главное меню", "action": "home"}],
     ]
@@ -702,10 +774,17 @@ def test_vk_keyboard_caps_buttons_per_row():
     assert len(result[0]) == 5
 
 
-def test_vk_keyboard_seven_rows_merges_last_two():
+def test_vk_keyboard_caps_total_buttons():
     keyboard = [
-        [{"label": f"Режим {i}", "action": f"mode:{i}"}] for i in range(5)
-    ] + [
+        [{"label": f"Кнопка {row}-{column}", "action": f"a:{row}:{column}"} for column in range(5)]
+        for row in range(6)
+    ]
+    result = _vk_keyboard(keyboard)
+    assert sum(len(row) for row in result) == 10
+
+
+def test_vk_keyboard_seven_rows_merges_last_two():
+    keyboard = [[{"label": f"Режим {i}", "action": f"mode:{i}"}] for i in range(5)] + [
         [{"label": "Настроить", "action": "setcfg:1"}],
         [{"label": "Назад", "action": "sets"}],
     ]

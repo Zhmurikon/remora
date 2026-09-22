@@ -1,5 +1,6 @@
 import hashlib
 import html
+import logging
 import random
 import re
 import secrets
@@ -76,6 +77,7 @@ QUESTION_LABELS = {
     LearnQuestionType.typing: "Написание ответа",
     LearnQuestionType.recall: "Карточка с самооценкой",
 }
+log = logging.getLogger("remora.bots")
 
 
 @dataclass(slots=True)
@@ -208,9 +210,9 @@ class BotService:
         if command == "today":
             return await self._today(user)
         if command == "settings":
-            return await self._learn_settings(user)
+            return await self._learn_settings(user, platform=event.platform)
         if command.startswith("learncfg:"):
-            return await self._update_learn_settings(user, command)
+            return await self._update_learn_settings(user, command, platform=event.platform)
         if command == "sets":
             return await self._sets(user, 0)
         if command.startswith("sets:"):
@@ -218,7 +220,7 @@ class BotService:
         if command.startswith("set:"):
             return await self._set(user, UUID(command[4:]))
         if command.startswith("setcfg:"):
-            return await self._set_learn_settings(user, command)
+            return await self._set_learn_settings(user, command, platform=event.platform)
         if command.startswith("mode:"):
             _, mode, set_id = command.split(":", 2)
             return await self._start(user, UUID(set_id), StudyMode(mode))
@@ -364,6 +366,8 @@ class BotService:
         back_action: str,
         customized: bool | None = None,
         set_id: UUID | None = None,
+        platform: str = "telegram",
+        section: str = "main",
     ) -> BotReply:
         def action(field: str, value: str | int) -> str:
             base = f"{prefix}:{field}:{value}"
@@ -420,9 +424,47 @@ class BotService:
         if customized:
             keyboard.append([_button("Вернуть общие настройки", action("reset", 1))])
         keyboard.append([_button("Назад", back_action)])
+        if platform == BotPlatform.vk:
+            if section == "repeats":
+                keyboard = [
+                    [_button(str(value), action("r", value)) for value in range(1, 6)],
+                    [_button("К настройкам", action("view", "main"))],
+                ]
+            elif section == "check":
+                keyboard = [
+                    [
+                        _button("Авто", action("c", "automatic")),
+                        _button("Самооценка", action("c", "self_check")),
+                    ],
+                    *(
+                        [
+                            [
+                                _button(f"{value}%", action("m", value))
+                                for value in (70, 80, 90, 95, 100)
+                            ]
+                        ]
+                        if typing_check == LearnTypingCheck.automatic
+                        else []
+                    ),
+                    [_button("К настройкам", action("view", "main"))],
+                ]
+            else:
+                keyboard = [
+                    keyboard[0],
+                    *exercise_rows,
+                    [
+                        _button(f"Ответов: {successes_required}", action("view", "repeats")),
+                        _button("Проверка", action("view", "check")),
+                    ],
+                ]
+                if customized:
+                    keyboard[-1].append(_button("Сбросить", action("reset", 1)))
+                keyboard.append([_button("Назад", back_action)])
         return BotReply(text, keyboard)
 
-    async def _learn_settings(self, user: User) -> BotReply:
+    async def _learn_settings(
+        self, user: User, *, platform: str = "telegram", section: str = "main"
+    ) -> BotReply:
         settings = await StudyService(self.db).get_settings(user)
         return self._learn_settings_reply(
             question_types=[LearnQuestionType(item) for item in settings.learn_question_types],
@@ -432,10 +474,16 @@ class BotService:
             prefix="learncfg",
             title="Настройки заучивания",
             back_action="home",
+            platform=platform,
+            section=section,
         )
 
-    async def _update_learn_settings(self, user: User, command: str) -> BotReply:
+    async def _update_learn_settings(
+        self, user: User, command: str, *, platform: str = "telegram"
+    ) -> BotReply:
         _, field, value = command.split(":", 2)
+        if field == "view":
+            return await self._learn_settings(user, platform=platform, section=value)
         study = StudyService(self.db)
         current = await study.get_settings(user)
         types = [LearnQuestionType(item) for item in current.learn_question_types]
@@ -452,7 +500,7 @@ class BotService:
             kind = LearnQuestionType(value)
             if kind in types:
                 if len(types) == 1:
-                    reply = await self._learn_settings(user)
+                    reply = await self._learn_settings(user, platform=platform)
                     reply.text = "Нужно оставить хотя бы одно упражнение.\n\n" + reply.text
                     return reply
                 types.remove(kind)
@@ -466,9 +514,11 @@ class BotService:
         elif field == "m":
             update["learn_match_percent"] = int(value)
         await study.update_settings(user, StudySettingsUpdate(**update))
-        return await self._learn_settings(user)
+        return await self._learn_settings(user, platform=platform)
 
-    async def _set_learn_settings(self, user: User, command: str) -> BotReply:
+    async def _set_learn_settings(
+        self, user: User, command: str, *, platform: str = "telegram"
+    ) -> BotReply:
         _, field, value, set_id_raw = command.split(":", 3)
         set_id = UUID(set_id_raw)
         study = StudyService(self.db)
@@ -486,7 +536,9 @@ class BotService:
                 kind = LearnQuestionType(value)
                 if kind in types:
                     if len(types) == 1:
-                        reply = await self._set_learn_settings(user, f"setcfg:view:1:{set_id}")
+                        reply = await self._set_learn_settings(
+                            user, f"setcfg:view:main:{set_id}", platform=platform
+                        )
                         reply.text = "Нужно оставить хотя бы одно упражнение.\n\n" + reply.text
                         return reply
                     types.remove(kind)
@@ -520,6 +572,8 @@ class BotService:
             back_action=f"set:{set_id}",
             customized=current.customized,
             set_id=set_id,
+            platform=platform,
+            section=value if field == "view" else "main",
         )
 
     async def _start(
@@ -694,8 +748,7 @@ class BotService:
             return BotReply("Активная карточка не найдена.")
         if session.mode == StudyMode.flashcards:
             revealed = (
-                f"Термин:\n\n{current.card.term}\n\n"
-                f"Определение:\n\n{current.card.definition}"
+                f"Термин:\n\n{current.card.term}\n\nОпределение:\n\n{current.card.definition}"
             )
         else:
             answer = (
@@ -850,10 +903,8 @@ class BotService:
         if correct is False:
             question_prefix = f"Вопрос:\n\n{question}\n\n" if session.mode == StudyMode.test else ""
             next_reply.text = (
-                question_prefix
-                + f"Неверно: {chosen or 'ответ не вспомнился'}\n"
-                f"Правильный ответ: {expected}\n\n"
-                + next_reply.text
+                question_prefix + f"Неверно: {chosen or 'ответ не вспомнился'}\n"
+                f"Правильный ответ: {expected}\n\n" + next_reply.text
             )
         elif correct is True:
             next_reply.text = "Верно.\n\n" + next_reply.text
@@ -930,7 +981,16 @@ class BotService:
             event.code_hash = None
             return None
         if event.reply is None:
-            response = await self.reply(event)
+            try:
+                async with self.db.begin_nested():
+                    response = await self.reply(event)
+            except Exception:  # одно событие не блокирует диалог
+                log.exception("bot event failed: platform=%s command=%s", platform, event.command)
+                response = BotReply(
+                    "Не удалось выполнить это действие. "
+                    "Попробуйте ещё раз или вернитесь в главное меню.",
+                    [[_button("В главное меню", "home")]],
+                )
             event.reply = response.text
             event.reply_keyboard = response.keyboard
             event.audio_url = response.audio_url
