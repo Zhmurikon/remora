@@ -306,6 +306,8 @@ E6B — полноценная теория и редактор структур
       ротацию и детекцию переиспользования семьи токенов; помечать устройство в `refresh_tokens`.
       После изменения auth — `pnpm gen:api` и коммит `packages/api-client/src/generated/schema.ts`.
       *Готово: X-Client: mobile, refresh в теле, 7 тестов, TS-клиент обновлён.*
+- [x] Порт ядра на Dart (M2): `answers`, `fsrs`, `distractors`, `format` — сверка по общим
+      кейсам `answer-cases.json` (68) и `fsrs-cases.json` (12), 247 тестов, `flutter analyze` чист.
 - [ ] Эндпоинт версии клиента и минимально поддерживаемой версии для принудительного обновления
       (ссылка на APK).
 - [ ] Обеспечить доставку машиночитаемой схемы `apps/api/openapi.json` (`scripts/dump_openapi.py`)
