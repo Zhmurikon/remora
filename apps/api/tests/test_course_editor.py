@@ -290,6 +290,75 @@ async def test_copy_set_from_public_course_is_independent_and_isolated(
     assert (await client.get(f"/api/v1/sets/{copied['id']}", headers=learner)).status_code == 200
 
 
+async def test_theory_images_resolve_validate_and_copy(client: AsyncClient) -> None:
+    """Изображения теории: резолв подписанной ссылки, запрет чужого media и независимая копия."""
+    owner, learner = await auth(client, "imgowner"), await auth(client, "imglearner")
+    course = await setup_course(client, owner)
+    storage = FakeStorage(_png())
+
+    async def upload(headers: dict[str, str]) -> str:
+        with patch("app.services.media.get_object_storage", return_value=storage):
+            asset = (
+                await client.post(
+                    "/api/v1/media/upload-url",
+                    headers=headers,
+                    json={
+                        "filename": "d.png",
+                        "mime": "image/png",
+                        "size_bytes": len(storage.payload),
+                    },
+                )
+            ).json()
+            await client.post(f"/api/v1/media/{asset['id']}/complete", headers=headers)
+        return str(asset["id"])
+
+    asset_id = await upload(owner)
+    stranger_id = await upload(learner)
+
+    # Своё изображение в теории резолвится в подписанную ссылку с размерами.
+    sections = deepcopy(course["sections"])
+    sections[0]["articles"][0]["body"] = f"# Теория\n\n![Схема](media:{asset_id})"
+    with patch("app.services.courses.get_object_storage", return_value=storage):
+        saved = await save(client, owner, course, sections)
+    assert saved.status_code == 200, saved.text
+    article = saved.json()["sections"][0]["articles"][0]
+    assert [m["id"] for m in article["media"]] == [asset_id]
+    assert article["media"][0]["url"].startswith("http://storage.test/")
+    assert article["media"][0]["width"] == 32
+
+    # Чужое изображение в body отклоняется при сохранении.
+    current = (await client.get(f"/api/v1/courses/{course['id']}/editor", headers=owner)).json()
+    bad = deepcopy(current["sections"])
+    bad[0]["articles"][0]["body"] = f"![x](media:{stranger_id})"
+    assert (await save(client, owner, current, bad)).status_code == 409
+
+    # После публикации изображение резолвится и на публичной странице.
+    await client.post(f"/api/v1/courses/{course['id']}/publish", headers=owner, json={})
+    with patch("app.services.courses.get_object_storage", return_value=storage):
+        public = await client.get(f"/api/v1/courses/public/{current['slug']}")
+    assert public.status_code == 200, public.text
+    assert public.json()["sections"][0]["articles"][0]["media"][0]["id"] == asset_id
+
+    # Копия курса получает независимое изображение, а body переписан на новый media:id.
+    storage.put = AsyncMock()  # type: ignore[attr-defined]
+    with (
+        patch("app.services.course_editor.get_object_storage", return_value=storage),
+        patch("app.services.courses.get_object_storage", return_value=storage),
+    ):
+        copy = await client.post(
+            f"/api/v1/courses/{course['id']}/copy",
+            headers={**learner, "Idempotency-Key": str(uuid4())},
+            json={},
+        )
+    assert copy.status_code == 201, copy.text
+    copied = copy.json()["sections"][0]["articles"][0]
+    new_id = copied["media"][0]["id"]
+    assert new_id != asset_id
+    assert f"media:{new_id}" in copied["body"]
+    assert f"media:{asset_id}" not in copied["body"]
+    storage.put.assert_awaited()  # type: ignore[attr-defined]
+
+
 async def test_copy_set_is_blocked_for_moderated_and_missing_sources(client: AsyncClient) -> None:
     """Заблокированный модератором курс перестаёт быть источником копий."""
     owner, learner = await auth(client, "blockedowner"), await auth(client, "blockedlearner")
