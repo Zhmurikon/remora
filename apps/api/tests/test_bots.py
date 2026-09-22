@@ -10,7 +10,7 @@ from pydantic import SecretStr
 from sqlalchemy import delete, select
 
 from app.bot_api import app as internal_app
-from app.bots.adapter import Adapter, AdapterSettings, create_app, normalize
+from app.bots.adapter import Adapter, AdapterSettings, _vk_keyboard, create_app, normalize
 from app.core.config import get_settings
 from app.db.session import get_session_factory
 from app.models.bots import BotEvent, BotLinkCode
@@ -503,3 +503,215 @@ def test_normalize_learning_commands_and_typed_answers():
     normalized = normalize("telegram", typed)
     assert normalized["command"] == "input"
     assert normalized["input"] == "мой ответ"
+
+
+def test_normalize_vk_message_event_extracts_conversation_message_id():
+    event = {
+        "type": "message_event",
+        "event_id": "vk-event-1",
+        "group_id": 123,
+        "object": {
+            "user_id": 10,
+            "peer_id": 10,
+            "event_id": "cb-1",
+            "conversation_message_id": 42,
+            "payload": {"command": "sets"},
+        },
+    }
+    normalized = normalize("vk", event)
+    assert normalized["command"] == "sets"
+    assert normalized["callback_id"] == "cb-1"
+    assert normalized["message_id"] == "42"
+
+
+def test_normalize_vk_message_event_without_cmid():
+    event = {
+        "type": "message_event",
+        "event_id": "vk-event-2",
+        "group_id": 123,
+        "object": {
+            "user_id": 10,
+            "peer_id": 10,
+            "event_id": "cb-2",
+            "payload": {"command": "home"},
+        },
+    }
+    normalized = normalize("vk", event)
+    assert normalized["command"] == "home"
+    assert normalized["callback_id"] == "cb-2"
+    assert normalized["message_id"] is None
+
+
+def test_normalize_vk_message_new_has_no_message_id():
+    event = {
+        "type": "message_new",
+        "event_id": "vk-event-3",
+        "group_id": 123,
+        "object": {
+            "message": {
+                "from_id": 10,
+                "peer_id": 10,
+                "text": "/start",
+            }
+        },
+    }
+    normalized = normalize("vk", event)
+    assert normalized["command"] == "start"
+    assert normalized["callback_id"] is None
+    assert normalized["message_id"] is None
+
+
+async def test_vk_callback_edits_existing_message():
+    adapter = Adapter(
+        AdapterSettings(
+            bot_platform="vk",
+            bot_service_token=SecretStr("test"),
+            vk_group_token=SecretStr("token"),
+            vk_group_id=123,
+        )
+    )
+    client = AsyncMock()
+    client.post.return_value = Response(
+        200,
+        json={"response": 1},
+        request=Request("POST", "https://api.vk.com"),
+    )
+    success = await adapter.send(
+        client,
+        {
+            "id": "job-1",
+            "actor_id": "10",
+            "callback_id": "cb-1",
+            "message_id": "42",
+            "text": "Следующий экран",
+            "keyboard": [[{"label": "Назад", "action": "home"}]],
+        },
+    )
+    assert success is True
+    assert client.post.call_count == 2
+    assert client.post.call_args_list[0].args[0].endswith("/messages.sendMessageEventAnswer")
+    assert client.post.call_args_list[1].args[0].endswith("/messages.edit")
+    data = client.post.call_args_list[1].kwargs["data"]
+    assert data["conversation_message_id"] == "42"
+    assert data["peer_id"] == "10"
+    assert data["message"] == "Следующий экран"
+
+
+async def test_vk_text_input_sends_new_message():
+    adapter = Adapter(
+        AdapterSettings(
+            bot_platform="vk",
+            bot_service_token=SecretStr("test"),
+            vk_group_token=SecretStr("token"),
+            vk_group_id=123,
+        )
+    )
+    client = AsyncMock()
+    client.post.return_value = Response(
+        200,
+        json={"response": 1},
+        request=Request("POST", "https://api.vk.com"),
+    )
+    success = await adapter.send(
+        client,
+        {
+            "id": "job-1",
+            "actor_id": "10",
+            "text": "Ответ",
+            "keyboard": [[{"label": "Меню", "action": "home"}]],
+        },
+    )
+    assert success is True
+    assert client.post.call_count == 1
+    assert client.post.call_args_list[0].args[0].endswith("/messages.send")
+    data = client.post.call_args_list[0].kwargs["data"]
+    assert "random_id" in data
+    assert data["peer_id"] == "10"
+
+
+async def test_vk_audio_sends_new_message_even_with_message_id():
+    adapter = Adapter(
+        AdapterSettings(
+            bot_platform="vk",
+            bot_service_token=SecretStr("test"),
+            vk_group_token=SecretStr("token"),
+            vk_group_id=123,
+        )
+    )
+    client = AsyncMock()
+    client.post.return_value = Response(
+        200,
+        json={"response": 1},
+        request=Request("POST", "https://api.vk.com"),
+    )
+    success = await adapter.send(
+        client,
+        {
+            "id": "job-1",
+            "actor_id": "10",
+            "callback_id": "cb-1",
+            "message_id": "42",
+            "audio_url": "https://example.com/audio.mp3",
+            "text": "Аудирование",
+            "keyboard": [],
+        },
+    )
+    assert success is True
+    assert client.post.call_count == 2
+    assert client.post.call_args_list[0].args[0].endswith("/messages.sendMessageEventAnswer")
+    assert client.post.call_args_list[1].args[0].endswith("/messages.send")
+    data = client.post.call_args_list[1].kwargs["data"]
+    assert "Аудио:" in data["message"]
+
+
+def test_vk_keyboard_under_limit_unchanged():
+    keyboard = [[{"label": f"Кнопка {i}", "action": f"act:{i}"}] for i in range(5)]
+    result = _vk_keyboard(keyboard)
+    assert len(result) == 5
+    assert all(len(row) == 1 for row in result)
+
+
+def test_vk_keyboard_exactly_six_rows_unchanged():
+    keyboard = [[{"label": f"К{i}", "action": f"a:{i}"}] for i in range(6)]
+    result = _vk_keyboard(keyboard)
+    assert len(result) == 6
+
+
+def test_vk_keyboard_eight_rows_merges_to_six():
+    keyboard = [
+        [{"label": f"Набор {i}", "action": f"set:{i}"}] for i in range(6)
+    ] + [
+        [{"label": "‹ Назад", "action": "sets:0"}],
+        [{"label": "В главное меню", "action": "home"}],
+    ]
+    result = _vk_keyboard(keyboard)
+    assert len(result) == 6
+    # Первые 5 рядов без изменений
+    assert result[0][0]["label"] == "Набор 0"
+    # 6-й ряд — объединение: 6-й набор + навигация + меню (макс 5 кнопок)
+    assert len(result[5]) <= 5
+    labels = [b["label"] for b in result[5]]
+    assert "Набор 5" in labels
+    assert "В главное меню" in labels
+
+
+def test_vk_keyboard_caps_buttons_per_row():
+    keyboard = [[{"label": f"К{i}", "action": f"a:{i}"} for i in range(7)]]
+    result = _vk_keyboard(keyboard)
+    assert len(result) == 1
+    assert len(result[0]) == 5
+
+
+def test_vk_keyboard_seven_rows_merges_last_two():
+    keyboard = [
+        [{"label": f"Режим {i}", "action": f"mode:{i}"}] for i in range(5)
+    ] + [
+        [{"label": "Настроить", "action": "setcfg:1"}],
+        [{"label": "Назад", "action": "sets"}],
+    ]
+    result = _vk_keyboard(keyboard)
+    assert len(result) == 6
+    # 6-й ряд объединяет «Настроить» и «Назад»
+    labels = [b["label"] for b in result[5]]
+    assert "Настроить" in labels
+    assert "Назад" in labels

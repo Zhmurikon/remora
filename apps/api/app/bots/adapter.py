@@ -74,7 +74,10 @@ def normalize(platform: str, body: dict[str, Any]) -> dict[str, Any] | None:
         if body["type"] == "message_event":
             callback_id = str(obj["event_id"])
             value = obj.get("payload", {}).get("command", "")
-        message_id = None
+            cmid = obj.get("conversation_message_id")
+            message_id = str(cmid) if isinstance(cmid, int) else None
+        else:
+            message_id = None
     if not isinstance(value, str):
         value = ""
     raw_value = value.strip()
@@ -112,6 +115,22 @@ def normalize(platform: str, body: dict[str, Any]) -> dict[str, Any] | None:
         "callback_id": callback_id,
         "message_id": message_id,
     }
+
+
+def _vk_keyboard(
+    keyboard: list[list[dict[str, str]]],
+) -> list[list[dict[str, str]]]:
+    """VK: максимум 6 рядов и 5 кнопок в ряду inline-клавиатуры."""
+    capped = [row[:5] for row in keyboard]
+    if len(capped) <= 6:
+        return capped
+    # Лишние ряды объединяем в один, обрезая до 5 кнопок.
+    merged: list[dict[str, str]] = []
+    for row in capped[5:]:
+        merged.extend(row)
+    if merged:
+        return [*capped[:5], merged[:5]]
+    return capped[:5]
 
 
 class Adapter:
@@ -176,10 +195,9 @@ class Adapter:
                     "peer_id": job["actor_id"],
                 },
             )
-        # Стабильный random_id предотвращает повтор сообщения при повторной доставке VK.
-        random_id = int(hashlib.sha256(job["id"].encode()).hexdigest()[:7], 16) + 1
         keyboard = None
         if job.get("keyboard"):
+            vk_rows = _vk_keyboard(job["keyboard"])
             keyboard = json.dumps(
                 {
                     "inline": True,
@@ -194,7 +212,7 @@ class Adapter:
                             }
                             for button in row
                         ]
-                        for row in job["keyboard"]
+                        for row in vk_rows
                     ],
                 },
                 ensure_ascii=False,
@@ -202,16 +220,31 @@ class Adapter:
         message = job["text"]
         if job.get("audio_url"):
             message += "\n\nАудио: " + job["audio_url"]
-        response = await client.post(
-            "https://api.vk.com/method/messages.send",
-            data={
-                **common,
-                "peer_id": job["actor_id"],
-                "message": message,
-                "random_id": str(random_id),
-                **({"keyboard": keyboard} if keyboard else {}),
-            },
-        )
+        if job.get("message_id") and not job.get("audio_url"):
+            # Редактируем исходное сообщение — аналог Telegram editMessageText.
+            response = await client.post(
+                "https://api.vk.com/method/messages.edit",
+                data={
+                    **common,
+                    "peer_id": job["actor_id"],
+                    "conversation_message_id": job["message_id"],
+                    "message": message,
+                    **({"keyboard": keyboard} if keyboard else {}),
+                },
+            )
+        else:
+            # Стабильный random_id предотвращает повтор сообщения при повторной доставке VK.
+            random_id = int(hashlib.sha256(job["id"].encode()).hexdigest()[:7], 16) + 1
+            response = await client.post(
+                "https://api.vk.com/method/messages.send",
+                data={
+                    **common,
+                    "peer_id": job["actor_id"],
+                    "message": message,
+                    "random_id": str(random_id),
+                    **({"keyboard": keyboard} if keyboard else {}),
+                },
+            )
         return response.is_success and "response" in response.json()
 
     async def poll_once(
