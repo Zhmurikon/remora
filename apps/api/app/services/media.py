@@ -12,12 +12,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.errors import ConflictError, ForbiddenError, NotFoundError
 from app.core.storage import get_object_storage
+from app.core.svg import sanitize_svg
 from app.models.content import MediaAsset, MediaKind, MediaSource, MediaStatus
 from app.models.user import User
 from app.repositories import media as media_repo
 from app.schemas.media import ImageUploadRequest, ImageUploadTicket, MediaAssetPublic
 
-ALLOWED_IMAGE_MIMES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+SVG_MIME = "image/svg+xml"
+ALLOWED_IMAGE_MIMES = {"image/jpeg", "image/png", "image/webp", "image/gif", SVG_MIME}
 FORMAT_MIMES = {"JPEG": "image/jpeg", "PNG": "image/png", "WEBP": "image/webp", "GIF": "image/gif"}
 
 
@@ -28,7 +30,7 @@ class MediaService:
 
     async def create_image_upload(self, user: User, body: ImageUploadRequest) -> ImageUploadTicket:
         if body.mime not in ALLOWED_IMAGE_MIMES:
-            raise ConflictError("Поддерживаются JPEG, PNG, WebP и GIF")
+            raise ConflictError("Поддерживаются JPEG, PNG, WebP, GIF и SVG")
         if body.size_bytes > self.settings.media_image_max_size_bytes:
             raise ConflictError(
                 "Изображение слишком большое",
@@ -63,8 +65,9 @@ class MediaService:
         asset = await self._owned_asset(user, asset_id)
         if asset.status == MediaStatus.ready:
             return self._public(asset)
+        storage = get_object_storage()
         try:
-            payload, actual_size = await get_object_storage().read(
+            payload, actual_size = await storage.read(
                 asset.s3_key, self.settings.media_image_max_size_bytes
             )
         except ValueError as exc:
@@ -76,18 +79,25 @@ class MediaService:
             await self._reject(asset)
             raise ConflictError("Изображение слишком большое")
         try:
-            width, height, mime = _inspect_image(payload, self.settings.media_image_max_pixels)
+            processed, width, height, mime = _prepare_image(
+                payload,
+                self.settings.media_image_max_pixels,
+                svg=asset.mime == SVG_MIME,
+            )
         except (UnidentifiedImageError, OSError, ValueError) as exc:
             await self._reject(asset)
             raise ConflictError("Загруженный файл не является допустимым изображением") from exc
         if width * height > self.settings.media_image_max_pixels:
             await self._reject(asset)
             raise ConflictError("У изображения слишком большое разрешение")
+        if processed != payload:
+            # Исходный пользовательский SVG нельзя выдавать даже на короткое время.
+            await storage.put(asset.s3_key, processed, mime)
         asset.mime = mime
-        asset.size_bytes = actual_size
+        asset.size_bytes = len(processed)
         asset.width = width
         asset.height = height
-        asset.checksum = hashlib.sha256(payload).hexdigest()
+        asset.checksum = hashlib.sha256(processed).hexdigest()
         asset.status = MediaStatus.ready
         await self.db.flush()
         return self._public(asset)
@@ -97,27 +107,31 @@ class MediaService:
         if len(payload) > self.settings.media_image_max_size_bytes:
             raise ConflictError("Изображение из архива слишком большое")
         try:
-            width, height, mime = _inspect_image(payload, self.settings.media_image_max_pixels)
+            processed, width, height, mime = _prepare_image(
+                payload,
+                self.settings.media_image_max_pixels,
+                svg=Path(filename).suffix.lower() == ".svg",
+            )
         except (UnidentifiedImageError, OSError, ValueError) as exc:
             raise ConflictError("В архиве найдено недопустимое изображение") from exc
         asset_id = uuid4()
         suffix = Path(filename).suffix.lower()[:10]
         key = f"users/{user.id}/images/{asset_id}{suffix}"
-        checksum = hashlib.sha256(payload).hexdigest()
+        checksum = hashlib.sha256(processed).hexdigest()
         asset = MediaAsset(
             id=asset_id,
             owner_id=user.id,
             kind=MediaKind.image,
             s3_key=key,
             mime=mime,
-            size_bytes=len(payload),
+            size_bytes=len(processed),
             width=width,
             height=height,
             checksum=checksum,
             source=MediaSource.upload,
             status=MediaStatus.ready,
         )
-        await get_object_storage().put(key, payload, mime)
+        await get_object_storage().put(key, processed, mime)
         self.db.add(asset)
         await self.db.flush()
         return asset
@@ -172,3 +186,11 @@ def _inspect_image(payload: bytes, max_pixels: int) -> tuple[int, int, str]:
         if mime is None:
             raise ValueError("unsupported image format")
         return image.width, image.height, mime
+
+
+def _prepare_image(payload: bytes, max_pixels: int, *, svg: bool) -> tuple[bytes, int, int, str]:
+    if svg:
+        cleaned, width, height = sanitize_svg(payload, max_pixels)
+        return cleaned, width, height, SVG_MIME
+    width, height, mime = _inspect_image(payload, max_pixels)
+    return payload, width, height, mime

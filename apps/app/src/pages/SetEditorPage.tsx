@@ -1415,7 +1415,7 @@ function ImageUpload({
           {uploading ? 'Загружаем…' : imageId ? 'Заменить изображение' : '＋ Изображение'}
           <input
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
+            accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
             className="sr-only"
             disabled={uploading}
             onChange={(event) => {

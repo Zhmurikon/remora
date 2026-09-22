@@ -24,6 +24,7 @@ dependencies = [
     "reportlab>=5.0.1",
     "arq>=0.26.3",
     "mcp>=1.28,<2",
+    "defusedxml>=0.7.1",
 ]
 
 [dependency-groups]
@@ -35,6 +36,7 @@ dev = [
     "mypy>=1.14.1",
     "boto3-stubs[s3]>=1.35.0",
     "types-reportlab>=5.0.0.20260911",
+    "types-defusedxml>=0.7.0.20260504",
 ]
 
 [build-system]

@@ -11,6 +11,7 @@ class FakeStorage:
     def __init__(self, payload: bytes) -> None:
         self.payload = payload
         self.deleted: list[str] = []
+        self.puts: list[tuple[str, bytes, str]] = []
 
     def upload_url(self, key: str, mime: str, ttl: int) -> str:
         return f"http://storage.test/{key}?upload=1"
@@ -23,6 +24,10 @@ class FakeStorage:
 
     async def delete(self, key: str) -> None:
         self.deleted.append(key)
+
+    async def put(self, key: str, payload: bytes, mime: str) -> None:
+        self.payload = payload
+        self.puts.append((key, payload, mime))
 
 
 async def _auth(client: pytest.fixture, suffix: str) -> dict[str, str]:
@@ -130,3 +135,59 @@ async def test_rejects_file_disguised_as_image(
         )
         assert completed.status_code == 409
         assert storage.deleted
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_svg_is_sanitized_before_it_becomes_ready(
+    mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    svg = b"""<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80"
+      onload="alert(1)"><script>alert(1)</script><foreignObject><p>bad</p></foreignObject>
+      <a href="https://tracker.example"><rect width="120" height="80" fill="url(https://tracker.example/a)"/></a>
+      <circle cx="40" cy="40" r="20" fill="#0aa"/></svg>"""
+    storage = FakeStorage(svg)
+    headers = await _auth(client, "svg")
+    with patch("app.services.media.get_object_storage", return_value=storage):
+        ticket = await client.post(
+            "/api/v1/media/upload-url",
+            headers=headers,
+            json={"filename": "diagram.svg", "mime": "image/svg+xml", "size_bytes": len(svg)},
+        )
+        assert ticket.status_code == 201
+        completed = await client.post(
+            f"/api/v1/media/{ticket.json()['id']}/complete", headers=headers
+        )
+
+    assert completed.status_code == 200
+    assert completed.json()["mime"] == "image/svg+xml"
+    assert completed.json()["width"] == 120
+    assert completed.json()["height"] == 80
+    assert storage.puts
+    cleaned = storage.puts[0][1].decode()
+    assert "script" not in cleaned
+    assert "foreignObject" not in cleaned
+    assert "onload" not in cleaned
+    assert "tracker.example" not in cleaned
+    assert "circle" in cleaned
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_svg_with_entity_is_rejected(mock_send: AsyncMock, client: pytest.fixture) -> None:
+    svg = (
+        b'<!DOCTYPE svg [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>'
+        b'<svg width="10" height="10">&xxe;</svg>'
+    )
+    storage = FakeStorage(svg)
+    headers = await _auth(client, "svgentity")
+    with patch("app.services.media.get_object_storage", return_value=storage):
+        ticket = await client.post(
+            "/api/v1/media/upload-url",
+            headers=headers,
+            json={"filename": "bad.svg", "mime": "image/svg+xml", "size_bytes": len(svg)},
+        )
+        completed = await client.post(
+            f"/api/v1/media/{ticket.json()['id']}/complete", headers=headers
+        )
+
+    assert completed.status_code == 409
+    assert storage.deleted

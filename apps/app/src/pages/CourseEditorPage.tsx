@@ -648,7 +648,7 @@ function MaterialImageButton({
         height: done.data.height,
       });
     } catch {
-      setError('Не удалось загрузить изображение. Поддерживаются JPEG, PNG, WebP и GIF.');
+      setError('Не удалось загрузить изображение. Поддерживаются JPEG, PNG, WebP, GIF и SVG.');
     } finally {
       setUploading(false);
     }
@@ -659,7 +659,7 @@ function MaterialImageButton({
         {uploading ? 'Загружаем…' : '＋ Вставить изображение'}
         <input
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
+          accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
           className="sr-only"
           disabled={uploading}
           onChange={(event) => {
