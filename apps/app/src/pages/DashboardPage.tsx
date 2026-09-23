@@ -3,6 +3,7 @@ import { Button, Card } from '@remora/ui';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../features/auth/auth-store';
+import { RetentionOverview } from '../features/retention/RetentionOverview';
 import { api } from '../lib/api';
 
 export function DashboardPage() {
@@ -58,6 +59,8 @@ export function DashboardPage() {
         <Stat label="К повторению сегодня" value={dueToday} />
         <Stat label="За неделю" value={dueWeek} />
       </section>
+
+      <RetentionOverview />
 
       <Card className="mt-6 p-6">
         <h2 className="text-lg font-semibold">Продолжить обучение</h2>
