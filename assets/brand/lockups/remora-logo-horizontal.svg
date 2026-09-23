@@ -1,6 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1254 1254" role="img" aria-labelledby="remora-mark-title remora-mark-description">
-  <title id="remora-mark-title">Remora</title>
-  <desc id="remora-mark-description">Серьёзная рыба-ремора в очках читает книгу</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 512" role="img" aria-label="Remora">
+  <g transform="scale(0.40829346)">
 <g transform="translate(0.000000,1254.000000) scale(0.100000,-0.100000)"
 fill="#0D8285" stroke="none">
 <path d="M3938 11240 c-258 -24 -444 -103 -478 -206 -17 -49 4 -85 122 -209
@@ -233,4 +232,6 @@ l-50 -3 -76 -325 c-71 -296 -423 -1772 -437 -1829 -6 -23 -4 -23 33 -17 124
 -1455 542 -77 22 -144 42 -150 44 -5 2 -23 -1 -39 -5z M6641 6956 c2 -2 42
 -16 88 -30 47 -14 80 -21 75 -17 -5 5 -41 19 -80 30 -70 21 -92 25 -83 17z"/>
 </g>
+  </g>
+  <text x="560" y="336" fill="#1C2424" font-family="Inter, 'Segoe UI', sans-serif" font-size="230" font-weight="700">Remora</text>
 </svg>

@@ -35,9 +35,17 @@ packages/ui     дизайн-система: токены и компонент�
 packages/core   доменные типы и логика, общая для обоих фронтендов
 packages/api-client   TypeScript-клиент, генерируется из OpenAPI
 packages/config       tsconfig, tailwind-пресет
+assets/brand          полный набор логотипов, знака, favicon и PWA-иконок
 ```
 
 Почему два фронтенда: публичные страницы должны рендериться на сервере ради индексации в Яндексе, кабинет — быть отзывчивым SPA. Граница описана в [docs/02-functional-spec.md](docs/02-functional-spec.md), раздел 2.2.
+
+## Логотипы
+
+Утверждённый комплект находится в [`assets/brand`](assets/brand/README.md): мастер-знак,
+горизонтальные и вертикальные компоновки, варианты для тёмного фона, favicon, Apple Touch Icon
+и PWA-иконки. Для обновления экспортов используйте `scripts/generate-brand-assets.sh`.
+Правила применения зафиксированы в [`design.md`](design.md), раздел «Бренд».
 
 ## Документация
 
