@@ -1,3 +1,6 @@
 [submodule "apps/mobile"]
 	path = apps/mobile
 	url = git@github.com:Zhmurikon/remora-mobile.git
+[submodule "integrations/remora-ai-integrations"]
+	path = integrations/remora-ai-integrations
+	url = git@github.com:Zhmurikon/remora-ai-integrations.git
