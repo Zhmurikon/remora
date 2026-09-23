@@ -3,11 +3,11 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import func, select, update
+from sqlalchemy import exists, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.content import Card, Folder, MediaAsset, StudySet
+from app.models.content import Card, Folder, MediaAsset, SetVisibility, StudySet
 from app.models.courses import Course, CourseArticle, CourseSection
 from app.models.user import User, UserStatus
 
@@ -67,18 +67,37 @@ async def get_set(db: AsyncSession, set_id: UUID, *, with_cards: bool = False) -
 
 
 async def get_public_set_by_slug(db: AsyncSession, slug: str) -> tuple[StudySet, User] | None:
-    result = await db.execute(
-        select(StudySet, User)
-        .join(User, User.id == StudySet.owner_id)
-        .join(CourseArticle, CourseArticle.set_id == StudySet.id)
-        .join(CourseSection, CourseSection.id == CourseArticle.section_id)
-        .join(Course, Course.id == CourseSection.course_id)
+    published_course = (
+        select(Course.id)
+        .join(CourseSection, CourseSection.course_id == Course.id)
+        .join(CourseArticle, CourseArticle.section_id == CourseSection.id)
         .where(
-            StudySet.slug == slug,
-            StudySet.deleted_at.is_(None),
+            CourseArticle.set_id == StudySet.id,
             Course.is_published.is_(True),
             Course.moderation_status != "blocked",
             Course.owner_id == StudySet.owner_id,
+        )
+        .correlate(StudySet)
+    )
+    blocked_course = (
+        select(Course.id)
+        .join(CourseSection, CourseSection.course_id == Course.id)
+        .join(CourseArticle, CourseArticle.section_id == CourseSection.id)
+        .where(
+            CourseArticle.set_id == StudySet.id,
+            Course.moderation_status == "blocked",
+            Course.owner_id == StudySet.owner_id,
+        )
+        .correlate(StudySet)
+    )
+    result = await db.execute(
+        select(StudySet, User)
+        .join(User, User.id == StudySet.owner_id)
+        .where(
+            StudySet.slug == slug,
+            StudySet.deleted_at.is_(None),
+            or_(StudySet.visibility == SetVisibility.public, exists(published_course)),
+            ~exists(blocked_course),
             User.status == UserStatus.active,
             User.deleted_at.is_(None),
         )

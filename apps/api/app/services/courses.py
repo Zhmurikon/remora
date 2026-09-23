@@ -10,7 +10,7 @@ from app.core.article_media import extract_media_ids
 from app.core.config import get_settings
 from app.core.errors import ConflictError, ForbiddenError, NotFoundError
 from app.core.storage import get_object_storage
-from app.models.content import MediaStatus
+from app.models.content import MediaStatus, SetVisibility
 from app.models.courses import Course, CourseArticle, CourseSection
 from app.models.user import User
 from app.repositories import content as content_repo
@@ -204,6 +204,7 @@ class CourseService:
             study_set = await content_repo.get_set(self.db, article.set_id, with_cards=True)
             if study_set is None or study_set.owner_id != user.id or not study_set.cards:
                 raise ConflictError("Каждая статья должна содержать доступный набор с карточками")
+            study_set.visibility = SetVisibility.public
         await ContentService(self.db).validate_media_owned(
             user, {media_id for article in articles for media_id in extract_media_ids(article.body)}
         )

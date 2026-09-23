@@ -91,7 +91,7 @@ class StudySet(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     title: Mapped[str] = mapped_column(String(160))
     description: Mapped[str] = mapped_column(Text, default="", server_default=text("''"))
     visibility: Mapped[SetVisibility] = mapped_column(
-        Enum(SetVisibility), default=SetVisibility.private, server_default=text("'private'")
+        Enum(SetVisibility), default=SetVisibility.public, server_default=text("'public'")
     )
     slug: Mapped[str] = mapped_column(String(200), unique=True, index=True)
     lang_term: Mapped[str] = mapped_column(String(10), default="ru", server_default=text("'ru'"))

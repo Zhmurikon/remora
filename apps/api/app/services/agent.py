@@ -12,7 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ConflictError
 from app.models.api_tokens import AgentRequest
-from app.models.content import SetVisibility
 from app.models.courses import Course, CourseArticle, CourseSection
 from app.models.user import User
 from app.repositories import api_tokens as token_repo
@@ -95,9 +94,7 @@ class AgentService:
     async def _write_set(self, user: User, set_id: UUID, body: AgentSetWrite) -> None:
         study_set = await self.content.get_owned_set(user, set_id)
         course = await course_repo.course_for_set(self.db, set_id)
-        if (course and course.is_published) or (
-            course is None and study_set.visibility != SetVisibility.private
-        ):
+        if course and course.is_published:
             raise ConflictError("Перед изменением агентом снимите курс с публикации")
         await self.content.update_set(
             user,

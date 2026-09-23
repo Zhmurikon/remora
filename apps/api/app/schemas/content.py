@@ -60,7 +60,7 @@ class CardPublic(CardWrite):
 class SetCreate(BaseModel):
     title: str = Field(min_length=1, max_length=160)
     description: str = Field(default="", max_length=5000)
-    visibility: SetVisibility = SetVisibility.private
+    visibility: SetVisibility = SetVisibility.public
     lang_term: str = Field(default="ru", min_length=2, max_length=10)
     lang_definition: str = Field(default="ru", min_length=2, max_length=10)
     folder_id: UUID | None = None

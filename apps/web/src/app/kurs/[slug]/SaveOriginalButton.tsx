@@ -37,10 +37,13 @@ export function SaveOriginalButton({
         headers: { Authorization: `Bearer ${access_token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ target_type: targetType, target_id: targetId }),
       });
-      if (!response.ok) throw new Error();
+      if (!response.ok) {
+        const problem = (await response.json().catch(() => null)) as { message?: string } | null;
+        throw new Error(problem?.message || 'Не удалось сохранить. Попробуйте ещё раз.');
+      }
       setSaved(true);
-    } catch {
-      setError('Не удалось сохранить. Попробуйте ещё раз.');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Не удалось сохранить. Попробуйте ещё раз.');
     } finally {
       setLoading(false);
     }

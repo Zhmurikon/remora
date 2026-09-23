@@ -162,10 +162,6 @@ class ContentService:
         return study_set
 
     async def create_set(self, user: User, body: SetCreate) -> StudySet:
-        if body.visibility != SetVisibility.private:
-            raise ConflictError(
-                "Публикация доступна в настройках курса", details={"action": "publish_course"}
-            )
         if body.folder_id is not None:
             await self.get_owned_folder(user, body.folder_id)
         study_set = StudySet(id=uuid4(), owner_id=user.id, slug="pending", **body.model_dump())
@@ -177,11 +173,7 @@ class ContentService:
         if body.folder_id is not None:
             await self.get_owned_folder(user, body.folder_id)
         study_set = await self.get_owned_set(user, set_id, with_cards=True)
-        if "visibility" in body.model_fields_set and body.visibility != study_set.visibility:
-            raise ConflictError(
-                "Публикация доступна в настройках курса", details={"action": "publish_course"}
-            )
-        for field, value in body.model_dump(exclude={"visibility"}).items():
+        for field, value in body.model_dump().items():
             setattr(study_set, field, value)
         await self.db.flush()
         # PostgreSQL вычисляет updated_at при UPDATE. Загружаем значение в async-контексте,
@@ -200,7 +192,7 @@ class ContentService:
             SetCreate(
                 title=f"Копия — {source.title}",
                 description=source.description,
-                visibility=SetVisibility.private,
+                visibility=SetVisibility.public,
                 lang_term=source.lang_term,
                 lang_definition=source.lang_definition,
                 folder_id=source.folder_id,

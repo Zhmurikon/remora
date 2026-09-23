@@ -3284,7 +3284,7 @@ export interface components {
             lang_term: string;
             /** Title */
             title: string;
-            /** @default private */
+            /** @default public */
             visibility: components["schemas"]["SetVisibility"];
         };
         /** SetDetail */
@@ -3421,7 +3421,7 @@ export interface components {
             lang_term: string;
             /** Title */
             title: string;
-            /** @default private */
+            /** @default public */
             visibility: components["schemas"]["SetVisibility"];
         };
         /**

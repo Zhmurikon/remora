@@ -6,7 +6,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import ForbiddenError, NotFoundError
+from app.core.errors import ConflictError, NotFoundError
 from app.models.content import StudySet
 from app.models.courses import Course, CourseArticle, CourseSection, LibrarySave
 from app.models.user import User
@@ -28,7 +28,7 @@ class LibraryService:
             return await self._item(existing)
         course, article, study_set = await self._resolve(body.target_type, body.target_id)
         if course.owner_id == user.id:
-            raise ForbiddenError("Собственный материал уже доступен в библиотеке")
+            raise ConflictError("Собственный материал уже доступен в библиотеке")
         saved = LibrarySave(user_id=user.id)
         setattr(saved, f"{body.target_type}_id", body.target_id)
         saved.accepted_snapshot = await self._snapshot(

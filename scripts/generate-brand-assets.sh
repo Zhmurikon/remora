@@ -122,6 +122,18 @@ done
 cp "$assets_dir/remora-mark-compact.svg" "$repo_root/apps/web/src/app/icon.svg"
 cp "$assets_dir/remora-mark-compact.svg" "$repo_root/apps/app/public/favicon.svg"
 cp "$assets_dir/remora-mark-compact.svg" "$repo_root/apps/mobile/assets/remora-mark.svg"
+cp "$assets_dir/remora-logo-horizontal.svg" \
+  "$repo_root/apps/mobile/assets/remora-logo-horizontal.svg"
+cp "$assets_dir/remora-logo-horizontal-inverse.svg" \
+  "$repo_root/apps/mobile/assets/remora-logo-horizontal-inverse.svg"
+
+for density_and_size in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+  density=${density_and_size%%:*}
+  size=${density_and_size##*:}
+  convert "$repo_root/apps/app/public/icons/icon-maskable-512.png" \
+    -resize "${size}x${size}" \
+    "$repo_root/apps/mobile/android/app/src/main/res/mipmap-$density/ic_launcher.png"
+done
 
 convert \
   "$repo_root/apps/app/public/icons/icon-16.png" \

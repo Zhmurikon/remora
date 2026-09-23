@@ -263,7 +263,7 @@ async def test_copy_set_from_public_course_is_independent_and_isolated(
     assert created.status_code == 201, created.text
     copied = created.json()
     assert copied["id"] != set_id
-    assert copied["visibility"] == "private"
+    assert copied["visibility"] == "public"
     assert copied["cards"][0]["term"] == "Определитель"
     assert copied["cards"][0]["wrong_term_answers"] == ["След"]
     assert copied["cards"][0]["wrong_definition_answers"] == ["Матрица"]

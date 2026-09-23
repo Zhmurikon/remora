@@ -113,7 +113,7 @@ async def test_publication_access_and_nested_revocation(
     legacy = f"/api/v1/sets/public/{study_set['slug']}"
     assert (await client.get(public)).status_code == 404
     assert (await client.get(material)).status_code == 404
-    assert (await client.get(legacy)).status_code == 404
+    assert (await client.get(legacy)).status_code == (200 if visibility == "public" else 404)
     assert (await client.post(path + "/publish", headers=stranger, json={})).status_code == 403
     assert (await client.post(path + "/publish", json={})).status_code == 401
     invalid = await client.post(path + "/publish", headers=owner, json={"tags": ["<script>"]})
@@ -131,6 +131,8 @@ async def test_publication_access_and_nested_revocation(
         json={"tags": ["#Математика", "математика", "Линейная  алгебра"]},
     )
     assert published.status_code == 200, published.text
+    nested = await client.get(f"/api/v1/sets/{study_set['id']}", headers=owner)
+    assert nested.json()["visibility"] == "public"
     assert published.json()["tags"] == ["математика", "линейная алгебра"]
     assert published.json()["moderation_status"] == "pending"
     assert (await client.get(public)).status_code == 200
@@ -144,7 +146,7 @@ async def test_publication_access_and_nested_revocation(
     assert (await client.post(path + "/unpublish", headers=owner)).status_code == 200
     assert (await client.get(material)).status_code == 404
     assert (await client.get(public)).status_code == 404
-    assert (await client.get(legacy)).status_code == 404
+    assert (await client.get(legacy)).status_code == 200
     assert (await client.get(f"/api/v1/sets/{study_set['id']}", headers=owner)).status_code == 200
     assert (await client.post(path + "/publish", headers=owner, json={})).status_code == 200
     async with get_engine().begin() as conn:

@@ -28,7 +28,12 @@ async def test_set_lifecycle_and_card_batch(mock_send: AsyncMock, client: pytest
         json={"title": "Английские слова", "description": "Первый набор"},
     )
     assert created.status_code == 201
+    assert created.json()["visibility"] == "public"
     set_id = created.json()["id"]
+
+    public = await client.get(f"/api/v1/sets/public/{created.json()['slug']}")
+    assert public.status_code == 200
+    assert public.json()["course_url"] is None
 
     saved = await client.put(
         f"/api/v1/sets/{set_id}/cards",
@@ -136,7 +141,9 @@ async def test_public_link_respects_visibility_and_limits_ssr_cards(
 ) -> None:
     owner = await _auth(client, "publicowner")
     private_set = await client.post(
-        "/api/v1/sets", headers=owner, json={"title": "Секретный набор"}
+        "/api/v1/sets",
+        headers=owner,
+        json={"title": "Секретный набор", "visibility": "private"},
     )
     private_slug = private_set.json()["slug"]
     assert (await client.get(f"/api/v1/sets/public/{private_slug}")).status_code == 404

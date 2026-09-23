@@ -31,8 +31,17 @@ async def test_course_save_grants_study_but_not_edit_and_revokes_on_unpublish(
 ) -> None:
     owner = await auth(client, "library-owner")
     learner = await auth(client, "library-learner")
+    stranger = await auth(client, "library-stranger")
     course = await _published_course(client, owner)
     set_id = course["set"]["id"]
+
+    own_save = await client.post(
+        "/api/v1/library",
+        headers=owner,
+        json={"target_type": "course", "target_id": course["id"]},
+    )
+    assert own_save.status_code == 409
+    assert own_save.json()["message"] == "Собственный материал уже доступен в библиотеке"
 
     unavailable = await client.get(f"/api/v1/study/sets/{set_id}/queue", headers=learner)
     assert unavailable.status_code == 403
@@ -108,6 +117,15 @@ async def test_course_save_grants_study_but_not_edit_and_revokes_on_unpublish(
     )
     assert changes.json()["cards_added"] == 1
     assert changes.json()["cards_changed"] == 1
+    assert (
+        await client.get(f"/api/v1/library/{saved.json()['id']}/changes", headers=stranger)
+    ).status_code == 404
+    assert (
+        await client.post(f"/api/v1/library/{saved.json()['id']}/accept", headers=stranger)
+    ).status_code == 404
+    assert (
+        await client.post(f"/api/v1/library/{saved.json()['id']}/accept")
+    ).status_code == 401
     accepted = await client.post(
         f"/api/v1/library/{saved.json()['id']}/accept", headers=learner
     )
@@ -128,6 +146,19 @@ async def test_course_save_grants_study_but_not_edit_and_revokes_on_unpublish(
     revoked = await client.get(f"/api/v1/study/sets/{set_id}/queue", headers=learner)
     assert revoked.status_code == 403
     assert (await client.get("/api/v1/library", headers=learner)).json() == []
+    assert (
+        await client.get(f"/api/v1/library/{saved.json()['id']}/changes", headers=learner)
+    ).status_code == 404
+    assert (
+        await client.post(f"/api/v1/library/{saved.json()['id']}/accept", headers=learner)
+    ).status_code == 404
+    assert (
+        await client.post(
+            "/api/v1/library",
+            headers=stranger,
+            json={"target_type": "course", "target_id": course["id"]},
+        )
+    ).status_code == 404
 
 
 async def test_article_and_set_saves_are_separate_and_protected(client: AsyncClient) -> None:
@@ -169,4 +200,4 @@ async def test_article_and_set_saves_are_separate_and_protected(client: AsyncCli
         headers=owner,
         json={"target_type": "course", "target_id": course["id"]},
     )
-    assert own.status_code == 403
+    assert own.status_code == 409
