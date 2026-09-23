@@ -17,6 +17,7 @@ from app.models.courses import Course, CourseArticle, CourseLike, CourseSection,
 from app.models.exports import AccountExportJob, AccountExportStatus
 from app.models.imports import ImportJob, ImportJobStatus
 from app.models.moderation import CourseReport, ReportReason, ReportStatus
+from app.models.retention import DailyActivity, Streak
 from app.models.study import (
     CardState,
     CardStateKind,
@@ -63,6 +64,7 @@ __all__ = [
     "CourseLike",
     "CourseReport",
     "CourseSection",
+    "DailyActivity",
     "Folder",
     "ImportJob",
     "ImportJobStatus",
@@ -78,6 +80,7 @@ __all__ = [
     "Review",
     "SessionStatus",
     "SetVisibility",
+    "Streak",
     "StudyDirection",
     "StudyMode",
     "StudySession",

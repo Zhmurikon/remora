@@ -58,6 +58,12 @@ class ConflictError(AppError):
     message = "Конфликт состояния"
 
 
+class ValidationError(AppError):
+    code = "VALIDATION_ERROR"
+    status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
+    message = "Некорректные данные"
+
+
 class RateLimitError(AppError):
     code = "RATE_LIMITED"
     status_code = status.HTTP_429_TOO_MANY_REQUESTS

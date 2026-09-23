@@ -245,8 +245,10 @@ remora/
 
 ### 3.5 Удержание
 
-**streaks** — `user_id`, `current_days`, `longest_days`, `last_active_date`, `freezes_left`.
-**daily_activity** — `user_id`, `date`, `cards_reviewed`, `minutes`, `goal_met`, `xp_earned`. Одна строка на пользователя в день, основа графика активности.
+**streaks** — `user_id`, `current_days`, `longest_days`, `last_active_date`, `freezes_left`, `total_xp`.
+**daily_activity** — `user_id`, `activity_date`, `reviews_count`, `correct_count`, `xp_earned`,
+`goal_reached_at`, `is_frozen`. Одна строка на локальный день пользователя; строка без ответов
+с `is_frozen` фиксирует использованную заморозку и позволяет пересчитать серию после офлайн-ответов.
 **achievements** / **user_achievements** — справочник + выданные.
 **notifications_queue** — `user_id`, `channel` (`email` | `telegram` | `webpush`), `kind`, `payload`, `send_after`, `sent_at`, `status`.
 

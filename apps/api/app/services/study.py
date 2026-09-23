@@ -55,6 +55,7 @@ from app.schemas.study import (
     StudySettingsUpdate,
 )
 from app.services.content import ContentService
+from app.services.retention import RetentionService
 from app.services.scheduler import SchedulerService, SchedulerState, initial_state
 
 # Карточка считается выученной, когда стабильность перевалила за три недели:
@@ -267,6 +268,7 @@ class StudyService:
         accepted: list[UUID] = []
         duplicates: list[UUID] = []
         rejected: list[UUID] = []
+        accepted_reviews = []
         touched: dict[tuple[UUID, StudyDirection], CardState] = {}
 
         # Порядок ответов задаёт расписание: интервал зависит от момента предыдущего
@@ -322,6 +324,7 @@ class StudyService:
             _apply_state(state_row, after, scheduler.version)
             touched[(item.card_id, item.direction)] = state_row
             accepted.append(item.client_review_id)
+            accepted_reviews.append(item)
             if session is not None:
                 session.cards_seen += 1
                 if item.answer_correct is True or (
@@ -329,6 +332,7 @@ class StudyService:
                 ):
                     session.cards_correct += 1
 
+        await RetentionService(self.db).record_reviews(user, accepted_reviews)
         await self.db.flush()
         return ReviewBatchResult(
             accepted=accepted,

@@ -991,6 +991,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/retention/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Активность по дням */
+        get: operations["retention_activity_api_v1_retention_activity_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/retention/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Дневная цель, серия и XP */
+        get: operations["retention_summary_api_v1_retention_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/search/courses": {
         parameters: {
             query?: never;
@@ -1614,6 +1648,24 @@ export interface components {
          * @enum {string}
          */
         AccountExportStatus: "queued" | "processing" | "completed" | "failed";
+        /** ActivityDay */
+        ActivityDay: {
+            /** Correct Count */
+            correct_count: number;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Goal Reached At */
+            goal_reached_at: string | null;
+            /** Is Frozen */
+            is_frozen: boolean;
+            /** Reviews Count */
+            reviews_count: number;
+            /** Xp Earned */
+            xp_earned: number;
+        };
         /** AgentArticleDetail */
         AgentArticleDetail: {
             /** Body */
@@ -3139,6 +3191,40 @@ export interface components {
             id: string;
             reason: components["schemas"]["ReportReason"];
             status: components["schemas"]["ReportStatus"];
+        };
+        /** RetentionSummary */
+        RetentionSummary: {
+            /** Correct Today */
+            correct_today: number;
+            /** Current Level Xp */
+            current_level_xp: number;
+            /** Current Streak Days */
+            current_streak_days: number;
+            /** Daily Goal */
+            daily_goal: number;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Freezes Left */
+            freezes_left: number;
+            /** Goal Completed */
+            goal_completed: boolean;
+            /** Last Active Date */
+            last_active_date: string | null;
+            /** Level */
+            level: number;
+            /** Longest Streak Days */
+            longest_streak_days: number;
+            /** Next Level Xp */
+            next_level_xp: number;
+            /** Reviews Today */
+            reviews_today: number;
+            /** Total Xp */
+            total_xp: number;
+            /** Xp Today */
+            xp_today: number;
         };
         /** ReviewBatch */
         ReviewBatch: {
@@ -6020,6 +6106,58 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReadinessResponse"];
+                };
+            };
+        };
+    };
+    retention_activity_api_v1_retention_activity_get: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityDay"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retention_summary_api_v1_retention_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetentionSummary"];
                 };
             };
         };

@@ -9,29 +9,32 @@ from app.db.session import get_engine
 from tests.test_courses import auth, legacy_visibility
 
 
-async def test_set_publication_is_only_managed_by_course(client: AsyncClient) -> None:
+async def test_set_visibility_is_independent_from_course_publication(client: AsyncClient) -> None:
     owner = await auth(client, "legacyguard")
     for visibility in ("public", "unlisted"):
         response = await client.post(
             "/api/v1/sets", headers=owner, json={"title": "Набор", "visibility": visibility}
         )
-        assert response.status_code == 409
-        assert response.json()["details"]["action"] == "publish_course"
+        assert response.status_code == 201
+        assert response.json()["visibility"] == visibility
     study_set = (await client.post("/api/v1/sets", headers=owner, json={"title": "Набор"})).json()
+    assert study_set["visibility"] == "public"
     path = f"/api/v1/sets/{study_set['id']}"
     assert (
-        await client.patch(path, headers=owner, json={"title": "Набор", "visibility": "public"})
-    ).status_code == 409
-    await legacy_visibility(study_set["id"], "public")
-    # Сам флаг старого набора больше не открывает доступ без курса.
+        await client.patch(path, headers=owner, json={"title": "Набор", "visibility": "private"})
+    ).status_code == 200
     assert (await client.get(f"/api/v1/sets/public/{study_set['slug']}")).status_code == 404
+    assert (
+        await client.patch(path, headers=owner, json={"title": "Набор", "visibility": "public"})
+    ).status_code == 200
+    assert (await client.get(f"/api/v1/sets/public/{study_set['slug']}")).status_code == 200
     updated = await client.patch(path, headers=owner, json={"title": "Новое название"})
     assert updated.status_code == 200
     assert updated.json()["visibility"] == "public"
     copy = await client.post(path + "/duplicate", headers=owner)
     assert copy.status_code == 201
-    assert copy.json()["visibility"] == "private"
-    assert (await client.get(f"/api/v1/sets/public/{copy.json()['slug']}")).status_code == 404
+    assert copy.json()["visibility"] == "public"
+    assert (await client.get(f"/api/v1/sets/public/{copy.json()['slug']}")).status_code == 200
 
 
 async def test_legacy_backfill_is_idempotent_and_preserves_visibility(client: AsyncClient) -> None:
