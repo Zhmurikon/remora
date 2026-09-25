@@ -55,6 +55,9 @@ it('показывает изменения и применяет их по кн
     </MemoryRouter>,
   );
 
+  expect(screen.getByRole('link', { name: 'Найти курсы' }).getAttribute('href')).toBe(
+    'http://localhost:3000/kursy',
+  );
   await userEvent.click(await screen.findByRole('button', { name: 'Посмотреть изменения' }));
   expect(await screen.findByText('Добавлено карточек: 1')).toBeTruthy();
   await userEvent.click(screen.getByRole('button', { name: 'Обновить' }));

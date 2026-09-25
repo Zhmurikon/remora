@@ -6,6 +6,8 @@ import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 
 const WEB_URL = import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000';
+const catalogLinkStyle =
+  'border-border bg-surface text-fg hover:bg-surface-muted focus-visible:outline-primary mt-5 inline-flex min-h-11 items-center justify-center rounded-md border px-4 font-medium transition-colors focus-visible:outline focus-visible:outline-2';
 
 export function LibraryPage() {
   const queryClient = useQueryClient();
@@ -35,6 +37,9 @@ export function LibraryPage() {
         <p className="text-fg-muted mt-2 max-w-2xl">
           Учитесь по материалам авторов. Изменения не затрагивают ваш личный прогресс.
         </p>
+        <a className={catalogLinkStyle} href={`${WEB_URL}/kursy`}>
+          Найти курсы
+        </a>
       </header>
       {library.isPending && <p className="text-fg-muted mt-8">Загружаем библиотеку…</p>}
       {library.isError && <p className="text-danger mt-8">Не удалось загрузить библиотеку.</p>}
@@ -51,12 +56,6 @@ export function LibraryPage() {
       {library.data?.length === 0 && (
         <Card className="mt-8 p-8 text-center">
           <p className="text-fg-muted">Сохранённых материалов пока нет.</p>
-          <a
-            className="text-primary mt-3 inline-flex min-h-11 items-center underline"
-            href={`${WEB_URL}/kursy`}
-          >
-            Перейти в каталог
-          </a>
         </Card>
       )}
     </div>

@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, Query
+from fastapi import APIRouter, Depends, Header, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.deps import current_user, optional_user, public_read_limit
@@ -208,3 +208,11 @@ async def update_course(
     db: AsyncSession = Depends(get_db),
 ) -> CourseDetail:
     return await CourseService(db).update(user, course_id, body)
+
+
+@router.delete("/{course_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Удалить курс")
+async def delete_course(
+    course_id: UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+) -> Response:
+    await CourseService(db).delete(user, course_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

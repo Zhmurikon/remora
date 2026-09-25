@@ -9,7 +9,7 @@ try:
         base = "https://api.telegram.org/bot" + os.environ["TG_BOT_TOKEN"] + "/"
         method = "deleteWebhook" if os.getenv("TG_UPDATE_MODE") == "polling" else "setWebhook"
         response = client.post(base + method, json={
-            "url": "https://test.edu-remora.ru/callback/tg_v1/",
+            "url": "https://remora.com.ru/callback/tg_v1/",
             "secret_token": os.environ["TG_WEBHOOK_SECRET"],
             "allowed_updates": ["message", "callback_query"],
             "drop_pending_updates": False,

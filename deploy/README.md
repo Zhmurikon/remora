@@ -1,12 +1,14 @@
 # Дев-версия Remora
 
 Сервер `home-server`, каталог `/opt/remora-dev`. Всё приложение и сборка работают в Docker.
-Существующий Nginx Proxy Manager не изменяется: сеть `proxy`, upstream
-`http://remora-dev-gateway:80`, оба домена `edu-remora.ru` и `test.edu-remora.ru`, TLS.
-Канонический адрес кабинета: `https://test.edu-remora.ru/app`.
-В серверном `deploy/.env` значение `CORS_ORIGINS` должно включать оба источника:
-`["https://test.edu-remora.ru","https://edu-remora.ru"]`. Фронтенды обращаются к API
-на `test.edu-remora.ru`, поэтому основной домен также требует разрешения CORS.
+Существующий Nginx Proxy Manager завершает TLS и проксирует сеть `proxy` на
+`http://remora-dev-gateway:80`. Канонический домен — `remora.com.ru`, кабинет —
+`https://remora.com.ru/app`. `www.remora.com.ru` перенаправляется на домен без `www`.
+`edu-remora.ru` и `test.edu-remora.ru` остаются рабочими алиасами на время перехода. Страницы двух прежних
+доменов отдают `301` на `remora.com.ru` с тем же путём и query-параметрами. Без редиректа
+остаются `/api/`, callback Telegram/VK, `/remora-media/`, `/remora-audio/` и
+`/rasshifrovka/api/`; MCP использует сохранённый `/api/v1/agent/`.
+В серверном `deploy/.env` значение `CORS_ORIGINS` должно включать все четыре источника.
 После изменения пересоздать api/worker/bot-api и перезагрузить gateway.
 
 ## Первая установка
@@ -54,7 +56,9 @@ Python-зависимости находятся в volume; Node-зависим�
 БД, Redis, MinIO и поиск имеют собственные volumes. `docker compose down -v` запрещён
 для обновлений: он удалит данные. К внешней сети proxy подключён только gateway.
 S3 доступен по подписанным URL на `/remora-media/` и `/remora-audio/`; бакеты приватные.
-Дев-сайт отдаёт `X-Robots-Tag: noindex, nofollow` и запрещающий robots.txt.
+Публичные страницы канонического домена доступны для индексации. `robots.txt` и
+`sitemap.xml` формирует Next.js; кабинет, страницы входа и закрытая расшифровка сохраняют
+собственные `noindex`-метатеги.
 
 ## Восстановление
 

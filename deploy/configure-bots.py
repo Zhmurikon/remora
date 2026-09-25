@@ -9,10 +9,12 @@ from dotenv import dotenv_values
 
 def main() -> None:
     source = dotenv_values(Path(__file__).resolve().parents[1] / ".env")
-    names = ["TG_BOT_TOKEN", "VK_GROUP_TOKEN", "VK_CALLBACK_URL_TOKEN", "VK_CONFIRMATION_CODE", "VK_GROUP_ID"]
+    names = ["TG_BOT_TOKEN", "VK_GROUP_TOKEN", "VK_CALLBACK_URL_TOKEN", "VK_GROUP_ID"]
     values = {key: source.get(key) or "" for key in names}
     assert all(values.values()), "Не хватает переменных ботов в локальном .env"
-    assert source.get("VK_CALLBACK_URL") == "https://test.edu-remora.ru/callback/vk_v1/", "Проверьте адрес Callback VK"
+    assert source.get("VK_CALLBACK_URL") == "https://remora.com.ru/callback/vk_v1/", (
+        "Проверьте адрес Callback VK"
+    )
     # Данные идут по stdin SSH, а не через аргументы процессов или журналы.
     script = r'''
 import json,sys,secrets,os
@@ -26,6 +28,11 @@ try:
         groups=result.get("response",[])
         if isinstance(groups,dict): groups=groups.get("groups",[])
         if not any(str(g["id"])==data["VK_GROUP_ID"] for g in groups): raise ValueError("VK token/group mismatch")
+        confirmation=client.post(
+            "https://api.vk.com/method/groups.getCallbackConfirmationCode",
+            data={"access_token":data["VK_GROUP_TOKEN"],"group_id":data["VK_GROUP_ID"],"v":"5.199"},
+        ).json()
+        data["VK_CONFIRMATION_CODE"]=confirmation["response"]["code"]
         try:
             with httpx.Client(timeout=20,trust_env=False,proxy="socks5h://host.docker.internal:9999") as telegram:
                 result=telegram.post("https://api.telegram.org/bot"+data["TG_BOT_TOKEN"]+"/getMe").json()

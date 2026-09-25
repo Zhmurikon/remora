@@ -153,8 +153,14 @@ VK использует стабильный random_id. В Telegram при сб�
 
 ## Настройка
 
-Локальный `.env`: `TG_BOT_TOKEN`, `VK_GROUP_TOKEN`, `VK_GROUP_ID`, `VK_CONFIRMATION_CODE`,
-`VK_CALLBACK_URL_TOKEN`, `VK_CALLBACK_URL`. Последний секрет — Callback, не токен сообщества.
+Локальный `.env`: `TG_BOT_TOKEN`, `VK_GROUP_TOKEN`, `VK_GROUP_ID`,
+`VK_CALLBACK_URL_TOKEN`, `VK_CALLBACK_URL`. Последний секрет — Callback, не токен сообщества;
+актуальную строку подтверждения VK скрипт получает через API сообщества.
+Канонические адреса Callback: `https://remora.com.ru/callback/tg_v1/` и
+`https://remora.com.ru/callback/vk_v1/`. Старые домены временно принимают те же маршруты.
+После изменения адреса VK нужно подтвердить сервер в панели сообщества: запрос строки
+подтверждения через API обновляет её, поэтому после него следует пересоздать `vk-bot`
+и не запрашивать новый код до нажатия «Подтвердить».
 Из `apps/api`: `uv run python ../../deploy/configure-bots.py`. Передаёт только эти реквизиты
 по stdin SSH, проверяет их из Docker на сервере и создаёт `.env.telegram`/`.env.vk` (0600).
 Сервисные ключи и секрет webhook генерируются один раз. При недоступности Telegram его

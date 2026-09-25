@@ -277,3 +277,11 @@ class CourseService:
         await self.db.flush()
         await self.db.refresh(course)
         return await self.detail(user, course_id)
+
+    async def delete(self, user: User, course_id: UUID) -> None:
+        await lock_request(self.db, user.id)
+        course = await self.owned(user, course_id)
+        # Каскад удаляет структуру и связанные сохранения, но не самостоятельные наборы
+        # карточек: после удаления курса пользователь не должен терять материалы и прогресс.
+        await self.db.delete(course)
+        await self.db.flush()

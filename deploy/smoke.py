@@ -9,13 +9,16 @@ from uuid import uuid4
 import httpx
 from PIL import Image
 
-BASE = "https://test.edu-remora.ru"
+BASE = "https://remora.com.ru"
 
 
 def main() -> None:
     username = "deploy_" + uuid4().hex[:12]
     password = secrets.token_urlsafe(30)
     with httpx.Client(base_url=BASE, timeout=45) as client:
+        app_redirect = client.get("/app")
+        assert app_redirect.status_code == 302
+        assert app_redirect.headers["location"] == "/app/"
 
         def request(method: str, path: str, **kwargs):
             response = client.request(method, "/api/v1" + path, **kwargs)

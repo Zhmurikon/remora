@@ -7,7 +7,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CoursePage, CoursesPage, NewCoursePage } from './CoursesPage';
 import { api } from '../lib/api';
 
-vi.mock('../lib/api', () => ({ api: { GET: vi.fn(), POST: vi.fn(), PUT: vi.fn() } }));
+vi.mock('../lib/api', () => ({
+  api: { GET: vi.fn(), POST: vi.fn(), PUT: vi.fn(), DELETE: vi.fn() },
+}));
 const course = {
   tags: [],
   is_published: false,
@@ -96,6 +98,9 @@ describe('Курсы в кабинете', () => {
     expect(await screen.findByRole('alert')).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Повторить' }));
     expect(await screen.findByText('Ваш первый курс')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Найти курсы' }).getAttribute('href')).toBe(
+      'http://localhost:3000/kursy',
+    );
   });
 
   it('создаёт курс из выбранного набора и открывает его структуру', async () => {
@@ -134,6 +139,26 @@ describe('Курсы в кабинете', () => {
       params: { path: { course_id: 'course-1' } },
       body: { title: 'Линейная алгебра', description: 'Основы' },
     });
+  });
+
+  it('удаляет курс только после подтверждения и возвращает к списку', async () => {
+    vi.mocked(api.GET)
+      .mockResolvedValueOnce({ data: course, response: new Response() } as never)
+      .mockResolvedValue({ data: [], response: new Response() } as never);
+    vi.mocked(api.DELETE).mockResolvedValue({ response: new Response(null, { status: 204 }) });
+    mount('/courses/course-1');
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Удалить курс' }));
+    expect(api.DELETE).not.toHaveBeenCalled();
+    expect(screen.getByText('Удалить курс «Алгебра»? Это действие нельзя отменить.')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Подтвердить удаление' }));
+
+    await waitFor(() =>
+      expect(api.DELETE).toHaveBeenCalledWith('/api/v1/courses/{course_id}', {
+        params: { path: { course_id: 'course-1' } },
+      }),
+    );
+    expect(await screen.findByText('Ваш первый курс')).toBeTruthy();
   });
 
   it('сохраняет введённые данные при конфликте и позволяет повторить', async () => {

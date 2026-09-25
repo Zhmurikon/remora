@@ -539,7 +539,8 @@ export interface paths {
         /** Изменить описание курса */
         put: operations["update_course_api_v1_courses__course_id__put"];
         post?: never;
-        delete?: never;
+        /** Удалить курс */
+        delete: operations["delete_course_api_v1_courses__course_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -5177,6 +5178,35 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CourseDetail"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_course_api_v1_courses__course_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

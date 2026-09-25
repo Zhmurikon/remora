@@ -8,8 +8,13 @@ import { CoursePublicationPanel } from './CoursePublicationPanel';
 import { CopyCourseButton } from './CourseReaderPage';
 
 type Course = components['schemas']['CourseDetail'];
+const WEB_URL = import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000';
 const linkStyle =
   'text-primary inline-flex min-h-11 items-center rounded-lg underline focus-visible:outline focus-visible:outline-2';
+const primaryActionStyle =
+  'bg-primary text-primary-fg hover:bg-primary-hover focus-visible:outline-primary inline-flex min-h-11 items-center justify-center rounded-md px-4 font-medium transition-colors focus-visible:outline focus-visible:outline-2';
+const secondaryActionStyle =
+  'border-border bg-surface text-fg hover:bg-surface-muted focus-visible:outline-primary inline-flex min-h-11 items-center justify-center rounded-md border px-4 font-medium transition-colors focus-visible:outline focus-visible:outline-2';
 const fieldStyle =
   'border-border bg-surface w-full rounded-xl border p-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary';
 
@@ -36,9 +41,14 @@ export function CoursesPage() {
         <p className="text-fg-muted mt-2">
           Объединяйте учебные материалы в курсы и делитесь ими после публикации.
         </p>
-        <Link className={linkStyle} to="/courses/new">
-          Создать курс
-        </Link>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Link className={primaryActionStyle} to="/courses/new">
+            Создать курс
+          </Link>
+          <a className={secondaryActionStyle} href={`${WEB_URL}/kursy`}>
+            Найти курсы
+          </a>
+        </div>
       </header>
       {courses.isPending && <p role="status">Загружаем курсы…</p>}
       {courses.isError && (
@@ -129,6 +139,7 @@ function CourseForm({ course }: { course?: Course }) {
   const [description, setDescription] = useState(course?.description ?? '');
   const [setId, setSetId] = useState('');
   const [saved, setSaved] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const sets = useQuery({
     queryKey: ['sets'],
     enabled: !course,
@@ -155,6 +166,21 @@ function CourseForm({ course }: { course?: Course }) {
       void client.invalidateQueries({ queryKey: ['courses'] });
       setSaved(true);
       if (!course) navigate(`/courses/${data.id}/edit`, { replace: true });
+    },
+  });
+  const remove = useMutation({
+    mutationFn: async () => {
+      if (!course) throw new Error('Курс не найден');
+      const { error } = await api.DELETE('/api/v1/courses/{course_id}', {
+        params: { path: { course_id: course.id } },
+      });
+      if (error) throw failure(error);
+    },
+    onSuccess: async () => {
+      if (!course) return;
+      client.removeQueries({ queryKey: ['course', course.id] });
+      await client.invalidateQueries({ queryKey: ['courses'] });
+      navigate('/courses', { replace: true });
     },
   });
   return (
@@ -311,6 +337,54 @@ function CourseForm({ course }: { course?: Course }) {
             </Card>
           ))}
         </section>
+      )}
+      {course && (
+        <Card className="border-danger/40 max-w-2xl space-y-4">
+          <div>
+            <h2 className="text-2xl font-semibold">Удаление курса</h2>
+            <p className="text-fg-muted mt-2">
+              Курс, его статьи и сохранения у других пользователей будут удалены. Наборы карточек и
+              ваш учебный прогресс останутся.
+            </p>
+          </div>
+          {confirmDelete ? (
+            <div className="space-y-3">
+              <p>Удалить курс «{course.title}»? Это действие нельзя отменить.</p>
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  className="min-h-11"
+                  variant="danger"
+                  loading={remove.isPending}
+                  onClick={() => remove.mutate()}
+                >
+                  Подтвердить удаление
+                </Button>
+                <Button
+                  className="min-h-11"
+                  variant="ghost"
+                  disabled={remove.isPending}
+                  onClick={() => {
+                    setConfirmDelete(false);
+                    remove.reset();
+                  }}
+                >
+                  Отмена
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button className="min-h-11" variant="danger" onClick={() => setConfirmDelete(true)}>
+              Удалить курс
+            </Button>
+          )}
+          {remove.isError && (
+            <p role="alert" className="text-danger">
+              {remove.error instanceof TypeError
+                ? 'Нет соединения с сервером. Повторите попытку.'
+                : remove.error.message}
+            </p>
+          )}
+        </Card>
       )}
     </>
   );
