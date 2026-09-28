@@ -52,7 +52,7 @@ services:
     networks: [internal]
     restart: unless-stopped
     healthcheck:
-      test: [CMD, mc, ready, local]
+      test: [CMD, curl, -f, http://localhost:9000/minio/health/live]
       interval: 5s
       retries: 20
   minio-init:
