@@ -77,7 +77,7 @@ describe('раздел практики', () => {
     expect(screen.getByRole('link', { name: /Приветствие по имени/ }).getAttribute('href')).toBe(
       '/practice/python/privetstvie-po-imeni',
     );
-    expect(screen.getByText('1 из 20')).toBeTruthy();
+    expect(screen.getAllByText('18 задач')).toHaveLength(2);
     expect(
       screen
         .getByRole('progressbar', { name: 'Прогресс по задачам Python' })
@@ -95,8 +95,8 @@ describe('раздел практики', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Решено 1 из 1')).toBeTruthy();
-    expect(screen.getByText('100%')).toBeTruthy();
+    expect(screen.getByText('Решено 1 из 18')).toBeTruthy();
+    expect(screen.getByText('6%')).toBeTruthy();
     expect(screen.getAllByText('Решено')).toHaveLength(2);
 
     fireEvent.change(screen.getByRole('combobox', { name: 'Статус' }), {
@@ -110,7 +110,7 @@ describe('раздел практики', () => {
 
 describe('демонстрационная задача', () => {
   it('имеет стабильный адрес и версию', () => {
-    expect(pythonTasks).toHaveLength(1);
+    expect(pythonTasks).toHaveLength(18);
     expect(findPythonTask('privetstvie-po-imeni')).toMatchObject({
       id: 'python-greeting-by-name',
       version: 1,
@@ -136,6 +136,8 @@ describe('демонстрационная задача', () => {
     ).toBe(false);
     expect(screen.getByText('Ctrl/⌘ + Enter — запустить код')).toBeTruthy();
     expect(screen.getByText('Нажмите «Запустить», чтобы увидеть вывод программы.')).toBeTruthy();
+    fireEvent.click(screen.getByText('Нужна подсказка?'));
+    expect(screen.getByText(/используйте f-строку/)).toBeTruthy();
   });
 
   it('восстанавливает черновик для текущей версии задачи', () => {
@@ -229,7 +231,7 @@ describe('демонстрационная задача', () => {
     expect(screen.getByText(/SyntaxError/)).toBeTruthy();
   });
 
-  it('сохраняет успешную проверку и предлагает вернуться к задачам', async () => {
+  it('сохраняет успешную проверку, показывает разбор и предлагает следующую задачу', async () => {
     const task = pythonTasks[0];
     if (!task) throw new Error('Нет демонстрационной задачи');
     renderTask('/practice/python/privetstvie-po-imeni');
@@ -252,7 +254,12 @@ describe('демонстрационная задача', () => {
 
     expect(await screen.findByRole('heading', { name: 'Задача решена' })).toBeTruthy();
     expect(screen.getByText('Проверок: 1')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Вернуться к списку задач' })).toBeTruthy();
+    fireEvent.click(screen.getByText('Посмотреть разбор и эталонное решение'));
+    expect(screen.getByText(/input\(\) возвращает строку целиком/)).toBeTruthy();
+    expect(screen.getByText(/print\(f"Привет/)).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Следующая задача' }).getAttribute('href')).toBe(
+      '/practice/python/summa-dvuh-chisel',
+    );
     expect(readPythonTaskProgress(task, localStorage)).toMatchObject({
       status: 'solved',
       attempts: 1,

@@ -101,12 +101,12 @@ export function PythonPracticePage() {
             <p className="text-primary text-sm font-medium">Практика</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Python</h1>
             <p className="text-fg-muted mt-3 max-w-2xl">
-              Начните с переменных и вывода. Новые темы будут открываться по мере наполнения
-              тренажёра.
+              Пройдите путь от переменных и условий до списков и функций. Задачи расположены от
+              простого к сложному.
             </p>
           </div>
           <Badge tone="primary" className="mt-1 px-3 py-1">
-            Демоверсия
+            18 задач
           </Badge>
         </div>
       </header>
@@ -116,7 +116,7 @@ export function PythonPracticePage() {
           <h2 id="tasks-title" className="text-2xl font-semibold">
             Задачи
           </h2>
-          <p className="text-fg-subtle text-sm">{pythonTasks.length} из 20</p>
+          <p className="text-fg-subtle text-sm">{pythonTasks.length} задач</p>
         </div>
 
         <Card className="mt-4 p-5">
@@ -265,6 +265,7 @@ export function PythonTaskPage() {
   if (!task) return <MissingTask />;
   const taskIndex = pythonTasks.indexOf(task);
   const nextTask = pythonTasks[taskIndex + 1];
+  const functionTask = task.checks.every((check) => check.kind === 'function');
 
   return (
     <div className="space-y-6">
@@ -288,13 +289,17 @@ export function PythonTaskPage() {
             {task.examples.map((example, index) => (
               <dl key={`${example.input}-${index}`} className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div>
-                  <dt className="text-fg-muted text-sm font-medium">Ввод</dt>
+                  <dt className="text-fg-muted text-sm font-medium">
+                    {functionTask ? 'Вызов' : 'Ввод'}
+                  </dt>
                   <dd className="bg-surface-muted mt-2 overflow-x-auto rounded-lg p-3 font-mono text-sm">
                     {example.input}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-fg-muted text-sm font-medium">Вывод</dt>
+                  <dt className="text-fg-muted text-sm font-medium">
+                    {functionTask ? 'Результат' : 'Вывод'}
+                  </dt>
                   <dd className="bg-surface-muted mt-2 overflow-x-auto rounded-lg p-3 font-mono text-sm">
                     {example.output}
                   </dd>
@@ -304,11 +309,12 @@ export function PythonTaskPage() {
           </Card>
 
           <Card className="bg-primary-subtle border-primary/20 p-5">
-            <h2 className="text-lg font-semibold">Как работать с задачей</h2>
-            <p className="text-fg-muted mt-2 text-sm">
-              «Запустить» выполняет код с вашими входными данными. «Проверить решение» запускает
-              несколько автоматических сценариев и показывает первый неверный результат.
-            </p>
+            <details>
+              <summary className="focus-visible:outline-primary min-h-11 cursor-pointer rounded-md font-semibold focus-visible:outline focus-visible:outline-2">
+                Нужна подсказка?
+              </summary>
+              <p className="text-fg-muted mt-2 text-sm">{task.hint}</p>
+            </details>
           </Card>
         </div>
 
@@ -327,6 +333,7 @@ function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: Pyth
   const [result, setResult] = useState<PythonExecutionResult | null>(null);
   const [operation, setOperation] = useState<'run' | 'check'>('run');
   const active = phase === 'loading' || phase === 'running';
+  const functionTask = task.checks.every((check) => check.kind === 'function');
 
   useEffect(() => () => runnerRef.current?.dispose(), []);
 
@@ -357,7 +364,7 @@ function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: Pyth
   }
 
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-5">
       <Card className="overflow-hidden p-0">
         <div className="border-border flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
           <div>
@@ -379,27 +386,36 @@ function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: Pyth
             setResult(null);
           }}
         />
-        <div className="border-border border-t p-4">
-          <label htmlFor="python-stdin" className="text-sm font-medium">
-            Входные данные
-          </label>
-          <textarea
-            id="python-stdin"
-            rows={3}
-            className="border-border bg-surface mt-2 w-full resize-y rounded-xl border p-3 font-mono text-sm"
-            value={stdin}
-            spellCheck={false}
-            disabled={active}
-            aria-describedby="stdin-hint"
-            onChange={(event) => {
-              setStdin(event.target.value);
-              setResult(null);
-            }}
-          />
-          <p id="stdin-hint" className="text-fg-subtle mt-2 text-sm">
-            Каждый вызов input() прочитает следующую строку.
-          </p>
-        </div>
+        {functionTask ? (
+          <div className="border-border border-t p-4">
+            <p className="text-fg-muted text-sm">
+              Автопроверка сама вызовет функцию с разными аргументами. Для пробного запуска можно
+              временно добавить вызов print() в конец кода.
+            </p>
+          </div>
+        ) : (
+          <div className="border-border border-t p-4">
+            <label htmlFor="python-stdin" className="text-sm font-medium">
+              Входные данные
+            </label>
+            <textarea
+              id="python-stdin"
+              rows={3}
+              className="border-border bg-surface mt-2 w-full resize-y rounded-xl border p-3 font-mono text-sm"
+              value={stdin}
+              spellCheck={false}
+              disabled={active}
+              aria-describedby="stdin-hint"
+              onChange={(event) => {
+                setStdin(event.target.value);
+                setResult(null);
+              }}
+            />
+            <p id="stdin-hint" className="text-fg-subtle mt-2 text-sm">
+              Каждый вызов input() прочитает следующую строку.
+            </p>
+          </div>
+        )}
         <div className="border-border flex flex-wrap items-center gap-3 border-t p-4">
           <Button className="min-h-11" disabled={active || !code.trim()} onClick={() => void run()}>
             Запустить
@@ -441,6 +457,15 @@ function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: Pyth
           <p className="text-fg-muted mt-2 text-sm">
             Решение и результат сохранены в этом браузере.
           </p>
+          <details className="border-success/30 mt-4 min-w-0 border-t pt-4">
+            <summary className="focus-visible:outline-primary min-h-11 cursor-pointer rounded-md font-medium focus-visible:outline focus-visible:outline-2">
+              Посмотреть разбор и эталонное решение
+            </summary>
+            <p className="text-fg-muted mt-3 text-sm">{task.explanation}</p>
+            <pre className="bg-surface mt-3 max-w-full overflow-x-auto rounded-xl p-4 font-mono text-sm leading-6">
+              {task.referenceSolution}
+            </pre>
+          </details>
           {nextTask ? (
             <Link className={`${primaryLinkStyle} mt-4`} to={`/practice/python/${nextTask.slug}`}>
               Следующая задача

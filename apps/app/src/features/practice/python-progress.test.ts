@@ -80,6 +80,10 @@ function task(version: number): PythonTask {
     starterCode: '# код\n',
     examples: [],
     checks: [],
+    hint: 'Подсказка',
+    explanation: 'Разбор',
+    referenceSolution: 'pass\n',
+    commonWrongSolutions: ['raise NotImplementedError\n'],
   };
 }
 
