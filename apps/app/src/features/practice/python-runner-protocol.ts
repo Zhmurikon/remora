@@ -2,6 +2,7 @@ export const PYTHON_RUN_TIMEOUT_MS = 3_000;
 export const PYTHON_OUTPUT_LIMIT = 32_000;
 
 export type PythonRunnerPhase = 'loading' | 'running';
+export type PythonPackage = 'numpy';
 export type PythonExecutionStatus =
   'completed' | 'passed' | 'failed' | 'runtime_error' | 'timeout' | 'stopped';
 
@@ -21,6 +22,7 @@ export interface PythonFunctionCheck {
   functionName: string;
   args: PythonCheckValue[];
   expected: PythonCheckValue;
+  tolerance?: number;
 }
 
 export type PythonCheck = PythonOutputCheck | PythonFunctionCheck;
@@ -45,6 +47,7 @@ export interface PythonRunRequest {
   id: number;
   code: string;
   stdin: string[];
+  packages: PythonPackage[];
 }
 
 export interface PythonCheckRequest {
@@ -52,6 +55,7 @@ export interface PythonCheckRequest {
   id: number;
   code: string;
   checks: PythonCheck[];
+  packages: PythonPackage[];
 }
 
 export type PythonWorkerRequest = PythonRunRequest | PythonCheckRequest;

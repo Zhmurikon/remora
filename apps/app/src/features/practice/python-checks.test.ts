@@ -33,4 +33,18 @@ describe('проверка решений Python', () => {
     expect(checkFailureMessage(check, { count: 3, total: 6 })).toBeNull();
     expect(checkFailureMessage(check, { count: 2, total: 6 })).toContain('Ожидалось:');
   });
+
+  it('сравнивает числа и массивы с заданной погрешностью', () => {
+    const check = {
+      kind: 'function' as const,
+      name: 'Массив',
+      functionName: 'standardize',
+      args: [[1, 2, 3]],
+      expected: [-1.224744871, 0, 1.224744871],
+      tolerance: 1e-6,
+    };
+
+    expect(checkFailureMessage(check, [-1.2247449, 0, 1.2247449])).toBeNull();
+    expect(checkFailureMessage(check, [-1.2, 0, 1.2])).toContain('Ожидалось:');
+  });
 });

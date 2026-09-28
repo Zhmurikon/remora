@@ -33,6 +33,7 @@ async function executeRequest(request: PythonWorkerRequest) {
 
   try {
     const pyodide = await getRuntime();
+    if (request.packages.length > 0) await pyodide.loadPackage(request.packages);
     const stdoutDecoder = new TextDecoder();
     const stderrDecoder = new TextDecoder();
 
@@ -137,11 +138,22 @@ async function runCheck(
     return pyodide.runPython(
       `
 import json as __remora_json
+def __remora_to_json(value):
+    if hasattr(value, "tolist"):
+        return value.tolist()
+    if hasattr(value, "item"):
+        return value.item()
+    if isinstance(value, dict):
+        return {key: __remora_to_json(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [__remora_to_json(item) for item in value]
+    return value
+
 __remora_callable = globals().get(__remora_function_name)
 if not callable(__remora_callable):
     raise TypeError(f"Функция {__remora_function_name} не найдена")
 __remora_result_json = __remora_json.dumps(
-    __remora_callable(*__remora_json.loads(__remora_args_json)),
+    __remora_to_json(__remora_callable(*__remora_json.loads(__remora_args_json))),
     ensure_ascii=False,
     sort_keys=True,
 )

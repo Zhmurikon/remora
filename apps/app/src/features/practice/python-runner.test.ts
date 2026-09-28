@@ -72,6 +72,16 @@ describe('PythonRunner', () => {
     });
   });
 
+  it('передаёт worker список разрешённых пакетов', () => {
+    const worker = new FakeWorker();
+    const runner = new PythonRunner(() => worker);
+
+    void runner.run('import numpy', '', undefined, ['numpy']);
+
+    expect(worker.message).toMatchObject({ type: 'run', packages: ['numpy'] });
+    runner.stop();
+  });
+
   it('завершает зависший worker по таймауту и создаёт новый для следующего запуска', async () => {
     vi.useFakeTimers();
     const workers: FakeWorker[] = [];

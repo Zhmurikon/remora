@@ -2,6 +2,7 @@ import {
   PYTHON_RUN_TIMEOUT_MS,
   type PythonCheck,
   type PythonExecutionResult,
+  type PythonPackage,
   type PythonRunnerPhase,
   type PythonWorkerRequest,
   type PythonWorkerResponse,
@@ -35,12 +36,25 @@ export class PythonRunner {
     private readonly timeoutMs = PYTHON_RUN_TIMEOUT_MS,
   ) {}
 
-  run(code: string, stdin: string, onPhase?: (phase: PythonRunnerPhase) => void) {
-    return this.start((id) => ({ type: 'run', id, code, stdin: stdinLines(stdin) }), onPhase);
+  run(
+    code: string,
+    stdin: string,
+    onPhase?: (phase: PythonRunnerPhase) => void,
+    packages: PythonPackage[] = [],
+  ) {
+    return this.start(
+      (id) => ({ type: 'run', id, code, stdin: stdinLines(stdin), packages }),
+      onPhase,
+    );
   }
 
-  check(code: string, checks: PythonCheck[], onPhase?: (phase: PythonRunnerPhase) => void) {
-    return this.start((id) => ({ type: 'check', id, code, checks }), onPhase);
+  check(
+    code: string,
+    checks: PythonCheck[],
+    onPhase?: (phase: PythonRunnerPhase) => void,
+    packages: PythonPackage[] = [],
+  ) {
+    return this.start((id) => ({ type: 'check', id, code, checks, packages }), onPhase);
   }
 
   private start(

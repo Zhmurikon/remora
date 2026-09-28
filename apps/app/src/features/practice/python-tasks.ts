@@ -1,4 +1,4 @@
-import type { PythonCheck, PythonCheckValue } from './python-runner-protocol';
+import type { PythonCheck, PythonCheckValue, PythonPackage } from './python-runner-protocol';
 
 export type PythonTaskDifficulty = 'Начальная' | 'Средняя';
 
@@ -23,6 +23,7 @@ export interface PythonTask {
   explanation: string;
   referenceSolution: string;
   commonWrongSolutions: string[];
+  packages?: PythonPackage[];
 }
 
 export const pythonTasks: readonly PythonTask[] = [
@@ -487,6 +488,274 @@ export const pythonTasks: readonly PythonTask[] = [
       'def fibonacci(n):\n    result = [0, 1]\n    for _ in range(n):\n        result.append(result[-1] + result[-2])\n    return result\n',
     ],
   },
+  {
+    id: 'python-numpy-shift-array',
+    slug: 'numpy-sdvig-massiva',
+    version: 1,
+    title: 'Сдвиг массива',
+    topic: 'NumPy',
+    difficulty: 'Начальная',
+    summary: 'Создайте массив NumPy и прибавьте число ко всем элементам.',
+    statement:
+      'Напишите функцию shift_array(values, shift), которая возвращает массив NumPy, увеличив каждый элемент values на shift.',
+    starterCode:
+      'import numpy as np\n\ndef shift_array(values, shift):\n    # Создайте и верните новый массив\n    pass\n',
+    examples: [{ input: 'shift_array([1, 2, 3], 5)', output: '[6, 7, 8]' }],
+    checks: [
+      fn('Целые числа', 'shift_array', [[1, 2, 3], 5], [6, 7, 8]),
+      fn('Дробный сдвиг', 'shift_array', [[-1, 0, 2], 0.5], [-0.5, 0.5, 2.5]),
+    ],
+    hint: 'Преобразуйте values через np.array(), затем прибавьте shift.',
+    explanation:
+      'Арифметическая операция над массивом NumPy применяется ко всем его элементам без явного цикла.',
+    referenceSolution:
+      'import numpy as np\n\ndef shift_array(values, shift):\n    return np.array(values) + shift\n',
+    commonWrongSolutions: [
+      'import numpy as np\n\ndef shift_array(values, shift):\n    return np.array(values + [shift])\n',
+    ],
+    packages: ['numpy'],
+  },
+  {
+    id: 'python-numpy-positive-values',
+    slug: 'numpy-polozhitelnye-znacheniya',
+    version: 1,
+    title: 'Положительные значения',
+    topic: 'NumPy',
+    difficulty: 'Начальная',
+    summary: 'Отберите элементы массива булевой маской.',
+    statement:
+      'Напишите функцию positive_values(values), которая возвращает массив только со значениями строго больше нуля, сохраняя порядок.',
+    starterCode:
+      'import numpy as np\n\ndef positive_values(values):\n    array = np.array(values)\n    # Примените булеву маску\n',
+    examples: [{ input: 'positive_values([-2, 0, 3, 1])', output: '[3, 1]' }],
+    checks: [
+      fn('Смешанные значения', 'positive_values', [[-2, 0, 3, 1]], [3, 1]),
+      fn('Нет подходящих', 'positive_values', [[-3, 0, -1]], []),
+      fn('Порядок сохраняется', 'positive_values', [[4, -1, 2, 8]], [4, 2, 8]),
+    ],
+    hint: 'Выражение array > 0 создаёт массив True и False, которым можно индексировать array.',
+    explanation: 'Булева индексация выбирает элементы, для которых условие истинно.',
+    referenceSolution:
+      'import numpy as np\n\ndef positive_values(values):\n    array = np.array(values)\n    return array[array > 0]\n',
+    commonWrongSolutions: [
+      'import numpy as np\n\ndef positive_values(values):\n    array = np.array(values)\n    return array[array >= 0]\n',
+    ],
+    packages: ['numpy'],
+  },
+  {
+    id: 'python-numpy-sample-summary',
+    slug: 'numpy-svodka-vyborki',
+    version: 1,
+    title: 'Сводка выборки',
+    topic: 'NumPy',
+    difficulty: 'Начальная',
+    summary: 'Вычислите среднее, медиану и выборочное стандартное отклонение.',
+    statement:
+      'Напишите функцию sample_summary(values), которая возвращает список: среднее, медиану и выборочное стандартное отклонение (ddof=1).',
+    starterCode:
+      'import numpy as np\n\ndef sample_summary(values):\n    array = np.array(values, dtype=float)\n    # Верните три характеристики\n',
+    examples: [{ input: 'sample_summary([1, 2, 3])', output: '[2.0, 2.0, 1.0]' }],
+    checks: [
+      fn('Простая выборка', 'sample_summary', [[1, 2, 3]], [2, 2, 1], 1e-9),
+      fn(
+        'Несимметричная выборка',
+        'sample_summary',
+        [[1, 2, 2, 9]],
+        [3.5, 2, 3.696845502136472],
+        1e-9,
+      ),
+    ],
+    hint: 'Используйте np.mean(), np.median() и np.std(..., ddof=1).',
+    explanation: 'Параметр ddof=1 задаёт выборочную оценку стандартного отклонения.',
+    referenceSolution:
+      'import numpy as np\n\ndef sample_summary(values):\n    array = np.array(values, dtype=float)\n    return [np.mean(array), np.median(array), np.std(array, ddof=1)]\n',
+    commonWrongSolutions: [
+      'import numpy as np\n\ndef sample_summary(values):\n    array = np.array(values)\n    return [np.mean(array), np.median(array), np.std(array)]\n',
+    ],
+    packages: ['numpy'],
+  },
+  {
+    id: 'python-numpy-standardize',
+    slug: 'numpy-standartizatsiya',
+    version: 1,
+    title: 'Стандартизация данных',
+    topic: 'NumPy',
+    difficulty: 'Средняя',
+    summary: 'Приведите значения к нулевому среднему и единичному отклонению.',
+    statement:
+      'Напишите функцию standardize(values), которая возвращает (x − среднее) / стандартное отклонение. Используйте генеральное отклонение NumPy по умолчанию.',
+    starterCode:
+      'import numpy as np\n\ndef standardize(values):\n    array = np.array(values, dtype=float)\n    \n',
+    examples: [{ input: 'standardize([1, 2, 3])', output: '[-1.2247, 0.0, 1.2247]' }],
+    checks: [
+      fn(
+        'Три значения',
+        'standardize',
+        [[1, 2, 3]],
+        [-1.224744871391589, 0, 1.224744871391589],
+        1e-9,
+      ),
+      fn(
+        'Другой масштаб',
+        'standardize',
+        [[10, 20, 30, 40]],
+        [-1.3416407864998738, -0.4472135954999579, 0.4472135954999579, 1.3416407864998738],
+        1e-9,
+      ),
+    ],
+    hint: 'Вычислите array.mean() и array.std(), затем используйте векторные операции.',
+    explanation:
+      'Центрирование и деление на стандартное отклонение меняют масштаб, сохраняя относительное положение значений.',
+    referenceSolution:
+      'import numpy as np\n\ndef standardize(values):\n    array = np.array(values, dtype=float)\n    return (array - array.mean()) / array.std()\n',
+    commonWrongSolutions: [
+      'import numpy as np\n\ndef standardize(values):\n    array = np.array(values, dtype=float)\n    return array / array.std()\n',
+    ],
+    packages: ['numpy'],
+  },
+  {
+    id: 'python-numpy-quartiles',
+    slug: 'numpy-kvartili',
+    version: 1,
+    title: 'Квартили',
+    topic: 'NumPy',
+    difficulty: 'Начальная',
+    summary: 'Найдите три квартиля числовой выборки.',
+    statement:
+      'Напишите функцию quartiles(values), которая возвращает массив квартилей 25%, 50% и 75% через np.quantile.',
+    starterCode:
+      'import numpy as np\n\ndef quartiles(values):\n    # Передайте уровни квартилей одним списком\n    pass\n',
+    examples: [{ input: 'quartiles([1, 2, 3, 4, 5])', output: '[2.0, 3.0, 4.0]' }],
+    checks: [
+      fn('Нечётное число элементов', 'quartiles', [[1, 2, 3, 4, 5]], [2, 3, 4], 1e-9),
+      fn('Интерполяция', 'quartiles', [[0, 10, 20, 30]], [7.5, 15, 22.5], 1e-9),
+    ],
+    hint: 'Вызовите np.quantile(values, [0.25, 0.5, 0.75]).',
+    explanation: 'np.quantile вычисляет несколько квантилей за один вызов и возвращает массив.',
+    referenceSolution:
+      'import numpy as np\n\ndef quartiles(values):\n    return np.quantile(np.array(values), [0.25, 0.5, 0.75])\n',
+    commonWrongSolutions: [
+      'import numpy as np\n\ndef quartiles(values):\n    return np.quantile(values, [25, 50, 75])\n',
+    ],
+    packages: ['numpy'],
+  },
+  {
+    id: 'python-numpy-iqr-outliers',
+    slug: 'numpy-vybrosy-iqr',
+    version: 1,
+    title: 'Выбросы по IQR',
+    topic: 'NumPy',
+    difficulty: 'Средняя',
+    summary: 'Найдите значения за границами межквартильного размаха.',
+    statement:
+      'Напишите функцию iqr_outliers(values). Верните элементы меньше Q1 − 1.5·IQR или больше Q3 + 1.5·IQR, сохраняя исходный порядок.',
+    starterCode:
+      'import numpy as np\n\ndef iqr_outliers(values):\n    array = np.array(values)\n    q1, q3 = np.quantile(array, [0.25, 0.75])\n    \n',
+    examples: [{ input: 'iqr_outliers([1, 2, 2, 3, 20])', output: '[20]' }],
+    checks: [
+      fn('Один выброс', 'iqr_outliers', [[1, 2, 2, 3, 20]], [20]),
+      fn('Два выброса', 'iqr_outliers', [[-20, 0, 1, 2, 3, 20]], [-20, 20]),
+      fn('Без выбросов', 'iqr_outliers', [[1, 2, 3, 4, 5]], []),
+    ],
+    hint: 'Вычислите iqr = q3 - q1 и объедините два условия оператором |.',
+    explanation: 'Правило 1.5·IQR использует устойчивые к выбросам квартили и булеву маску.',
+    referenceSolution:
+      'import numpy as np\n\ndef iqr_outliers(values):\n    array = np.array(values)\n    q1, q3 = np.quantile(array, [0.25, 0.75])\n    iqr = q3 - q1\n    return array[(array < q1 - 1.5 * iqr) | (array > q3 + 1.5 * iqr)]\n',
+    commonWrongSolutions: [
+      'import numpy as np\n\ndef iqr_outliers(values):\n    array = np.array(values)\n    q1, q3 = np.quantile(array, [0.25, 0.75])\n    return array[(array < q1) | (array > q3)]\n',
+    ],
+    packages: ['numpy'],
+  },
+  {
+    id: 'python-numpy-ecdf',
+    slug: 'numpy-empiricheskaya-funktsiya',
+    version: 1,
+    title: 'Эмпирическая функция распределения',
+    topic: 'NumPy',
+    difficulty: 'Средняя',
+    summary: 'Посчитайте долю наблюдений не больше заданных точек.',
+    statement:
+      'Напишите функцию ecdf(sample, points), которая для каждой точки возвращает долю элементов sample, меньших или равных ей.',
+    starterCode:
+      'import numpy as np\n\ndef ecdf(sample, points):\n    sample = np.array(sample)\n    # Верните по одной доле для каждой точки\n',
+    examples: [{ input: 'ecdf([1, 2, 2, 4], [0, 2, 3, 5])', output: '[0.0, 0.75, 0.75, 1.0]' }],
+    checks: [
+      fn(
+        'Несколько точек',
+        'ecdf',
+        [
+          [1, 2, 2, 4],
+          [0, 2, 3, 5],
+        ],
+        [0, 0.75, 0.75, 1],
+        1e-9,
+      ),
+      fn(
+        'Границы выборки',
+        'ecdf',
+        [
+          [-1, 0, 3],
+          [-1, 3],
+        ],
+        [1 / 3, 1],
+        1e-9,
+      ),
+    ],
+    hint: 'Для каждой точки вычислите np.mean(sample <= point).',
+    explanation:
+      'Среднее булева массива равно доле истинных условий, потому что True интерпретируется как 1.',
+    referenceSolution:
+      'import numpy as np\n\ndef ecdf(sample, points):\n    sample = np.array(sample)\n    return np.array([np.mean(sample <= point) for point in points])\n',
+    commonWrongSolutions: [
+      'import numpy as np\n\ndef ecdf(sample, points):\n    sample = np.array(sample)\n    return np.array([np.mean(sample < point) for point in points])\n',
+    ],
+    packages: ['numpy'],
+  },
+  {
+    id: 'python-numpy-weighted-mean',
+    slug: 'numpy-vzveshennoe-srednee',
+    version: 1,
+    title: 'Взвешенное среднее',
+    topic: 'NumPy',
+    difficulty: 'Начальная',
+    summary: 'Учтите разный вес наблюдений при усреднении.',
+    statement:
+      'Напишите функцию weighted_mean(values, weights), которая возвращает взвешенное среднее с помощью NumPy.',
+    starterCode:
+      'import numpy as np\n\ndef weighted_mean(values, weights):\n    # Используйте веса при усреднении\n    pass\n',
+    examples: [{ input: 'weighted_mean([10, 20, 30], [1, 2, 1])', output: '20.0' }],
+    checks: [
+      fn(
+        'Симметричные веса',
+        'weighted_mean',
+        [
+          [10, 20, 30],
+          [1, 2, 1],
+        ],
+        20,
+        1e-9,
+      ),
+      fn(
+        'Большой вес первого',
+        'weighted_mean',
+        [
+          [2, 8],
+          [3, 1],
+        ],
+        3.5,
+        1e-9,
+      ),
+    ],
+    hint: 'Функция np.average принимает аргумент weights.',
+    explanation:
+      'Взвешенное среднее умножает каждое значение на его вес и делит сумму на сумму весов.',
+    referenceSolution:
+      'import numpy as np\n\ndef weighted_mean(values, weights):\n    return np.average(values, weights=weights)\n',
+    commonWrongSolutions: [
+      'import numpy as np\n\ndef weighted_mean(values, weights):\n    return np.mean(values)\n',
+    ],
+    packages: ['numpy'],
+  },
 ] as const;
 
 export function findPythonTask(slug: string): PythonTask | undefined {
@@ -502,6 +771,7 @@ function fn(
   functionName: string,
   args: PythonCheckValue[],
   expected: PythonCheckValue,
+  tolerance?: number,
 ): PythonCheck {
-  return { kind: 'function', name, functionName, args, expected };
+  return { kind: 'function', name, functionName, args, expected, tolerance };
 }

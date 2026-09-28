@@ -8,8 +8,31 @@ export function checkFailureMessage(check: PythonCheck, actual: unknown): string
     return failureMessage(expectedOutput, actualOutput);
   }
 
-  if (canonicalJson(actual) === canonicalJson(check.expected)) return null;
+  if (valuesEqual(actual, check.expected, check.tolerance)) return null;
   return failureMessage(check.expected, actual);
+}
+
+function valuesEqual(actual: unknown, expected: unknown, tolerance?: number): boolean {
+  if (tolerance !== undefined && typeof actual === 'number' && typeof expected === 'number') {
+    return Number.isFinite(actual) && Math.abs(actual - expected) <= tolerance;
+  }
+  if (Array.isArray(actual) && Array.isArray(expected)) {
+    return (
+      actual.length === expected.length &&
+      actual.every((item, index) => valuesEqual(item, expected[index], tolerance))
+    );
+  }
+  if (actual && expected && typeof actual === 'object' && typeof expected === 'object') {
+    const actualEntries = Object.entries(actual);
+    const expectedEntries = Object.entries(expected);
+    return (
+      actualEntries.length === expectedEntries.length &&
+      expectedEntries.every(([key, value]) =>
+        valuesEqual((actual as Record<string, unknown>)[key], value, tolerance),
+      )
+    );
+  }
+  return canonicalJson(actual) === canonicalJson(expected);
 }
 
 export function normalizeOutput(value: string) {

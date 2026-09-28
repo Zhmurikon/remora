@@ -11,6 +11,9 @@ const pyodideRuntimeFiles = [
   'pyodide.asm.wasm',
   'python_stdlib.zip',
 ].map((file) => join(pyodideDirectory, file).replace(/\\/g, '/'));
+const pyodidePackageFiles = ['numpy-2.4.6-cp314-cp314-pyemscripten_2026_0_wasm32.whl'].map((file) =>
+  fileURLToPath(new URL(`./vendor/pyodide/${file}`, import.meta.url)),
+);
 
 export default defineConfig({
   base: process.env.VITE_BASE_PATH ?? '/',
@@ -20,6 +23,11 @@ export default defineConfig({
       targets: [
         {
           src: pyodideRuntimeFiles,
+          dest: 'assets/pyodide',
+          rename: { stripBase: true },
+        },
+        {
+          src: pyodidePackageFiles,
           dest: 'assets/pyodide',
           rename: { stripBase: true },
         },

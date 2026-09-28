@@ -68,7 +68,7 @@ export function PracticePage() {
               </div>
               <h3 className="mt-6 text-2xl font-semibold">Python</h3>
               <p className="text-fg-muted mt-2">
-                Короткие задачи по синтаксису, условиям, циклам и функциям — от простого к сложному.
+                Короткие задачи по основам Python и NumPy — от простого к сложному.
               </p>
               <p className="text-primary mt-6 font-medium">Открыть задачи →</p>
             </Card>
@@ -126,12 +126,12 @@ export function PythonPracticePage() {
             <p className="text-primary text-sm font-medium">Практика</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Python</h1>
             <p className="text-fg-muted mt-3 max-w-2xl">
-              Пройдите путь от переменных и условий до списков и функций. Задачи расположены от
-              простого к сложному.
+              Пройдите путь от переменных и условий до функций и массивов NumPy. Задачи расположены
+              от простого к сложному.
             </p>
           </div>
           <Badge tone="primary" className="mt-1 px-3 py-1">
-            18 задач
+            {pythonTasks.length} задач
           </Badge>
         </div>
       </header>
@@ -405,7 +405,7 @@ function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: Pyth
     setResult(null);
     setOperation('run');
     setPhase('loading');
-    const nextResult = await runner.run(code, stdin, setPhase);
+    const nextResult = await runner.run(code, stdin, setPhase, task.packages);
     setResult(nextResult);
     setPhase('idle');
   }, [code, stdin, task, updateProgress]);
@@ -415,7 +415,7 @@ function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: Pyth
     setResult(null);
     setOperation('check');
     setPhase('loading');
-    const nextResult = await runner.check(code, task.checks, setPhase);
+    const nextResult = await runner.check(code, task.checks, setPhase, task.packages);
     updateProgress(recordPythonCheck(task, code, nextResult.status === 'passed'));
     setResult(nextResult);
     setPhase('idle');
@@ -436,6 +436,7 @@ function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: Pyth
           <div className="flex flex-wrap items-center gap-2">
             <ProgressBadge status={progress.status} />
             <Badge>Python</Badge>
+            {task.packages?.includes('numpy') && <Badge>NumPy</Badge>}
           </div>
         </div>
         <PythonCodeEditor
