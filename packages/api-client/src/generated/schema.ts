@@ -924,6 +924,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/practice/python/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Прогресс задач Python */
+        get: operations["list_python_progress_api_v1_practice_python_progress_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/practice/python/progress/{task_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Синхронизировать прогресс задачи Python */
+        put: operations["merge_python_progress_api_v1_practice_python_progress__task_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/print/sets/{set_id}/cards": {
         parameters: {
             query?: never;
@@ -2895,6 +2929,11 @@ export interface components {
              */
             email: string;
         };
+        /**
+         * PracticeStatus
+         * @enum {string}
+         */
+        PracticeStatus: "not_started" | "in_progress" | "solved";
         /** ProblemCard */
         ProblemCard: {
             /**
@@ -2997,6 +3036,53 @@ export interface components {
             display_name: string | null;
             /** Username */
             username: string;
+        };
+        /** PythonProgressOut */
+        PythonProgressOut: {
+            /** Attempts */
+            attempts: number;
+            /** Draft */
+            draft: string;
+            /**
+             * Draft Updated At
+             * Format: date-time
+             */
+            draft_updated_at: string;
+            /**
+             * Last Client Mutation Id
+             * Format: uuid
+             */
+            last_client_mutation_id: string;
+            status: components["schemas"]["PracticeStatus"];
+            /** Task Id */
+            task_id: string;
+            /** Task Version */
+            task_version: number;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** PythonProgressUpdate */
+        PythonProgressUpdate: {
+            /** Attempts */
+            attempts: number;
+            /**
+             * Client Mutation Id
+             * Format: uuid
+             */
+            client_mutation_id: string;
+            /**
+             * Client Updated At
+             * Format: date-time
+             */
+            client_updated_at: string;
+            /** Draft */
+            draft: string;
+            status: components["schemas"]["PracticeStatus"];
+            /** Task Version */
+            task_version: number;
         };
         /**
          * QueueCard
@@ -6009,6 +6095,61 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReportItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_python_progress_api_v1_practice_python_progress_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PythonProgressOut"][];
+                };
+            };
+        };
+    };
+    merge_python_progress_api_v1_practice_python_progress__task_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PythonProgressUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PythonProgressOut"];
                 };
             };
             /** @description Validation Error */

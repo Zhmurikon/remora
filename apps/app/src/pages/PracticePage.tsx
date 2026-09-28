@@ -17,6 +17,12 @@ import {
   type PythonTaskProgress,
   type PythonTaskStatus,
 } from '../features/practice/python-progress';
+import {
+  flushPythonProgress,
+  pendingPythonProgressCount,
+  queuePythonProgress,
+  syncPythonProgress,
+} from '../features/practice/python-progress-sync';
 
 const primaryLinkStyle =
   'bg-primary text-primary-fg hover:bg-primary-hover inline-flex min-h-11 items-center justify-center rounded-md px-4 font-medium transition-colors';
@@ -76,6 +82,8 @@ export function PracticePage() {
 export function PythonPracticePage() {
   const [topic, setTopic] = useState('all');
   const [status, setStatus] = useState<PythonTaskStatus | 'all'>('all');
+  const [syncState, setSyncState] = useState<'syncing' | 'synced' | 'offline'>('syncing');
+  const [, setSyncRevision] = useState(0);
   const summary = pythonProgressSummary(pythonTasks);
   const topics = [...new Set(pythonTasks.map((task) => task.topic))];
   const rows = pythonTasks
@@ -89,6 +97,23 @@ export function PythonPracticePage() {
   const solvedPercent = pythonTasks.length
     ? Math.round((summary.solved / pythonTasks.length) * 100)
     : 0;
+
+  useEffect(() => {
+    let active = true;
+    const synchronize = async () => {
+      setSyncState('syncing');
+      const result = await syncPythonProgress(pythonTasks);
+      if (!active) return;
+      setSyncRevision((value) => value + 1);
+      setSyncState(result.ok ? 'synced' : 'offline');
+    };
+    void synchronize();
+    window.addEventListener('online', synchronize);
+    return () => {
+      active = false;
+      window.removeEventListener('online', synchronize);
+    };
+  }, []);
 
   return (
     <div className="space-y-7">
@@ -128,7 +153,16 @@ export function PythonPracticePage() {
                 {summary.inProgress > 0 ? ` · в работе ${summary.inProgress}` : ''}
               </p>
             </div>
-            <span className="text-primary text-2xl font-semibold">{solvedPercent}%</span>
+            <div className="text-right">
+              <span className="text-primary block text-2xl font-semibold">{solvedPercent}%</span>
+              <span className="text-fg-subtle mt-1 block text-xs" aria-live="polite">
+                {syncState === 'syncing'
+                  ? 'Синхронизируем…'
+                  : syncState === 'synced'
+                    ? 'Сохранено в аккаунте'
+                    : `Офлайн · в очереди ${pendingPythonProgressCount()}`}
+              </span>
+            </div>
           </div>
           <div
             className="bg-surface-muted mt-4 h-2 overflow-hidden rounded-full"
@@ -326,6 +360,8 @@ export function PythonTaskPage() {
 
 function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: PythonTask }) {
   const runnerRef = useRef<PythonRunner | null>(null);
+  const editedRef = useRef(false);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [progress, setProgress] = useState(() => readPythonTaskProgress(task));
   const [code, setCode] = useState(progress.draft);
   const [stdin, setStdin] = useState(task.examples[0]?.input ?? '');
@@ -335,18 +371,44 @@ function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: Pyth
   const active = phase === 'loading' || phase === 'running';
   const functionTask = task.checks.every((check) => check.kind === 'function');
 
-  useEffect(() => () => runnerRef.current?.dispose(), []);
+  useEffect(() => {
+    let active = true;
+    void syncPythonProgress([task]).then((result) => {
+      if (!active || !result.ok) return;
+      const synced = readPythonTaskProgress(task);
+      setProgress(synced);
+      if (!editedRef.current) setCode(synced.draft);
+    });
+    const flushOnline = () => void flushPythonProgress([task]);
+    window.addEventListener('online', flushOnline);
+    return () => {
+      active = false;
+      runnerRef.current?.dispose();
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+      window.removeEventListener('online', flushOnline);
+    };
+  }, [task]);
+
+  const updateProgress = useCallback(
+    (next: PythonTaskProgress) => {
+      setProgress(next);
+      queuePythonProgress(next);
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = setTimeout(() => void flushPythonProgress([task]), 700);
+    },
+    [task],
+  );
 
   const run = useCallback(async () => {
     const runner = (runnerRef.current ??= new PythonRunner());
-    setProgress(markPythonTaskStarted(task, code));
+    updateProgress(markPythonTaskStarted(task, code));
     setResult(null);
     setOperation('run');
     setPhase('loading');
     const nextResult = await runner.run(code, stdin, setPhase);
     setResult(nextResult);
     setPhase('idle');
-  }, [code, stdin, task]);
+  }, [code, stdin, task, updateProgress]);
 
   async function check() {
     const runner = (runnerRef.current ??= new PythonRunner());
@@ -354,7 +416,7 @@ function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: Pyth
     setOperation('check');
     setPhase('loading');
     const nextResult = await runner.check(code, task.checks, setPhase);
-    setProgress(recordPythonCheck(task, code, nextResult.status === 'passed'));
+    updateProgress(recordPythonCheck(task, code, nextResult.status === 'passed'));
     setResult(nextResult);
     setPhase('idle');
   }
@@ -381,8 +443,9 @@ function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: Pyth
           disabled={active}
           onRun={() => void run()}
           onChange={(value) => {
+            editedRef.current = true;
             setCode(value);
-            setProgress(savePythonDraft(task, value));
+            updateProgress(savePythonDraft(task, value));
             setResult(null);
           }}
         />
@@ -439,7 +502,8 @@ function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: Pyth
             disabled={active || code === task.starterCode}
             onClick={() => {
               setCode(task.starterCode);
-              setProgress(savePythonDraft(task, task.starterCode));
+              editedRef.current = true;
+              updateProgress(savePythonDraft(task, task.starterCode));
               setResult(null);
             }}
           >

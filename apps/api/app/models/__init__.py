@@ -17,6 +17,7 @@ from app.models.courses import Course, CourseArticle, CourseLike, CourseSection,
 from app.models.exports import AccountExportJob, AccountExportStatus
 from app.models.imports import ImportJob, ImportJobStatus
 from app.models.moderation import CourseReport, ReportReason, ReportStatus
+from app.models.practice import PythonPracticeProgress
 from app.models.retention import DailyActivity, Streak
 from app.models.study import (
     CardState,
@@ -74,6 +75,7 @@ __all__ = [
     "MediaSource",
     "MediaStatus",
     "OauthAccount",
+    "PythonPracticeProgress",
     "RefreshToken",
     "ReportReason",
     "ReportStatus",

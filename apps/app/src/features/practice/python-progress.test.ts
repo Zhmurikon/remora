@@ -37,6 +37,7 @@ describe('локальный прогресс Python', () => {
       draft: currentTask.starterCode,
       status: 'not_started',
       attempts: 0,
+      updatedAt: new Date(0).toISOString(),
     });
     expect(storage.length).toBe(0);
   });
@@ -63,6 +64,28 @@ describe('локальный прогресс Python', () => {
     expect(savePythonDraft(task(1), 'print(1)', storage)).toMatchObject({
       draft: 'print(1)',
       status: 'in_progress',
+    });
+  });
+
+  it('сохраняет локальный черновик прежнего формата без времени изменения', () => {
+    const storage = new MemoryStorage();
+    const currentTask = task(1);
+    storage.setItem(
+      'remora.practice.python.progress:demo:v1',
+      JSON.stringify({
+        taskId: 'demo',
+        taskVersion: 1,
+        draft: 'старый черновик',
+        status: 'in_progress',
+        attempts: 3,
+      }),
+    );
+
+    expect(readPythonTaskProgress(currentTask, storage)).toMatchObject({
+      draft: 'старый черновик',
+      status: 'in_progress',
+      attempts: 3,
+      updatedAt: new Date(0).toISOString(),
     });
   });
 });

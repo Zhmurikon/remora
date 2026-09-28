@@ -21,6 +21,7 @@ from app.api.v1 import (
     library,
     media,
     moderation,
+    practice,
     printing,
     retention,
     search,
@@ -49,6 +50,7 @@ api_router.include_router(exports.router)
 api_router.include_router(media.router)
 api_router.include_router(imports.router)
 api_router.include_router(study.router)
+api_router.include_router(practice.router)
 api_router.include_router(retention.router)
 api_router.include_router(tts.router)
 api_router.include_router(printing.router)

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
   PythonWorkerRequest,
   PythonWorkerResponse,
@@ -15,9 +15,25 @@ import { findPythonTask, pythonTasks } from '../features/practice/python-tasks';
 import { AppLayout } from '../layouts/AppLayout';
 import { PracticePage, PythonPracticePage, PythonTaskPage } from './PracticePage';
 
+const syncMocks = vi.hoisted(() => ({
+  flush: vi.fn().mockResolvedValue({ ok: true, pending: 0 }),
+  pendingCount: vi.fn().mockReturnValue(0),
+  queue: vi.fn(),
+  sync: vi.fn().mockResolvedValue({ ok: true, pending: 0 }),
+}));
+
+vi.mock('../features/practice/python-progress-sync', () => ({
+  flushPythonProgress: syncMocks.flush,
+  pendingPythonProgressCount: syncMocks.pendingCount,
+  queuePythonProgress: syncMocks.queue,
+  syncPythonProgress: syncMocks.sync,
+}));
+
 const OriginalWorker = globalThis.Worker;
 
 beforeEach(() => {
+  syncMocks.sync.mockResolvedValue({ ok: true, pending: 0 });
+  syncMocks.pendingCount.mockReturnValue(0);
   FakeBrowserWorker.instances = [];
   Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
   Range.prototype.getBoundingClientRect = () => new DOMRect();
@@ -104,6 +120,19 @@ describe('раздел практики', () => {
     });
     expect(screen.getByText('Нет задач с такими фильтрами')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Сбросить фильтры' }));
+    expect(screen.getByRole('link', { name: /Приветствие по имени/ })).toBeTruthy();
+  });
+
+  it('сообщает об офлайн-очереди, не блокируя каталог', async () => {
+    syncMocks.sync.mockResolvedValueOnce({ ok: false, pending: 2 });
+    syncMocks.pendingCount.mockReturnValue(2);
+    render(
+      <MemoryRouter>
+        <PythonPracticePage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Офлайн · в очереди 2')).toBeTruthy();
     expect(screen.getByRole('link', { name: /Приветствие по имени/ })).toBeTruthy();
   });
 });
