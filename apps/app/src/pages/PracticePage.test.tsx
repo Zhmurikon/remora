@@ -93,7 +93,7 @@ describe('раздел практики', () => {
     expect(screen.getByRole('link', { name: /Приветствие по имени/ }).getAttribute('href')).toBe(
       '/practice/python/privetstvie-po-imeni',
     );
-    expect(screen.getAllByText('26 задач')).toHaveLength(2);
+    expect(screen.getAllByText('38 задач')).toHaveLength(2);
     expect(
       screen
         .getByRole('progressbar', { name: 'Прогресс по задачам Python' })
@@ -111,8 +111,8 @@ describe('раздел практики', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Решено 1 из 26')).toBeTruthy();
-    expect(screen.getByText('4%')).toBeTruthy();
+    expect(screen.getByText('Решено 1 из 38')).toBeTruthy();
+    expect(screen.getByText('3%')).toBeTruthy();
     expect(screen.getAllByText('Решено')).toHaveLength(2);
 
     fireEvent.change(screen.getByRole('combobox', { name: 'Статус' }), {
@@ -139,7 +139,7 @@ describe('раздел практики', () => {
 
 describe('демонстрационная задача', () => {
   it('имеет стабильный адрес и версию', () => {
-    expect(pythonTasks).toHaveLength(26);
+    expect(pythonTasks).toHaveLength(38);
     expect(findPythonTask('privetstvie-po-imeni')).toMatchObject({
       id: 'python-greeting-by-name',
       version: 1,

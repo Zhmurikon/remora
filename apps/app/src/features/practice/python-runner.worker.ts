@@ -34,6 +34,7 @@ async function executeRequest(request: PythonWorkerRequest) {
   try {
     const pyodide = await getRuntime();
     if (request.packages.length > 0) await pyodide.loadPackage(request.packages);
+    await warmPackages(pyodide, request.packages);
     const stdoutDecoder = new TextDecoder();
     const stderrDecoder = new TextDecoder();
 
@@ -70,7 +71,7 @@ async function executeRequest(request: PythonWorkerRequest) {
     startedAt = performance.now();
 
     if (request.type === 'run') {
-      await runInFreshGlobals(pyodide, request.code, request.stdin);
+      await runInFreshGlobals(pyodide, request.code, request.stdin, request.files);
       postResult(request.id, executionResult('completed', capture, startedAt));
       return;
     }
@@ -80,7 +81,7 @@ async function executeRequest(request: PythonWorkerRequest) {
       capture = createCapture();
       let failure: string | null;
       try {
-        failure = await runCheck(pyodide, request.code, check, () => capture);
+        failure = await runCheck(pyodide, request.code, check, request.files, () => capture);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         const separator = capture.stderr && !capture.stderr.endsWith('\n') ? '\n' : '';
@@ -125,20 +126,26 @@ async function runCheck(
   pyodide: PyodideInterface,
   code: string,
   check: PythonCheck,
+  files: Record<string, string>,
   getCapture: () => OutputCapture,
 ): Promise<string | null> {
   if (check.kind === 'output') {
-    await runInFreshGlobals(pyodide, code, check.stdin);
+    await runInFreshGlobals(pyodide, code, check.stdin, files);
     return checkFailureMessage(check, getCapture().stdout);
   }
 
-  const actual = await runInFreshGlobals(pyodide, code, [], (globals) => {
+  const actual = await runInFreshGlobals(pyodide, code, [], files, (globals) => {
     globals.set('__remora_args_json', JSON.stringify(check.args));
     globals.set('__remora_function_name', check.functionName);
     return pyodide.runPython(
       `
 import json as __remora_json
 def __remora_to_json(value):
+    if value.__class__.__module__.startswith("pandas"):
+        if value.__class__.__name__ == "DataFrame":
+            return [__remora_to_json(item) for item in value.to_dict(orient="records")]
+        if value.__class__.__name__ == "Series":
+            return __remora_to_json(value.to_dict())
     if hasattr(value, "tolist"):
         return value.tolist()
     if hasattr(value, "item"):
@@ -170,15 +177,27 @@ async function runInFreshGlobals<T = void>(
   pyodide: PyodideInterface,
   code: string,
   stdin: string[],
+  files: Record<string, string>,
   afterRun?: (globals: ReturnType<PyodideInterface['runPython']>) => T,
 ): Promise<T | undefined> {
   const input = [...stdin];
   pyodide.setStdin({ stdin: () => input.shift() ?? null, autoEOF: true });
   const globals = pyodide.runPython('dict()');
   try {
+    for (const [name, content] of Object.entries(files)) {
+      if (!/^[a-zA-Z0-9_.-]+$/.test(name)) throw new Error('Недопустимое имя встроенного файла');
+      pyodide.FS.writeFile(name, content, { encoding: 'utf8' });
+    }
     await pyodide.runPythonAsync(code, { globals });
     return afterRun?.(globals);
   } finally {
+    for (const name of Object.keys(files)) {
+      try {
+        pyodide.FS.unlink(name);
+      } catch {
+        // Пользовательский код мог удалить встроенный файл самостоятельно.
+      }
+    }
     globals.destroy();
   }
 }
@@ -210,6 +229,12 @@ function getRuntime(): Promise<PyodideInterface> {
     throw error;
   });
   return runtimePromise;
+}
+
+async function warmPackages(pyodide: PyodideInterface, packages: readonly string[]) {
+  const imports = packages.filter((name) => name === 'numpy' || name === 'pandas');
+  if (imports.length > 0)
+    await pyodide.runPythonAsync(imports.map((name) => `import ${name}`).join('\n'));
 }
 
 function post(message: PythonWorkerResponse) {

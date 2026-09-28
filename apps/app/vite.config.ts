@@ -11,9 +11,13 @@ const pyodideRuntimeFiles = [
   'pyodide.asm.wasm',
   'python_stdlib.zip',
 ].map((file) => join(pyodideDirectory, file).replace(/\\/g, '/'));
-const pyodidePackageFiles = ['numpy-2.4.6-cp314-cp314-pyemscripten_2026_0_wasm32.whl'].map((file) =>
-  fileURLToPath(new URL(`./vendor/pyodide/${file}`, import.meta.url)),
-);
+const pyodidePackageFiles = [
+  'numpy-2.4.6-cp314-cp314-pyemscripten_2026_0_wasm32.whl',
+  'pandas-3.0.2-cp314-cp314-pyemscripten_2026_0_wasm32.whl',
+  'python_dateutil-2.9.0.post0-py2.py3-none-any.whl',
+  'pytz-2026.1.post1-py2.py3-none-any.whl',
+  'six-1.17.0-py2.py3-none-any.whl',
+].map((file) => fileURLToPath(new URL(`./vendor/pyodide/${file}`, import.meta.url)));
 
 export default defineConfig({
   base: process.env.VITE_BASE_PATH ?? '/',

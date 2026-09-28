@@ -126,8 +126,8 @@ export function PythonPracticePage() {
             <p className="text-primary text-sm font-medium">Практика</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Python</h1>
             <p className="text-fg-muted mt-3 max-w-2xl">
-              Пройдите путь от переменных и условий до функций и массивов NumPy. Задачи расположены
-              от простого к сложному.
+              Пройдите путь от переменных и условий до NumPy и анализа таблиц в pandas. Задачи
+              расположены от простого к сложному.
             </p>
           </div>
           <Badge tone="primary" className="mt-1 px-3 py-1">
@@ -342,6 +342,27 @@ export function PythonTaskPage() {
             ))}
           </Card>
 
+          {task.files && (
+            <Card className="p-5">
+              <h2 className="text-xl font-semibold">Встроенные файлы</h2>
+              <p className="text-fg-muted mt-2 text-sm">
+                Эти CSV уже доступны коду по указанным именам.
+              </p>
+              <div className="mt-4 space-y-3">
+                {Object.entries(task.files).map(([name, content]) => (
+                  <details key={name} className="border-border rounded-lg border p-3">
+                    <summary className="focus-visible:outline-primary min-h-11 cursor-pointer rounded-md font-mono text-sm font-semibold focus-visible:outline focus-visible:outline-2">
+                      {name}
+                    </summary>
+                    <pre className="bg-surface-muted mt-2 max-h-72 overflow-auto rounded-lg p-3 font-mono text-xs leading-5">
+                      {content}
+                    </pre>
+                  </details>
+                ))}
+              </div>
+            </Card>
+          )}
+
           <Card className="bg-primary-subtle border-primary/20 p-5">
             <details>
               <summary className="focus-visible:outline-primary min-h-11 cursor-pointer rounded-md font-semibold focus-visible:outline focus-visible:outline-2">
@@ -405,7 +426,7 @@ function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: Pyth
     setResult(null);
     setOperation('run');
     setPhase('loading');
-    const nextResult = await runner.run(code, stdin, setPhase, task.packages);
+    const nextResult = await runner.run(code, stdin, setPhase, task.packages, task.files);
     setResult(nextResult);
     setPhase('idle');
   }, [code, stdin, task, updateProgress]);
@@ -415,7 +436,7 @@ function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: Pyth
     setResult(null);
     setOperation('check');
     setPhase('loading');
-    const nextResult = await runner.check(code, task.checks, setPhase, task.packages);
+    const nextResult = await runner.check(code, task.checks, setPhase, task.packages, task.files);
     updateProgress(recordPythonCheck(task, code, nextResult.status === 'passed'));
     setResult(nextResult);
     setPhase('idle');
@@ -437,6 +458,7 @@ function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: Pyth
             <ProgressBadge status={progress.status} />
             <Badge>Python</Badge>
             {task.packages?.includes('numpy') && <Badge>NumPy</Badge>}
+            {task.packages?.includes('pandas') && <Badge>pandas</Badge>}
           </div>
         </div>
         <PythonCodeEditor

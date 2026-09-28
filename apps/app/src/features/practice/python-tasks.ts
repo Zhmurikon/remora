@@ -1,4 +1,9 @@
-import type { PythonCheck, PythonCheckValue, PythonPackage } from './python-runner-protocol';
+import type {
+  PythonCheck,
+  PythonCheckValue,
+  PythonEmbeddedFiles,
+  PythonPackage,
+} from './python-runner-protocol';
 
 export type PythonTaskDifficulty = 'Начальная' | 'Средняя';
 
@@ -24,7 +29,40 @@ export interface PythonTask {
   referenceSolution: string;
   commonWrongSolutions: string[];
   packages?: PythonPackage[];
+  files?: PythonEmbeddedFiles;
 }
+
+const videosCsv = `title,performer,genre,views,likes,dislikes
+Alpha,A,rock,1000,100,10
+Beta,B,pop,2000,240,20
+Gamma,A,rock,1500,,15
+Delta,C,jazz,800,64,8
+Echo,B,pop,3000,330,30
+Foxtrot,D,jazz,1200,96,12
+Giga,A,pop,500,25,5
+Halo,C,rock,2500,275,25
+`;
+const salesCsv = `order_id,city,product,amount
+1,Moscow,Book,120
+2,Kazan,Course,300
+3,Moscow,Course,250
+4,Kazan,Book,80
+5,Omsk,Book,100
+6,Moscow,Book,180
+`;
+const customersCsv = `customer_id,name
+1,Анна
+2,Борис
+3,Вера
+4,Глеб
+`;
+const ordersCsv = `order_id,customer_id,amount
+101,1,120
+102,2,300
+103,1,80
+104,3,150
+105,2,50
+`;
 
 export const pythonTasks: readonly PythonTask[] = [
   {
@@ -756,6 +794,350 @@ export const pythonTasks: readonly PythonTask[] = [
     ],
     packages: ['numpy'],
   },
+  pandasTask({
+    id: 'python-pandas-table-shape',
+    slug: 'pandas-razmer-tablitsy',
+    version: 1,
+    title: 'Размер таблицы',
+    topic: 'pandas',
+    difficulty: 'Начальная',
+    summary: 'Прочитайте встроенный CSV и определите число строк и столбцов.',
+    statement:
+      'Встроен файл videos.csv. Напишите функцию table_shape(), которая читает его через pd.read_csv() и возвращает [число строк, число столбцов].',
+    starterCode:
+      'import pandas as pd\n\ndef table_shape():\n    df = pd.read_csv("videos.csv")\n    # Верните размер таблицы\n',
+    examples: [{ input: 'table_shape()', output: '[8, 6]' }],
+    checks: [fn('Размер videos.csv', 'table_shape', [], [8, 6])],
+    hint: 'Атрибут df.shape содержит пару (строки, столбцы).',
+    explanation: 'read_csv создаёт DataFrame, а shape описывает его прямоугольную форму.',
+    referenceSolution:
+      'import pandas as pd\n\ndef table_shape():\n    df = pd.read_csv("videos.csv")\n    return list(df.shape)\n',
+    commonWrongSolutions: [
+      'import pandas as pd\n\ndef table_shape():\n    df = pd.read_csv("videos.csv")\n    return [len(df.columns), len(df)]\n',
+    ],
+    files: { 'videos.csv': videosCsv },
+  }),
+  pandasTask({
+    id: 'python-pandas-missing-count',
+    slug: 'pandas-propuski',
+    version: 1,
+    title: 'Количество пропусков',
+    topic: 'pandas',
+    difficulty: 'Начальная',
+    summary: 'Посчитайте отсутствующие значения в столбце.',
+    statement:
+      'Напишите функцию missing_likes(), которая возвращает количество пропусков в столбце likes файла videos.csv.',
+    starterCode:
+      'import pandas as pd\n\ndef missing_likes():\n    df = pd.read_csv("videos.csv")\n    \n',
+    examples: [{ input: 'missing_likes()', output: '1' }],
+    checks: [fn('Пропуски likes', 'missing_likes', [], 1)],
+    hint: 'Используйте df["likes"].isna().sum().',
+    explanation: 'isna() отмечает пропуски, а sum() считает значения True.',
+    referenceSolution:
+      'import pandas as pd\n\ndef missing_likes():\n    df = pd.read_csv("videos.csv")\n    return df["likes"].isna().sum()\n',
+    commonWrongSolutions: [
+      'import pandas as pd\n\ndef missing_likes():\n    df = pd.read_csv("videos.csv")\n    return len(df["likes"])\n',
+    ],
+    files: { 'videos.csv': videosCsv },
+  }),
+  pandasTask({
+    id: 'python-pandas-mean-skipna',
+    slug: 'pandas-srednee-s-propuskami',
+    version: 1,
+    title: 'Среднее без пропусков',
+    topic: 'pandas',
+    difficulty: 'Начальная',
+    summary: 'Вычислите среднее столбца с отсутствующим значением.',
+    statement:
+      'Напишите функцию mean_likes(), которая возвращает среднее likes из videos.csv. Оставьте стандартное поведение pandas для пропусков.',
+    starterCode:
+      'import pandas as pd\n\ndef mean_likes():\n    df = pd.read_csv("videos.csv")\n    \n',
+    examples: [{ input: 'mean_likes()', output: '161.428571...' }],
+    checks: [fn('Среднее likes', 'mean_likes', [], 161.42857142857142, 1e-9)],
+    hint: 'Метод Series.mean() по умолчанию не учитывает NaN.',
+    explanation:
+      'pandas пропускает отсутствующие наблюдения при агрегировании, если не указано иное.',
+    referenceSolution:
+      'import pandas as pd\n\ndef mean_likes():\n    return pd.read_csv("videos.csv")["likes"].mean()\n',
+    commonWrongSolutions: [
+      'import pandas as pd\n\ndef mean_likes():\n    return pd.read_csv("videos.csv")["likes"].fillna(0).mean()\n',
+    ],
+    files: { 'videos.csv': videosCsv },
+  }),
+  pandasTask({
+    id: 'python-pandas-filter',
+    slug: 'pandas-filtratsiya',
+    version: 1,
+    title: 'Фильтрация по двум условиям',
+    topic: 'pandas',
+    difficulty: 'Начальная',
+    summary: 'Отберите строки с помощью составной булевой маски.',
+    statement:
+      'Напишите функцию popular_titles(), которая возвращает список title для строк videos.csv, где views >= 2000 и likes >= 250, в исходном порядке.',
+    starterCode:
+      'import pandas as pd\n\ndef popular_titles():\n    df = pd.read_csv("videos.csv")\n    # Объедините два условия через &\n',
+    examples: [{ input: 'popular_titles()', output: '["Echo", "Halo"]' }],
+    checks: [fn('Два условия', 'popular_titles', [], ['Echo', 'Halo'])],
+    hint: 'Заключите каждое сравнение в скобки и объедините условия оператором &.',
+    explanation:
+      'Булева маска фильтрует строки, после чего выбор столбца и tolist() дают обычный список.',
+    referenceSolution:
+      'import pandas as pd\n\ndef popular_titles():\n    df = pd.read_csv("videos.csv")\n    return df.loc[(df["views"] >= 2000) & (df["likes"] >= 250), "title"].tolist()\n',
+    commonWrongSolutions: [
+      'import pandas as pd\n\ndef popular_titles():\n    df = pd.read_csv("videos.csv")\n    return df.loc[(df["views"] >= 2000) | (df["likes"] >= 250), "title"].tolist()\n',
+    ],
+    files: { 'videos.csv': videosCsv },
+  }),
+  pandasTask({
+    id: 'python-pandas-fill-median',
+    slug: 'pandas-zapolnenie-medianoy',
+    version: 1,
+    title: 'Заполнение медианой',
+    topic: 'pandas',
+    difficulty: 'Начальная',
+    summary: 'Замените пропуск устойчивой характеристикой столбца.',
+    statement:
+      'Напишите функцию filled_likes(), которая заполняет пропуски likes медианой этого столбца и возвращает список значений.',
+    starterCode:
+      'import pandas as pd\n\ndef filled_likes():\n    df = pd.read_csv("videos.csv")\n    \n',
+    examples: [{ input: 'filled_likes()', output: '[100, 240, 100, 64, 330, 96, 25, 275]' }],
+    checks: [fn('Медиана вместо NaN', 'filled_likes', [], [100, 240, 100, 64, 330, 96, 25, 275])],
+    hint: 'Передайте df["likes"].median() в fillna().',
+    explanation: 'fillna возвращает Series с заменёнными пропусками, не меняя остальные значения.',
+    referenceSolution:
+      'import pandas as pd\n\ndef filled_likes():\n    df = pd.read_csv("videos.csv")\n    return df["likes"].fillna(df["likes"].median()).tolist()\n',
+    commonWrongSolutions: [
+      'import pandas as pd\n\ndef filled_likes():\n    df = pd.read_csv("videos.csv")\n    return df["likes"].fillna(0).tolist()\n',
+    ],
+    files: { 'videos.csv': videosCsv },
+  }),
+  pandasTask({
+    id: 'python-pandas-value-counts',
+    slug: 'pandas-chastoty-kategoriy',
+    version: 1,
+    title: 'Частоты категорий',
+    topic: 'pandas',
+    difficulty: 'Начальная',
+    summary: 'Посчитайте число строк каждой категории.',
+    statement:
+      'Напишите функцию genre_counts(), которая возвращает результат value_counts() для genre как словарь.',
+    starterCode:
+      'import pandas as pd\n\ndef genre_counts():\n    df = pd.read_csv("videos.csv")\n    \n',
+    examples: [{ input: 'genre_counts()', output: '{"rock": 3, "pop": 3, "jazz": 2}' }],
+    checks: [fn('Частоты жанров', 'genre_counts', [], { rock: 3, pop: 3, jazz: 2 })],
+    hint: 'У Series после value_counts() вызовите to_dict().',
+    explanation: 'value_counts считает каждое уникальное значение столбца.',
+    referenceSolution:
+      'import pandas as pd\n\ndef genre_counts():\n    return pd.read_csv("videos.csv")["genre"].value_counts().to_dict()\n',
+    commonWrongSolutions: [
+      'import pandas as pd\n\ndef genre_counts():\n    return pd.read_csv("videos.csv")["genre"].unique().tolist()\n',
+    ],
+    files: { 'videos.csv': videosCsv },
+  }),
+  pandasTask({
+    id: 'python-pandas-groupby-mean',
+    slug: 'pandas-srednee-po-gruppam',
+    version: 1,
+    title: 'Среднее по группам',
+    topic: 'pandas',
+    difficulty: 'Средняя',
+    summary: 'Сгруппируйте строки и вычислите статистику.',
+    statement:
+      'Напишите функцию mean_likes_by_genre(), которая группирует videos.csv по genre и возвращает среднее likes как словарь.',
+    starterCode:
+      'import pandas as pd\n\ndef mean_likes_by_genre():\n    df = pd.read_csv("videos.csv")\n    \n',
+    examples: [
+      { input: 'mean_likes_by_genre()', output: '{"jazz": 80.0, "pop": 198.33..., "rock": 187.5}' },
+    ],
+    checks: [
+      fn(
+        'Средние по жанрам',
+        'mean_likes_by_genre',
+        [],
+        { jazz: 80, pop: 198.33333333333334, rock: 187.5 },
+        1e-9,
+      ),
+    ],
+    hint: 'Используйте df.groupby("genre")["likes"].mean().',
+    explanation:
+      'groupby разделяет строки по жанру, а mean агрегирует выбранный столбец в каждой группе.',
+    referenceSolution:
+      'import pandas as pd\n\ndef mean_likes_by_genre():\n    df = pd.read_csv("videos.csv")\n    return df.groupby("genre")["likes"].mean().to_dict()\n',
+    commonWrongSolutions: [
+      'import pandas as pd\n\ndef mean_likes_by_genre():\n    df = pd.read_csv("videos.csv")\n    return {"all": df["likes"].mean()}\n',
+    ],
+    files: { 'videos.csv': videosCsv },
+  }),
+  pandasTask({
+    id: 'python-pandas-groupby-agg',
+    slug: 'pandas-agregatsiya',
+    version: 1,
+    title: 'Несколько агрегатов',
+    topic: 'pandas',
+    difficulty: 'Средняя',
+    summary: 'Получите сумму и число строк для каждой группы.',
+    statement:
+      'Напишите функцию performer_stats(), которая возвращает DataFrame со столбцами performer, total_views и video_count, отсортированный по performer.',
+    starterCode:
+      'import pandas as pd\n\ndef performer_stats():\n    df = pd.read_csv("videos.csv")\n    # Сгруппируйте и задайте именованные агрегаты\n',
+    examples: [
+      {
+        input: 'performer_stats()',
+        output: '[{"performer":"A","total_views":3000,"video_count":3}, ...]',
+      },
+    ],
+    checks: [
+      fn(
+        'Таблица исполнителей',
+        'performer_stats',
+        [],
+        [
+          { performer: 'A', total_views: 3000, video_count: 3 },
+          { performer: 'B', total_views: 5000, video_count: 2 },
+          { performer: 'C', total_views: 3300, video_count: 2 },
+          { performer: 'D', total_views: 1200, video_count: 1 },
+        ],
+      ),
+    ],
+    hint: 'Примените groupby(...).agg(total_views=("views", "sum"), video_count=("title", "count")).reset_index().',
+    explanation:
+      'Именованная агрегация создаёт понятные столбцы, а reset_index возвращает ключ группы в таблицу.',
+    referenceSolution:
+      'import pandas as pd\n\ndef performer_stats():\n    df = pd.read_csv("videos.csv")\n    return (df.groupby("performer").agg(total_views=("views", "sum"), video_count=("title", "count")).reset_index().sort_values("performer"))\n',
+    commonWrongSolutions: [
+      'import pandas as pd\n\ndef performer_stats():\n    df = pd.read_csv("videos.csv")\n    return df.groupby("performer")["views"].mean()\n',
+    ],
+    files: { 'videos.csv': videosCsv },
+  }),
+  pandasTask({
+    id: 'python-pandas-sort-top',
+    slug: 'pandas-top-po-prosmotram',
+    version: 1,
+    title: 'Топ по просмотрам',
+    topic: 'pandas',
+    difficulty: 'Начальная',
+    summary: 'Отсортируйте таблицу и выберите первые строки.',
+    statement:
+      'Напишите функцию top_titles(n), которая возвращает n названий с наибольшим views из videos.csv.',
+    starterCode:
+      'import pandas as pd\n\ndef top_titles(n):\n    df = pd.read_csv("videos.csv")\n    \n',
+    examples: [{ input: 'top_titles(3)', output: '["Echo", "Halo", "Beta"]' }],
+    checks: [
+      fn('Три лидера', 'top_titles', [3], ['Echo', 'Halo', 'Beta']),
+      fn('Один лидер', 'top_titles', [1], ['Echo']),
+    ],
+    hint: 'Отсортируйте sort_values("views", ascending=False), затем возьмите head(n).',
+    explanation: 'Сортировка по убыванию ставит самые большие значения первыми.',
+    referenceSolution:
+      'import pandas as pd\n\ndef top_titles(n):\n    df = pd.read_csv("videos.csv")\n    return df.sort_values("views", ascending=False).head(n)["title"].tolist()\n',
+    commonWrongSolutions: [
+      'import pandas as pd\n\ndef top_titles(n):\n    df = pd.read_csv("videos.csv")\n    return df.sort_values("views").head(n)["title"].tolist()\n',
+    ],
+    files: { 'videos.csv': videosCsv },
+  }),
+  pandasTask({
+    id: 'python-pandas-calculated-column',
+    slug: 'pandas-raschetnyy-stolbets',
+    version: 1,
+    title: 'Расчётный столбец',
+    topic: 'pandas',
+    difficulty: 'Средняя',
+    summary: 'Рассчитайте показатель векторными операциями.',
+    statement:
+      'Напишите функцию engagement_rates(), которая заменяет пропуски likes нулём и возвращает список округлённых до 1 знака процентов (likes + dislikes) / views * 100.',
+    starterCode:
+      'import pandas as pd\n\ndef engagement_rates():\n    df = pd.read_csv("videos.csv")\n    # Рассчитайте столбец без цикла\n',
+    examples: [
+      { input: 'engagement_rates()', output: '[11.0, 13.0, 1.0, 9.0, 12.0, 9.0, 6.0, 12.0]' },
+    ],
+    checks: [fn('Процент вовлечения', 'engagement_rates', [], [11, 13, 1, 9, 12, 9, 6, 12], 1e-9)],
+    hint: 'Сначала fillna(0), затем сложите столбцы, разделите на views и вызовите round(1).',
+    explanation: 'Операции между Series выполняются построчно по общему индексу.',
+    referenceSolution:
+      'import pandas as pd\n\ndef engagement_rates():\n    df = pd.read_csv("videos.csv")\n    likes = df["likes"].fillna(0)\n    return ((likes + df["dislikes"]) / df["views"] * 100).round(1).tolist()\n',
+    commonWrongSolutions: [
+      'import pandas as pd\n\ndef engagement_rates():\n    df = pd.read_csv("videos.csv")\n    return (df["likes"] / df["views"] * 100).round(1).tolist()\n',
+    ],
+    files: { 'videos.csv': videosCsv },
+  }),
+  pandasTask({
+    id: 'python-pandas-merge',
+    slug: 'pandas-obedinenie-tablits',
+    version: 1,
+    title: 'Объединение таблиц',
+    topic: 'pandas',
+    difficulty: 'Средняя',
+    summary: 'Соедините клиентов и заказы по общему ключу.',
+    statement:
+      'Встроены customers.csv и orders.csv. Напишите функцию customer_spend(), которая возвращает DataFrame name, total_spend для всех клиентов, включая Глеба без заказов. Сортировка по customer_id.',
+    starterCode:
+      'import pandas as pd\n\ndef customer_spend():\n    customers = pd.read_csv("customers.csv")\n    orders = pd.read_csv("orders.csv")\n    \n',
+    examples: [
+      {
+        input: 'customer_spend()',
+        output: '[{"name":"Анна","total_spend":200}, ..., {"name":"Глеб","total_spend":0}]',
+      },
+    ],
+    checks: [
+      fn(
+        'Левое соединение',
+        'customer_spend',
+        [],
+        [
+          { name: 'Анна', total_spend: 200 },
+          { name: 'Борис', total_spend: 350 },
+          { name: 'Вера', total_spend: 150 },
+          { name: 'Глеб', total_spend: 0 },
+        ],
+      ),
+    ],
+    hint: 'Сначала агрегируйте orders, затем выполните customers.merge(..., how="left") и fillna(0).',
+    explanation:
+      'Левое соединение сохраняет каждого клиента, даже если подходящей строки заказов нет.',
+    referenceSolution:
+      'import pandas as pd\n\ndef customer_spend():\n    customers = pd.read_csv("customers.csv")\n    orders = pd.read_csv("orders.csv")\n    totals = orders.groupby("customer_id", as_index=False).agg(total_spend=("amount", "sum"))\n    result = customers.merge(totals, on="customer_id", how="left").fillna({"total_spend": 0})\n    result["total_spend"] = result["total_spend"].astype(int)\n    return result.sort_values("customer_id")[["name", "total_spend"]]\n',
+    commonWrongSolutions: [
+      'import pandas as pd\n\ndef customer_spend():\n    customers = pd.read_csv("customers.csv")\n    orders = pd.read_csv("orders.csv")\n    return customers.merge(orders, on="customer_id")[["name", "amount"]]\n',
+    ],
+    files: { 'customers.csv': customersCsv, 'orders.csv': ordersCsv },
+  }),
+  pandasTask({
+    id: 'python-pandas-pivot',
+    slug: 'pandas-svodnaya-tablitsa',
+    version: 1,
+    title: 'Сводная таблица продаж',
+    topic: 'pandas',
+    difficulty: 'Средняя',
+    summary: 'Перестройте строки в таблицу городов и товаров.',
+    statement:
+      'Напишите функцию sales_pivot(), которая возвращает DataFrame: строки city, столбцы Book и Course, значения — сумма amount. Пропуски заполните нулями, города отсортируйте.',
+    starterCode:
+      'import pandas as pd\n\ndef sales_pivot():\n    df = pd.read_csv("sales.csv")\n    \n',
+    examples: [
+      { input: 'sales_pivot()', output: '[{"city":"Kazan","Book":80,"Course":300}, ...]' },
+    ],
+    checks: [
+      fn(
+        'Продажи по городу и товару',
+        'sales_pivot',
+        [],
+        [
+          { city: 'Kazan', Book: 80, Course: 300 },
+          { city: 'Moscow', Book: 300, Course: 250 },
+          { city: 'Omsk', Book: 100, Course: 0 },
+        ],
+      ),
+    ],
+    hint: 'Используйте pivot_table(index="city", columns="product", values="amount", aggfunc="sum", fill_value=0).reset_index().',
+    explanation:
+      'pivot_table агрегирует пары категорий и превращает значения одной категории в столбцы.',
+    referenceSolution:
+      'import pandas as pd\n\ndef sales_pivot():\n    df = pd.read_csv("sales.csv")\n    return (df.pivot_table(index="city", columns="product", values="amount", aggfunc="sum", fill_value=0).reset_index().sort_values("city")[["city", "Book", "Course"]])\n',
+    commonWrongSolutions: [
+      'import pandas as pd\n\ndef sales_pivot():\n    df = pd.read_csv("sales.csv")\n    return df.groupby("city", as_index=False)["amount"].sum()\n',
+    ],
+    files: { 'sales.csv': salesCsv },
+  }),
 ] as const;
 
 export function findPythonTask(slug: string): PythonTask | undefined {
@@ -774,4 +1156,8 @@ function fn(
   tolerance?: number,
 ): PythonCheck {
   return { kind: 'function', name, functionName, args, expected, tolerance };
+}
+
+function pandasTask(task: Omit<PythonTask, 'packages'>): PythonTask {
+  return { ...task, packages: ['pandas'] };
 }

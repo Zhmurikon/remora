@@ -2,6 +2,7 @@ import {
   PYTHON_RUN_TIMEOUT_MS,
   type PythonCheck,
   type PythonExecutionResult,
+  type PythonEmbeddedFiles,
   type PythonPackage,
   type PythonRunnerPhase,
   type PythonWorkerRequest,
@@ -41,9 +42,10 @@ export class PythonRunner {
     stdin: string,
     onPhase?: (phase: PythonRunnerPhase) => void,
     packages: PythonPackage[] = [],
+    files: PythonEmbeddedFiles = {},
   ) {
     return this.start(
-      (id) => ({ type: 'run', id, code, stdin: stdinLines(stdin), packages }),
+      (id) => ({ type: 'run', id, code, stdin: stdinLines(stdin), packages, files }),
       onPhase,
     );
   }
@@ -53,8 +55,9 @@ export class PythonRunner {
     checks: PythonCheck[],
     onPhase?: (phase: PythonRunnerPhase) => void,
     packages: PythonPackage[] = [],
+    files: PythonEmbeddedFiles = {},
   ) {
-    return this.start((id) => ({ type: 'check', id, code, checks, packages }), onPhase);
+    return this.start((id) => ({ type: 'check', id, code, checks, packages, files }), onPhase);
   }
 
   private start(

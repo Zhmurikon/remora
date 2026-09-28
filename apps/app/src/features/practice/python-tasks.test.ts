@@ -16,6 +16,11 @@ payload = json.loads(__remora_task_payload)
 results = []
 
 def normalize(value):
+    if value.__class__.__module__.startswith("pandas"):
+        if value.__class__.__name__ == "DataFrame":
+            return [normalize(item) for item in value.to_dict(orient="records")]
+        if value.__class__.__name__ == "Series":
+            return normalize(value.to_dict())
     if hasattr(value, "tolist"):
         return value.tolist()
     if hasattr(value, "item"):
@@ -62,38 +67,64 @@ describe('каталог задач Python', () => {
         '../../../vendor/pyodide/numpy-2.4.6-cp314-cp314-pyemscripten_2026_0_wasm32.whl',
       ),
     );
-  });
+    for (const file of [
+      'six-1.17.0-py2.py3-none-any.whl',
+      'python_dateutil-2.9.0.post0-py2.py3-none-any.whl',
+      'pytz-2026.1.post1-py2.py3-none-any.whl',
+      'pandas-3.0.2-cp314-cp314-pyemscripten_2026_0_wasm32.whl',
+    ]) {
+      await pyodide.loadPackage(resolve(import.meta.dirname, '../../../vendor/pyodide', file));
+    }
+    pyodide.runPython('import pandas');
+  }, 30_000);
 
   it('проверяется той же версией CPython, что и браузерный исполнитель', () => {
     expect(pyodide.runPython('import sys; sys.version')).toContain('3.14.2');
   });
 
-  it('содержит 26 задач по семи темам со стабильными адресами', () => {
-    expect(pythonTasks).toHaveLength(26);
-    expect(new Set(pythonTasks.map((task) => task.id)).size).toBe(26);
-    expect(new Set(pythonTasks.map((task) => task.slug)).size).toBe(26);
+  it('содержит 38 задач по восьми темам со стабильными адресами', () => {
+    expect(pythonTasks).toHaveLength(38);
+    expect(new Set(pythonTasks.map((task) => task.id)).size).toBe(38);
+    expect(new Set(pythonTasks.map((task) => task.slug)).size).toBe(38);
     expect(new Set(pythonTasks.map((task) => task.topic))).toEqual(
-      new Set(['Вывод и переменные', 'Условия', 'Циклы', 'Строки', 'Списки', 'Функции', 'NumPy']),
+      new Set([
+        'Вывод и переменные',
+        'Условия',
+        'Циклы',
+        'Строки',
+        'Списки',
+        'Функции',
+        'NumPy',
+        'pandas',
+      ]),
     );
   });
 
   it.each(pythonTasks)('$title: эталон проходит все сценарии CPython', (task) => {
-    expect(runChecks(task.referenceSolution, task.checks)).toEqual(task.checks.map(() => true));
+    expect(runChecks(task.referenceSolution, task.checks, task.files)).toEqual(
+      task.checks.map(() => true),
+    );
   });
 
   it.each(pythonTasks)('$title: типичное неверное решение отклоняется', (task) => {
     expect(task.commonWrongSolutions.length).toBeGreaterThan(0);
     for (const solution of task.commonWrongSolutions) {
-      expect(runChecks(solution, task.checks)).toContain(false);
+      expect(runChecks(solution, task.checks, task.files)).toContain(false);
     }
   });
 });
 
-function runChecks(code: string, checks: readonly PythonCheck[]): boolean[] {
+function runChecks(
+  code: string,
+  checks: readonly PythonCheck[],
+  files: Record<string, string> = {},
+): boolean[] {
+  for (const [name, content] of Object.entries(files)) pyodide.FS.writeFile(name, content);
   pyodide.globals.set('__remora_task_payload', JSON.stringify({ code, checks }));
   try {
     return JSON.parse(pyodide.runPython(checkScript) as string) as boolean[];
   } finally {
     pyodide.globals.delete('__remora_task_payload');
+    for (const name of Object.keys(files)) pyodide.FS.unlink(name);
   }
 }

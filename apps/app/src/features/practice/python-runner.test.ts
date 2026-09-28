@@ -72,13 +72,17 @@ describe('PythonRunner', () => {
     });
   });
 
-  it('передаёт worker список разрешённых пакетов', () => {
+  it('передаёт worker разрешённые пакеты и встроенные файлы', () => {
     const worker = new FakeWorker();
     const runner = new PythonRunner(() => worker);
 
-    void runner.run('import numpy', '', undefined, ['numpy']);
+    void runner.run('import pandas', '', undefined, ['pandas'], { 'data.csv': 'value\n1\n' });
 
-    expect(worker.message).toMatchObject({ type: 'run', packages: ['numpy'] });
+    expect(worker.message).toMatchObject({
+      type: 'run',
+      packages: ['pandas'],
+      files: { 'data.csv': 'value\n1\n' },
+    });
     runner.stop();
   });
 
