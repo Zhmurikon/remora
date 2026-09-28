@@ -1,3 +1,5 @@
+import type { PythonCheck } from './python-runner-protocol';
+
 export type PythonTaskDifficulty = 'Начальная' | 'Средняя';
 
 export interface PythonTaskExample {
@@ -16,6 +18,7 @@ export interface PythonTask {
   statement: string;
   starterCode: string;
   examples: PythonTaskExample[];
+  checks: PythonCheck[];
 }
 
 export const pythonTasks: readonly PythonTask[] = [
@@ -31,6 +34,26 @@ export const pythonTasks: readonly PythonTask[] = [
       'Программа получает имя одной строкой. Выведите «Привет, имя!», подставив прочитанное значение.',
     starterCode: 'name = input()\n\n# Выведите приветствие\n',
     examples: [{ input: 'Мира', output: 'Привет, Мира!' }],
+    checks: [
+      {
+        kind: 'output',
+        name: 'Основной пример',
+        stdin: ['Мира'],
+        expectedOutput: 'Привет, Мира!',
+      },
+      {
+        kind: 'output',
+        name: 'Короткое имя',
+        stdin: ['Ян'],
+        expectedOutput: 'Привет, Ян!',
+      },
+      {
+        kind: 'output',
+        name: 'Имя с пробелом',
+        stdin: ['Анна Мария'],
+        expectedOutput: 'Привет, Анна Мария!',
+      },
+    ],
   },
 ] as const;
 

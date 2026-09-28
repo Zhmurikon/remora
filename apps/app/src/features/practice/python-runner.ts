@@ -1,5 +1,6 @@
 import {
   PYTHON_RUN_TIMEOUT_MS,
+  type PythonCheck,
   type PythonExecutionResult,
   type PythonRunnerPhase,
   type PythonWorkerRequest,
@@ -35,6 +36,17 @@ export class PythonRunner {
   ) {}
 
   run(code: string, stdin: string, onPhase?: (phase: PythonRunnerPhase) => void) {
+    return this.start((id) => ({ type: 'run', id, code, stdin: stdinLines(stdin) }), onPhase);
+  }
+
+  check(code: string, checks: PythonCheck[], onPhase?: (phase: PythonRunnerPhase) => void) {
+    return this.start((id) => ({ type: 'check', id, code, checks }), onPhase);
+  }
+
+  private start(
+    createRequest: (id: number) => PythonWorkerRequest,
+    onPhase?: (phase: PythonRunnerPhase) => void,
+  ) {
     if (this.pending) throw new Error('Программа уже выполняется');
 
     const worker = this.getWorker();
@@ -49,7 +61,7 @@ export class PythonRunner {
         timeout: null,
       };
       onPhase?.('loading');
-      worker.postMessage({ type: 'run', id, code, stdin: stdinLines(stdin) });
+      worker.postMessage(createRequest(id));
     });
   }
 

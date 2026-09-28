@@ -1,9 +1,12 @@
 /// <reference lib="webworker" />
 
 import { loadPyodide, type PyodideInterface } from 'pyodide';
+import { checkFailureMessage } from './python-checks';
 import {
   PYTHON_OUTPUT_LIMIT,
   appendLimitedOutput,
+  type PythonCheck,
+  type PythonCheckResult,
   type PythonExecutionResult,
   type PythonWorkerRequest,
   type PythonWorkerResponse,
@@ -13,30 +16,35 @@ const workerScope = self as unknown as DedicatedWorkerGlobalScope;
 let runtimePromise: Promise<PyodideInterface> | null = null;
 
 workerScope.onmessage = (event: MessageEvent<PythonWorkerRequest>) => {
-  if (event.data.type === 'run') void runPython(event.data);
+  void executeRequest(event.data);
 };
 
-async function runPython(request: PythonWorkerRequest) {
+interface OutputCapture {
+  stdout: string;
+  stderr: string;
+  truncated: boolean;
+}
+
+async function executeRequest(request: PythonWorkerRequest) {
   post({ type: 'state', id: request.id, phase: 'loading' });
 
-  let stdout = '';
-  let stderr = '';
-  let truncated = false;
+  let capture = createCapture();
   let startedAt = performance.now();
 
   try {
     const pyodide = await getRuntime();
-    const input = [...request.stdin];
     const stdoutDecoder = new TextDecoder();
     const stderrDecoder = new TextDecoder();
 
     const append = (target: 'stdout' | 'stderr', chunk: string) => {
-      const current = target === 'stdout' ? stdout : stderr;
-      const available = Math.max(0, PYTHON_OUTPUT_LIMIT - stdout.length - stderr.length);
+      const current = capture[target];
+      const available = Math.max(
+        0,
+        PYTHON_OUTPUT_LIMIT - capture.stdout.length - capture.stderr.length,
+      );
       const next = appendLimitedOutput(current, chunk, current.length + available);
-      truncated ||= next.truncated;
-      if (target === 'stdout') stdout = next.value;
-      else stderr = next.value;
+      capture.truncated ||= next.truncated;
+      capture[target] = next.value;
     };
 
     pyodide.setStdout({
@@ -57,36 +65,128 @@ async function runPython(request: PythonWorkerRequest) {
         append('stderr', stderrDecoder.decode());
       },
     });
-    pyodide.setStdin({ stdin: () => input.shift() ?? null, autoEOF: true });
-
     post({ type: 'state', id: request.id, phase: 'running' });
     startedAt = performance.now();
 
-    const globals = pyodide.runPython('dict()');
-    try {
-      await pyodide.runPythonAsync(request.code, { globals });
-    } finally {
-      globals.destroy();
+    if (request.type === 'run') {
+      await runInFreshGlobals(pyodide, request.code, request.stdin);
+      postResult(request.id, executionResult('completed', capture, startedAt));
+      return;
+    }
+
+    const checks: PythonCheckResult[] = [];
+    for (const check of request.checks) {
+      capture = createCapture();
+      let failure: string | null;
+      try {
+        failure = await runCheck(pyodide, request.code, check, () => capture);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const separator = capture.stderr && !capture.stderr.endsWith('\n') ? '\n' : '';
+        checks.push({
+          name: check.name,
+          passed: false,
+          message: 'Код завершился с ошибкой Python.',
+        });
+        postResult(request.id, {
+          ...executionResult('runtime_error', capture, startedAt),
+          stderr: `${capture.stderr}${separator}${message}`,
+          checks,
+        });
+        return;
+      }
+      if (failure) {
+        checks.push({ name: check.name, passed: false, message: failure });
+        postResult(request.id, {
+          ...executionResult('failed', capture, startedAt),
+          checks,
+        });
+        return;
+      }
+      checks.push({ name: check.name, passed: true });
     }
 
     postResult(request.id, {
-      status: 'completed',
-      stdout,
-      stderr,
-      durationMs: performance.now() - startedAt,
-      truncated,
+      ...executionResult('passed', capture, startedAt),
+      checks,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const separator = stderr && !stderr.endsWith('\n') ? '\n' : '';
+    const separator = capture.stderr && !capture.stderr.endsWith('\n') ? '\n' : '';
     postResult(request.id, {
-      status: 'runtime_error',
-      stdout,
-      stderr: `${stderr}${separator}${message}`,
-      durationMs: performance.now() - startedAt,
-      truncated,
+      ...executionResult('runtime_error', capture, startedAt),
+      stderr: `${capture.stderr}${separator}${message}`,
     });
   }
+}
+
+async function runCheck(
+  pyodide: PyodideInterface,
+  code: string,
+  check: PythonCheck,
+  getCapture: () => OutputCapture,
+): Promise<string | null> {
+  if (check.kind === 'output') {
+    await runInFreshGlobals(pyodide, code, check.stdin);
+    return checkFailureMessage(check, getCapture().stdout);
+  }
+
+  const actual = await runInFreshGlobals(pyodide, code, [], (globals) => {
+    globals.set('__remora_args_json', JSON.stringify(check.args));
+    globals.set('__remora_function_name', check.functionName);
+    return pyodide.runPython(
+      `
+import json as __remora_json
+__remora_callable = globals().get(__remora_function_name)
+if not callable(__remora_callable):
+    raise TypeError(f"Функция {__remora_function_name} не найдена")
+__remora_result_json = __remora_json.dumps(
+    __remora_callable(*__remora_json.loads(__remora_args_json)),
+    ensure_ascii=False,
+    sort_keys=True,
+)
+__remora_result_json
+`,
+      { globals },
+    ) as string;
+  });
+  const actualValue = JSON.parse(actual ?? 'null') as unknown;
+  return checkFailureMessage(check, actualValue);
+}
+
+async function runInFreshGlobals<T = void>(
+  pyodide: PyodideInterface,
+  code: string,
+  stdin: string[],
+  afterRun?: (globals: ReturnType<PyodideInterface['runPython']>) => T,
+): Promise<T | undefined> {
+  const input = [...stdin];
+  pyodide.setStdin({ stdin: () => input.shift() ?? null, autoEOF: true });
+  const globals = pyodide.runPython('dict()');
+  try {
+    await pyodide.runPythonAsync(code, { globals });
+    return afterRun?.(globals);
+  } finally {
+    globals.destroy();
+  }
+}
+
+function createCapture(): OutputCapture {
+  return { stdout: '', stderr: '', truncated: false };
+}
+
+function executionResult(
+  status: PythonExecutionResult['status'],
+  capture: OutputCapture,
+  startedAt: number,
+): PythonExecutionResult {
+  return {
+    status,
+    stdout: capture.stdout,
+    stderr: capture.stderr,
+    durationMs: performance.now() - startedAt,
+    truncated: capture.truncated,
+  };
 }
 
 function getRuntime(): Promise<PyodideInterface> {

@@ -1,5 +1,5 @@
 import { Badge, Button, Card } from '@remora/ui';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type {
   PythonExecutionResult,
@@ -7,6 +7,7 @@ import type {
 } from '../features/practice/python-runner-protocol';
 import { PythonRunner } from '../features/practice/python-runner';
 import { findPythonTask, pythonTasks, type PythonTask } from '../features/practice/python-tasks';
+import { PythonCodeEditor } from '../features/practice/PythonCodeEditor';
 
 const primaryLinkStyle =
   'bg-primary text-primary-fg hover:bg-primary-hover inline-flex min-h-11 items-center justify-center rounded-md px-4 font-medium transition-colors';
@@ -185,10 +186,10 @@ export function PythonTaskPage() {
           </Card>
 
           <Card className="bg-primary-subtle border-primary/20 p-5">
-            <h2 className="text-lg font-semibold">Что будет дальше</h2>
+            <h2 className="text-lg font-semibold">Как работать с задачей</h2>
             <p className="text-fg-muted mt-2 text-sm">
-              Сейчас можно изменить код и запустить его с собственными входными данными. На этапе P2
-              добавим подсветку синтаксиса и автоматическую проверку решения.
+              «Запустить» выполняет код с вашими входными данными. «Проверить решение» запускает
+              несколько автоматических сценариев и показывает первый неверный результат.
             </p>
           </Card>
         </div>
@@ -205,15 +206,27 @@ function PythonWorkspace({ task }: { task: PythonTask }) {
   const [stdin, setStdin] = useState(task.examples[0]?.input ?? '');
   const [phase, setPhase] = useState<PythonRunnerPhase | 'idle'>('idle');
   const [result, setResult] = useState<PythonExecutionResult | null>(null);
+  const [operation, setOperation] = useState<'run' | 'check'>('run');
   const active = phase === 'loading' || phase === 'running';
 
   useEffect(() => () => runnerRef.current?.dispose(), []);
 
-  async function run() {
+  const run = useCallback(async () => {
     const runner = (runnerRef.current ??= new PythonRunner());
     setResult(null);
+    setOperation('run');
     setPhase('loading');
     const nextResult = await runner.run(code, stdin, setPhase);
+    setResult(nextResult);
+    setPhase('idle');
+  }, [code, stdin]);
+
+  async function check() {
+    const runner = (runnerRef.current ??= new PythonRunner());
+    setResult(null);
+    setOperation('check');
+    setPhase('loading');
+    const nextResult = await runner.check(code, task.checks, setPhase);
     setResult(nextResult);
     setPhase('idle');
   }
@@ -228,21 +241,16 @@ function PythonWorkspace({ task }: { task: PythonTask }) {
         <div className="border-border flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
           <div>
             <h2 className="font-semibold">Код решения</h2>
-            <p className="text-fg-subtle text-sm">Подсветка синтаксиса появится в P2</p>
+            <p className="text-fg-subtle text-sm">Ctrl/⌘ + Enter — запустить код</p>
           </div>
           <Badge>Python</Badge>
         </div>
-        <label htmlFor="python-code" className="sr-only">
-          Код решения
-        </label>
-        <textarea
-          id="python-code"
-          className="bg-surface-muted min-h-72 w-full resize-y p-5 font-mono text-sm leading-6 focus-visible:outline-offset-[-2px]"
+        <PythonCodeEditor
           value={code}
-          spellCheck={false}
           disabled={active}
-          onChange={(event) => {
-            setCode(event.target.value);
+          onRun={() => void run()}
+          onChange={(value) => {
+            setCode(value);
             setResult(null);
           }}
         />
@@ -268,18 +276,24 @@ function PythonWorkspace({ task }: { task: PythonTask }) {
           </p>
         </div>
         <div className="border-border flex flex-wrap items-center gap-3 border-t p-4">
-          <Button disabled={active || !code.trim()} onClick={() => void run()}>
+          <Button className="min-h-11" disabled={active || !code.trim()} onClick={() => void run()}>
             Запустить
           </Button>
           {active && (
-            <Button variant="secondary" onClick={stop}>
+            <Button className="min-h-11" variant="secondary" onClick={stop}>
               Остановить
             </Button>
           )}
-          <Button variant="secondary" disabled aria-describedby="check-status">
+          <Button
+            className="min-h-11"
+            variant="secondary"
+            disabled={active || !code.trim()}
+            onClick={() => void check()}
+          >
             Проверить решение
           </Button>
           <Button
+            className="min-h-11"
             variant="ghost"
             disabled={active || code === task.starterCode}
             onClick={() => {
@@ -289,13 +303,10 @@ function PythonWorkspace({ task }: { task: PythonTask }) {
           >
             Сбросить код
           </Button>
-          <p id="check-status" className="text-fg-subtle text-sm">
-            Проверка решения появится в P2.
-          </p>
         </div>
       </Card>
 
-      <ExecutionOutput phase={phase} result={result} />
+      <ExecutionOutput phase={phase} result={result} operation={operation} />
     </div>
   );
 }
@@ -303,18 +314,24 @@ function PythonWorkspace({ task }: { task: PythonTask }) {
 function ExecutionOutput({
   phase,
   result,
+  operation,
 }: {
   phase: PythonRunnerPhase | 'idle';
   result: PythonExecutionResult | null;
+  operation: 'run' | 'check';
 }) {
   const labels: Record<PythonExecutionResult['status'], string> = {
     completed: 'Выполнено',
+    passed: 'Все проверки пройдены',
+    failed: 'Есть неверный ответ',
     runtime_error: 'Ошибка Python',
     timeout: 'Время вышло',
     stopped: 'Остановлено',
   };
   const tones = {
     completed: 'success',
+    passed: 'success',
+    failed: 'danger',
     runtime_error: 'danger',
     timeout: 'warning',
     stopped: 'neutral',
@@ -323,7 +340,9 @@ function ExecutionOutput({
   return (
     <Card className="p-5" aria-live="polite">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">Результат запуска</h2>
+        <h2 className="text-lg font-semibold">
+          {operation === 'check' ? 'Результат проверки' : 'Результат запуска'}
+        </h2>
         {result && <Badge tone={tones[result.status]}>{labels[result.status]}</Badge>}
       </div>
 
@@ -334,7 +353,7 @@ function ExecutionOutput({
       )}
       {phase === 'running' && (
         <p className="text-fg-muted mt-4" role="status">
-          Выполняем программу…
+          {operation === 'check' ? 'Проверяем решение…' : 'Выполняем программу…'}
         </p>
       )}
       {phase === 'idle' && !result && (
@@ -345,9 +364,13 @@ function ExecutionOutput({
           {result.status === 'timeout' && (
             <p className="text-warning">Программа работала дольше 3 секунд и была остановлена.</p>
           )}
-          {result.stdout ? (
+          {result.checks && result.checks.length > 0 && (
+            <CheckResults checks={result.checks} status={result.status} />
+          )}
+          {operation === 'run' && result.stdout ? (
             <OutputBlock title="Вывод" value={result.stdout} />
           ) : (
+            operation === 'run' &&
             result.status === 'completed' && (
               <p className="text-fg-muted">Программа завершилась без вывода.</p>
             )
@@ -362,6 +385,49 @@ function ExecutionOutput({
         </div>
       )}
     </Card>
+  );
+}
+
+function CheckResults({
+  checks,
+  status,
+}: {
+  checks: NonNullable<PythonExecutionResult['checks']>;
+  status: PythonExecutionResult['status'];
+}) {
+  return (
+    <ol className="space-y-3" aria-label="Проверочные сценарии">
+      {checks.map((check) => {
+        const pythonError = !check.passed && status === 'runtime_error';
+        return (
+          <li
+            key={check.name}
+            className={`rounded-xl border p-4 ${
+              check.passed
+                ? 'border-success/30 bg-success-subtle'
+                : 'border-danger/30 bg-danger-subtle'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <span className={check.passed ? 'text-success' : 'text-danger'} aria-hidden="true">
+                {check.passed ? '✓' : '×'}
+              </span>
+              <div className="min-w-0">
+                <h3 className="font-medium">{check.name}</h3>
+                <p className={`mt-1 text-sm ${check.passed ? 'text-success' : 'text-danger'}`}>
+                  {check.passed ? 'Пройдено' : pythonError ? 'Ошибка Python' : 'Ответ не совпал'}
+                </p>
+                {check.message && (
+                  <pre className="text-fg mt-3 overflow-x-auto whitespace-pre-wrap font-mono text-sm">
+                    {check.message}
+                  </pre>
+                )}
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 

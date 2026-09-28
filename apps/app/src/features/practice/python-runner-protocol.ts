@@ -2,7 +2,34 @@ export const PYTHON_RUN_TIMEOUT_MS = 3_000;
 export const PYTHON_OUTPUT_LIMIT = 32_000;
 
 export type PythonRunnerPhase = 'loading' | 'running';
-export type PythonExecutionStatus = 'completed' | 'runtime_error' | 'timeout' | 'stopped';
+export type PythonExecutionStatus =
+  'completed' | 'passed' | 'failed' | 'runtime_error' | 'timeout' | 'stopped';
+
+export type PythonCheckValue =
+  null | boolean | number | string | PythonCheckValue[] | { [key: string]: PythonCheckValue };
+
+export interface PythonOutputCheck {
+  kind: 'output';
+  name: string;
+  stdin: string[];
+  expectedOutput: string;
+}
+
+export interface PythonFunctionCheck {
+  kind: 'function';
+  name: string;
+  functionName: string;
+  args: PythonCheckValue[];
+  expected: PythonCheckValue;
+}
+
+export type PythonCheck = PythonOutputCheck | PythonFunctionCheck;
+
+export interface PythonCheckResult {
+  name: string;
+  passed: boolean;
+  message?: string;
+}
 
 export interface PythonExecutionResult {
   status: PythonExecutionStatus;
@@ -10,6 +37,7 @@ export interface PythonExecutionResult {
   stderr: string;
   durationMs: number;
   truncated: boolean;
+  checks?: PythonCheckResult[];
 }
 
 export interface PythonRunRequest {
@@ -19,7 +47,14 @@ export interface PythonRunRequest {
   stdin: string[];
 }
 
-export type PythonWorkerRequest = PythonRunRequest;
+export interface PythonCheckRequest {
+  type: 'check';
+  id: number;
+  code: string;
+  checks: PythonCheck[];
+}
+
+export type PythonWorkerRequest = PythonRunRequest | PythonCheckRequest;
 
 export interface PythonWorkerStateMessage {
   type: 'state';

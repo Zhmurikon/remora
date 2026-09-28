@@ -38,6 +38,40 @@ describe('PythonRunner', () => {
     expect(phases).toEqual(['loading', 'running']);
   });
 
+  it('передаёт проверочные сценарии отдельно от обычного запуска', async () => {
+    const worker = new FakeWorker();
+    const runner = new PythonRunner(() => worker);
+    const checks = [
+      {
+        kind: 'output' as const,
+        name: 'Основной пример',
+        stdin: ['Мира'],
+        expectedOutput: 'Привет, Мира!',
+      },
+    ];
+
+    const resultPromise = runner.check('print("Привет, Мира!")', checks);
+
+    expect(worker.message).toMatchObject({ type: 'check', checks });
+    worker.emit({
+      type: 'result',
+      id: 1,
+      result: {
+        status: 'passed',
+        stdout: 'Привет, Мира!\n',
+        stderr: '',
+        durationMs: 3,
+        truncated: false,
+        checks: [{ name: 'Основной пример', passed: true }],
+      },
+    });
+
+    await expect(resultPromise).resolves.toMatchObject({
+      status: 'passed',
+      checks: [{ name: 'Основной пример', passed: true }],
+    });
+  });
+
   it('завершает зависший worker по таймауту и создаёт новый для следующего запуска', async () => {
     vi.useFakeTimers();
     const workers: FakeWorker[] = [];
