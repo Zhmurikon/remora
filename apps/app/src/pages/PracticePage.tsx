@@ -1,5 +1,11 @@
-import { Badge, Card } from '@remora/ui';
+import { Badge, Button, Card } from '@remora/ui';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import type {
+  PythonExecutionResult,
+  PythonRunnerPhase,
+} from '../features/practice/python-runner-protocol';
+import { PythonRunner } from '../features/practice/python-runner';
 import { findPythonTask, pythonTasks, type PythonTask } from '../features/practice/python-tasks';
 
 const primaryLinkStyle =
@@ -181,46 +187,202 @@ export function PythonTaskPage() {
           <Card className="bg-primary-subtle border-primary/20 p-5">
             <h2 className="text-lg font-semibold">Что будет дальше</h2>
             <p className="text-fg-muted mt-2 text-sm">
-              В следующем этапе здесь появятся запуск кода, вывод программы и понятные сообщения об
-              ошибках. Код будет выполняться в браузере, без нагрузки на сервер.
+              Сейчас можно изменить код и запустить его с собственными входными данными. На этапе P2
+              добавим подсветку синтаксиса и автоматическую проверку решения.
             </p>
           </Card>
         </div>
 
-        <Card className="overflow-hidden p-0">
-          <div className="border-border flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
-            <div>
-              <h2 className="font-semibold">Стартовый код</h2>
-              <p className="text-fg-subtle text-sm">Редактор появится в P2</p>
-            </div>
-            <Badge>Python</Badge>
-          </div>
-          <pre className="bg-surface-muted min-h-72 overflow-x-auto p-5 font-mono text-sm leading-6">
-            <code>{task.starterCode}</code>
-          </pre>
-          <div className="border-border flex flex-wrap items-center gap-3 border-t p-4">
-            <button
-              type="button"
-              disabled
-              aria-describedby="runner-status"
-              className={`${primaryLinkStyle} disabled:pointer-events-none disabled:opacity-50`}
-            >
-              Запустить
-            </button>
-            <button
-              type="button"
-              disabled
-              aria-describedby="runner-status"
-              className="border-border bg-surface text-fg inline-flex min-h-11 items-center justify-center rounded-md border px-4 font-medium disabled:pointer-events-none disabled:opacity-50"
-            >
-              Проверить решение
-            </button>
-            <p id="runner-status" className="text-fg-subtle text-sm">
-              Запуск кода появится на этапе P1.
-            </p>
-          </div>
-        </Card>
+        <PythonWorkspace key={task.id} task={task} />
       </div>
+    </div>
+  );
+}
+
+function PythonWorkspace({ task }: { task: PythonTask }) {
+  const runnerRef = useRef<PythonRunner | null>(null);
+  const [code, setCode] = useState(task.starterCode);
+  const [stdin, setStdin] = useState(task.examples[0]?.input ?? '');
+  const [phase, setPhase] = useState<PythonRunnerPhase | 'idle'>('idle');
+  const [result, setResult] = useState<PythonExecutionResult | null>(null);
+  const active = phase === 'loading' || phase === 'running';
+
+  useEffect(() => () => runnerRef.current?.dispose(), []);
+
+  async function run() {
+    const runner = (runnerRef.current ??= new PythonRunner());
+    setResult(null);
+    setPhase('loading');
+    const nextResult = await runner.run(code, stdin, setPhase);
+    setResult(nextResult);
+    setPhase('idle');
+  }
+
+  function stop() {
+    runnerRef.current?.stop();
+  }
+
+  return (
+    <div className="space-y-5">
+      <Card className="overflow-hidden p-0">
+        <div className="border-border flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
+          <div>
+            <h2 className="font-semibold">Код решения</h2>
+            <p className="text-fg-subtle text-sm">Подсветка синтаксиса появится в P2</p>
+          </div>
+          <Badge>Python</Badge>
+        </div>
+        <label htmlFor="python-code" className="sr-only">
+          Код решения
+        </label>
+        <textarea
+          id="python-code"
+          className="bg-surface-muted min-h-72 w-full resize-y p-5 font-mono text-sm leading-6 focus-visible:outline-offset-[-2px]"
+          value={code}
+          spellCheck={false}
+          disabled={active}
+          onChange={(event) => {
+            setCode(event.target.value);
+            setResult(null);
+          }}
+        />
+        <div className="border-border border-t p-4">
+          <label htmlFor="python-stdin" className="text-sm font-medium">
+            Входные данные
+          </label>
+          <textarea
+            id="python-stdin"
+            rows={3}
+            className="border-border bg-surface mt-2 w-full resize-y rounded-xl border p-3 font-mono text-sm"
+            value={stdin}
+            spellCheck={false}
+            disabled={active}
+            aria-describedby="stdin-hint"
+            onChange={(event) => {
+              setStdin(event.target.value);
+              setResult(null);
+            }}
+          />
+          <p id="stdin-hint" className="text-fg-subtle mt-2 text-sm">
+            Каждый вызов input() прочитает следующую строку.
+          </p>
+        </div>
+        <div className="border-border flex flex-wrap items-center gap-3 border-t p-4">
+          <Button disabled={active || !code.trim()} onClick={() => void run()}>
+            Запустить
+          </Button>
+          {active && (
+            <Button variant="secondary" onClick={stop}>
+              Остановить
+            </Button>
+          )}
+          <Button variant="secondary" disabled aria-describedby="check-status">
+            Проверить решение
+          </Button>
+          <Button
+            variant="ghost"
+            disabled={active || code === task.starterCode}
+            onClick={() => {
+              setCode(task.starterCode);
+              setResult(null);
+            }}
+          >
+            Сбросить код
+          </Button>
+          <p id="check-status" className="text-fg-subtle text-sm">
+            Проверка решения появится в P2.
+          </p>
+        </div>
+      </Card>
+
+      <ExecutionOutput phase={phase} result={result} />
+    </div>
+  );
+}
+
+function ExecutionOutput({
+  phase,
+  result,
+}: {
+  phase: PythonRunnerPhase | 'idle';
+  result: PythonExecutionResult | null;
+}) {
+  const labels: Record<PythonExecutionResult['status'], string> = {
+    completed: 'Выполнено',
+    runtime_error: 'Ошибка Python',
+    timeout: 'Время вышло',
+    stopped: 'Остановлено',
+  };
+  const tones = {
+    completed: 'success',
+    runtime_error: 'danger',
+    timeout: 'warning',
+    stopped: 'neutral',
+  } as const;
+
+  return (
+    <Card className="p-5" aria-live="polite">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">Результат запуска</h2>
+        {result && <Badge tone={tones[result.status]}>{labels[result.status]}</Badge>}
+      </div>
+
+      {phase === 'loading' && (
+        <p className="text-fg-muted mt-4" role="status">
+          Загружаем Python… Первый запуск может занять несколько секунд.
+        </p>
+      )}
+      {phase === 'running' && (
+        <p className="text-fg-muted mt-4" role="status">
+          Выполняем программу…
+        </p>
+      )}
+      {phase === 'idle' && !result && (
+        <p className="text-fg-muted mt-4">Нажмите «Запустить», чтобы увидеть вывод программы.</p>
+      )}
+      {result && (
+        <div className="mt-4 space-y-4">
+          {result.status === 'timeout' && (
+            <p className="text-warning">Программа работала дольше 3 секунд и была остановлена.</p>
+          )}
+          {result.stdout ? (
+            <OutputBlock title="Вывод" value={result.stdout} />
+          ) : (
+            result.status === 'completed' && (
+              <p className="text-fg-muted">Программа завершилась без вывода.</p>
+            )
+          )}
+          {result.stderr && <OutputBlock title="Ошибка" value={result.stderr} error />}
+          {result.truncated && (
+            <p className="text-warning text-sm">Вывод сокращён: показаны первые 32 000 символов.</p>
+          )}
+          <p className="text-fg-subtle text-sm">
+            Время выполнения: {Math.max(1, Math.round(result.durationMs))} мс
+          </p>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function OutputBlock({
+  title,
+  value,
+  error = false,
+}: {
+  title: string;
+  value: string;
+  error?: boolean;
+}) {
+  return (
+    <div>
+      <h3 className={`text-sm font-medium ${error ? 'text-danger' : 'text-fg-muted'}`}>{title}</h3>
+      <pre
+        className="bg-surface-muted mt-2 max-h-80 overflow-auto whitespace-pre-wrap rounded-xl p-4 font-mono text-sm leading-6"
+        role={error ? 'alert' : undefined}
+      >
+        {value}
+      </pre>
     </div>
   );
 }

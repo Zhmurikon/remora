@@ -60,19 +60,25 @@ describe('демонстрационная задача', () => {
     });
   });
 
-  it('показывает условие, пример и стартовый код без фиктивного запуска', () => {
+  it('показывает условие, пример, редактируемый код и настоящий запуск', () => {
     renderTask('/practice/python/privetstvie-po-imeni');
 
     expect(screen.getByRole('heading', { name: 'Приветствие по имени', level: 1 })).toBeTruthy();
     expect(screen.getByText('Привет, Мира!')).toBeTruthy();
-    expect(screen.getByText(/name = input/)).toBeTruthy();
+    expect(screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Код решения' }).value).toBe(
+      'name = input()\n\n# Выведите приветствие\n',
+    );
+    expect(screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Входные данные' }).value).toBe(
+      'Мира',
+    );
     expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Запустить' }).disabled).toBe(
-      true,
+      false,
     );
     expect(
       screen.getByRole<HTMLButtonElement>('button', { name: 'Проверить решение' }).disabled,
     ).toBe(true);
-    expect(screen.getByText('Запуск кода появится на этапе P1.')).toBeTruthy();
+    expect(screen.getByText('Проверка решения появится в P2.')).toBeTruthy();
+    expect(screen.getByText('Нажмите «Запустить», чтобы увидеть вывод программы.')).toBeTruthy();
   });
 
   it('объясняет, что делать при неизвестном адресе', () => {
