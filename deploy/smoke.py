@@ -1,6 +1,7 @@
 """Явная проверка дев-сервера: создаёт отдельный технический аккаунт и приватные данные."""
 
 import io
+import os
 import secrets
 import time
 from datetime import UTC, datetime
@@ -9,7 +10,7 @@ from uuid import uuid4
 import httpx
 from PIL import Image
 
-BASE = "https://remora.com.ru"
+BASE = os.environ.get("WEB_URL", "https://remora.com.ru").rstrip("/")
 
 
 def main() -> None:
