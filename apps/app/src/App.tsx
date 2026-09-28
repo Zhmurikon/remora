@@ -10,6 +10,7 @@ import { FlashcardsPage } from './pages/FlashcardsPage';
 import { LearnPage } from './pages/LearnPage';
 import { LibraryPage } from './pages/LibraryPage';
 import { ListenPage } from './pages/ListenPage';
+import { PracticePage, PythonPracticePage, PythonTaskPage } from './pages/PracticePage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SetEditorPage } from './pages/SetEditorPage';
 import { SetPage } from './pages/SetPage';
@@ -45,6 +46,9 @@ export function App() {
               <Route path="sets/:setId/test" element={<TestPage />} />
               <Route path="sets/:setId/listen" element={<ListenPage />} />
               <Route path="library" element={<LibraryPage />} />
+              <Route path="practice" element={<PracticePage />} />
+              <Route path="practice/python" element={<PythonPracticePage />} />
+              <Route path="practice/python/:taskSlug" element={<PythonTaskPage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
           </Route>

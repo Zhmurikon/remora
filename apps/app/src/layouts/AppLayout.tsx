@@ -9,6 +9,7 @@ const navigation = [
   { to: '/sets', label: 'Мои наборы', icon: '▣' },
   { to: '/courses', label: 'Мои курсы', icon: '▤' },
   { to: '/library', label: 'Библиотека', icon: '◇' },
+  { to: '/practice', label: 'Практика', icon: '⌨' },
   { to: '/settings', label: 'Настройки', icon: '⚙' },
 ];
 
