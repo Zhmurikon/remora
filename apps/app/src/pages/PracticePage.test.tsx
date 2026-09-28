@@ -6,6 +6,11 @@ import type {
   PythonWorkerRequest,
   PythonWorkerResponse,
 } from '../features/practice/python-runner-protocol';
+import {
+  readPythonTaskProgress,
+  recordPythonCheck,
+  savePythonDraft,
+} from '../features/practice/python-progress';
 import { findPythonTask, pythonTasks } from '../features/practice/python-tasks';
 import { AppLayout } from '../layouts/AppLayout';
 import { PracticePage, PythonPracticePage, PythonTaskPage } from './PracticePage';
@@ -25,6 +30,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  localStorage.clear();
   Object.defineProperty(globalThis, 'Worker', {
     configurable: true,
     writable: true,
@@ -72,6 +78,33 @@ describe('раздел практики', () => {
       '/practice/python/privetstvie-po-imeni',
     );
     expect(screen.getByText('1 из 20')).toBeTruthy();
+    expect(
+      screen
+        .getByRole('progressbar', { name: 'Прогресс по задачам Python' })
+        .getAttribute('aria-valuenow'),
+    ).toBe('0');
+  });
+
+  it('показывает локальный прогресс и фильтрует задачи по статусу', () => {
+    const task = pythonTasks[0];
+    if (!task) throw new Error('Нет демонстрационной задачи');
+    recordPythonCheck(task, 'print("готово")', true, localStorage);
+    render(
+      <MemoryRouter>
+        <PythonPracticePage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Решено 1 из 1')).toBeTruthy();
+    expect(screen.getByText('100%')).toBeTruthy();
+    expect(screen.getAllByText('Решено')).toHaveLength(2);
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Статус' }), {
+      target: { value: 'in_progress' },
+    });
+    expect(screen.getByText('Нет задач с такими фильтрами')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Сбросить фильтры' }));
+    expect(screen.getByRole('link', { name: /Приветствие по имени/ })).toBeTruthy();
   });
 });
 
@@ -103,6 +136,19 @@ describe('демонстрационная задача', () => {
     ).toBe(false);
     expect(screen.getByText('Ctrl/⌘ + Enter — запустить код')).toBeTruthy();
     expect(screen.getByText('Нажмите «Запустить», чтобы увидеть вывод программы.')).toBeTruthy();
+  });
+
+  it('восстанавливает черновик для текущей версии задачи', () => {
+    const task = pythonTasks[0];
+    if (!task) throw new Error('Нет демонстрационной задачи');
+    savePythonDraft(task, 'print("мой черновик")', localStorage);
+
+    renderTask('/practice/python/privetstvie-po-imeni');
+
+    expect(screen.getByRole('textbox', { name: 'Код решения' }).textContent).toContain(
+      'print("мой черновик")',
+    );
+    expect(screen.getByText('В работе')).toBeTruthy();
   });
 
   it('запускает тест-кейсы и показывает первую полезную ошибку', async () => {
@@ -181,6 +227,36 @@ describe('демонстрационная задача', () => {
     expect(await screen.findAllByText('Ошибка Python')).toHaveLength(2);
     expect(screen.queryByText('Ответ не совпал')).toBeNull();
     expect(screen.getByText(/SyntaxError/)).toBeTruthy();
+  });
+
+  it('сохраняет успешную проверку и предлагает вернуться к задачам', async () => {
+    const task = pythonTasks[0];
+    if (!task) throw new Error('Нет демонстрационной задачи');
+    renderTask('/practice/python/privetstvie-po-imeni');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Проверить решение' }));
+    act(() => {
+      FakeBrowserWorker.instances[0]?.emit({
+        type: 'result',
+        id: 1,
+        result: {
+          status: 'passed',
+          stdout: '',
+          stderr: '',
+          durationMs: 3,
+          truncated: false,
+          checks: task.checks.map((check) => ({ name: check.name, passed: true })),
+        },
+      });
+    });
+
+    expect(await screen.findByRole('heading', { name: 'Задача решена' })).toBeTruthy();
+    expect(screen.getByText('Проверок: 1')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Вернуться к списку задач' })).toBeTruthy();
+    expect(readPythonTaskProgress(task, localStorage)).toMatchObject({
+      status: 'solved',
+      attempts: 1,
+    });
   });
 
   it('объясняет, что делать при неизвестном адресе', () => {

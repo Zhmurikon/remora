@@ -8,6 +8,15 @@ import type {
 import { PythonRunner } from '../features/practice/python-runner';
 import { findPythonTask, pythonTasks, type PythonTask } from '../features/practice/python-tasks';
 import { PythonCodeEditor } from '../features/practice/PythonCodeEditor';
+import {
+  markPythonTaskStarted,
+  pythonProgressSummary,
+  readPythonTaskProgress,
+  recordPythonCheck,
+  savePythonDraft,
+  type PythonTaskProgress,
+  type PythonTaskStatus,
+} from '../features/practice/python-progress';
 
 const primaryLinkStyle =
   'bg-primary text-primary-fg hover:bg-primary-hover inline-flex min-h-11 items-center justify-center rounded-md px-4 font-medium transition-colors';
@@ -65,6 +74,22 @@ export function PracticePage() {
 }
 
 export function PythonPracticePage() {
+  const [topic, setTopic] = useState('all');
+  const [status, setStatus] = useState<PythonTaskStatus | 'all'>('all');
+  const summary = pythonProgressSummary(pythonTasks);
+  const topics = [...new Set(pythonTasks.map((task) => task.topic))];
+  const rows = pythonTasks
+    .map((task, index) => ({ task, progress: summary.progress[index] }))
+    .filter(
+      (row): row is { task: PythonTask; progress: PythonTaskProgress } =>
+        Boolean(row.progress) &&
+        (topic === 'all' || row.task.topic === topic) &&
+        (status === 'all' || row.progress?.status === status),
+    );
+  const solvedPercent = pythonTasks.length
+    ? Math.round((summary.solved / pythonTasks.length) * 100)
+    : 0;
+
   return (
     <div className="space-y-7">
       <header>
@@ -94,18 +119,85 @@ export function PythonPracticePage() {
           <p className="text-fg-subtle text-sm">{pythonTasks.length} из 20</p>
         </div>
 
-        {pythonTasks.length > 0 ? (
+        <Card className="mt-4 p-5">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h3 className="font-semibold">Общий прогресс</h3>
+              <p className="text-fg-muted mt-1 text-sm">
+                Решено {summary.solved} из {pythonTasks.length}
+                {summary.inProgress > 0 ? ` · в работе ${summary.inProgress}` : ''}
+              </p>
+            </div>
+            <span className="text-primary text-2xl font-semibold">{solvedPercent}%</span>
+          </div>
+          <div
+            className="bg-surface-muted mt-4 h-2 overflow-hidden rounded-full"
+            role="progressbar"
+            aria-label="Прогресс по задачам Python"
+            aria-valuemin={0}
+            aria-valuemax={pythonTasks.length}
+            aria-valuenow={summary.solved}
+          >
+            <div
+              className="bg-primary h-full rounded-full"
+              style={{ width: `${solvedPercent}%` }}
+            />
+          </div>
+        </Card>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2" aria-label="Фильтры задач">
+          <label className="text-sm font-medium">
+            Тема
+            <select
+              className="border-border bg-surface mt-2 min-h-11 w-full rounded-lg border px-3"
+              value={topic}
+              onChange={(event) => setTopic(event.target.value)}
+            >
+              <option value="all">Все темы</option>
+              {topics.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm font-medium">
+            Статус
+            <select
+              className="border-border bg-surface mt-2 min-h-11 w-full rounded-lg border px-3"
+              value={status}
+              onChange={(event) => setStatus(event.target.value as PythonTaskStatus | 'all')}
+            >
+              <option value="all">Все статусы</option>
+              <option value="not_started">Не начато</option>
+              <option value="in_progress">В работе</option>
+              <option value="solved">Решено</option>
+            </select>
+          </label>
+        </div>
+
+        {rows.length > 0 ? (
           <ol className="mt-4 space-y-3">
-            {pythonTasks.map((task, index) => (
+            {rows.map(({ task, progress }) => (
               <li key={task.id}>
-                <TaskCard task={task} number={index + 1} />
+                <TaskCard task={task} progress={progress} number={pythonTasks.indexOf(task) + 1} />
               </li>
             ))}
           </ol>
         ) : (
           <Card className="mt-4 p-8 text-center">
-            <h3 className="text-xl font-semibold">Задачи ещё готовятся</h3>
-            <p className="text-fg-muted mt-2">Загляните сюда позже.</p>
+            <h3 className="text-xl font-semibold">Нет задач с такими фильтрами</h3>
+            <p className="text-fg-muted mt-2">Измените тему или статус, чтобы увидеть задачи.</p>
+            <Button
+              className="mt-5 min-h-11"
+              variant="secondary"
+              onClick={() => {
+                setTopic('all');
+                setStatus('all');
+              }}
+            >
+              Сбросить фильтры
+            </Button>
           </Card>
         )}
       </section>
@@ -113,7 +205,15 @@ export function PythonPracticePage() {
   );
 }
 
-function TaskCard({ task, number }: { task: PythonTask; number: number }) {
+function TaskCard({
+  task,
+  number,
+  progress,
+}: {
+  task: PythonTask;
+  number: number;
+  progress: PythonTaskProgress;
+}) {
   return (
     <Link
       to={`/practice/python/${task.slug}`}
@@ -130,6 +230,7 @@ function TaskCard({ task, number }: { task: PythonTask; number: number }) {
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-lg font-semibold">{task.title}</h3>
             <Badge>{task.difficulty}</Badge>
+            <ProgressBadge status={progress.status} />
           </div>
           <p className="text-fg-muted mt-1">{task.summary}</p>
           <p className="text-fg-subtle mt-3 text-sm">{task.topic}</p>
@@ -142,11 +243,28 @@ function TaskCard({ task, number }: { task: PythonTask; number: number }) {
   );
 }
 
+function ProgressBadge({ status }: { status: PythonTaskStatus }) {
+  const labels: Record<PythonTaskStatus, string> = {
+    not_started: 'Не начато',
+    in_progress: 'В работе',
+    solved: 'Решено',
+  };
+  const tones = {
+    not_started: 'neutral',
+    in_progress: 'warning',
+    solved: 'success',
+  } as const;
+
+  return <Badge tone={tones[status]}>{labels[status]}</Badge>;
+}
+
 export function PythonTaskPage() {
   const { taskSlug = '' } = useParams();
   const task = findPythonTask(taskSlug);
 
   if (!task) return <MissingTask />;
+  const taskIndex = pythonTasks.indexOf(task);
+  const nextTask = pythonTasks[taskIndex + 1];
 
   return (
     <div className="space-y-6">
@@ -194,15 +312,16 @@ export function PythonTaskPage() {
           </Card>
         </div>
 
-        <PythonWorkspace key={task.id} task={task} />
+        <PythonWorkspace key={`${task.id}:${task.version}`} task={task} nextTask={nextTask} />
       </div>
     </div>
   );
 }
 
-function PythonWorkspace({ task }: { task: PythonTask }) {
+function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: PythonTask }) {
   const runnerRef = useRef<PythonRunner | null>(null);
-  const [code, setCode] = useState(task.starterCode);
+  const [progress, setProgress] = useState(() => readPythonTaskProgress(task));
+  const [code, setCode] = useState(progress.draft);
   const [stdin, setStdin] = useState(task.examples[0]?.input ?? '');
   const [phase, setPhase] = useState<PythonRunnerPhase | 'idle'>('idle');
   const [result, setResult] = useState<PythonExecutionResult | null>(null);
@@ -213,13 +332,14 @@ function PythonWorkspace({ task }: { task: PythonTask }) {
 
   const run = useCallback(async () => {
     const runner = (runnerRef.current ??= new PythonRunner());
+    setProgress(markPythonTaskStarted(task, code));
     setResult(null);
     setOperation('run');
     setPhase('loading');
     const nextResult = await runner.run(code, stdin, setPhase);
     setResult(nextResult);
     setPhase('idle');
-  }, [code, stdin]);
+  }, [code, stdin, task]);
 
   async function check() {
     const runner = (runnerRef.current ??= new PythonRunner());
@@ -227,6 +347,7 @@ function PythonWorkspace({ task }: { task: PythonTask }) {
     setOperation('check');
     setPhase('loading');
     const nextResult = await runner.check(code, task.checks, setPhase);
+    setProgress(recordPythonCheck(task, code, nextResult.status === 'passed'));
     setResult(nextResult);
     setPhase('idle');
   }
@@ -243,7 +364,10 @@ function PythonWorkspace({ task }: { task: PythonTask }) {
             <h2 className="font-semibold">Код решения</h2>
             <p className="text-fg-subtle text-sm">Ctrl/⌘ + Enter — запустить код</p>
           </div>
-          <Badge>Python</Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            <ProgressBadge status={progress.status} />
+            <Badge>Python</Badge>
+          </div>
         </div>
         <PythonCodeEditor
           value={code}
@@ -251,6 +375,7 @@ function PythonWorkspace({ task }: { task: PythonTask }) {
           onRun={() => void run()}
           onChange={(value) => {
             setCode(value);
+            setProgress(savePythonDraft(task, value));
             setResult(null);
           }}
         />
@@ -298,15 +423,35 @@ function PythonWorkspace({ task }: { task: PythonTask }) {
             disabled={active || code === task.starterCode}
             onClick={() => {
               setCode(task.starterCode);
+              setProgress(savePythonDraft(task, task.starterCode));
               setResult(null);
             }}
           >
             Сбросить код
           </Button>
+          <p className="text-fg-subtle text-sm">Проверок: {progress.attempts}</p>
         </div>
       </Card>
 
       <ExecutionOutput phase={phase} result={result} operation={operation} />
+
+      {progress.status === 'solved' && (
+        <Card className="border-success/30 bg-success-subtle p-5">
+          <h2 className="text-lg font-semibold">Задача решена</h2>
+          <p className="text-fg-muted mt-2 text-sm">
+            Решение и результат сохранены в этом браузере.
+          </p>
+          {nextTask ? (
+            <Link className={`${primaryLinkStyle} mt-4`} to={`/practice/python/${nextTask.slug}`}>
+              Следующая задача
+            </Link>
+          ) : (
+            <Link className={`${quietLinkStyle} mt-3`} to="/practice/python">
+              Вернуться к списку задач
+            </Link>
+          )}
+        </Card>
+      )}
     </div>
   );
 }

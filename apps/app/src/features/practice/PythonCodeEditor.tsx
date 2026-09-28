@@ -66,7 +66,6 @@ export function PythonCodeEditor({ value, disabled, onChange, onRun }: PythonCod
   const extensions = useMemo(
     () => [
       python(),
-      remoraEditorTheme,
       syntaxHighlighting(remoraHighlightStyle),
       EditorView.lineWrapping,
       EditorView.contentAttributes.of({ 'aria-label': 'Код решения' }),
@@ -86,6 +85,7 @@ export function PythonCodeEditor({ value, disabled, onChange, onRun }: PythonCod
         lineNumbers: true,
       }}
       extensions={extensions}
+      theme={remoraEditorTheme}
       editable={!disabled}
       readOnly={disabled}
       onChange={onChange}
