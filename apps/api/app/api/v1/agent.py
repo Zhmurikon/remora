@@ -14,6 +14,10 @@ from app.schemas.agent import (
     AgentCourseDetail,
     AgentCourseUpdate,
     AgentCourseWrite,
+    AgentFolderCreate,
+    AgentFolderDelete,
+    AgentFolderDetail,
+    AgentFolderUpdate,
     AgentMediaUpload,
     AgentMediaUploadResult,
     AgentSetDetail,
@@ -67,6 +71,62 @@ def require_scope(scope: AgentScope) -> Callable[..., Awaitable[User]]:
 read_user = require_scope("materials:read")
 write_user = require_scope("materials:write")
 publish_user = require_scope("courses:publish")
+
+
+@router.get("/folders", response_model=list[AgentFolderDetail])
+async def list_folders(
+    user: User = Depends(read_user), db: AsyncSession = Depends(get_db)
+) -> list[AgentFolderDetail]:
+    return await AgentService(db).list_folders(user)
+
+
+@router.post("/folders", response_model=AgentFolderDetail, status_code=201)
+async def create_folder(
+    body: AgentFolderCreate,
+    key: RequestKey,
+    user: User = Depends(write_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    service = AgentService(db)
+    return await service.once(
+        user, key, "create-folder", body, lambda: service.create_folder(user, body)
+    )
+
+
+@router.put("/folders/{folder_id}", response_model=AgentFolderDetail)
+async def update_folder(
+    folder_id: UUID,
+    body: AgentFolderUpdate,
+    key: RequestKey,
+    user: User = Depends(write_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    service = AgentService(db)
+    return await service.once(
+        user,
+        key,
+        f"update-folder:{folder_id}",
+        body,
+        lambda: service.update_folder(user, folder_id, body),
+    )
+
+
+@router.post("/folders/{folder_id}/delete", response_model=AgentFolderDetail)
+async def delete_folder(
+    folder_id: UUID,
+    body: AgentFolderDelete,
+    key: RequestKey,
+    user: User = Depends(write_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    service = AgentService(db)
+    return await service.once(
+        user,
+        key,
+        f"delete-folder:{folder_id}",
+        body,
+        lambda: service.delete_folder(user, folder_id, body.revision),
+    )
 
 
 @router.post("/media", response_model=AgentMediaUploadResult, status_code=201)

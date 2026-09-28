@@ -148,6 +148,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/agent/folders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Folders */
+        get: operations["list_folders_api_v1_agent_folders_get"];
+        put?: never;
+        /** Create Folder */
+        post: operations["create_folder_api_v1_agent_folders_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent/folders/{folder_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Folder */
+        put: operations["update_folder_api_v1_agent_folders__folder_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent/folders/{folder_id}/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete Folder */
+        post: operations["delete_folder_api_v1_agent_folders__folder_id__delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/agent/media": {
         parameters: {
             query?: never;
@@ -1811,6 +1863,72 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** AgentFolderCreate */
+        AgentFolderCreate: {
+            /**
+             * Color
+             * @default lime
+             */
+            color: string;
+            /** Parent Id */
+            parent_id?: string | null;
+            /** Title */
+            title: string;
+        };
+        /** AgentFolderDelete */
+        AgentFolderDelete: {
+            /**
+             * Confirm
+             * @constant
+             */
+            confirm: true;
+            /** Revision */
+            revision: string;
+        };
+        /** AgentFolderDetail */
+        AgentFolderDetail: {
+            /** Color */
+            color: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Parent Id */
+            parent_id: string | null;
+            /** Position */
+            position: number;
+            /** Revision */
+            revision: string;
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** AgentFolderUpdate */
+        AgentFolderUpdate: {
+            /**
+             * Color
+             * @default lime
+             */
+            color: string;
+            /** Parent Id */
+            parent_id?: string | null;
+            /** Position */
+            position: number;
+            /** Revision */
+            revision: string;
+            /** Title */
+            title: string;
+        };
         /** AgentMediaUpload */
         AgentMediaUpload: {
             /**
@@ -1914,6 +2032,8 @@ export interface components {
              * @default
              */
             description: string;
+            /** Folder Id */
+            folder_id?: string | null;
             /**
              * Lang Definition
              * @default ru
@@ -1938,6 +2058,8 @@ export interface components {
              * @default
              */
             description: string;
+            /** Folder Id */
+            folder_id?: string | null;
             /**
              * Lang Definition
              * @default ru
@@ -4367,6 +4489,135 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CourseDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_folders_api_v1_agent_folders_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentFolderDetail"][];
+                };
+            };
+        };
+    };
+    create_folder_api_v1_agent_folders_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentFolderCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentFolderDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_folder_api_v1_agent_folders__folder_id__put: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                folder_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentFolderUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentFolderDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_folder_api_v1_agent_folders__folder_id__delete_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                folder_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentFolderDelete"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentFolderDetail"];
                 };
             };
             /** @description Validation Error */

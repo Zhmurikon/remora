@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ConflictError
 from app.models.api_tokens import AgentRequest
+from app.models.content import Folder
 from app.models.courses import Course, CourseArticle, CourseSection
 from app.models.user import User
 from app.repositories import api_tokens as token_repo
@@ -21,12 +22,23 @@ from app.schemas.agent import (
     AgentCourseDetail,
     AgentCourseUpdate,
     AgentCourseWrite,
+    AgentFolderCreate,
+    AgentFolderDetail,
+    AgentFolderUpdate,
     AgentSectionDetail,
     AgentSetDetail,
     AgentSetUpdate,
     AgentSetWrite,
 )
-from app.schemas.content import CardBatch, SetCreate, SetDetail, SetUpdate
+from app.schemas.content import (
+    CardBatch,
+    FolderCreate,
+    FolderPublic,
+    FolderUpdate,
+    SetCreate,
+    SetDetail,
+    SetUpdate,
+)
 from app.schemas.courses import CourseSummary
 from app.services.content import ContentService
 from app.services.courses import CourseService
@@ -73,6 +85,42 @@ class AgentService:
         data = SetDetail.model_validate(study_set).model_dump(mode="json")
         return AgentSetDetail(**data, revision=digest(data))
 
+    async def list_folders(self, user: User) -> list[AgentFolderDetail]:
+        return [self._folder_detail(folder) for folder in await self.content.list_folders(user)]
+
+    async def folder_detail(self, user: User, folder_id: UUID) -> AgentFolderDetail:
+        return self._folder_detail(await self.content.get_owned_folder(user, folder_id))
+
+    def _folder_detail(self, folder: Folder) -> AgentFolderDetail:
+        data = FolderPublic.model_validate(folder).model_dump(mode="json")
+        return AgentFolderDetail(**data, revision=digest(data))
+
+    async def create_folder(self, user: User, body: AgentFolderCreate) -> AgentFolderDetail:
+        folder = await self.content.create_folder(user, FolderCreate(**body.model_dump()))
+        return self._folder_detail(folder)
+
+    async def update_folder(
+        self, user: User, folder_id: UUID, body: AgentFolderUpdate
+    ) -> AgentFolderDetail:
+        current = await self.folder_detail(user, folder_id)
+        if current.revision != body.revision:
+            raise ConflictError(
+                "Папка изменилась. Прочитайте её заново", details={"reason": "stale_revision"}
+            )
+        folder = await self.content.update_folder(
+            user, folder_id, FolderUpdate(**body.model_dump(exclude={"revision"}))
+        )
+        return self._folder_detail(folder)
+
+    async def delete_folder(self, user: User, folder_id: UUID, revision: str) -> AgentFolderDetail:
+        current = await self.folder_detail(user, folder_id)
+        if current.revision != revision:
+            raise ConflictError(
+                "Папка изменилась. Прочитайте её заново", details={"reason": "stale_revision"}
+            )
+        await self.content.delete_folder(user, folder_id)
+        return current
+
     async def create_set(self, user: User, body: AgentSetWrite) -> AgentSetDetail:
         if any(card.id for card in body.cards):
             raise ConflictError("У новых карточек не должно быть id")
@@ -92,7 +140,6 @@ class AgentService:
         return await self.set_detail(user, set_id)
 
     async def _write_set(self, user: User, set_id: UUID, body: AgentSetWrite) -> None:
-        study_set = await self.content.get_owned_set(user, set_id)
         course = await course_repo.course_for_set(self.db, set_id)
         if course and course.is_published:
             raise ConflictError("Перед изменением агентом снимите курс с публикации")
@@ -104,7 +151,7 @@ class AgentService:
                 description=body.description,
                 lang_term=body.lang_term,
                 lang_definition=body.lang_definition,
-                folder_id=study_set.folder_id,
+                folder_id=body.folder_id,
             ),
         )
         await self.content.sync_cards(user, set_id, CardBatch(cards=body.cards))
