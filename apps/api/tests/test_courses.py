@@ -73,7 +73,7 @@ async def test_course_rejects_deleted_or_missing_sets(client: AsyncClient) -> No
     assert (await client.get("/api/v1/courses", headers=owner)).json() == []
 
 
-async def test_delete_course_preserves_sets_and_checks_ownership(client: AsyncClient) -> None:
+async def test_delete_course_archives_sets_and_checks_ownership(client: AsyncClient) -> None:
     owner = await auth(client, "deleteowner")
     stranger = await auth(client, "deleteother")
     study_set = await client.post("/api/v1/sets", headers=owner, json={"title": "Матрицы"})
@@ -89,5 +89,10 @@ async def test_delete_course_preserves_sets_and_checks_ownership(client: AsyncCl
     assert (await client.get(path, headers=owner)).status_code == 200
     assert (await client.delete(path, headers=owner)).status_code == 204
     assert (await client.get(path, headers=owner)).status_code == 404
+    assert (await client.get(f"/api/v1/sets/{set_id}", headers=owner)).status_code == 404
+    archived = (await client.get("/api/v1/sets/archived", headers=owner)).json()
+    assert [item["id"] for item in archived] == [set_id]
+    restored = await client.post(f"/api/v1/sets/{set_id}/restore", headers=owner)
+    assert restored.status_code == 200
     assert (await client.get(f"/api/v1/sets/{set_id}", headers=owner)).status_code == 200
     assert (await client.delete(path, headers=owner)).status_code == 404

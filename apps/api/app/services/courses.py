@@ -281,7 +281,12 @@ class CourseService:
     async def delete(self, user: User, course_id: UUID) -> None:
         await lock_request(self.db, user.id)
         course = await self.owned(user, course_id)
-        # Каскад удаляет структуру и связанные сохранения, но не самостоятельные наборы
-        # карточек: после удаления курса пользователь не должен терять материалы и прогресс.
+        articles = await repo.articles(self.db, course_id)
+        # Наборы остаются на сервере вместе с карточками и прогрессом, но уходят
+        # из активной библиотеки. Пользователь сможет восстановить их из архива.
+        for article in articles:
+            study_set = await content_repo.get_set(self.db, article.set_id)
+            if study_set is not None and study_set.owner_id == user.id:
+                await content_repo.soft_delete_set(self.db, study_set)
         await self.db.delete(course)
         await self.db.flush()

@@ -33,6 +33,14 @@ async def list_sets(
     return [SetSummary.model_validate(item) for item in sets]
 
 
+@router.get("/archived", response_model=list[SetSummary], summary="Архив наборов")
+async def list_archived_sets(
+    user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+) -> list[SetSummary]:
+    sets = await ContentService(db).list_archived_sets(user)
+    return [SetSummary.model_validate(item) for item in sets]
+
+
 @router.post(
     "", response_model=SetDetail, status_code=status.HTTP_201_CREATED, summary="Создать набор"
 )
@@ -68,6 +76,25 @@ async def delete_set(
     set_id: UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
 ) -> None:
     await ContentService(db).delete_set(user, set_id)
+
+
+@router.post("/{set_id}/restore", response_model=SetSummary, summary="Восстановить набор")
+async def restore_set(
+    set_id: UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+) -> SetSummary:
+    study_set = await ContentService(db).restore_set(user, set_id)
+    return SetSummary.model_validate(study_set)
+
+
+@router.delete(
+    "/{set_id}/permanent",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Удалить набор навсегда",
+)
+async def permanently_delete_set(
+    set_id: UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+) -> None:
+    await ContentService(db).permanently_delete_set(user, set_id)
 
 
 @router.post(

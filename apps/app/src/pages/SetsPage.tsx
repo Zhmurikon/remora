@@ -28,6 +28,14 @@ export function SetsPage() {
       return data;
     },
   });
+  const archivedSets = useQuery({
+    queryKey: ['sets', 'archived'],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/sets/archived');
+      if (error) throw new Error(errorMessage(error));
+      return data;
+    },
+  });
   const folders = useQuery({
     queryKey: ['folders'],
     queryFn: async () => {
@@ -37,16 +45,21 @@ export function SetsPage() {
     },
   });
   const visibleSets = useMemo(
-    () =>
-      (sets.data ?? []).filter((set) => {
-        const inFolder = selectedFolder === 'all' || set.folder_id === selectedFolder;
+    () => {
+      const source = selectedFolder === 'archived' ? archivedSets.data : sets.data;
+      return (source ?? []).filter((set) => {
+        const inFolder =
+          selectedFolder === 'archived' ||
+          selectedFolder === 'all' ||
+          set.folder_id === selectedFolder;
         const needle = search.trim().toLocaleLowerCase('ru');
         return (
           inFolder &&
           (!needle || `${set.title} ${set.description}`.toLocaleLowerCase('ru').includes(needle))
         );
-      }),
-    [search, selectedFolder, sets.data],
+      });
+    },
+    [archivedSets.data, search, selectedFolder, sets.data],
   );
 
   async function createSet() {
@@ -105,6 +118,21 @@ export function SetsPage() {
       },
     });
     await queryClient.invalidateQueries({ queryKey: ['sets'] });
+  }
+  async function restoreSet(setId: string) {
+    const { error } = await api.POST('/api/v1/sets/{set_id}/restore', {
+      params: { path: { set_id: setId } },
+    });
+    if (error) return;
+    await queryClient.invalidateQueries({ queryKey: ['sets'] });
+  }
+  async function permanentlyDeleteSet(setId: string, title: string) {
+    if (!window.confirm(`Удалить набор «${title}» навсегда вместе с учебным прогрессом?`)) return;
+    const { error } = await api.DELETE('/api/v1/sets/{set_id}/permanent', {
+      params: { path: { set_id: setId } },
+    });
+    if (error) return;
+    await queryClient.invalidateQueries({ queryKey: ['sets', 'archived'] });
   }
 
   return (
@@ -168,6 +196,15 @@ export function SetsPage() {
                 </button>
               </div>
             ))}
+            <div className="border-border mt-3 border-t pt-3">
+              <FolderButton
+                active={selectedFolder === 'archived'}
+                onClick={() => setSelectedFolder('archived')}
+                onDrop={() => undefined}
+              >
+                Архив <span>{archivedSets.data?.length ?? 0}</span>
+              </FolderButton>
+            </div>
           </nav>
           <form
             className="mt-4 flex gap-2"
@@ -192,25 +229,58 @@ export function SetsPage() {
           </p>
         </aside>
         <section>
-          {(sets.isPending || folders.isPending) && (
+          {(sets.isPending || folders.isPending || archivedSets.isPending) && (
             <p className="text-fg-muted">Загружаем наборы…</p>
           )}
-          {(sets.isError || folders.isError) && (
+          {(sets.isError || folders.isError || archivedSets.isError) && (
             <p className="text-danger">Не удалось загрузить библиотеку</p>
           )}
           {!sets.isPending && visibleSets.length === 0 && (
             <Card className="grid min-h-64 place-items-center text-center">
               <div>
-                <p className="text-xl font-semibold">Здесь пока пусто</p>
-                <p className="text-fg-muted mt-2">Создайте набор или выберите другую папку.</p>
-                <Button className="mt-5" onClick={() => void createSet()}>
-                  Создать набор
-                </Button>
+                <p className="text-xl font-semibold">
+                  {selectedFolder === 'archived' ? 'Архив пуст' : 'Здесь пока пусто'}
+                </p>
+                <p className="text-fg-muted mt-2">
+                  {selectedFolder === 'archived'
+                    ? 'Удалённые курсы и наборы появятся здесь.'
+                    : 'Создайте набор или выберите другую папку.'}
+                </p>
+                {selectedFolder !== 'archived' && (
+                  <Button className="mt-5" onClick={() => void createSet()}>
+                    Создать набор
+                  </Button>
+                )}
               </div>
             </Card>
           )}
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {visibleSets.map((set) => (
+            {selectedFolder === 'archived'
+              ? visibleSets.map((set) => (
+                  <Card key={set.id} className="h-full p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <Badge>В архиве</Badge>
+                      <span className="text-fg-subtle text-xs">{set.cards_count} карт.</span>
+                    </div>
+                    <h2 className="mt-5 text-lg font-semibold">{set.title}</h2>
+                    <p className="text-fg-muted mt-2 line-clamp-2 text-sm">
+                      {set.description || 'Описание не добавлено'}
+                    </p>
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      <Button size="sm" onClick={() => void restoreSet(set.id)}>
+                        Восстановить
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => void permanentlyDeleteSet(set.id, set.title)}
+                      >
+                        Удалить навсегда
+                      </Button>
+                    </div>
+                  </Card>
+                ))
+              : visibleSets.map((set) => (
               <Link
                 key={set.id}
                 to={`/sets/${set.id}`}
@@ -237,7 +307,7 @@ export function SetsPage() {
                   </p>
                 </Card>
               </Link>
-            ))}
+                ))}
           </div>
         </section>
       </div>

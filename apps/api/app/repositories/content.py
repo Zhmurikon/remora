@@ -56,6 +56,15 @@ async def list_sets(
     return list(result.all())
 
 
+async def list_archived_sets(db: AsyncSession, owner_id: UUID) -> list[StudySet]:
+    result = await db.scalars(
+        select(StudySet)
+        .where(StudySet.owner_id == owner_id, StudySet.deleted_at.is_not(None))
+        .order_by(StudySet.deleted_at.desc(), StudySet.id)
+    )
+    return list(result.all())
+
+
 async def get_set(db: AsyncSession, set_id: UUID, *, with_cards: bool = False) -> StudySet | None:
     query = select(StudySet).where(StudySet.id == set_id, StudySet.deleted_at.is_(None))
     if with_cards:
@@ -64,6 +73,10 @@ async def get_set(db: AsyncSession, set_id: UUID, *, with_cards: bool = False) -
         )
     result = await db.execute(query)
     return result.scalar_one_or_none()
+
+
+async def get_set_including_archived(db: AsyncSession, set_id: UUID) -> StudySet | None:
+    return await db.get(StudySet, set_id)
 
 
 async def get_public_set_by_slug(db: AsyncSession, slug: str) -> tuple[StudySet, User] | None:
@@ -151,6 +164,16 @@ async def create_set(db: AsyncSession, study_set: StudySet) -> StudySet:
 
 async def soft_delete_set(db: AsyncSession, study_set: StudySet) -> None:
     study_set.deleted_at = datetime.now(tz=UTC)
+    await db.flush()
+
+
+async def restore_set(db: AsyncSession, study_set: StudySet) -> None:
+    study_set.deleted_at = None
+    await db.flush()
+
+
+async def permanently_delete_set(db: AsyncSession, study_set: StudySet) -> None:
+    await db.delete(study_set)
     await db.flush()
 
 

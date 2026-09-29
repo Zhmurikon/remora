@@ -113,6 +113,18 @@ async def test_set_lifecycle_and_card_batch(mock_send: AsyncMock, client: pytest
     deleted = await client.delete(f"/api/v1/sets/{set_id}", headers=headers)
     assert deleted.status_code == 204
     assert (await client.get(f"/api/v1/sets/{set_id}", headers=headers)).status_code == 404
+    archived = await client.get("/api/v1/sets/archived", headers=headers)
+    assert [item["id"] for item in archived.json()] == [set_id]
+
+    restored = await client.post(f"/api/v1/sets/{set_id}/restore", headers=headers)
+    assert restored.status_code == 200
+    assert restored.json()["title"] == "Машинное обучение от статистики до нейросетей"
+    assert (await client.get("/api/v1/sets/archived", headers=headers)).json() == []
+
+    await client.delete(f"/api/v1/sets/{set_id}", headers=headers)
+    permanent = await client.delete(f"/api/v1/sets/{set_id}/permanent", headers=headers)
+    assert permanent.status_code == 204
+    assert (await client.get("/api/v1/sets/archived", headers=headers)).json() == []
 
 
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)

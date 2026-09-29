@@ -46,6 +46,9 @@ class ContentService:
     ) -> list[StudySet]:
         return await content_repo.list_sets(self.db, user.id, offset=offset, limit=limit)
 
+    async def list_archived_sets(self, user: User) -> list[StudySet]:
+        return await content_repo.list_archived_sets(self.db, user.id)
+
     async def get_public_set(
         self, slug: str, *, after: int | None = None, revision: datetime | None = None
     ) -> PublicSet:
@@ -151,6 +154,14 @@ class ContentService:
             raise ForbiddenError("Нет доступа к этому набору")
         return study_set
 
+    async def get_owned_archived_set(self, user: User, set_id: UUID) -> StudySet:
+        study_set = await content_repo.get_set_including_archived(self.db, set_id)
+        if study_set is None or study_set.deleted_at is None:
+            raise NotFoundError("Набор не найден в архиве")
+        if study_set.owner_id != user.id:
+            raise ForbiddenError("Нет доступа к этому набору")
+        return study_set
+
     async def get_study_set(
         self, user: User, set_id: UUID, *, with_cards: bool = False
     ) -> StudySet:
@@ -184,6 +195,19 @@ class ContentService:
     async def delete_set(self, user: User, set_id: UUID) -> None:
         await lock_request(self.db, user.id)
         await content_repo.soft_delete_set(self.db, await self.get_owned_set(user, set_id))
+
+    async def restore_set(self, user: User, set_id: UUID) -> StudySet:
+        await lock_request(self.db, user.id)
+        study_set = await self.get_owned_archived_set(user, set_id)
+        await content_repo.restore_set(self.db, study_set)
+        await self.db.refresh(study_set)
+        return study_set
+
+    async def permanently_delete_set(self, user: User, set_id: UUID) -> None:
+        await lock_request(self.db, user.id)
+        await content_repo.permanently_delete_set(
+            self.db, await self.get_owned_archived_set(user, set_id)
+        )
 
     async def duplicate_set(self, user: User, set_id: UUID) -> StudySet:
         source = await self.get_owned_set(user, set_id, with_cards=True)
