@@ -29,6 +29,7 @@ export const metadata: Metadata = {
     images: [{ url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: 'Remora' }],
   },
   twitter: { card: 'summary_large_image', images: [DEFAULT_OG_IMAGE] },
+  verification: { yandex: '77f83742d96aa582' },
 };
 
 export const viewport: Viewport = {

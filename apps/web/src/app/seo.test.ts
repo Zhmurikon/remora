@@ -1,4 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
+import { metadata } from './layout';
 import robots from './robots';
 import sitemap from './sitemap';
 import { jsonLd } from '../lib/seo';
@@ -14,6 +15,10 @@ it('публикует карту сайта и закрывает служеб�
   const value = robots();
   expect(value.sitemap).toBe('http://localhost:3000/sitemap.xml');
   expect(value.rules).toMatchObject({ disallow: expect.arrayContaining(['/app/', '/login']) });
+});
+
+it('публикует подтверждение Яндекс Вебмастера', () => {
+  expect(metadata.verification).toMatchObject({ yandex: '77f83742d96aa582' });
 });
 
 it('добавляет доступные курсы и уникальные профили авторов в sitemap', async () => {
