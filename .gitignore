@@ -35,6 +35,7 @@ coverage.xml
 
 # runtime
 /data/
+/tmp/
 *.log
 logs/
 deploy/backups/
