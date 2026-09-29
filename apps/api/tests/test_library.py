@@ -53,6 +53,32 @@ async def test_course_save_grants_study_but_not_edit_and_revokes_on_unpublish(
     assert saved.status_code == 201, saved.text
     assert saved.json()["cards_count"] == 1
     assert len((await client.get("/api/v1/library", headers=learner)).json()) == 1
+    saved_courses = (await client.get("/api/v1/library/courses", headers=learner)).json()
+    assert len(saved_courses) == 1
+    assert saved_courses[0]["id"] == course["id"]
+    assert saved_courses[0]["cards_count"] == 1
+    assert saved_courses[0]["author"]["username"] == "courselibrary-owner"
+    saved_sets = (await client.get("/api/v1/library/sets", headers=learner)).json()
+    assert len(saved_sets) == 1
+    assert saved_sets[0]["id"] == set_id
+    assert saved_sets[0]["access_via"] == "course"
+    assert saved_sets[0]["course_id"] == course["id"]
+    course_queue = await client.get(
+        f"/api/v1/study/courses/{course['id']}/queue",
+        headers=learner,
+        params={"scope": "all", "shuffle": "false"},
+    )
+    assert course_queue.status_code == 200
+    assert course_queue.json()["course_id"] == course["id"]
+    assert course_queue.json()["items"][0]["source_set_id"] == set_id
+    course_session = await client.post(
+        "/api/v1/study/sessions",
+        headers=learner,
+        json={"course_id": course["id"], "mode": "learn", "config": {}},
+    )
+    assert course_session.status_code == 201, course_session.text
+    assert course_session.json()["course_id"] == course["id"]
+    assert course_session.json()["set_id"] is None
     repeated = await client.post(
         "/api/v1/library",
         headers=learner,
@@ -100,9 +126,7 @@ async def test_course_save_grants_study_but_not_edit_and_revokes_on_unpublish(
         ]
     }
     assert (
-        await client.put(
-            f"/api/v1/sets/{set_id}/cards", headers=owner, json=changed_cards
-        )
+        await client.put(f"/api/v1/sets/{set_id}/cards", headers=owner, json=changed_cards)
     ).status_code == 200
     library_item = (await client.get("/api/v1/library", headers=learner)).json()[0]
     assert library_item["has_updates"] is True
@@ -112,9 +136,7 @@ async def test_course_save_grants_study_but_not_edit_and_revokes_on_unpublish(
         params={"scope": "all", "shuffle": "false"},
     )
     assert [item["card"]["term"] for item in old_queue.json()["items"]] == ["A"]
-    changes = await client.get(
-        f"/api/v1/library/{saved.json()['id']}/changes", headers=learner
-    )
+    changes = await client.get(f"/api/v1/library/{saved.json()['id']}/changes", headers=learner)
     assert changes.json()["cards_added"] == 1
     assert changes.json()["cards_changed"] == 1
     assert (
@@ -123,12 +145,8 @@ async def test_course_save_grants_study_but_not_edit_and_revokes_on_unpublish(
     assert (
         await client.post(f"/api/v1/library/{saved.json()['id']}/accept", headers=stranger)
     ).status_code == 404
-    assert (
-        await client.post(f"/api/v1/library/{saved.json()['id']}/accept")
-    ).status_code == 401
-    accepted = await client.post(
-        f"/api/v1/library/{saved.json()['id']}/accept", headers=learner
-    )
+    assert (await client.post(f"/api/v1/library/{saved.json()['id']}/accept")).status_code == 401
+    accepted = await client.post(f"/api/v1/library/{saved.json()['id']}/accept", headers=learner)
     assert accepted.json()["has_updates"] is False
     new_queue = await client.get(
         f"/api/v1/study/sets/{set_id}/queue",

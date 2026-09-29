@@ -49,6 +49,40 @@ beforeEach(() => vi.resetAllMocks());
 afterEach(cleanup);
 
 describe('Курсы в кабинете', () => {
+  it('показывает сохранённые курсы и фильтрует авторские', async () => {
+    vi.mocked(api.GET).mockImplementation(async (path) => {
+      if (path === '/api/v1/courses') {
+        return { data: [course], response: new Response() } as never;
+      }
+      return {
+        data: [
+          {
+            id: 'saved-course',
+            slug: 'fizika-saved',
+            title: 'Физика',
+            description: 'Механика',
+            cards_count: 42,
+            has_updates: true,
+            author: { id: 'author', username: 'teacher', display_name: 'Преподаватель' },
+          },
+        ],
+        response: new Response(),
+      } as never;
+    });
+    mount();
+    expect(await screen.findByText('Алгебра')).toBeTruthy();
+    expect(await screen.findByText('Физика')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Учить весь курс' }).getAttribute('href')).toBe(
+      '/courses/saved-course/learn',
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Созданные мной' }));
+    expect(screen.queryByText('Физика')).toBeNull();
+    expect(screen.getByText('Алгебра')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Сохранённые' }));
+    expect(screen.queryByText('Алгебра')).toBeNull();
+    expect(screen.getByText('Физика')).toBeTruthy();
+  });
+
   it('публикует курс с тегами и снимает с публикации после подтверждения', async () => {
     vi.mocked(api.GET).mockResolvedValue({ data: course, response: new Response() } as never);
     vi.mocked(api.POST)

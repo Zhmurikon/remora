@@ -8,17 +8,38 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.deps import current_user
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.library import LibraryDiff, LibraryItem, LibrarySaveCreate, LibraryState
+from app.schemas.library import (
+    LibraryDiff,
+    LibraryItem,
+    LibrarySaveCreate,
+    LibraryState,
+    SavedCourseItem,
+    SavedSetItem,
+)
 from app.services.library import LibraryService
 
 router = APIRouter(prefix="/library", tags=["library"])
+
+
+@router.get("/courses", response_model=list[SavedCourseItem], summary="Сохранённые курсы")
+async def list_saved_courses(
+    user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+) -> list[SavedCourseItem]:
+    return await LibraryService(db).list_saved_courses(user)
+
+
+@router.get("/sets", response_model=list[SavedSetItem], summary="Доступные сохранённые наборы")
+async def list_saved_sets(
+    user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+) -> list[SavedSetItem]:
+    return await LibraryService(db).list_saved_sets(user)
 
 
 @router.get("", response_model=list[LibraryItem], summary="Сохранённые оригиналы")
 async def list_library(
     user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
 ) -> list[LibraryItem]:
-    return await LibraryService(db).list(user)
+    return await LibraryService(db).list_items(user)
 
 
 @router.post("", response_model=LibraryItem, status_code=201, summary="Сохранить оригинал")

@@ -32,6 +32,7 @@ from app.models.study import (
 )
 from app.models.user import User, UserSettings
 from app.repositories import content as content_repo
+from app.repositories import courses as course_repo
 from app.repositories import library as library_repo
 from app.repositories import study as study_repo
 from app.repositories import user as user_repo
@@ -55,6 +56,7 @@ from app.schemas.study import (
     StudySettingsUpdate,
 )
 from app.services.content import ContentService
+from app.services.library import LibraryService
 from app.services.retention import RetentionService
 from app.services.scheduler import SchedulerService, SchedulerState, initial_state
 
@@ -247,6 +249,101 @@ class StudyService:
             reviews_left_today=reviews_left,
         )
 
+    async def get_course_queue(
+        self,
+        user: User,
+        course_id: UUID,
+        *,
+        mode: StudyMode,
+        scope: QueueScope,
+        direction: DirectionMode,
+        limit: int,
+        shuffle: bool,
+    ) -> StudyQueue:
+        course = await LibraryService(self.db).get_study_course(user, course_id)
+        articles = await course_repo.articles(self.db, course.id)
+        if course.owner_id != user.id:
+            saved = await library_repo.save_for_target(self.db, user.id, "course", course.id)
+            accepted_ids = {
+                UUID(value["set"]["id"])
+                for value in (saved.accepted_snapshot.get("articles", []) if saved else [])
+                if value.get("set", {}).get("id")
+            }
+            articles = [article for article in articles if article.set_id in accepted_ids]
+
+        queues: list[StudyQueue] = []
+        for article in articles:
+            queue = await self.get_queue(
+                user,
+                article.set_id,
+                mode=mode,
+                scope=scope,
+                direction=direction,
+                limit=MAX_QUEUE_LIMIT,
+                shuffle=shuffle,
+            )
+            queue.items = [
+                item.model_copy(
+                    update={
+                        "source_set_id": queue.set_id,
+                        "source_set_title": queue.set_title,
+                        "source_article_id": article.id,
+                        "source_article_title": article.title,
+                        "lang_term": queue.lang_term,
+                        "lang_definition": queue.lang_definition,
+                    }
+                )
+                for item in queue.items
+            ]
+            queues.append(queue)
+
+        settings = await user_repo.get_or_create_settings(self.db, user.id)
+        scheduler = self._scheduler(settings)
+        now = datetime.now(tz=UTC)
+        combined: list[QueueItem] = []
+        per_set = [list(queue.items) for queue in queues]
+        while any(per_set):
+            for current in per_set:
+                if current:
+                    combined.append(current.pop(0))
+        first = queues[0] if queues else None
+        new_left = first.new_left_today if first else settings.new_cards_per_day
+        reviews_left = first.reviews_left_today if first else settings.reviews_per_day
+        items: list[QueueItem] = []
+        selected_new = selected_reviews = 0
+        for item in combined:
+            is_new = item.state.state is CardStateKind.new
+            if scope is QueueScope.due:
+                if is_new and selected_new >= new_left:
+                    continue
+                if not is_new and selected_reviews >= reviews_left:
+                    continue
+            items.append(item)
+            selected_new += int(is_new)
+            selected_reviews += int(not is_new)
+            if len(items) >= max(1, min(limit, MAX_QUEUE_LIMIT)):
+                break
+        return StudyQueue(
+            course_id=course.id,
+            course_title=course.title,
+            set_title=course.title,
+            lang_term=first.lang_term if first else "ru",
+            lang_definition=first.lang_definition if first else "ru",
+            answer_strictness=Strictness(settings.answer_strictness),
+            learn_question_types=settings.learn_question_types,
+            learn_successes_required=settings.learn_successes_required,
+            learn_typing_check=settings.learn_typing_check,
+            learn_match_percent=settings.learn_match_percent,
+            mode=mode,
+            generated_at=now,
+            scheduler_version=scheduler.version,
+            items=items,
+            due_total=sum(queue.due_total for queue in queues),
+            new_total=sum(queue.new_total for queue in queues),
+            new_left_today=new_left,
+            reviews_left_today=reviews_left,
+        )
+
     # -------------------------------------------------------------------- ответы
 
     async def submit_reviews(self, user: User, body: ReviewBatch) -> ReviewBatchResult:
@@ -287,7 +384,10 @@ class StudyService:
                 reviewed_at <= reset_at
                 or (
                     session is not None
-                    and session.set_id == card.set_id
+                    and (
+                        session.set_id == card.set_id
+                        or str(card.set_id) in session.config.get("set_ids", [])
+                    )
                     and session.started_at <= reset_at
                 )
             ):
@@ -368,12 +468,34 @@ class StudyService:
 
     async def start_session(self, user: User, body: SessionCreate) -> StudySession:
         await study_repo.lock_learning(self.db, user.id)
-        await self.content.get_study_set(user, body.set_id)
-        existing = await study_repo.get_active_session(self.db, user.id, body.set_id, body.mode)
+        config = dict(body.config)
+        if body.set_id is not None:
+            await self.content.get_study_set(user, body.set_id)
+            existing = await study_repo.get_active_session(self.db, user.id, body.set_id, body.mode)
+        else:
+            assert body.course_id is not None
+            course = await LibraryService(self.db).get_study_course(user, body.course_id)
+            articles = await course_repo.articles(self.db, course.id)
+            if course.owner_id != user.id:
+                saved = await library_repo.save_for_target(self.db, user.id, "course", course.id)
+                accepted_ids = {
+                    UUID(value["set"]["id"])
+                    for value in (saved.accepted_snapshot.get("articles", []) if saved else [])
+                    if value.get("set", {}).get("id")
+                }
+                articles = [article for article in articles if article.set_id in accepted_ids]
+            config["set_ids"] = [str(article.set_id) for article in articles]
+            existing = await study_repo.get_active_course_session(
+                self.db, user.id, body.course_id, body.mode
+            )
         if existing is not None:
             return existing
         session = StudySession(
-            user_id=user.id, set_id=body.set_id, mode=body.mode, config=body.config
+            user_id=user.id,
+            set_id=body.set_id,
+            course_id=body.course_id,
+            mode=body.mode,
+            config=config,
         )
         self.db.add(session)
         await self.db.flush()
@@ -391,7 +513,13 @@ class StudyService:
         if session.status is SessionStatus.active:
             session.status = SessionStatus.finished
             session.ended_at = datetime.now(tz=UTC)
-        await self.recalculate_progress(user, session.set_id)
+        set_ids = (
+            [session.set_id]
+            if session.set_id is not None
+            else [UUID(value) for value in session.config.get("set_ids", [])]
+        )
+        for set_id in set_ids:
+            await self.recalculate_progress(user, set_id)
         await self.db.flush()
         return session
 

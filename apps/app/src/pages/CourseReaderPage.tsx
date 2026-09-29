@@ -242,6 +242,9 @@ function Reader({ course }: { course: components['schemas']['CourseDetail'] }) {
           Мои курсы
         </Link>
         <div className="flex min-w-0 max-w-full flex-wrap gap-4">
+          <Link to={`/courses/${course.id}/learn`}>
+            <Button>Учить весь курс</Button>
+          </Link>
           {active && (
             <>
               <Button variant="ghost" onClick={() => go()}>

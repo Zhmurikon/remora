@@ -1,12 +1,14 @@
 """Связанная библиотека: сохранение оригинала и доступ к его обучению."""
 
+from __future__ import annotations
+
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import ConflictError, NotFoundError
+from app.core.errors import ConflictError, ForbiddenError, NotFoundError
 from app.models.content import StudySet
 from app.models.courses import Course, CourseArticle, CourseSection, LibrarySave
 from app.models.user import User
@@ -14,7 +16,15 @@ from app.repositories import content as content_repo
 from app.repositories import courses as course_repo
 from app.repositories import library as repo
 from app.repositories.api_tokens import lock_request
-from app.schemas.library import LibraryDiff, LibraryItem, LibrarySaveCreate, LibraryState
+from app.schemas.courses import CourseAuthor
+from app.schemas.library import (
+    LibraryDiff,
+    LibraryItem,
+    LibrarySaveCreate,
+    LibraryState,
+    SavedCourseItem,
+    SavedSetItem,
+)
 
 
 class LibraryService:
@@ -31,9 +41,7 @@ class LibraryService:
             raise ConflictError("Собственный материал уже доступен в библиотеке")
         saved = LibrarySave(user_id=user.id)
         setattr(saved, f"{body.target_type}_id", body.target_id)
-        saved.accepted_snapshot = await self._snapshot(
-            body.target_type, course, article, study_set
-        )
+        saved.accepted_snapshot = await self._snapshot(body.target_type, course, article, study_set)
         self.db.add(saved)
         await self.db.flush()
         return await self._item(saved, course=course, article=article, study_set=study_set)
@@ -42,7 +50,7 @@ class LibraryService:
         if not await repo.remove_save(self.db, user.id, save_id):
             raise NotFoundError("Сохранение не найдено")
 
-    async def list(self, user: User) -> list[LibraryItem]:
+    async def list_items(self, user: User) -> list[LibraryItem]:
         result: list[LibraryItem] = []
         for saved in await repo.list_saves(self.db, user.id):
             try:
@@ -50,6 +58,103 @@ class LibraryService:
             except NotFoundError:
                 continue
         return result
+
+    async def list_saved_courses(self, user: User) -> list[SavedCourseItem]:
+        result: list[SavedCourseItem] = []
+        for saved in await repo.list_saves(self.db, user.id):
+            if saved.course_id is None:
+                continue
+            try:
+                item = await self._item(saved)
+                course = await course_repo.get_course(self.db, item.course_id)
+                author = await self.db.get(User, course.owner_id) if course else None
+                if course is None or author is None:
+                    continue
+                result.append(
+                    SavedCourseItem(
+                        id=course.id,
+                        slug=course.slug,
+                        title=item.course_title,
+                        description=str(
+                            saved.accepted_snapshot.get("course", {}).get("description", "")
+                        ),
+                        author=CourseAuthor(
+                            id=author.id,
+                            username=author.username,
+                            display_name=author.display_name,
+                            avatar_url=author.avatar_url,
+                        ),
+                        cards_count=item.cards_count,
+                        save_id=saved.id,
+                        saved_at=saved.created_at,
+                        accepted_at=saved.accepted_at,
+                        has_updates=item.has_updates,
+                    )
+                )
+            except NotFoundError:
+                continue
+        return result
+
+    async def list_saved_sets(self, user: User) -> list[SavedSetItem]:
+        result: dict[UUID, SavedSetItem] = {}
+        priority = {"course": 0, "article": 1, "set": 2}
+        for saved in await repo.list_saves(self.db, user.id):
+            target_type = "course" if saved.course_id else "article" if saved.article_id else "set"
+            try:
+                item = await self._item(saved)
+                course = await course_repo.get_course(self.db, item.course_id)
+                author = await self.db.get(User, course.owner_id) if course else None
+                if course is None or author is None:
+                    continue
+                has_updates = (await self._current_snapshot(saved)) != saved.accepted_snapshot
+            except NotFoundError:
+                continue
+            author_out = CourseAuthor(
+                id=author.id,
+                username=author.username,
+                display_name=author.display_name,
+                avatar_url=author.avatar_url,
+            )
+            for article in saved.accepted_snapshot.get("articles", []):
+                set_data = article.get("set", {})
+                try:
+                    set_id = UUID(set_data["id"])
+                    article_id = UUID(article["id"])
+                except (KeyError, TypeError, ValueError):
+                    continue
+                current = result.get(set_id)
+                if current is not None and priority[current.access_via] >= priority[target_type]:
+                    continue
+                result[set_id] = SavedSetItem(
+                    id=set_id,
+                    title=str(set_data.get("title", "")),
+                    description=str(set_data.get("description", "")),
+                    cards_count=len(set_data.get("cards", [])),
+                    lang_term=str(set_data.get("lang_term", "ru")),
+                    lang_definition=str(set_data.get("lang_definition", "ru")),
+                    course_id=course.id,
+                    course_slug=course.slug,
+                    course_title=item.course_title,
+                    article_id=article_id,
+                    article_title=str(article.get("title", "")),
+                    author=author_out,
+                    save_id=saved.id,
+                    access_via=target_type,
+                    saved_at=saved.created_at,
+                    has_updates=has_updates,
+                )
+        return sorted(result.values(), key=lambda value: value.saved_at, reverse=True)
+
+    async def get_study_course(self, user: User, course_id: UUID) -> Course:
+        course = await course_repo.get_course(self.db, course_id)
+        if course is None:
+            raise NotFoundError("Курс не найден")
+        if course.owner_id == user.id:
+            return course
+        saved = await repo.save_for_target(self.db, user.id, "course", course_id)
+        if saved is None or await course_repo.public_course(self.db, course.slug) is None:
+            raise ForbiddenError("Нет доступа к обучению по этому курсу")
+        return course
 
     async def state(self, user: User, slug: str) -> LibraryState:
         course = await course_repo.public_course(self.db, slug)
@@ -117,9 +222,7 @@ class LibraryService:
         if course is None:
             course, article, study_set = await self._resolve(target_type, target_id)
         if not saved.accepted_snapshot:
-            saved.accepted_snapshot = await self._snapshot(
-                target_type, course, article, study_set
-            )
+            saved.accepted_snapshot = await self._snapshot(target_type, course, article, study_set)
             saved.accepted_at = saved.created_at
             await self.db.flush()
         if article is None and target_type == "course":
@@ -172,9 +275,7 @@ class LibraryService:
         )
         result: list[dict[str, Any]] = []
         for current_article in articles:
-            material = await content_repo.get_set(
-                self.db, current_article.set_id, with_cards=True
-            )
+            material = await content_repo.get_set(self.db, current_article.set_id, with_cards=True)
             if material is None:
                 continue
             result.append(

@@ -124,6 +124,32 @@ async def get_queue(
     )
 
 
+@router.get(
+    "/courses/{course_id}/queue",
+    response_model=StudyQueue,
+    summary="Очередь карточек всего курса",
+)
+async def get_course_queue(
+    course_id: UUID,
+    mode: StudyMode = StudyMode.learn,
+    scope: QueueScope = QueueScope.due,
+    direction: DirectionMode = DirectionMode.term_to_def,
+    limit: int = Query(default=DEFAULT_QUEUE_LIMIT, ge=1, le=MAX_QUEUE_LIMIT),
+    shuffle: bool = True,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+) -> StudyQueue:
+    return await StudyService(db).get_course_queue(
+        user,
+        course_id,
+        mode=mode,
+        scope=scope,
+        direction=direction,
+        limit=limit,
+        shuffle=shuffle,
+    )
+
+
 @router.get("/sets/{set_id}/stats", response_model=SetStats, summary="Статистика по набору")
 async def get_set_stats(
     set_id: UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)

@@ -16,6 +16,8 @@ interface SessionSummaryProps {
   nextDueSeconds?: number | null;
   onRepeatMistakes?: () => void;
   onRestart: () => void;
+  backHref?: string;
+  backLabel?: string;
 }
 
 export function SessionSummary({
@@ -24,6 +26,8 @@ export function SessionSummary({
   nextDueSeconds,
   onRepeatMistakes,
   onRestart,
+  backHref,
+  backLabel,
 }: SessionSummaryProps) {
   const correct = answers.filter((answer) => answer.correct).length;
   const mistakes = answers.filter((answer) => !answer.correct);
@@ -87,8 +91,8 @@ export function SessionSummary({
         <Button variant="secondary" onClick={onRestart}>
           Ещё раз
         </Button>
-        <Link to={`/sets/${setId}`}>
-          <Button variant="ghost">К набору</Button>
+        <Link to={backHref ?? `/sets/${setId}`}>
+          <Button variant="ghost">{backLabel ?? 'К набору'}</Button>
         </Link>
       </div>
     </div>

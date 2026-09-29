@@ -262,6 +262,24 @@ async def get_active_session(
     return result.scalar_one_or_none()
 
 
+async def get_active_course_session(
+    db: AsyncSession, user_id: UUID, course_id: UUID, mode: StudyMode | None = None
+) -> StudySession | None:
+    query = (
+        select(StudySession)
+        .where(
+            StudySession.user_id == user_id,
+            StudySession.course_id == course_id,
+            StudySession.status == SessionStatus.active,
+        )
+        .order_by(StudySession.started_at.desc())
+        .limit(1)
+    )
+    if mode is not None:
+        query = query.where(StudySession.mode == mode)
+    return (await db.execute(query)).scalar_one_or_none()
+
+
 async def get_progress(db: AsyncSession, user_id: UUID, set_id: UUID) -> UserSetProgress | None:
     result = await db.execute(
         select(UserSetProgress).where(

@@ -6,6 +6,8 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
+from app.schemas.courses import CourseAuthor
+
 
 class LibrarySaveCreate(BaseModel):
     target_type: Literal["course", "article", "set"]
@@ -46,3 +48,35 @@ class LibraryState(BaseModel):
     course_saved: bool
     saved_article_ids: list[UUID]
     saved_set_ids: list[UUID]
+
+
+class SavedCourseItem(BaseModel):
+    id: UUID
+    slug: str
+    title: str
+    description: str
+    author: CourseAuthor
+    cards_count: int
+    save_id: UUID
+    saved_at: datetime
+    accepted_at: datetime
+    has_updates: bool
+
+
+class SavedSetItem(BaseModel):
+    id: UUID
+    title: str
+    description: str
+    cards_count: int
+    lang_term: str
+    lang_definition: str
+    course_id: UUID
+    course_slug: str
+    course_title: str
+    article_id: UUID
+    article_title: str
+    author: CourseAuthor
+    save_id: UUID
+    access_via: Literal["course", "article", "set"]
+    saved_at: datetime
+    has_updates: bool

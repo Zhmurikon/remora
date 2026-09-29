@@ -16,7 +16,8 @@ const folderColors: Record<string, string> = {
 export function SetsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [selectedFolder, setSelectedFolder] = useState<string | null | 'all'>('all');
+  const [selectedFolder, setSelectedFolder] = useState<string | null | 'all' | 'archived'>('all');
+  const [origin, setOrigin] = useState<'all' | 'owned' | 'saved'>('all');
   const [search, setSearch] = useState('');
   const [newFolder, setNewFolder] = useState('');
   const [creatingFolder, setCreatingFolder] = useState(false);
@@ -36,6 +37,14 @@ export function SetsPage() {
       return data;
     },
   });
+  const savedSets = useQuery({
+    queryKey: ['library', 'sets'],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/library/sets');
+      if (error) throw new Error(errorMessage(error));
+      return data;
+    },
+  });
   const folders = useQuery({
     queryKey: ['folders'],
     queryFn: async () => {
@@ -44,23 +53,30 @@ export function SetsPage() {
       return data;
     },
   });
-  const visibleSets = useMemo(
-    () => {
-      const source = selectedFolder === 'archived' ? archivedSets.data : sets.data;
-      return (source ?? []).filter((set) => {
-        const inFolder =
-          selectedFolder === 'archived' ||
-          selectedFolder === 'all' ||
-          set.folder_id === selectedFolder;
-        const needle = search.trim().toLocaleLowerCase('ru');
-        return (
-          inFolder &&
-          (!needle || `${set.title} ${set.description}`.toLocaleLowerCase('ru').includes(needle))
-        );
-      });
-    },
-    [archivedSets.data, search, selectedFolder, sets.data],
-  );
+  const visibleSets = useMemo(() => {
+    const source = selectedFolder === 'archived' ? archivedSets.data : sets.data;
+    return (source ?? []).filter((set) => {
+      const inFolder =
+        selectedFolder === 'archived' ||
+        selectedFolder === 'all' ||
+        set.folder_id === selectedFolder;
+      const needle = search.trim().toLocaleLowerCase('ru');
+      return (
+        inFolder &&
+        (!needle || `${set.title} ${set.description}`.toLocaleLowerCase('ru').includes(needle))
+      );
+    });
+  }, [archivedSets.data, search, selectedFolder, sets.data]);
+  const visibleSavedSets = useMemo(() => {
+    const needle = search.trim().toLocaleLowerCase('ru');
+    return (savedSets.data ?? []).filter(
+      (set) =>
+        !needle ||
+        `${set.title} ${set.description} ${set.course_title}`
+          .toLocaleLowerCase('ru')
+          .includes(needle),
+    );
+  }, [savedSets.data, search]);
 
   async function createSet() {
     const { data } = await api.POST('/api/v1/sets', {
@@ -70,7 +86,8 @@ export function SetsPage() {
         visibility: 'private',
         lang_term: 'ru',
         lang_definition: 'ru',
-        folder_id: selectedFolder === 'all' ? null : selectedFolder,
+        folder_id:
+          selectedFolder === 'all' || selectedFolder === 'archived' ? null : selectedFolder,
       },
     });
     if (!data) return;
@@ -149,6 +166,28 @@ export function SetsPage() {
           Создать набор
         </Button>
       </header>
+      <nav className="mt-5 flex flex-wrap gap-2" aria-label="Фильтр наборов">
+        {(
+          [
+            ['all', 'Все'],
+            ['owned', 'Созданные мной'],
+            ['saved', 'Сохранённые'],
+          ] as const
+        ).map(([value, label]) => (
+          <Button
+            key={value}
+            variant={origin === value ? 'primary' : 'secondary'}
+            size="sm"
+            aria-pressed={origin === value}
+            onClick={() => {
+              setOrigin(value);
+              if (value === 'saved' && selectedFolder === 'archived') setSelectedFolder('all');
+            }}
+          >
+            {label}
+          </Button>
+        ))}
+      </nav>
       <div className="mt-8 grid gap-6 lg:grid-cols-[230px_1fr]">
         <aside>
           <Input
@@ -160,8 +199,11 @@ export function SetsPage() {
           />
           <nav className="mt-4 space-y-1" aria-label="Папки">
             <FolderButton
-              active={selectedFolder === 'all'}
-              onClick={() => setSelectedFolder('all')}
+              active={selectedFolder === 'all' && origin !== 'saved'}
+              onClick={() => {
+                setOrigin('all');
+                setSelectedFolder('all');
+              }}
               onDrop={(id) => void moveSet(id, null)}
             >
               Все наборы <span>{sets.data?.length ?? 0}</span>
@@ -205,6 +247,15 @@ export function SetsPage() {
                 Архив <span>{archivedSets.data?.length ?? 0}</span>
               </FolderButton>
             </div>
+            <div className="border-border mt-3 border-t pt-3">
+              <FolderButton
+                active={origin === 'saved'}
+                onClick={() => setOrigin('saved')}
+                onDrop={() => undefined}
+              >
+                Сохранённые <span>{savedSets.data?.length ?? 0}</span>
+              </FolderButton>
+            </div>
           </nav>
           <form
             className="mt-4 flex gap-2"
@@ -229,33 +280,41 @@ export function SetsPage() {
           </p>
         </aside>
         <section>
-          {(sets.isPending || folders.isPending || archivedSets.isPending) && (
-            <p className="text-fg-muted">Загружаем наборы…</p>
-          )}
-          {(sets.isError || folders.isError || archivedSets.isError) && (
+          {(sets.isPending ||
+            folders.isPending ||
+            archivedSets.isPending ||
+            savedSets.isPending) && <p className="text-fg-muted">Загружаем наборы…</p>}
+          {(sets.isError || folders.isError || archivedSets.isError || savedSets.isError) && (
             <p className="text-danger">Не удалось загрузить библиотеку</p>
           )}
-          {!sets.isPending && visibleSets.length === 0 && (
-            <Card className="grid min-h-64 place-items-center text-center">
-              <div>
-                <p className="text-xl font-semibold">
-                  {selectedFolder === 'archived' ? 'Архив пуст' : 'Здесь пока пусто'}
-                </p>
-                <p className="text-fg-muted mt-2">
-                  {selectedFolder === 'archived'
-                    ? 'Удалённые курсы и наборы появятся здесь.'
-                    : 'Создайте набор или выберите другую папку.'}
-                </p>
-                {selectedFolder !== 'archived' && (
-                  <Button className="mt-5" onClick={() => void createSet()}>
-                    Создать набор
-                  </Button>
-                )}
-              </div>
-            </Card>
-          )}
+          {!sets.isPending &&
+            !savedSets.isPending &&
+            (origin === 'saved'
+              ? visibleSavedSets.length === 0
+              : origin === 'owned'
+                ? visibleSets.length === 0
+                : visibleSets.length === 0 &&
+                  (selectedFolder !== 'all' || visibleSavedSets.length === 0)) && (
+              <Card className="grid min-h-64 place-items-center text-center">
+                <div>
+                  <p className="text-xl font-semibold">
+                    {selectedFolder === 'archived' ? 'Архив пуст' : 'Здесь пока пусто'}
+                  </p>
+                  <p className="text-fg-muted mt-2">
+                    {selectedFolder === 'archived'
+                      ? 'Удалённые курсы и наборы появятся здесь.'
+                      : 'Создайте набор или выберите другую папку.'}
+                  </p>
+                  {selectedFolder !== 'archived' && (
+                    <Button className="mt-5" onClick={() => void createSet()}>
+                      Создать набор
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            )}
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {selectedFolder === 'archived'
+            {origin !== 'saved' && selectedFolder === 'archived'
               ? visibleSets.map((set) => (
                   <Card key={set.id} className="h-full p-5">
                     <div className="flex items-start justify-between gap-3">
@@ -280,34 +339,59 @@ export function SetsPage() {
                     </div>
                   </Card>
                 ))
-              : visibleSets.map((set) => (
-              <Link
-                key={set.id}
-                to={`/sets/${set.id}`}
-                draggable
-                onDragStart={(event) => {
-                  event.dataTransfer.setData('text/remora-set-id', set.id);
-                  event.dataTransfer.effectAllowed = 'move';
-                }}
-                className="group"
-              >
-                <Card interactive className="h-full p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <Badge>{visibilityLabel(set.visibility)}</Badge>
-                    <span className="text-fg-subtle text-xs">{set.cards_count} карт.</span>
-                  </div>
-                  <h2 className="group-hover:text-primary mt-5 text-lg font-semibold transition-colors">
-                    {set.title}
-                  </h2>
-                  <p className="text-fg-muted mt-2 line-clamp-2 text-sm">
-                    {set.description || 'Описание не добавлено'}
-                  </p>
-                  <p className="text-fg-subtle mt-5 text-xs">
-                    Изменён {new Date(set.updated_at).toLocaleDateString('ru-RU')}
-                  </p>
-                </Card>
-              </Link>
+              : origin !== 'saved' &&
+                visibleSets.map((set) => (
+                  <Link
+                    key={set.id}
+                    to={`/sets/${set.id}`}
+                    draggable
+                    onDragStart={(event) => {
+                      event.dataTransfer.setData('text/remora-set-id', set.id);
+                      event.dataTransfer.effectAllowed = 'move';
+                    }}
+                    className="group"
+                  >
+                    <Card interactive className="h-full p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <Badge>{visibilityLabel(set.visibility)}</Badge>
+                        <span className="text-fg-subtle text-xs">{set.cards_count} карт.</span>
+                      </div>
+                      <h2 className="group-hover:text-primary mt-5 text-lg font-semibold transition-colors">
+                        {set.title}
+                      </h2>
+                      <p className="text-fg-muted mt-2 line-clamp-2 text-sm">
+                        {set.description || 'Описание не добавлено'}
+                      </p>
+                      <p className="text-fg-subtle mt-5 text-xs">
+                        Изменён {new Date(set.updated_at).toLocaleDateString('ru-RU')}
+                      </p>
+                    </Card>
+                  </Link>
                 ))}
+            {origin !== 'owned' &&
+              (origin === 'saved' || selectedFolder === 'all') &&
+              visibleSavedSets.map((set) => (
+                <Link key={set.id} to={`/sets/${set.id}/learn`} className="group">
+                  <Card interactive className="h-full p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <Badge>Сохранённый</Badge>
+                      <span className="text-fg-subtle text-xs">{set.cards_count} карт.</span>
+                    </div>
+                    <h2 className="group-hover:text-primary mt-5 text-lg font-semibold transition-colors">
+                      {set.title}
+                    </h2>
+                    <p className="text-fg-muted mt-2 line-clamp-2 text-sm">
+                      {set.description || 'Описание не добавлено'}
+                    </p>
+                    <p className="text-fg-subtle mt-5 text-xs">
+                      {set.course_title} · {set.author.display_name || `@${set.author.username}`}
+                    </p>
+                    {set.has_updates && (
+                      <p className="text-warning mt-2 text-xs">Для курса доступно обновление</p>
+                    )}
+                  </Card>
+                </Link>
+              ))}
           </div>
         </section>
       </div>

@@ -822,6 +822,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/library/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Сохранённые курсы */
+        get: operations["list_saved_courses_api_v1_library_courses_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/library/courses/{slug}/state": {
         parameters: {
             query?: never;
@@ -831,6 +848,23 @@ export interface paths {
         };
         /** Course Library State */
         get: operations["course_library_state_api_v1_library_courses__slug__state_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/library/sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Доступные сохранённые наборы */
+        get: operations["list_saved_sets_api_v1_library_sets_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1316,6 +1350,23 @@ export interface paths {
         put?: never;
         /** Восстановить набор */
         post: operations["restore_set_api_v1_sets__set_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/study/courses/{course_id}/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Очередь карточек всего курса */
+        get: operations["get_course_queue_api_v1_study_courses__course_id__queue_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3297,8 +3348,20 @@ export interface components {
         QueueItem: {
             card: components["schemas"]["QueueCard"];
             direction: components["schemas"]["StudyDirection"];
+            /** Lang Definition */
+            lang_definition?: string | null;
+            /** Lang Term */
+            lang_term?: string | null;
             /** Previews */
             previews: components["schemas"]["RatingPreviewOut"][];
+            /** Source Article Id */
+            source_article_id?: string | null;
+            /** Source Article Title */
+            source_article_title?: string | null;
+            /** Source Set Id */
+            source_set_id?: string | null;
+            /** Source Set Title */
+            source_set_title?: string | null;
             state: components["schemas"]["CardStateOut"];
         };
         /**
@@ -3533,6 +3596,92 @@ export interface components {
              */
             reviewed_at: string;
         };
+        /** SavedCourseItem */
+        SavedCourseItem: {
+            /**
+             * Accepted At
+             * Format: date-time
+             */
+            accepted_at: string;
+            author: components["schemas"]["CourseAuthor"];
+            /** Cards Count */
+            cards_count: number;
+            /** Description */
+            description: string;
+            /** Has Updates */
+            has_updates: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Save Id
+             * Format: uuid
+             */
+            save_id: string;
+            /**
+             * Saved At
+             * Format: date-time
+             */
+            saved_at: string;
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+        };
+        /** SavedSetItem */
+        SavedSetItem: {
+            /**
+             * Access Via
+             * @enum {string}
+             */
+            access_via: "course" | "article" | "set";
+            /**
+             * Article Id
+             * Format: uuid
+             */
+            article_id: string;
+            /** Article Title */
+            article_title: string;
+            author: components["schemas"]["CourseAuthor"];
+            /** Cards Count */
+            cards_count: number;
+            /**
+             * Course Id
+             * Format: uuid
+             */
+            course_id: string;
+            /** Course Slug */
+            course_slug: string;
+            /** Course Title */
+            course_title: string;
+            /** Description */
+            description: string;
+            /** Has Updates */
+            has_updates: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Lang Definition */
+            lang_definition: string;
+            /** Lang Term */
+            lang_term: string;
+            /**
+             * Save Id
+             * Format: uuid
+             */
+            save_id: string;
+            /**
+             * Saved At
+             * Format: date-time
+             */
+            saved_at: string;
+            /** Title */
+            title: string;
+        };
         /** SectionWrite */
         SectionWrite: {
             /** Articles */
@@ -3548,12 +3697,11 @@ export interface components {
             config?: {
                 [key: string]: unknown;
             };
+            /** Course Id */
+            course_id?: string | null;
             mode: components["schemas"]["StudyMode"];
-            /**
-             * Set Id
-             * Format: uuid
-             */
-            set_id: string;
+            /** Set Id */
+            set_id?: string | null;
         };
         /** SessionOut */
         SessionOut: {
@@ -3565,6 +3713,8 @@ export interface components {
             config: {
                 [key: string]: unknown;
             };
+            /** Course Id */
+            course_id: string | null;
             /** Ended At */
             ended_at: string | null;
             /**
@@ -3573,11 +3723,8 @@ export interface components {
              */
             id: string;
             mode: components["schemas"]["StudyMode"];
-            /**
-             * Set Id
-             * Format: uuid
-             */
-            set_id: string;
+            /** Set Id */
+            set_id: string | null;
             /**
              * Started At
              * Format: date-time
@@ -3856,6 +4003,10 @@ export interface components {
          */
         StudyQueue: {
             answer_strictness: components["schemas"]["Strictness"];
+            /** Course Id */
+            course_id?: string | null;
+            /** Course Title */
+            course_title?: string | null;
             /** Due Total */
             due_total: number;
             /**
@@ -3885,11 +4036,8 @@ export interface components {
             reviews_left_today: number;
             /** Scheduler Version */
             scheduler_version: string;
-            /**
-             * Set Id
-             * Format: uuid
-             */
-            set_id: string;
+            /** Set Id */
+            set_id?: string | null;
             /** Set Title */
             set_title: string;
         };
@@ -6096,6 +6244,26 @@ export interface operations {
             };
         };
     };
+    list_saved_courses_api_v1_library_courses_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedCourseItem"][];
+                };
+            };
+        };
+    };
     course_library_state_api_v1_library_courses__slug__state_get: {
         parameters: {
             query?: never;
@@ -6123,6 +6291,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_saved_sets_api_v1_library_sets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedSetItem"][];
                 };
             };
         };
@@ -7087,6 +7275,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SetSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_course_queue_api_v1_study_courses__course_id__queue_get: {
+        parameters: {
+            query?: {
+                mode?: components["schemas"]["StudyMode"];
+                scope?: components["schemas"]["QueueScope"];
+                direction?: components["schemas"]["DirectionMode"];
+                limit?: number;
+                shuffle?: boolean;
+            };
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudyQueue"];
                 };
             };
             /** @description Validation Error */

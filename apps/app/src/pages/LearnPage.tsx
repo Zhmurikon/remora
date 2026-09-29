@@ -38,12 +38,14 @@ type QuestionKind = 'choice' | 'typing' | 'recall';
 type CheckedAnswer = { correct: boolean | null; value: string; similarity?: number };
 
 export function LearnPage() {
-  const { setId = '' } = useParams();
+  const { setId, courseId } = useParams();
+  const targetId = setId ?? courseId ?? '';
+  const isCourse = Boolean(courseId);
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const direction = (params.get('direction') as StudyDirectionMode | null) ?? 'term_to_def';
 
-  const query = useStudySession({ setId, mode: 'learn', scope: 'due', direction });
+  const query = useStudySession({ setId, courseId, mode: 'learn', scope: 'due', direction });
   const queue = query.data?.queue;
 
   const items = useStudyStore((state) => state.items);
@@ -135,7 +137,11 @@ export function LearnPage() {
       ...candidates.map((candidate) =>
         answerSimilarity(typed, candidate, {
           strictness: queue?.answer_strictness ?? 'moderate',
-          lang: answerLang(current, queue?.lang_term, queue?.lang_definition),
+          lang: answerLang(
+            current,
+            current.lang_term ?? queue?.lang_term,
+            current.lang_definition ?? queue?.lang_definition,
+          ),
         }),
       ),
     );
@@ -197,13 +203,19 @@ export function LearnPage() {
         </p>
         <h1 className="mt-4 text-xl font-semibold">На сегодня всё повторено</h1>
         <p className="text-fg-muted mt-2">
-          Новые карточки и повторения появятся, когда подойдёт срок. Пока можно пройтись по набору в
-          режиме «Карточки».
+          Новые карточки и повторения появятся, когда подойдёт срок.
         </p>
         <div className="mt-6 flex justify-center gap-3">
-          <Button onClick={() => navigate(`/sets/${setId}/flashcards`)}>Открыть карточки</Button>
-          <Button variant="ghost" onClick={() => navigate(`/sets/${setId}`)}>
-            К набору
+          {!isCourse && (
+            <Button onClick={() => navigate(`/sets/${targetId}/flashcards`)}>
+              Открыть карточки
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            onClick={() => navigate(isCourse ? '/courses' : `/sets/${targetId}`)}
+          >
+            {isCourse ? 'К курсам' : 'К набору'}
           </Button>
         </div>
       </Card>
@@ -214,7 +226,9 @@ export function LearnPage() {
     const last = answers.at(-1);
     return (
       <SessionSummary
-        setId={setId}
+        setId={targetId}
+        backHref={isCourse ? '/courses' : undefined}
+        backLabel={isCourse ? 'К курсам' : undefined}
         answers={answers}
         nextDueSeconds={nextDueSeconds(items, last?.cardId)}
         onRestart={() => {
@@ -281,6 +295,11 @@ export function LearnPage() {
         <Badge tone="neutral">
           {current.direction === 'term_to_def' ? 'Термин → определение' : 'Определение → термин'}
         </Badge>
+        {current.source_set_title && (
+          <p className="text-fg-subtle mt-3 text-sm">
+            {current.source_article_title ?? current.source_set_title}
+          </p>
+        )}
         <div className="mt-5 text-2xl">
           <CardContent
             value={question}

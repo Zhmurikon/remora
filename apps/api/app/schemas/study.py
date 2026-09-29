@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.core.answers import Strictness
 from app.models.content import ContentType
@@ -88,6 +88,12 @@ class QueueItem(BaseModel):
     direction: StudyDirection
     state: CardStateOut
     previews: list[RatingPreviewOut]
+    source_set_id: UUID | None = None
+    source_set_title: str | None = None
+    source_article_id: UUID | None = None
+    source_article_title: str | None = None
+    lang_term: str | None = None
+    lang_definition: str | None = None
 
 
 class StudyQueue(BaseModel):
@@ -97,7 +103,9 @@ class StudyQueue(BaseModel):
     клиент не может проверить ответ теми же правилами, что и сервер.
     """
 
-    set_id: UUID
+    set_id: UUID | None = None
+    course_id: UUID | None = None
+    course_title: str | None = None
     set_title: str
     lang_term: str
     lang_definition: str
@@ -142,16 +150,24 @@ class ReviewBatchResult(BaseModel):
 
 
 class SessionCreate(BaseModel):
-    set_id: UUID
+    set_id: UUID | None = None
+    course_id: UUID | None = None
     mode: StudyMode
     config: dict[str, object] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def exactly_one_target(self) -> "SessionCreate":
+        if (self.set_id is None) == (self.course_id is None):
+            raise ValueError("Укажите ровно одну цель обучения")
+        return self
 
 
 class SessionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    set_id: UUID
+    set_id: UUID | None
+    course_id: UUID | None
     mode: StudyMode
     status: SessionStatus
     started_at: datetime

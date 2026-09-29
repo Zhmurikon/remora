@@ -633,6 +633,8 @@ class BotService:
         if session is None:
             return BotReply("Нет активной тренировки.", [[_button("К наборам", "sets")]])
         if "bot_items" not in session.config:
+            if session.set_id is None:
+                return BotReply("Этот тип тренировки пока недоступен в боте.", [])
             study = StudyService(self.db)
             queue = await study.get_queue(
                 user,

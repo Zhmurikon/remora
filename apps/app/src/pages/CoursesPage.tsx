@@ -1,5 +1,5 @@
 import type { components } from '@remora/api-client';
-import { Button, Card, Input } from '@remora/ui';
+import { Badge, Button, Card, Input } from '@remora/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -26,6 +26,7 @@ function failure(error: unknown): Error {
 }
 
 export function CoursesPage() {
+  const [origin, setOrigin] = useState<'all' | 'owned' | 'saved'>('all');
   const courses = useQuery({
     queryKey: ['courses'],
     queryFn: async () => {
@@ -34,6 +35,22 @@ export function CoursesPage() {
       return data;
     },
   });
+  const savedCourses = useQuery({
+    queryKey: ['library', 'courses'],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/library/courses');
+      if (!data || error) throw failure(error);
+      return data;
+    },
+  });
+  const isEmpty =
+    !courses.isPending &&
+    !savedCourses.isPending &&
+    (origin === 'saved'
+      ? savedCourses.data?.length === 0
+      : origin === 'owned'
+        ? courses.data?.length === 0
+        : courses.data?.length === 0 && savedCourses.data?.length === 0);
   return (
     <div className="space-y-6">
       <header>
@@ -49,17 +66,36 @@ export function CoursesPage() {
             Найти курсы
           </a>
         </div>
+        <nav className="mt-5 flex flex-wrap gap-2" aria-label="Фильтр курсов">
+          {(
+            [
+              ['all', 'Все'],
+              ['owned', 'Созданные мной'],
+              ['saved', 'Сохранённые'],
+            ] as const
+          ).map(([value, label]) => (
+            <Button
+              key={value}
+              variant={origin === value ? 'primary' : 'secondary'}
+              size="sm"
+              aria-pressed={origin === value}
+              onClick={() => setOrigin(value)}
+            >
+              {label}
+            </Button>
+          ))}
+        </nav>
       </header>
-      {courses.isPending && <p role="status">Загружаем курсы…</p>}
-      {courses.isError && (
+      {(courses.isPending || savedCourses.isPending) && <p role="status">Загружаем курсы…</p>}
+      {(courses.isError || savedCourses.isError) && (
         <div role="alert">
-          <p>{courses.error.message}</p>
+          <p>{courses.error?.message ?? savedCourses.error?.message}</p>
           <Button className="min-h-11" variant="secondary" onClick={() => void courses.refetch()}>
             Повторить
           </Button>
         </div>
       )}
-      {courses.data?.length === 0 && (
+      {isEmpty && (
         <Card>
           <h2 className="text-xl font-semibold">Ваш первый курс</h2>
           <p className="text-fg-muted mt-2">
@@ -68,23 +104,57 @@ export function CoursesPage() {
         </Card>
       )}
       <div className="grid gap-4 sm:grid-cols-2">
-        {courses.data?.map((course) => (
-          <Link
-            key={course.id}
-            to={`/courses/${course.id}`}
-            className="focus-visible:outline-primary rounded-xl focus-visible:outline focus-visible:outline-2"
-          >
-            <Card interactive className="h-full break-words">
-              <h2 className="text-xl font-semibold">{course.title}</h2>
-              <p className="text-fg-muted mt-2 line-clamp-3">
-                {course.description || 'Описание пока не добавлено'}
-              </p>
-              <p className="text-fg-subtle mt-4 text-sm">
-                Изменён {new Date(course.updated_at).toLocaleDateString('ru-RU')}
-              </p>
+        {origin !== 'saved' &&
+          courses.data?.map((course) => (
+            <Link
+              key={course.id}
+              to={`/courses/${course.id}`}
+              className="focus-visible:outline-primary rounded-xl focus-visible:outline focus-visible:outline-2"
+            >
+              <Card interactive className="h-full break-words">
+                <Badge>Ваш курс</Badge>
+                <h2 className="text-xl font-semibold">{course.title}</h2>
+                <p className="text-fg-muted mt-2 line-clamp-3">
+                  {course.description || 'Описание пока не добавлено'}
+                </p>
+                <p className="text-fg-subtle mt-4 text-sm">
+                  Изменён {new Date(course.updated_at).toLocaleDateString('ru-RU')}
+                </p>
+              </Card>
+            </Link>
+          ))}
+        {origin !== 'owned' &&
+          savedCourses.data?.map((course) => (
+            <Card key={course.id} className="h-full break-words">
+              <a
+                href={`${WEB_URL}/kurs/${course.slug}`}
+                className="focus-visible:outline-primary block rounded-lg focus-visible:outline focus-visible:outline-2"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge>Сохранённый</Badge>
+                  {course.has_updates && <Badge tone="warning">Есть обновление</Badge>}
+                </div>
+                <h2 className="mt-3 text-xl font-semibold">{course.title}</h2>
+                <p className="text-fg-muted mt-2 line-clamp-3">
+                  {course.description || 'Описание пока не добавлено'}
+                </p>
+                <p className="text-fg-subtle mt-4 text-sm">
+                  Автор: {course.author.display_name || `@${course.author.username}`} ·{' '}
+                  {course.cards_count} карточек
+                </p>
+              </a>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <Link to={`/courses/${course.id}/learn`}>
+                  <Button size="sm">Учить весь курс</Button>
+                </Link>
+                <a href={`${WEB_URL}/kurs/${course.slug}`}>
+                  <Button size="sm" variant="secondary">
+                    Открыть курс
+                  </Button>
+                </a>
+              </div>
             </Card>
-          </Link>
-        ))}
+          ))}
       </div>
     </div>
   );
