@@ -68,7 +68,7 @@ export function PracticePage() {
               </div>
               <h3 className="mt-6 text-2xl font-semibold">Python</h3>
               <p className="text-fg-muted mt-2">
-                Короткие задачи по основам Python и NumPy — от простого к сложному.
+                Задачи по Python, анализу данных и визуализации — от основ до SciPy.
               </p>
               <p className="text-primary mt-6 font-medium">Открыть задачи →</p>
             </Card>
@@ -126,8 +126,8 @@ export function PythonPracticePage() {
             <p className="text-primary text-sm font-medium">Практика</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Python</h1>
             <p className="text-fg-muted mt-3 max-w-2xl">
-              Пройдите путь от переменных и условий до NumPy и анализа таблиц в pandas. Задачи
-              расположены от простого к сложному.
+              Пройдите путь от переменных и условий до NumPy, pandas, статистики SciPy и
+              графиков matplotlib. Задачи расположены от простого к сложному.
             </p>
           </div>
           <Badge tone="primary" className="mt-1 px-3 py-1">
@@ -459,6 +459,8 @@ function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: Pyth
             <Badge>Python</Badge>
             {task.packages?.includes('numpy') && <Badge>NumPy</Badge>}
             {task.packages?.includes('pandas') && <Badge>pandas</Badge>}
+            {task.packages?.includes('scipy') && <Badge>SciPy</Badge>}
+            {task.packages?.includes('matplotlib') && <Badge>matplotlib</Badge>}
           </div>
         </div>
         <PythonCodeEditor
@@ -633,6 +635,25 @@ function ExecutionOutput({
             )
           )}
           {result.stderr && <OutputBlock title="Ошибка" value={result.stderr} error />}
+          {result.plots && result.plots.length > 0 && (
+            <div className="grid gap-4 sm:grid-cols-2" aria-label="Графики программы">
+              {result.plots.map((plot, index) => (
+                <figure
+                  key={`${plot.dataUrl.slice(-24)}-${index}`}
+                  className="border-border bg-surface-muted overflow-hidden rounded-xl border p-3"
+                >
+                  <img
+                    className="bg-surface mx-auto h-auto max-h-[32rem] w-full object-contain"
+                    src={plot.dataUrl}
+                    alt={plot.alt}
+                  />
+                  <figcaption className="text-fg-subtle mt-2 text-center text-sm">
+                    {plot.alt}
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          )}
           {result.truncated && (
             <p className="text-warning text-sm">Вывод сокращён: показаны первые 32 000 символов.</p>
           )}

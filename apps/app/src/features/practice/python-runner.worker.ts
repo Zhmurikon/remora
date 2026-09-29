@@ -72,11 +72,13 @@ async function executeRequest(request: PythonWorkerRequest) {
 
     if (request.type === 'run') {
       await runInFreshGlobals(pyodide, request.code, request.stdin, request.files);
-      postResult(request.id, executionResult('completed', capture, startedAt));
+      const plots = collectPlots(pyodide);
+      postResult(request.id, { ...executionResult('completed', capture, startedAt), plots });
       return;
     }
 
     const checks: PythonCheckResult[] = [];
+    let plots = [] as NonNullable<PythonExecutionResult['plots']>;
     for (const check of request.checks) {
       capture = createCapture();
       let failure: string | null;
@@ -105,12 +107,14 @@ async function executeRequest(request: PythonWorkerRequest) {
         });
         return;
       }
+      plots = collectPlots(pyodide);
       checks.push({ name: check.name, passed: true });
     }
 
     postResult(request.id, {
       ...executionResult('passed', capture, startedAt),
       checks,
+      plots,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -184,6 +188,9 @@ async function runInFreshGlobals<T = void>(
   pyodide.setStdin({ stdin: () => input.shift() ?? null, autoEOF: true });
   const globals = pyodide.runPython('dict()');
   try {
+    pyodide.runPython(
+      'import sys\nif "matplotlib.pyplot" in sys.modules:\n    sys.modules["matplotlib.pyplot"].close("all")',
+    );
     for (const [name, content] of Object.entries(files)) {
       if (!/^[a-zA-Z0-9_.-]+$/.test(name)) throw new Error('Недопустимое имя встроенного файла');
       pyodide.FS.writeFile(name, content, { encoding: 'utf8' });
@@ -232,9 +239,47 @@ function getRuntime(): Promise<PyodideInterface> {
 }
 
 async function warmPackages(pyodide: PyodideInterface, packages: readonly string[]) {
-  const imports = packages.filter((name) => name === 'numpy' || name === 'pandas');
-  if (imports.length > 0)
-    await pyodide.runPythonAsync(imports.map((name) => `import ${name}`).join('\n'));
+  const imports = packages.filter((name) => name !== 'matplotlib');
+  const statements = imports.map((name) => `import ${name}`);
+  if (packages.includes('matplotlib')) {
+    statements.push('import matplotlib', 'matplotlib.use("Agg")', 'import matplotlib.pyplot');
+  }
+  if (statements.length > 0) await pyodide.runPythonAsync(statements.join('\n'));
+}
+
+function collectPlots(pyodide: PyodideInterface): NonNullable<PythonExecutionResult['plots']> {
+  return JSON.parse(
+    pyodide.runPython(`
+import sys as __remora_sys
+import json as __remora_json
+if "matplotlib.pyplot" not in __remora_sys.modules:
+    __remora_plots_json = "[]"
+else:
+    import base64 as __remora_base64
+    import io as __remora_io
+    import warnings as __remora_warnings
+    import matplotlib as __remora_matplotlib
+    import matplotlib.pyplot as __remora_plt
+    __remora_plots = []
+    for __remora_number in __remora_plt.get_fignums()[:4]:
+        __remora_figure = __remora_plt.figure(__remora_number)
+        __remora_buffer = __remora_io.BytesIO()
+        with __remora_warnings.catch_warnings():
+            __remora_warnings.simplefilter("ignore", __remora_matplotlib.MatplotlibDeprecationWarning)
+            __remora_figure.savefig(__remora_buffer, format="png", dpi=120, bbox_inches="tight")
+        __remora_title = next(
+            (axis.get_title() for axis in __remora_figure.axes if axis.get_title()),
+            f"График {len(__remora_plots) + 1}",
+        )
+        __remora_plots.append({
+            "dataUrl": "data:image/png;base64," + __remora_base64.b64encode(__remora_buffer.getvalue()).decode("ascii"),
+            "alt": __remora_title,
+        })
+    __remora_plt.close("all")
+    __remora_plots_json = __remora_json.dumps(__remora_plots, ensure_ascii=False)
+__remora_plots_json
+`) as string,
+  ) as NonNullable<PythonExecutionResult['plots']>;
 }
 
 function post(message: PythonWorkerResponse) {

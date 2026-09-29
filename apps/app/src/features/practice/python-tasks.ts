@@ -1138,6 +1138,203 @@ export const pythonTasks: readonly PythonTask[] = [
     ],
     files: { 'sales.csv': salesCsv },
   }),
+  scientificTask({
+    id: 'python-scipy-pearson-correlation',
+    slug: 'scipy-korrelyatsiya-pirsona',
+    version: 1,
+    title: 'Корреляция Пирсона',
+    topic: 'SciPy и графики',
+    difficulty: 'Начальная',
+    summary: 'Измерьте линейную связь двух числовых признаков.',
+    statement:
+      'Напишите функцию pearson_correlation(x, y), которая возвращает коэффициент корреляции Пирсона через scipy.stats.pearsonr.',
+    starterCode:
+      'from scipy import stats\n\ndef pearson_correlation(x, y):\n    # Верните только коэффициент корреляции\n    pass\n',
+    examples: [{ input: 'pearson_correlation([1, 2, 3], [2, 4, 6])', output: '1.0' }],
+    checks: [
+      fn('Прямая связь', 'pearson_correlation', [[1, 2, 3, 4], [2, 4, 6, 8]], 1, 1e-9),
+      fn('Обратная связь', 'pearson_correlation', [[1, 2, 3, 4], [8, 6, 4, 2]], -1, 1e-9),
+      fn('Неполная связь', 'pearson_correlation', [[1, 2, 3, 4], [4, 1, 3, 2]], -0.4, 1e-9),
+    ],
+    hint: 'Результат pearsonr имеет поля statistic и pvalue.',
+    explanation:
+      'Коэффициент Пирсона находится от −1 до 1 и описывает силу линейной связи; p-value отвечает на другой вопрос.',
+    referenceSolution:
+      'from scipy import stats\n\ndef pearson_correlation(x, y):\n    return stats.pearsonr(x, y).statistic\n',
+    commonWrongSolutions: [
+      'from scipy import stats\n\ndef pearson_correlation(x, y):\n    return stats.pearsonr(x, y).pvalue\n',
+    ],
+  }),
+  scientificTask({
+    id: 'python-scipy-spearman-correlation',
+    slug: 'scipy-korrelyatsiya-spirmena',
+    version: 1,
+    title: 'Корреляция Спирмена',
+    topic: 'SciPy и графики',
+    difficulty: 'Начальная',
+    summary: 'Оцените монотонную связь по рангам.',
+    statement:
+      'Напишите функцию spearman_correlation(x, y), которая возвращает ранговую корреляцию Спирмена.',
+    starterCode:
+      'from scipy import stats\n\ndef spearman_correlation(x, y):\n    \n',
+    examples: [{ input: 'spearman_correlation([1, 2, 3], [10, 20, 40])', output: '1.0' }],
+    checks: [
+      fn('Монотонный рост', 'spearman_correlation', [[1, 2, 3, 4], [10, 20, 40, 80]], 1, 1e-9),
+      fn('Монотонное убывание', 'spearman_correlation', [[1, 2, 3, 4], [8, 4, 2, 1]], -1, 1e-9),
+    ],
+    hint: 'Используйте stats.spearmanr(x, y).statistic.',
+    explanation:
+      'Спирмен заменяет значения рангами, поэтому обнаруживает монотонную связь даже без линейной зависимости.',
+    referenceSolution:
+      'from scipy import stats\n\ndef spearman_correlation(x, y):\n    return stats.spearmanr(x, y).statistic\n',
+    commonWrongSolutions: [
+      'from scipy import stats\n\ndef spearman_correlation(x, y):\n    return stats.pearsonr(x, y).statistic\n',
+    ],
+  }),
+  scientificTask({
+    id: 'python-scipy-correlation-significance',
+    slug: 'scipy-znachimost-korrelyatsii',
+    version: 1,
+    title: 'Значимость корреляции',
+    topic: 'SciPy и графики',
+    difficulty: 'Средняя',
+    summary: 'Сравните p-value корреляции с уровнем значимости.',
+    statement:
+      'Напишите функцию significant_correlation(x, y, alpha=0.05). Она возвращает True, если p-value теста Пирсона меньше alpha.',
+    starterCode:
+      'from scipy import stats\n\ndef significant_correlation(x, y, alpha=0.05):\n    result = stats.pearsonr(x, y)\n    \n',
+    examples: [{ input: 'significant_correlation([1,2,3,4,5], [2,4,6,8,10])', output: 'True' }],
+    checks: [
+      fn('Сильная связь', 'significant_correlation', [[1, 2, 3, 4, 5], [2, 4, 6, 8, 10]], true),
+      fn('Нет значимости', 'significant_correlation', [[1, 2, 3, 4, 5], [2, 5, 1, 4, 3]], false),
+    ],
+    hint: 'Сравнивайте result.pvalue, а не result.statistic.',
+    explanation:
+      'Коэффициент описывает силу связи, а p-value помогает оценить совместимость наблюдаемого результата с нулевой гипотезой.',
+    referenceSolution:
+      'from scipy import stats\n\ndef significant_correlation(x, y, alpha=0.05):\n    return stats.pearsonr(x, y).pvalue < alpha\n',
+    commonWrongSolutions: [
+      'from scipy import stats\n\ndef significant_correlation(x, y, alpha=0.05):\n    return abs(stats.pearsonr(x, y).statistic) < alpha\n',
+    ],
+  }),
+  scientificTask({
+    id: 'python-scipy-linear-regression',
+    slug: 'scipy-lineynaya-regressiya',
+    version: 1,
+    title: 'Линейная регрессия',
+    topic: 'SciPy и графики',
+    difficulty: 'Средняя',
+    summary: 'Получите параметры прямой и силу линейной связи.',
+    statement:
+      'Напишите функцию regression_summary(x, y), которая возвращает [slope, intercept, rvalue] из scipy.stats.linregress.',
+    starterCode:
+      'from scipy import stats\n\ndef regression_summary(x, y):\n    result = stats.linregress(x, y)\n    \n',
+    examples: [{ input: 'regression_summary([1,2,3], [3,5,7])', output: '[2.0, 1.0, 1.0]' }],
+    checks: [
+      fn('Точная прямая', 'regression_summary', [[1, 2, 3, 4], [3, 5, 7, 9]], [2, 1, 1], 1e-9),
+      fn('Убывающая прямая', 'regression_summary', [[0, 1, 2], [4, 2, 0]], [-2, 4, -1], 1e-9),
+    ],
+    hint: 'У результата есть поля slope, intercept и rvalue.',
+    explanation:
+      'linregress оценивает коэффициенты y = slope × x + intercept и одновременно возвращает корреляцию.',
+    referenceSolution:
+      'from scipy import stats\n\ndef regression_summary(x, y):\n    result = stats.linregress(x, y)\n    return [result.slope, result.intercept, result.rvalue]\n',
+    commonWrongSolutions: [
+      'from scipy import stats\n\ndef regression_summary(x, y):\n    result = stats.linregress(x, y)\n    return [result.intercept, result.slope, result.pvalue]\n',
+    ],
+  }),
+  scientificTask({
+    id: 'python-scipy-z-scores',
+    slug: 'scipy-standartnye-otsenki',
+    version: 1,
+    title: 'Стандартные оценки',
+    topic: 'SciPy и графики',
+    difficulty: 'Начальная',
+    summary: 'Преобразуйте выборку в z-оценки.',
+    statement: 'Напишите функцию z_scores(values), которая возвращает stats.zscore(values).',
+    starterCode: 'from scipy import stats\n\ndef z_scores(values):\n    \n',
+    examples: [{ input: 'z_scores([1, 2, 3])', output: '[-1.2247, 0.0, 1.2247]' }],
+    checks: [
+      fn('Симметричная выборка', 'z_scores', [[1, 2, 3]], [-1.2247448714, 0, 1.2247448714], 1e-8),
+      fn('Другой масштаб', 'z_scores', [[10, 20, 30]], [-1.2247448714, 0, 1.2247448714], 1e-8),
+    ],
+    hint: 'В scipy.stats уже есть готовая функция zscore.',
+    explanation: 'Z-оценка показывает отклонение наблюдения от среднего в единицах стандартного отклонения.',
+    referenceSolution: 'from scipy import stats\n\ndef z_scores(values):\n    return stats.zscore(values)\n',
+    commonWrongSolutions: [
+      'import numpy as np\n\ndef z_scores(values):\n    return np.array(values) - np.mean(values)\n',
+    ],
+  }),
+  plotTask({
+    id: 'python-matplotlib-line-plot',
+    slug: 'matplotlib-lineynyy-grafik',
+    version: 1,
+    title: 'Линейный график',
+    topic: 'SciPy и графики',
+    difficulty: 'Начальная',
+    summary: 'Постройте линию и подпишите оси.',
+    statement:
+      'Напишите функцию build_plot(x, y): постройте линию с маркерами, задайте заголовок «Динамика», подписи «Период» и «Значение». Верните словарь с title, xlabel, ylabel и points.',
+    starterCode:
+      'import matplotlib.pyplot as plt\n\ndef build_plot(x, y):\n    fig, ax = plt.subplots()\n    # Постройте и подпишите график\n    \n',
+    examples: [{ input: 'build_plot([1,2,3], [2,5,4])', output: 'График и словарь с его параметрами' }],
+    checks: [
+      fn('Линия и подписи', 'build_plot', [[1, 2, 3], [2, 5, 4]], { title: 'Динамика', xlabel: 'Период', ylabel: 'Значение', points: 3 }),
+    ],
+    hint: 'Используйте ax.plot(..., marker="o"), set_title(), set_xlabel() и set_ylabel().',
+    explanation: 'Объектный интерфейс fig/ax позволяет явно управлять конкретным графиком и удобен в больших программах.',
+    referenceSolution:
+      'import matplotlib.pyplot as plt\n\ndef build_plot(x, y):\n    fig, ax = plt.subplots()\n    ax.plot(x, y, marker="o")\n    ax.set_title("Динамика")\n    ax.set_xlabel("Период")\n    ax.set_ylabel("Значение")\n    return {"title": ax.get_title(), "xlabel": ax.get_xlabel(), "ylabel": ax.get_ylabel(), "points": len(ax.lines[0].get_xdata())}\n',
+    commonWrongSolutions: [
+      'import matplotlib.pyplot as plt\n\ndef build_plot(x, y):\n    fig, ax = plt.subplots()\n    ax.plot(x, y)\n    return {"title": "", "xlabel": "", "ylabel": "", "points": len(x)}\n',
+    ],
+  }),
+  plotTask({
+    id: 'python-matplotlib-scatter-plot',
+    slug: 'matplotlib-diagramma-rasseyaniya',
+    version: 1,
+    title: 'Диаграмма рассеяния',
+    topic: 'SciPy и графики',
+    difficulty: 'Начальная',
+    summary: 'Покажите связь двух признаков точками.',
+    statement:
+      'Напишите функцию scatter_plot(x, y), которая строит диаграмму рассеяния с заголовком «Связь признаков», подписями X и Y и возвращает число точек.',
+    starterCode:
+      'import matplotlib.pyplot as plt\n\ndef scatter_plot(x, y):\n    fig, ax = plt.subplots()\n    \n',
+    examples: [{ input: 'scatter_plot([1,2,3], [5,3,8])', output: '3 и график' }],
+    checks: [fn('Точки на графике', 'scatter_plot', [[1, 2, 3, 4], [5, 3, 8, 6]], 4)],
+    hint: 'Метод ax.scatter(x, y) возвращает коллекцию точек; функция должна вернуть len(x).',
+    explanation: 'Диаграмма рассеяния помогает визуально оценить направление, форму связи и возможные выбросы.',
+    referenceSolution:
+      'import matplotlib.pyplot as plt\n\ndef scatter_plot(x, y):\n    fig, ax = plt.subplots()\n    ax.scatter(x, y)\n    ax.set_title("Связь признаков")\n    ax.set_xlabel("X")\n    ax.set_ylabel("Y")\n    return len(x)\n',
+    commonWrongSolutions: [
+      'import matplotlib.pyplot as plt\n\ndef scatter_plot(x, y):\n    plt.plot(x, y)\n    return len(set(x)) - 1\n',
+    ],
+  }),
+  plotTask({
+    id: 'python-matplotlib-histogram',
+    slug: 'matplotlib-gistogramma',
+    version: 1,
+    title: 'Гистограмма распределения',
+    topic: 'SciPy и графики',
+    difficulty: 'Средняя',
+    summary: 'Разбейте наблюдения на интервалы и покажите частоты.',
+    statement:
+      'Напишите функцию histogram(values), которая строит гистограмму с 4 интервалами и заголовком «Распределение», а затем возвращает список высот столбцов.',
+    starterCode:
+      'import matplotlib.pyplot as plt\n\ndef histogram(values):\n    fig, ax = plt.subplots()\n    # counts, bins, patches = ...\n    \n',
+    examples: [{ input: 'histogram([0,1,2,3,4,5,6,7])', output: '[2.0, 2.0, 2.0, 2.0] и график' }],
+    checks: [
+      fn('Четыре равных интервала', 'histogram', [[0, 1, 2, 3, 4, 5, 6, 7]], [2, 2, 2, 2], 1e-9),
+    ],
+    hint: 'ax.hist(values, bins=4) возвращает counts, bins и patches.',
+    explanation: 'Гистограмма группирует числовые наблюдения по интервалам, поэтому показывает форму распределения.',
+    referenceSolution:
+      'import matplotlib.pyplot as plt\n\ndef histogram(values):\n    fig, ax = plt.subplots()\n    counts, _, _ = ax.hist(values, bins=4)\n    ax.set_title("Распределение")\n    return counts.tolist()\n',
+    commonWrongSolutions: [
+      'import matplotlib.pyplot as plt\n\ndef histogram(values):\n    fig, ax = plt.subplots()\n    counts, _, _ = ax.hist(values, bins=3)\n    return counts.tolist()\n',
+    ],
+  }),
 ] as const;
 
 export function findPythonTask(slug: string): PythonTask | undefined {
@@ -1160,4 +1357,12 @@ function fn(
 
 function pandasTask(task: Omit<PythonTask, 'packages'>): PythonTask {
   return { ...task, packages: ['pandas'] };
+}
+
+function scientificTask(task: Omit<PythonTask, 'packages'>): PythonTask {
+  return { ...task, packages: ['scipy'] };
+}
+
+function plotTask(task: Omit<PythonTask, 'packages'>): PythonTask {
+  return { ...task, packages: ['matplotlib'] };
 }

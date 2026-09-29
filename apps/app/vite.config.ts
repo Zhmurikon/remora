@@ -17,6 +17,15 @@ const pyodidePackageFiles = [
   'python_dateutil-2.9.0.post0-py2.py3-none-any.whl',
   'pytz-2026.1.post1-py2.py3-none-any.whl',
   'six-1.17.0-py2.py3-none-any.whl',
+  'scipy-1.18.0-cp314-cp314-pyemscripten_2026_0_wasm32.whl',
+  'matplotlib-3.10.8-cp314-cp314-pyemscripten_2026_0_wasm32.whl',
+  'contourpy-1.3.3-cp314-cp314-pyemscripten_2026_0_wasm32.whl',
+  'cycler-0.12.1-py3-none-any.whl',
+  'fonttools-4.62.1-py3-none-any.whl',
+  'kiwisolver-1.5.0-cp314-cp314-pyemscripten_2026_0_wasm32.whl',
+  'packaging-26.1-py3-none-any.whl',
+  'pillow-12.2.0-cp314-cp314-pyemscripten_2026_0_wasm32.whl',
+  'pyparsing-3.3.2-py3-none-any.whl',
 ].map((file) => fileURLToPath(new URL(`./vendor/pyodide/${file}`, import.meta.url)));
 
 export default defineConfig({

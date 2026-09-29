@@ -76,11 +76,13 @@ describe('PythonRunner', () => {
     const worker = new FakeWorker();
     const runner = new PythonRunner(() => worker);
 
-    void runner.run('import pandas', '', undefined, ['pandas'], { 'data.csv': 'value\n1\n' });
+    void runner.run('import matplotlib', '', undefined, ['scipy', 'matplotlib'], {
+      'data.csv': 'value\n1\n',
+    });
 
     expect(worker.message).toMatchObject({
       type: 'run',
-      packages: ['pandas'],
+      packages: ['scipy', 'matplotlib'],
       files: { 'data.csv': 'value\n1\n' },
     });
     runner.stop();

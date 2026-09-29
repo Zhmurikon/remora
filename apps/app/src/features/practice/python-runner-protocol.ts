@@ -2,7 +2,7 @@ export const PYTHON_RUN_TIMEOUT_MS = 3_000;
 export const PYTHON_OUTPUT_LIMIT = 32_000;
 
 export type PythonRunnerPhase = 'loading' | 'running';
-export type PythonPackage = 'numpy' | 'pandas';
+export type PythonPackage = 'numpy' | 'pandas' | 'scipy' | 'matplotlib';
 export type PythonEmbeddedFiles = Record<string, string>;
 export type PythonExecutionStatus =
   'completed' | 'passed' | 'failed' | 'runtime_error' | 'timeout' | 'stopped';
@@ -41,6 +41,12 @@ export interface PythonExecutionResult {
   durationMs: number;
   truncated: boolean;
   checks?: PythonCheckResult[];
+  plots?: PythonPlot[];
+}
+
+export interface PythonPlot {
+  dataUrl: string;
+  alt: string;
 }
 
 export interface PythonRunRequest {

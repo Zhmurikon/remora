@@ -72,20 +72,29 @@ describe('каталог задач Python', () => {
       'python_dateutil-2.9.0.post0-py2.py3-none-any.whl',
       'pytz-2026.1.post1-py2.py3-none-any.whl',
       'pandas-3.0.2-cp314-cp314-pyemscripten_2026_0_wasm32.whl',
+      'scipy-1.18.0-cp314-cp314-pyemscripten_2026_0_wasm32.whl',
+      'packaging-26.1-py3-none-any.whl',
+      'cycler-0.12.1-py3-none-any.whl',
+      'fonttools-4.62.1-py3-none-any.whl',
+      'kiwisolver-1.5.0-cp314-cp314-pyemscripten_2026_0_wasm32.whl',
+      'pillow-12.2.0-cp314-cp314-pyemscripten_2026_0_wasm32.whl',
+      'pyparsing-3.3.2-py3-none-any.whl',
+      'contourpy-1.3.3-cp314-cp314-pyemscripten_2026_0_wasm32.whl',
+      'matplotlib-3.10.8-cp314-cp314-pyemscripten_2026_0_wasm32.whl',
     ]) {
       await pyodide.loadPackage(resolve(import.meta.dirname, '../../../vendor/pyodide', file));
     }
-    pyodide.runPython('import pandas');
-  }, 30_000);
+    pyodide.runPython('import pandas\nimport scipy\nimport matplotlib\nmatplotlib.use("Agg")');
+  }, 60_000);
 
   it('проверяется той же версией CPython, что и браузерный исполнитель', () => {
     expect(pyodide.runPython('import sys; sys.version')).toContain('3.14.2');
   });
 
-  it('содержит 38 задач по восьми темам со стабильными адресами', () => {
-    expect(pythonTasks).toHaveLength(38);
-    expect(new Set(pythonTasks.map((task) => task.id)).size).toBe(38);
-    expect(new Set(pythonTasks.map((task) => task.slug)).size).toBe(38);
+  it('содержит 46 задач по девяти темам со стабильными адресами', () => {
+    expect(pythonTasks).toHaveLength(46);
+    expect(new Set(pythonTasks.map((task) => task.id)).size).toBe(46);
+    expect(new Set(pythonTasks.map((task) => task.slug)).size).toBe(46);
     expect(new Set(pythonTasks.map((task) => task.topic))).toEqual(
       new Set([
         'Вывод и переменные',
@@ -96,6 +105,7 @@ describe('каталог задач Python', () => {
         'Функции',
         'NumPy',
         'pandas',
+        'SciPy и графики',
       ]),
     );
   });

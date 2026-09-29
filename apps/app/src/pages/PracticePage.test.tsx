@@ -93,7 +93,7 @@ describe('раздел практики', () => {
     expect(screen.getByRole('link', { name: /Приветствие по имени/ }).getAttribute('href')).toBe(
       '/practice/python/privetstvie-po-imeni',
     );
-    expect(screen.getAllByText('38 задач')).toHaveLength(2);
+    expect(screen.getAllByText('46 задач')).toHaveLength(2);
     expect(
       screen
         .getByRole('progressbar', { name: 'Прогресс по задачам Python' })
@@ -111,8 +111,8 @@ describe('раздел практики', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Решено 1 из 38')).toBeTruthy();
-    expect(screen.getByText('3%')).toBeTruthy();
+    expect(screen.getByText('Решено 1 из 46')).toBeTruthy();
+    expect(screen.getByText('2%')).toBeTruthy();
     expect(screen.getAllByText('Решено')).toHaveLength(2);
 
     fireEvent.change(screen.getByRole('combobox', { name: 'Статус' }), {
@@ -139,7 +139,7 @@ describe('раздел практики', () => {
 
 describe('демонстрационная задача', () => {
   it('имеет стабильный адрес и версию', () => {
-    expect(pythonTasks).toHaveLength(38);
+    expect(pythonTasks).toHaveLength(46);
     expect(findPythonTask('privetstvie-po-imeni')).toMatchObject({
       id: 'python-greeting-by-name',
       version: 1,
@@ -258,6 +258,30 @@ describe('демонстрационная задача', () => {
     expect(await screen.findAllByText('Ошибка Python')).toHaveLength(2);
     expect(screen.queryByText('Ответ не совпал')).toBeNull();
     expect(screen.getByText(/SyntaxError/)).toBeTruthy();
+  });
+
+  it('показывает график matplotlib с доступной подписью', async () => {
+    renderTask('/practice/python/matplotlib-lineynyy-grafik');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Запустить' }));
+    act(() => {
+      FakeBrowserWorker.instances[0]?.emit({
+        type: 'result',
+        id: 1,
+        result: {
+          status: 'completed',
+          stdout: '',
+          stderr: '',
+          durationMs: 12,
+          truncated: false,
+          plots: [{ dataUrl: 'data:image/png;base64,cG5n', alt: 'Динамика' }],
+        },
+      });
+    });
+
+    const image = await screen.findByRole('img', { name: 'Динамика' });
+    expect(image.getAttribute('src')).toBe('data:image/png;base64,cG5n');
+    expect(screen.getByText('Динамика')).toBeTruthy();
   });
 
   it('сохраняет успешную проверку, показывает разбор и предлагает следующую задачу', async () => {
