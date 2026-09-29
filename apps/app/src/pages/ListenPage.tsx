@@ -25,7 +25,9 @@ import {
 import { api } from '../lib/api';
 
 export function ListenPage() {
-  const { setId = '' } = useParams();
+  const { setId, folderId } = useParams();
+  const targetId = setId ?? folderId ?? '';
+  const isFolder = Boolean(folderId);
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const direction = (params.get('direction') as StudyDirectionMode | null) ?? 'term_to_def';
@@ -42,6 +44,7 @@ export function ListenPage() {
 
   const query = useStudySession({
     setId,
+    folderId,
     mode: 'listen',
     scope: 'due',
     direction,
@@ -111,8 +114,17 @@ export function ListenPage() {
           доступны как обычно.
         </p>
         <div className="mt-6 flex justify-center gap-3">
-          <Button onClick={() => navigate(`/sets/${setId}/learn`)}>Перейти к заучиванию</Button>
-          <Button variant="ghost" onClick={() => navigate(`/sets/${setId}`)}>
+          <Button
+            onClick={() =>
+              navigate(isFolder ? `/folders/${targetId}/learn` : `/sets/${targetId}/learn`)
+            }
+          >
+            Перейти к заучиванию
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => navigate(isFolder ? '/sets' : `/sets/${targetId}`)}
+          >
             К набору
           </Button>
         </div>
@@ -130,7 +142,11 @@ export function ListenPage() {
           🎧
         </p>
         <h1 className="mt-4 text-xl font-semibold">На сегодня всё повторено</h1>
-        <Button className="mt-6" variant="ghost" onClick={() => navigate(`/sets/${setId}`)}>
+        <Button
+          className="mt-6"
+          variant="ghost"
+          onClick={() => navigate(isFolder ? '/sets' : `/sets/${targetId}`)}
+        >
           К набору
         </Button>
       </Card>
@@ -140,7 +156,9 @@ export function ListenPage() {
   if (finished || !current) {
     return (
       <SessionSummary
-        setId={setId}
+        setId={targetId}
+        backHref={isFolder ? '/sets' : undefined}
+        backLabel={isFolder ? 'К папке' : undefined}
         answers={answers}
         onRestart={() => {
           setFinished(false);

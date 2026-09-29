@@ -38,6 +38,10 @@ export function App() {
               />
               <Route path="courses/:courseId/read" element={<CourseReaderPage />} />
               <Route path="courses/:courseId/learn" element={<LearnPage />} />
+              <Route path="folders/:folderId/learn" element={<LearnPage />} />
+              <Route path="folders/:folderId/flashcards" element={<FlashcardsPage />} />
+              <Route path="folders/:folderId/write" element={<WritePage />} />
+              <Route path="folders/:folderId/listen" element={<ListenPage />} />
               <Route path="courses/copy/:slug" element={<CourseCopyPage />} />
               <Route path="sets/:setId" element={<SetPage />} />
               <Route path="sets/:setId/edit" element={<SetEditorPage />} />

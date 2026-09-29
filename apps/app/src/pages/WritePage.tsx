@@ -21,12 +21,14 @@ import {
 } from '../features/study/use-study-session';
 
 export function WritePage() {
-  const { setId = '' } = useParams();
+  const { setId, folderId } = useParams();
+  const targetId = setId ?? folderId ?? '';
+  const isFolder = Boolean(folderId);
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const direction = (params.get('direction') as StudyDirectionMode | null) ?? 'term_to_def';
 
-  const query = useStudySession({ setId, mode: 'write', scope: 'due', direction });
+  const query = useStudySession({ setId, folderId, mode: 'write', scope: 'due', direction });
 
   const items = useStudyStore((state) => state.items);
   const index = useStudyStore((state) => state.index);
@@ -97,8 +99,19 @@ export function WritePage() {
         <h1 className="mt-4 text-xl font-semibold">На сегодня всё повторено</h1>
         <p className="text-fg-muted mt-2">Карточки вернутся, когда подойдёт срок повторения.</p>
         <div className="mt-6 flex justify-center gap-3">
-          <Button onClick={() => navigate(`/sets/${setId}/flashcards`)}>Открыть карточки</Button>
-          <Button variant="ghost" onClick={() => navigate(`/sets/${setId}`)}>
+          <Button
+            onClick={() =>
+              navigate(
+                isFolder ? `/folders/${targetId}/flashcards` : `/sets/${targetId}/flashcards`,
+              )
+            }
+          >
+            Открыть карточки
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => navigate(isFolder ? '/sets' : `/sets/${targetId}`)}
+          >
             К набору
           </Button>
         </div>
@@ -109,7 +122,9 @@ export function WritePage() {
   if (finished || !current) {
     return (
       <SessionSummary
-        setId={setId}
+        setId={targetId}
+        backHref={isFolder ? '/sets' : undefined}
+        backLabel={isFolder ? 'К папке' : undefined}
         answers={answers}
         onRestart={() => {
           setFinished(false);

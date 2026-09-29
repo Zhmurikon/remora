@@ -1373,6 +1373,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/study/folders/{folder_id}/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Очередь карточек всей папки */
+        get: operations["get_folder_queue_api_v1_study_folders__folder_id__queue_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/study/forecast": {
         parameters: {
             query?: never;
@@ -3658,6 +3675,8 @@ export interface components {
             course_title: string;
             /** Description */
             description: string;
+            /** Folder Id */
+            folder_id?: string | null;
             /** Has Updates */
             has_updates: boolean;
             /**
@@ -3699,6 +3718,8 @@ export interface components {
             };
             /** Course Id */
             course_id?: string | null;
+            /** Folder Id */
+            folder_id?: string | null;
             mode: components["schemas"]["StudyMode"];
             /** Set Id */
             set_id?: string | null;
@@ -3717,6 +3738,8 @@ export interface components {
             course_id: string | null;
             /** Ended At */
             ended_at: string | null;
+            /** Folder Id */
+            folder_id: string | null;
             /**
              * Id
              * Format: uuid
@@ -4009,6 +4032,10 @@ export interface components {
             course_title?: string | null;
             /** Due Total */
             due_total: number;
+            /** Folder Id */
+            folder_id?: string | null;
+            /** Folder Title */
+            folder_title?: string | null;
             /**
              * Generated At
              * Format: date-time
@@ -7300,6 +7327,43 @@ export interface operations {
             header?: never;
             path: {
                 course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudyQueue"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_folder_queue_api_v1_study_folders__folder_id__queue_get: {
+        parameters: {
+            query?: {
+                mode?: components["schemas"]["StudyMode"];
+                scope?: components["schemas"]["QueueScope"];
+                direction?: components["schemas"]["DirectionMode"];
+                limit?: number;
+                shuffle?: boolean;
+            };
+            header?: never;
+            path: {
+                folder_id: string;
             };
             cookie?: never;
         };

@@ -344,6 +344,89 @@ class StudyService:
             reviews_left_today=reviews_left,
         )
 
+    async def get_folder_queue(
+        self,
+        user: User,
+        folder_id: UUID,
+        *,
+        mode: StudyMode,
+        scope: QueueScope,
+        direction: DirectionMode,
+        limit: int,
+        shuffle: bool,
+    ) -> StudyQueue:
+        library = LibraryService(self.db)
+        folder, set_ids = await library.get_folder_set_ids(user, folder_id)
+        queues: list[StudyQueue] = []
+        for set_id in set_ids:
+            queue = await self.get_queue(
+                user,
+                set_id,
+                mode=mode,
+                scope=scope,
+                direction=direction,
+                limit=MAX_QUEUE_LIMIT,
+                shuffle=shuffle,
+            )
+            queue.items = [
+                item.model_copy(
+                    update={
+                        "source_set_id": queue.set_id,
+                        "source_set_title": queue.set_title,
+                        "lang_term": queue.lang_term,
+                        "lang_definition": queue.lang_definition,
+                    }
+                )
+                for item in queue.items
+            ]
+            queues.append(queue)
+
+        settings = await user_repo.get_or_create_settings(self.db, user.id)
+        scheduler = self._scheduler(settings)
+        combined: list[QueueItem] = []
+        per_set = [list(queue.items) for queue in queues]
+        while any(per_set):
+            for current in per_set:
+                if current:
+                    combined.append(current.pop(0))
+        first = queues[0] if queues else None
+        new_left = first.new_left_today if first else settings.new_cards_per_day
+        reviews_left = first.reviews_left_today if first else settings.reviews_per_day
+        items: list[QueueItem] = []
+        selected_new = selected_reviews = 0
+        for item in combined:
+            is_new = item.state.state is CardStateKind.new
+            if scope is QueueScope.due:
+                if is_new and selected_new >= new_left:
+                    continue
+                if not is_new and selected_reviews >= reviews_left:
+                    continue
+            items.append(item)
+            selected_new += int(is_new)
+            selected_reviews += int(not is_new)
+            if len(items) >= max(1, min(limit, MAX_QUEUE_LIMIT)):
+                break
+        return StudyQueue(
+            folder_id=folder.id,
+            folder_title=folder.title,
+            set_title=folder.title,
+            lang_term=first.lang_term if first else "ru",
+            lang_definition=first.lang_definition if first else "ru",
+            answer_strictness=Strictness(settings.answer_strictness),
+            learn_question_types=settings.learn_question_types,
+            learn_successes_required=settings.learn_successes_required,
+            learn_typing_check=settings.learn_typing_check,
+            learn_match_percent=settings.learn_match_percent,
+            mode=mode,
+            generated_at=datetime.now(tz=UTC),
+            scheduler_version=scheduler.version,
+            items=items,
+            due_total=sum(queue.due_total for queue in queues),
+            new_total=sum(queue.new_total for queue in queues),
+            new_left_today=new_left,
+            reviews_left_today=reviews_left,
+        )
+
     # -------------------------------------------------------------------- ответы
 
     async def submit_reviews(self, user: User, body: ReviewBatch) -> ReviewBatchResult:
@@ -472,8 +555,7 @@ class StudyService:
         if body.set_id is not None:
             await self.content.get_study_set(user, body.set_id)
             existing = await study_repo.get_active_session(self.db, user.id, body.set_id, body.mode)
-        else:
-            assert body.course_id is not None
+        elif body.course_id is not None:
             course = await LibraryService(self.db).get_study_course(user, body.course_id)
             articles = await course_repo.articles(self.db, course.id)
             if course.owner_id != user.id:
@@ -488,12 +570,20 @@ class StudyService:
             existing = await study_repo.get_active_course_session(
                 self.db, user.id, body.course_id, body.mode
             )
+        else:
+            assert body.folder_id is not None
+            _, set_ids = await LibraryService(self.db).get_folder_set_ids(user, body.folder_id)
+            config["set_ids"] = [str(set_id) for set_id in set_ids]
+            existing = await study_repo.get_active_folder_session(
+                self.db, user.id, body.folder_id, body.mode
+            )
         if existing is not None:
             return existing
         session = StudySession(
             user_id=user.id,
             set_id=body.set_id,
             course_id=body.course_id,
+            folder_id=body.folder_id,
             mode=body.mode,
             config=config,
         )

@@ -29,7 +29,9 @@ const scopeLabels: Record<StudyScope, string> = {
 };
 
 export function FlashcardsPage() {
-  const { setId = '' } = useParams();
+  const { setId, folderId } = useParams();
+  const targetId = setId ?? folderId ?? '';
+  const isFolder = Boolean(folderId);
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const scope = (params.get('scope') as StudyScope | null) ?? 'all';
@@ -42,6 +44,7 @@ export function FlashcardsPage() {
 
   const query = useStudySession({
     setId,
+    folderId,
     mode: 'flashcards',
     scope,
     shuffle: params.get('shuffle') !== '0',
@@ -122,7 +125,7 @@ export function FlashcardsPage() {
       <EmptyQueue
         scope={scope}
         onAll={() => setParams({ scope: 'all' })}
-        onBack={() => navigate(`/sets/${setId}`)}
+        onBack={() => navigate(isFolder ? '/sets' : `/sets/${targetId}`)}
       />
     );
   }
@@ -130,7 +133,9 @@ export function FlashcardsPage() {
   if (finished || !current) {
     return (
       <SessionSummary
-        setId={setId}
+        setId={targetId}
+        backHref={isFolder ? '/sets' : undefined}
+        backLabel={isFolder ? 'К папке' : undefined}
         answers={answers}
         onRestart={() => {
           setFinished(false);

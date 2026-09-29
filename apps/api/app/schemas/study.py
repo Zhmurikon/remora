@@ -106,6 +106,8 @@ class StudyQueue(BaseModel):
     set_id: UUID | None = None
     course_id: UUID | None = None
     course_title: str | None = None
+    folder_id: UUID | None = None
+    folder_title: str | None = None
     set_title: str
     lang_term: str
     lang_definition: str
@@ -152,12 +154,13 @@ class ReviewBatchResult(BaseModel):
 class SessionCreate(BaseModel):
     set_id: UUID | None = None
     course_id: UUID | None = None
+    folder_id: UUID | None = None
     mode: StudyMode
     config: dict[str, object] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def exactly_one_target(self) -> "SessionCreate":
-        if (self.set_id is None) == (self.course_id is None):
+        if sum(value is not None for value in (self.set_id, self.course_id, self.folder_id)) != 1:
             raise ValueError("Укажите ровно одну цель обучения")
         return self
 
@@ -168,6 +171,7 @@ class SessionOut(BaseModel):
     id: UUID
     set_id: UUID | None
     course_id: UUID | None
+    folder_id: UUID | None
     mode: StudyMode
     status: SessionStatus
     started_at: datetime

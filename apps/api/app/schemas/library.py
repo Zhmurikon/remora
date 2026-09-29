@@ -80,3 +80,4 @@ class SavedSetItem(BaseModel):
     access_via: Literal["course", "article", "set"]
     saved_at: datetime
     has_updates: bool
+    folder_id: UUID | None = None

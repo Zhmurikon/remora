@@ -63,6 +63,30 @@ async def test_course_save_grants_study_but_not_edit_and_revokes_on_unpublish(
     assert saved_sets[0]["id"] == set_id
     assert saved_sets[0]["access_via"] == "course"
     assert saved_sets[0]["course_id"] == course["id"]
+    folder_id = saved_sets[0]["folder_id"]
+    assert folder_id is not None
+    folders = (await client.get("/api/v1/folders", headers=learner)).json()
+    assert [(folder["id"], folder["title"]) for folder in folders] == [(folder_id, "Курс")]
+    folder_queue = await client.get(
+        f"/api/v1/study/folders/{folder_id}/queue",
+        headers=learner,
+        params={"scope": "all", "shuffle": "false"},
+    )
+    assert folder_queue.status_code == 200, folder_queue.text
+    assert folder_queue.json()["folder_id"] == folder_id
+    assert folder_queue.json()["items"][0]["source_set_id"] == set_id
+    assert (
+        await client.get(f"/api/v1/study/folders/{folder_id}/queue", headers=stranger)
+    ).status_code == 403
+    folder_session = await client.post(
+        "/api/v1/study/sessions",
+        headers=learner,
+        json={"folder_id": folder_id, "mode": "learn", "config": {}},
+    )
+    assert folder_session.status_code == 201, folder_session.text
+    assert folder_session.json()["folder_id"] == folder_id
+    assert folder_session.json()["set_id"] is None
+    assert folder_session.json()["course_id"] is None
     course_queue = await client.get(
         f"/api/v1/study/courses/{course['id']}/queue",
         headers=learner,

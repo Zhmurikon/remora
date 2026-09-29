@@ -150,6 +150,32 @@ async def get_course_queue(
     )
 
 
+@router.get(
+    "/folders/{folder_id}/queue",
+    response_model=StudyQueue,
+    summary="Очередь карточек всей папки",
+)
+async def get_folder_queue(
+    folder_id: UUID,
+    mode: StudyMode = StudyMode.learn,
+    scope: QueueScope = QueueScope.due,
+    direction: DirectionMode = DirectionMode.term_to_def,
+    limit: int = Query(default=DEFAULT_QUEUE_LIMIT, ge=1, le=MAX_QUEUE_LIMIT),
+    shuffle: bool = True,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+) -> StudyQueue:
+    return await StudyService(db).get_folder_queue(
+        user,
+        folder_id,
+        mode=mode,
+        scope=scope,
+        direction=direction,
+        limit=limit,
+        shuffle=shuffle,
+    )
+
+
 @router.get("/sets/{set_id}/stats", response_model=SetStats, summary="Статистика по набору")
 async def get_set_stats(
     set_id: UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)

@@ -9,7 +9,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ConflictError, ForbiddenError, NotFoundError
-from app.models.content import StudySet
+from app.models.content import Folder, StudySet
 from app.models.courses import Course, CourseArticle, CourseSection, LibrarySave
 from app.models.user import User
 from app.repositories import content as content_repo
@@ -41,14 +41,35 @@ class LibraryService:
             raise ConflictError("Собственный материал уже доступен в библиотеке")
         saved = LibrarySave(user_id=user.id)
         setattr(saved, f"{body.target_type}_id", body.target_id)
+        if body.target_type == "course":
+            saved.folder_id = await self._create_course_folder(user, course)
         saved.accepted_snapshot = await self._snapshot(body.target_type, course, article, study_set)
         self.db.add(saved)
         await self.db.flush()
         return await self._item(saved, course=course, article=article, study_set=study_set)
 
+    async def _create_course_folder(self, user: User, course: Course) -> UUID:
+        folder = Folder(
+            owner_id=user.id,
+            parent_id=None,
+            title=course.title[:100],
+            color="violet",
+            position=await content_repo.next_folder_position(self.db, user.id),
+        )
+        self.db.add(folder)
+        await self.db.flush()
+        return folder.id
+
     async def remove(self, user: User, save_id: UUID) -> None:
+        saved = await repo.get_save(self.db, user.id, save_id)
+        folder_id = saved.folder_id if saved is not None and saved.course_id is not None else None
         if not await repo.remove_save(self.db, user.id, save_id):
             raise NotFoundError("Сохранение не найдено")
+        if folder_id is not None:
+            folder = await content_repo.get_folder(self.db, folder_id)
+            owned_sets = await content_repo.list_sets(self.db, user.id)
+            if folder is not None and not any(item.folder_id == folder_id for item in owned_sets):
+                await content_repo.delete_folder(self.db, folder)
 
     async def list_items(self, user: User) -> list[LibraryItem]:
         result: list[LibraryItem] = []
@@ -142,6 +163,7 @@ class LibraryService:
                     access_via=target_type,
                     saved_at=saved.created_at,
                     has_updates=has_updates,
+                    folder_id=saved.folder_id,
                 )
         return sorted(result.values(), key=lambda value: value.saved_at, reverse=True)
 
@@ -155,6 +177,22 @@ class LibraryService:
         if saved is None or await course_repo.public_course(self.db, course.slug) is None:
             raise ForbiddenError("Нет доступа к обучению по этому курсу")
         return course
+
+    async def get_folder_set_ids(self, user: User, folder_id: UUID) -> tuple[Folder, list[UUID]]:
+        folder = await content_repo.get_folder(self.db, folder_id)
+        if folder is None:
+            raise NotFoundError("Папка не найдена")
+        if folder.owner_id != user.id:
+            raise ForbiddenError("Нет доступа к этой папке")
+        owned_ids = [
+            item.id
+            for item in await content_repo.list_sets(self.db, user.id)
+            if item.folder_id == folder.id
+        ]
+        saved_ids = [
+            item.id for item in await self.list_saved_sets(user) if item.folder_id == folder.id
+        ]
+        return folder, list(dict.fromkeys([*owned_ids, *saved_ids]))
 
     async def state(self, user: User, slug: str) -> LibraryState:
         course = await course_repo.public_course(self.db, slug)

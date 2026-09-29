@@ -19,6 +19,7 @@ export type StudyDirectionMode = 'term_to_def' | 'def_to_term' | 'both';
 export interface StudySessionOptions {
   setId?: string;
   courseId?: string;
+  folderId?: string;
   mode: StudyMode;
   scope?: StudyScope;
   direction?: StudyDirectionMode;
@@ -32,6 +33,7 @@ export interface StudySessionOptions {
 export function useStudySession({
   setId,
   courseId,
+  folderId,
   mode,
   scope = 'due',
   direction = 'term_to_def',
@@ -44,8 +46,17 @@ export function useStudySession({
   const startedFor = useRef<string | null>(null);
 
   const query = useQuery({
-    queryKey: ['study', 'queue', setId ?? courseId, mode, scope, direction, shuffle, trackProgress],
-    enabled: enabled && Boolean(setId || courseId),
+    queryKey: [
+      'study',
+      'queue',
+      setId ?? courseId ?? folderId,
+      mode,
+      scope,
+      direction,
+      shuffle,
+      trackProgress,
+    ],
+    enabled: enabled && Boolean(setId || courseId || folderId),
     staleTime: Infinity,
     gcTime: 0,
     retry: 1,
@@ -54,19 +65,28 @@ export function useStudySession({
         ? await api.POST('/api/v1/study/sessions', {
             body: setId
               ? { set_id: setId, mode, config: { scope, direction } }
-              : { course_id: courseId, mode, config: { scope, direction } },
+              : courseId
+                ? { course_id: courseId, mode, config: { scope, direction } }
+                : { folder_id: folderId, mode, config: { scope, direction } },
           })
         : null;
       const { data, error } = setId
         ? await api.GET('/api/v1/study/sets/{set_id}/queue', {
             params: { path: { set_id: setId }, query: { mode, scope, direction, shuffle } },
           })
-        : await api.GET('/api/v1/study/courses/{course_id}/queue', {
-            params: {
-              path: { course_id: courseId ?? '' },
-              query: { mode, scope, direction, shuffle },
-            },
-          });
+        : courseId
+          ? await api.GET('/api/v1/study/courses/{course_id}/queue', {
+              params: {
+                path: { course_id: courseId },
+                query: { mode, scope, direction, shuffle },
+              },
+            })
+          : await api.GET('/api/v1/study/folders/{folder_id}/queue', {
+              params: {
+                path: { folder_id: folderId ?? '' },
+                query: { mode, scope, direction, shuffle },
+              },
+            });
       if (error || !data) throw new Error('Не удалось загрузить карточки');
       return { queue: data, sessionId: session?.data?.id ?? null };
     },
@@ -74,7 +94,7 @@ export function useStudySession({
 
   useEffect(() => {
     if (!query.data) return;
-    const targetId = setId ?? courseId ?? '';
+    const targetId = setId ?? courseId ?? folderId ?? '';
     const key = `${targetId}:${mode}:${scope}:${direction}`;
     if (startedFor.current === key) return;
     startedFor.current = key;
@@ -84,7 +104,7 @@ export function useStudySession({
       sessionId: query.data.sessionId,
       items: query.data.queue.items,
     });
-  }, [begin, courseId, direction, mode, query.data, scope, setId]);
+  }, [begin, courseId, direction, folderId, mode, query.data, scope, setId]);
 
   useEffect(() => () => reset(), [reset]);
 

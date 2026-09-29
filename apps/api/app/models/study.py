@@ -172,7 +172,10 @@ class StudySession(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __table_args__ = (
         Index("ix_study_sessions_user_id_set_id_status", "user_id", "set_id", "status"),
         Index("ix_study_sessions_user_id_course_id_status", "user_id", "course_id", "status"),
-        CheckConstraint("num_nonnulls(set_id, course_id) = 1", name="exactly_one_target"),
+        Index("ix_study_sessions_user_id_folder_id_status", "user_id", "folder_id", "status"),
+        CheckConstraint(
+            "num_nonnulls(set_id, course_id, folder_id) = 1", name="exactly_one_target"
+        ),
     )
 
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
@@ -181,6 +184,9 @@ class StudySession(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     course_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("courses.id", ondelete="CASCADE"), index=True
+    )
+    folder_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("folders.id", ondelete="CASCADE"), index=True
     )
     mode: Mapped[StudyMode] = mapped_column(Enum(StudyMode))
     status: Mapped[SessionStatus] = mapped_column(

@@ -71,12 +71,15 @@ export function SetsPage() {
     const needle = search.trim().toLocaleLowerCase('ru');
     return (savedSets.data ?? []).filter(
       (set) =>
-        !needle ||
-        `${set.title} ${set.description} ${set.course_title}`
-          .toLocaleLowerCase('ru')
-          .includes(needle),
+        (selectedFolder === 'all' ||
+          selectedFolder === 'archived' ||
+          set.folder_id === selectedFolder) &&
+        (!needle ||
+          `${set.title} ${set.description} ${set.course_title}`
+            .toLocaleLowerCase('ru')
+            .includes(needle)),
     );
-  }, [savedSets.data, search]);
+  }, [savedSets.data, search, selectedFolder]);
 
   async function createSet() {
     const { data } = await api.POST('/api/v1/sets', {
@@ -226,7 +229,10 @@ export function SetsPage() {
                     className={`h-2.5 w-2.5 rounded-full ${folderColors[folder.color] ?? 'bg-primary'}`}
                   />
                   <span className="min-w-0 flex-1 truncate text-left">{folder.title}</span>
-                  <span>{sets.data?.filter((set) => set.folder_id === folder.id).length ?? 0}</span>
+                  <span>
+                    {(sets.data?.filter((set) => set.folder_id === folder.id).length ?? 0) +
+                      (savedSets.data?.filter((set) => set.folder_id === folder.id).length ?? 0)}
+                  </span>
                 </FolderButton>
                 <button
                   type="button"
@@ -280,6 +286,43 @@ export function SetsPage() {
           </p>
         </aside>
         <section>
+          {typeof selectedFolder === 'string' &&
+            selectedFolder !== 'all' &&
+            selectedFolder !== 'archived' && (
+              <Card className="mb-5 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="font-medium">
+                      {folders.data?.find((folder) => folder.id === selectedFolder)?.title ??
+                        'Папка'}
+                    </p>
+                    <p className="text-fg-muted mt-1 text-sm">
+                      Учитесь сразу по всем наборам этой папки.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Link to={`/folders/${selectedFolder}/learn`}>
+                      <Button size="sm">Заучивание</Button>
+                    </Link>
+                    <Link to={`/folders/${selectedFolder}/flashcards`}>
+                      <Button size="sm" variant="secondary">
+                        Карточки
+                      </Button>
+                    </Link>
+                    <Link to={`/folders/${selectedFolder}/write`}>
+                      <Button size="sm" variant="secondary">
+                        Письмо
+                      </Button>
+                    </Link>
+                    <Link to={`/folders/${selectedFolder}/listen`}>
+                      <Button size="sm" variant="secondary">
+                        Аудирование
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </Card>
+            )}
           {(sets.isPending ||
             folders.isPending ||
             archivedSets.isPending ||
@@ -369,7 +412,7 @@ export function SetsPage() {
                   </Link>
                 ))}
             {origin !== 'owned' &&
-              (origin === 'saved' || selectedFolder === 'all') &&
+              (origin === 'saved' || selectedFolder !== 'archived') &&
               visibleSavedSets.map((set) => (
                 <Link key={set.id} to={`/sets/${set.id}/learn`} className="group">
                   <Card interactive className="h-full p-5">

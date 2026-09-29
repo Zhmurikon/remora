@@ -76,9 +76,7 @@ class CourseLike(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     course_id: Mapped[UUID] = mapped_column(
         ForeignKey("courses.id", ondelete="CASCADE"), index=True
     )
-    user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), index=True
-    )
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
 
 
 class LibrarySave(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -94,9 +92,7 @@ class LibrarySave(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         UniqueConstraint("user_id", "set_id", name="uq_library_saves_user_set"),
     )
 
-    user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), index=True
-    )
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     course_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("courses.id", ondelete="CASCADE"), index=True
     )
@@ -105,6 +101,9 @@ class LibrarySave(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     set_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("study_sets.id", ondelete="CASCADE"), index=True
+    )
+    folder_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("folders.id", ondelete="SET NULL"), index=True
     )
     accepted_snapshot: Mapped[dict[str, Any]] = mapped_column(
         JSONB, default=dict, server_default=text("'{}'::jsonb")

@@ -38,14 +38,22 @@ type QuestionKind = 'choice' | 'typing' | 'recall';
 type CheckedAnswer = { correct: boolean | null; value: string; similarity?: number };
 
 export function LearnPage() {
-  const { setId, courseId } = useParams();
-  const targetId = setId ?? courseId ?? '';
+  const { setId, courseId, folderId } = useParams();
+  const targetId = setId ?? courseId ?? folderId ?? '';
   const isCourse = Boolean(courseId);
+  const isFolder = Boolean(folderId);
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const direction = (params.get('direction') as StudyDirectionMode | null) ?? 'term_to_def';
 
-  const query = useStudySession({ setId, courseId, mode: 'learn', scope: 'due', direction });
+  const query = useStudySession({
+    setId,
+    courseId,
+    folderId,
+    mode: 'learn',
+    scope: 'due',
+    direction,
+  });
   const queue = query.data?.queue;
 
   const items = useStudyStore((state) => state.items);
@@ -207,15 +215,23 @@ export function LearnPage() {
         </p>
         <div className="mt-6 flex justify-center gap-3">
           {!isCourse && (
-            <Button onClick={() => navigate(`/sets/${targetId}/flashcards`)}>
+            <Button
+              onClick={() =>
+                navigate(
+                  isFolder ? `/folders/${targetId}/flashcards` : `/sets/${targetId}/flashcards`,
+                )
+              }
+            >
               Открыть карточки
             </Button>
           )}
           <Button
             variant="ghost"
-            onClick={() => navigate(isCourse ? '/courses' : `/sets/${targetId}`)}
+            onClick={() =>
+              navigate(isCourse ? '/courses' : isFolder ? '/sets' : `/sets/${targetId}`)
+            }
           >
-            {isCourse ? 'К курсам' : 'К набору'}
+            {isCourse ? 'К курсам' : isFolder ? 'К папке' : 'К набору'}
           </Button>
         </div>
       </Card>
@@ -227,8 +243,8 @@ export function LearnPage() {
     return (
       <SessionSummary
         setId={targetId}
-        backHref={isCourse ? '/courses' : undefined}
-        backLabel={isCourse ? 'К курсам' : undefined}
+        backHref={isCourse ? '/courses' : isFolder ? '/sets' : undefined}
+        backLabel={isCourse ? 'К курсам' : isFolder ? 'К папке' : undefined}
         answers={answers}
         nextDueSeconds={nextDueSeconds(items, last?.cardId)}
         onRestart={() => {
