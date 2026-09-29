@@ -53,9 +53,12 @@
       по `docs/07-agent-api.md`. Из `apps/api` убраны `mcp_server.py`, его тесты и
       зависимость `mcp`.
 
-- [ ] Открыть публичные страницы `remora.com.ru` для поисковой индексации, проверить
-      `robots.txt`, `sitemap.xml`, canonical и отсутствие глобального `X-Robots-Tag`;
-      добавить домен в Google Search Console и Яндекс Вебмастер.
+- [x] Открыть публичные страницы `remora.com.ru` для поисковой индексации: `robots.txt`
+      разрешает публичную часть и ссылается на `sitemap.xml`; все 11 адресов карты сайта
+      отвечают 200 с правильным canonical, без `noindex` и глобального `X-Robots-Tag`;
+      `www` перенаправляется одним 301. Отчёт: `docs/reports/2026-09-29-indexing-audit.md`.
+- [ ] Добавить `remora.com.ru` в Google Search Console и Яндекс Вебмастер, подтвердить
+      владение и отправить `https://remora.com.ru/sitemap.xml` в обоих кабинетах.
 
 - [x] Подключить `remora.com.ru` и `www.remora.com.ru`: направить на приложение через Nginx
       Proxy Manager, выпустить TLS, перенаправить `www` на домен без `www`, переключить
