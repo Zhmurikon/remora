@@ -27,7 +27,13 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    configure_logging(json_output=not settings.is_local)
+    configure_logging(
+        json_output=not settings.is_local,
+        level=settings.log_level,
+        log_file=settings.log_file,
+        max_bytes=settings.log_max_bytes,
+        backup_count=settings.log_backup_count,
+    )
 
     app = FastAPI(
         title=settings.project_name,

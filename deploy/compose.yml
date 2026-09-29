@@ -9,6 +9,7 @@ x-api: &api
   volumes:
     - ../:/workspace:ro
     - python-deps:/opt/venv
+    - ./logs:/var/log/remora
   extra_hosts:
     - host.docker.internal:host-gateway
   networks: [internal]
@@ -74,6 +75,8 @@ services:
     restart: unless-stopped
   api:
     <<: *api
+    environment:
+      LOG_FILE: /var/log/remora/api.log
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips=*
     depends_on:
       postgres: { condition: service_healthy }
@@ -92,6 +95,8 @@ services:
     command: arq app.worker.WorkerSettings
   bot-api:
     <<: *api
+    environment:
+      LOG_FILE: /var/log/remora/bot-api.log
     command: uvicorn app.bot_api:app --host 0.0.0.0 --port 8000 --no-access-log
     networks: [internal, bot-private]
     depends_on:

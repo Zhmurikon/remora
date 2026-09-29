@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     # Приложение
     environment: Literal["local", "staging", "production"] = "local"
     debug: bool = False
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+    log_file: Path | None = None
+    log_max_bytes: int = Field(default=20 * 1024 * 1024, ge=1024)
+    log_backup_count: int = Field(default=10, ge=1, le=100)
     tg_bot_username: str = ""
     vk_group_id: int = 0
     bot_tg_service_token: SecretStr = SecretStr("")
