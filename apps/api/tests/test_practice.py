@@ -67,6 +67,10 @@ async def test_progress_merge_is_idempotent_and_never_downgrades(
         "/api/v1/practice/python/progress/python-factorial", headers=headers, json=solved
     )
     assert first.status_code == repeated.status_code == 200
+    retention = (await client.get("/api/v1/retention/summary", headers=headers)).json()
+    assert retention["xp_today"] == 25
+    assert retention["total_xp"] == 25
+    assert retention["reviews_today"] == 0
 
     stale = await client.put(
         "/api/v1/practice/python/progress/python-factorial",

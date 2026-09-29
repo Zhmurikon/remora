@@ -10,6 +10,7 @@ const navigation = [
   { to: '/courses', label: 'Мои курсы', icon: '▤' },
   { to: '/library', label: 'Библиотека', icon: '◇' },
   { to: '/practice', label: 'Практика', icon: '⌨' },
+  { to: '/achievements', label: 'Достижения', icon: '☆' },
   { to: '/settings', label: 'Настройки', icon: '⚙' },
 ];
 

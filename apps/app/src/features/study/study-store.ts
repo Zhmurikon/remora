@@ -54,6 +54,7 @@ interface StudyState {
     correct: boolean;
     typed?: string;
     durationMs: number;
+    updatesSchedule?: boolean;
     /** Показать карточку ещё раз в этой же сессии (ошибка в «Заучивании»). */
     requeue?: boolean;
   }) => void;
@@ -89,7 +90,7 @@ export const useStudyStore = create<StudyState>((set, get) => ({
       pending: pendingCount(),
     }),
 
-  answer: ({ item, rating, correct, typed, durationMs, requeue }) => {
+  answer: ({ item, rating, correct, typed, durationMs, updatesSchedule = true, requeue }) => {
     const state = get();
     enqueue(
       {
@@ -100,6 +101,7 @@ export const useStudyStore = create<StudyState>((set, get) => ({
         rating,
         answer_correct: correct,
         duration_ms: Math.min(durationMs, 3_600_000),
+        updates_schedule: updatesSchedule,
         reviewed_at: new Date().toISOString(),
       },
       state.sessionId,

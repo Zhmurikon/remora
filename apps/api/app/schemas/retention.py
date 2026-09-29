@@ -29,3 +29,23 @@ class ActivityDay(BaseModel):
     xp_earned: int
     goal_reached_at: dt.datetime | None
     is_frozen: bool
+
+
+class AchievementPublic(BaseModel):
+    code: str
+    title: str
+    description: str
+    category: str
+    icon: str
+    unlocked: bool
+    unlocked_at: dt.datetime | None
+    seen: bool
+    progress: int
+    target: int
+
+
+class AchievementCollection(BaseModel):
+    unlocked_count: int
+    total_count: int
+    items: list[AchievementPublic]
+    newly_unlocked: list[AchievementPublic]

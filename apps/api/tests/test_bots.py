@@ -438,6 +438,9 @@ async def test_learning_modes_share_study_session_and_progress(client, internal)
     )
     assert active.status_code == 200
     assert active.json()["cards_seen"] == 1
+    retention = (await client.get("/api/v1/retention/summary", headers=owner)).json()
+    assert retention["reviews_today"] == 1
+    assert retention["xp_today"] > 0
 
     await event(internal, command="courses")
     courses = (await internal.post("/internal/v1/delivery")).json()

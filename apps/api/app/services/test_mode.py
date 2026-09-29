@@ -71,9 +71,7 @@ class TestModeService:
         self, user: User, set_id: UUID, config: TestConfig, *, retake_of: UUID | None = None
     ) -> TestAttemptOut:
         study_set = await self.content.get_study_set(user, set_id, with_cards=True)
-        available = await library_repo.accepted_cards(
-            self.db, user.id, set_id, study_set.cards
-        )
+        available = await library_repo.accepted_cards(self.db, user.id, set_id, study_set.cards)
         if not available:
             raise ConflictError("В наборе нет карточек")
 
@@ -136,8 +134,7 @@ class TestModeService:
         attempt.finished_at = datetime.now(tz=UTC)
         await self.db.flush()
 
-        if attempt.config.get("write_to_schedule", True):
-            await self._record_reviews(user, attempt, checked)
+        await self._record_reviews(user, attempt, checked)
         await self.study.recalculate_progress(user, attempt.set_id)
         return await self._result(user, attempt)
 
@@ -219,9 +216,7 @@ class TestModeService:
 
         for position, card in enumerate(cards):
             direction = directions[position % len(directions)]
-            pool = [
-                _answer_side(other, direction) for other in available if other is not card
-            ]
+            pool = [_answer_side(other, direction) for other in available if other is not card]
             preferred = (
                 card.wrong_definition_answers
                 if direction is StudyDirection.term_to_def
@@ -355,6 +350,7 @@ class TestModeService:
                         rating=3 if item["correct"] else 1,
                         answer_correct=bool(item["correct"]),
                         duration_ms=None,
+                        updates_schedule=bool(attempt.config.get("write_to_schedule", True)),
                         reviewed_at=moment,
                     )
                 )

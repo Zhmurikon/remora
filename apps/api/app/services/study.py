@@ -486,6 +486,7 @@ class StudyService:
         # Порядок ответов задаёт расписание: интервал зависит от момента предыдущего
         # ответа, поэтому батч из офлайн-очереди разбираем по времени, а не по приходу.
         for item in sorted(body.reviews, key=lambda review: review.reviewed_at):
+            updates_schedule = item.updates_schedule is not False
             card = cards.get(item.card_id)
             if card is None:
                 rejected.append(item.client_review_id)
@@ -508,11 +509,19 @@ class StudyService:
             ):
                 rejected.append(item.client_review_id)
                 continue
-            state_row = touched.get((item.card_id, item.direction))
-            if state_row is None:
-                state_row = await self._get_or_create_state(user, card, item.direction, scheduler)
-            before = _to_scheduler_state(state_row, reviewed_at)
-            after = scheduler.review(before, item.rating, reviewed_at=reviewed_at)
+            state_row = None
+            before_json: dict[str, object] = {}
+            after_json: dict[str, object] = {}
+            if updates_schedule:
+                state_row = touched.get((item.card_id, item.direction))
+                if state_row is None:
+                    state_row = await self._get_or_create_state(
+                        user, card, item.direction, scheduler
+                    )
+                before = _to_scheduler_state(state_row, reviewed_at)
+                after = scheduler.review(before, item.rating, reviewed_at=reviewed_at)
+                before_json = before.as_json()
+                after_json = after.as_json()
             stored = await study_repo.insert_review(
                 self.db,
                 {
@@ -526,9 +535,10 @@ class StudyService:
                     "rating": item.rating,
                     "answer_correct": item.answer_correct,
                     "duration_ms": item.duration_ms,
+                    "updates_schedule": updates_schedule,
                     "reviewed_at": reviewed_at,
-                    "state_before": before.as_json(),
-                    "state_after": after.as_json(),
+                    "state_before": before_json,
+                    "state_after": after_json,
                     "scheduler_version": scheduler.version,
                 },
             )
@@ -536,8 +546,9 @@ class StudyService:
                 # Параллельный ретрай того же батча успел записать ответ первым.
                 duplicates.append(item.client_review_id)
                 continue
-            _apply_state(state_row, after, scheduler.version)
-            touched[(item.card_id, item.direction)] = state_row
+            if updates_schedule and state_row is not None:
+                _apply_state(state_row, after, scheduler.version)
+                touched[(item.card_id, item.direction)] = state_row
             accepted.append(item.client_review_id)
             accepted_reviews.append(item)
             if session is not None:

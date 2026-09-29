@@ -25,7 +25,7 @@ from app.models.exports import AccountExportJob, AccountExportStatus
 from app.models.imports import ImportJob, ImportJobStatus
 from app.models.moderation import CourseReport, ReportReason, ReportStatus
 from app.models.practice import PythonPracticeProgress
-from app.models.retention import DailyActivity, Streak
+from app.models.retention import Achievement, DailyActivity, Streak, UserAchievement, XpReward
 from app.models.study import (
     CardState,
     CardStateKind,
@@ -55,6 +55,7 @@ from app.models.user import (
 __all__ = [
     "AccountExportJob",
     "AccountExportStatus",
+    "Achievement",
     "ActionToken",
     "AgentRequest",
     "ApiToken",
@@ -102,9 +103,11 @@ __all__ = [
     "UsageCounter",
     "UsageMetric",
     "User",
+    "UserAchievement",
     "UserRole",
     "UserSetLearnSettings",
     "UserSetProgress",
     "UserSettings",
     "UserStatus",
+    "XpReward",
 ]

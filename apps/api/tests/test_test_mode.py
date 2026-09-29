@@ -232,6 +232,9 @@ async def test_schedule_is_untouched_when_disabled(
     stats = await client.get(f"/api/v1/study/sets/{study_set['id']}/stats", headers=headers)
     assert stats.json()["distribution"]["new"] == 8
     assert stats.json()["distribution"]["learning"] == 0
+    retention = (await client.get("/api/v1/retention/summary", headers=headers)).json()
+    assert retention["reviews_today"] == 3
+    assert retention["xp_today"] == 15
 
 
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)

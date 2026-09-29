@@ -71,20 +71,17 @@ export function FlashcardsPage() {
   const mark = useCallback(
     (known: boolean) => {
       if (!current) return;
-      if (track) {
-        answer({
-          item: current,
-          rating: known ? 3 : 1,
-          correct: known,
-          durationMs: Date.now() - shownAt.current,
-        });
-        setFlipped(false);
-        shownAt.current = Date.now();
-      } else {
-        move(1);
-      }
+      answer({
+        item: current,
+        rating: known ? 3 : 1,
+        correct: known,
+        durationMs: Date.now() - shownAt.current,
+        updatesSchedule: track,
+      });
+      setFlipped(false);
+      shownAt.current = Date.now();
     },
-    [answer, current, move, track],
+    [answer, current, track],
   );
 
   useEffect(() => {

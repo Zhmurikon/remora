@@ -191,3 +191,81 @@ async def test_activity_uses_user_timezone_and_xp_diminishes(
     assert summary["reviews_today"] == 55
     # 20 × 10 XP, следующие 30 × 5, затем по 1 XP.
     assert summary["xp_today"] == 355
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_achievements_are_retroactive_idempotent_and_acknowledged(
+    _mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    headers = await _auth(client, "achievements")
+    study_set = await _set_with_cards(client, headers, count=10)
+
+    initial = (await client.get("/api/v1/retention/achievements", headers=headers)).json()
+    assert initial["total_count"] == 20
+    assert initial["unlocked_count"] == 1
+    assert [item["code"] for item in initial["newly_unlocked"]] == ["sets_1"]
+    assert next(item for item in initial["items"] if item["code"] == "reviews_10")[
+        "progress"
+    ] == 0
+
+    acknowledged = await client.post(
+        "/api/v1/retention/achievements/acknowledge", headers=headers
+    )
+    assert acknowledged.status_code == 204
+    assert (
+        await client.get("/api/v1/retention/achievements", headers=headers)
+    ).json()["newly_unlocked"] == []
+
+    response = await client.post(
+        "/api/v1/study/reviews",
+        headers=headers,
+        json={"reviews": [_review(card["id"]) for card in study_set["cards"]]},
+    )
+    assert len(response.json()["accepted"]) == 10
+
+    earned = (await client.get("/api/v1/retention/achievements", headers=headers)).json()
+    assert earned["unlocked_count"] == 4  # набор, первый ответ, 10 ответов и 100 XP
+    assert {item["code"] for item in earned["newly_unlocked"]} == {
+        "first_review",
+        "reviews_10",
+        "xp_100",
+    }
+    repeated = (await client.get("/api/v1/retention/achievements", headers=headers)).json()
+    assert repeated["unlocked_count"] == 4
+
+    other_headers = await _auth(client, "achievements-other")
+    isolated = (
+        await client.get("/api/v1/retention/achievements", headers=other_headers)
+    ).json()
+    assert isolated["unlocked_count"] == 0
+    assert isolated["newly_unlocked"] == []
+    assert (await client.get("/api/v1/retention/achievements")).status_code == 401
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_every_study_mode_contributes_to_xp(
+    _mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    headers = await _auth(client, "retention-all-modes")
+    study_set = await _set_with_cards(client, headers, count=5)
+    modes = ["flashcards", "learn", "test", "write", "listen"]
+    response = await client.post(
+        "/api/v1/study/reviews",
+        headers=headers,
+        json={
+            "reviews": [
+                _review(card["id"], mode=mode, updates_schedule=False)
+                for card, mode in zip(study_set["cards"], modes, strict=True)
+            ]
+        },
+    )
+    assert len(response.json()["accepted"]) == len(modes)
+    assert response.json()["states"] == []
+
+    summary = (await client.get("/api/v1/retention/summary", headers=headers)).json()
+    assert summary["reviews_today"] == len(modes)
+    assert summary["xp_today"] == 50
+
+    stats = await client.get(f"/api/v1/study/sets/{study_set['id']}/stats", headers=headers)
+    assert stats.json()["distribution"]["new"] == len(modes)
+    assert stats.json()["distribution"]["learning"] == 0

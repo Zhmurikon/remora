@@ -6,6 +6,7 @@ from app.models.practice import PythonPracticeProgress
 from app.models.user import User
 from app.repositories import practice as repo
 from app.schemas.practice import PracticeStatus, PythonProgressOut, PythonProgressUpdate
+from app.services.retention import RetentionService
 
 _STATUS_RANK = {
     PracticeStatus.not_started.value: 0,
@@ -27,9 +28,7 @@ class PracticeService:
     async def merge_python_progress(
         self, user: User, task_id: str, body: PythonProgressUpdate
     ) -> PythonProgressOut:
-        row = await repo.python_progress_for_update(
-            self.db, user.id, task_id, body.task_version
-        )
+        row = await repo.python_progress_for_update(self.db, user.id, task_id, body.task_version)
         if row is None:
             row = PythonPracticeProgress(
                 user_id=user.id,
@@ -50,6 +49,13 @@ class PracticeService:
                 row.draft = body.draft
                 row.draft_updated_at = body.client_updated_at
                 row.last_client_mutation_id = body.client_mutation_id
+        if body.status is PracticeStatus.solved:
+            await RetentionService(self.db).record_xp_reward(
+                user,
+                source="python_practice",
+                source_key=f"{task_id}:v{body.task_version}",
+                xp=25,
+            )
         await self.db.commit()
         await self.db.refresh(row)
         return PythonProgressOut.model_validate(row)

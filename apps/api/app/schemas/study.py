@@ -137,6 +137,7 @@ class ReviewIn(BaseModel):
     rating: int = Field(ge=1, le=4)
     answer_correct: bool | None = None
     duration_ms: int | None = Field(default=None, ge=0, le=3_600_000)
+    updates_schedule: bool | None = None
     reviewed_at: datetime
 
 

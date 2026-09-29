@@ -7,9 +7,10 @@ from datetime import UTC, date, datetime, timedelta
 from math import isqrt
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.retention import DailyActivity, Streak
+from app.models.retention import DailyActivity, Streak, XpReward
 from app.models.user import User
 from app.repositories import retention as repo
 from app.repositories import study as study_repo
@@ -92,6 +93,24 @@ class RetentionService:
             )
             for row in await repo.list_activity(self.db, user.id, start, end)
         ]
+
+    async def record_xp_reward(self, user: User, *, source: str, source_key: str, xp: int) -> bool:
+        """Начисляет разовую награду без изменения карточной дневной цели."""
+        reward_id = await self.db.scalar(
+            insert(XpReward)
+            .values(user_id=user.id, source=source, source_key=source_key, xp=xp)
+            .on_conflict_do_nothing(constraint="uq_xp_rewards_user_source_key")
+            .returning(XpReward.id)
+        )
+        if reward_id is None:
+            return False
+        today = datetime.now(_zone(user.timezone)).date()
+        activity = await repo.activity_for_update(self.db, user.id, today)
+        streak = await repo.streak_for_update(self.db, user.id)
+        activity.xp_earned += xp
+        streak.total_xp += xp
+        await self.db.flush()
+        return True
 
     async def _rebuild_streak(
         self, user: User, streak: Streak, *, today: date | None = None

@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthBootstrap } from './features/auth/AuthBootstrap';
+import { AchievementCelebration } from './features/achievements/AchievementCelebration';
 import { ProtectedRoute } from './features/auth/ProtectedRoute';
 import { AppLayout } from './layouts/AppLayout';
 import { DashboardPage } from './pages/DashboardPage';
@@ -17,11 +18,13 @@ import { SetPage } from './pages/SetPage';
 import { SetsPage } from './pages/SetsPage';
 import { TestPage } from './pages/TestPage';
 import { WritePage } from './pages/WritePage';
+import { AchievementsPage } from './pages/AchievementsPage';
 
 export function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <AuthBootstrap>
+        <AchievementCelebration />
         <Routes>
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
@@ -54,6 +57,7 @@ export function App() {
               <Route path="practice" element={<PracticePage />} />
               <Route path="practice/python" element={<PythonPracticePage />} />
               <Route path="practice/python/:taskSlug" element={<PythonTaskPage />} />
+              <Route path="achievements" element={<AchievementsPage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
           </Route>

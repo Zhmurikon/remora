@@ -155,6 +155,9 @@ class Review(UUIDPrimaryKeyMixin, Base):
     rating: Mapped[int] = mapped_column(Integer)
     answer_correct: Mapped[bool | None] = mapped_column(Boolean)
     duration_ms: Mapped[int | None] = mapped_column(Integer)
+    updates_schedule: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default=text("true")
+    )
     reviewed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     state_before: Mapped[dict[str, Any]] = mapped_column(
         JSONB, default=dict, server_default=text("'{}'::jsonb")
