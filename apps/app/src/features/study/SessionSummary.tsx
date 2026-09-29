@@ -89,7 +89,7 @@ export function SessionSummary({
           <Button onClick={onRepeatMistakes}>Повторить ошибки</Button>
         )}
         <Button variant="secondary" onClick={onRestart}>
-          Ещё раз
+          Продолжить учить
         </Button>
         <Link to={backHref ?? `/sets/${setId}`}>
           <Button variant="ghost">{backLabel ?? 'К набору'}</Button>

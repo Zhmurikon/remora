@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
+import { CourseAttachments } from '../components/CourseAttachments';
 import { TestPage } from './TestPage';
 import { courseLink } from './CourseEditorPage';
 
@@ -181,6 +182,7 @@ export function CourseReaderPage() {
 }
 
 function Reader({ course }: { course: components['schemas']['CourseDetail'] }) {
+  const canEdit = course.can_edit !== false;
   const [params, setParams] = useSearchParams();
   const [largeText, setLargeText] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
@@ -259,9 +261,11 @@ function Reader({ course }: { course: components['schemas']['CourseDetail'] }) {
               </Button>
             </>
           )}
-          <Link to={`/courses/${course.id}/edit`} className={courseLink}>
-            Редактировать курс
-          </Link>
+          {canEdit && (
+            <Link to={`/courses/${course.id}/edit`} className={courseLink}>
+              Редактировать курс
+            </Link>
+          )}
         </div>
       </header>
       {!active ? (
@@ -295,6 +299,7 @@ function Reader({ course }: { course: components['schemas']['CourseDetail'] }) {
               </Link>
             </Card>
           )}
+          <CourseAttachments courseId={course.id} canEdit={canEdit} />
           <nav aria-label="Оглавление курса" className="space-y-6">
             <h2 className="text-2xl font-semibold">Оглавление</h2>
             {course.sections.map((s, si) => (
@@ -447,6 +452,13 @@ function Reader({ course }: { course: components['schemas']['CourseDetail'] }) {
                         Теория пока не добавлена. Можно сразу перейти к квизу.
                       </p>
                     )}
+                  </div>
+                  <div className="mt-8">
+                    <CourseAttachments
+                      courseId={course.id}
+                      articleId={active.id}
+                      canEdit={canEdit}
+                    />
                   </div>
                   <div className="bg-primary-subtle mt-10 rounded-2xl p-4 sm:p-6">
                     <h2 className="text-xl font-semibold">Проверьте, что запомнили</h2>

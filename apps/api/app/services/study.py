@@ -65,7 +65,7 @@ from app.services.scheduler import SchedulerService, SchedulerState, initial_sta
 MASTERED_STABILITY_DAYS = 21.0
 
 # Сколько карточек отдаём в одну тренировку по умолчанию.
-DEFAULT_QUEUE_LIMIT = 60
+DEFAULT_QUEUE_LIMIT = 10
 MAX_QUEUE_LIMIT = 200
 
 FORECAST_DAYS = 14
@@ -100,6 +100,7 @@ class StudyService:
             return SetLearnSettingsOut(
                 question_types=global_settings.learn_question_types,
                 successes_required=global_settings.learn_successes_required,
+                session_size=global_settings.learn_session_size,
                 typing_check=global_settings.learn_typing_check,
                 match_percent=global_settings.learn_match_percent,
                 customized=False,
@@ -107,6 +108,7 @@ class StudyService:
         return SetLearnSettingsOut(
             question_types=override.question_types,
             successes_required=override.successes_required,
+            session_size=override.session_size,
             typing_check=override.typing_check,
             match_percent=override.match_percent,
             customized=True,
@@ -122,6 +124,7 @@ class StudyService:
             set_id,
             question_types=[item.value for item in body.question_types],
             successes_required=body.successes_required,
+            session_size=body.session_size,
             typing_check=body.typing_check.value,
             match_percent=body.match_percent,
         )
@@ -129,6 +132,7 @@ class StudyService:
         return SetLearnSettingsOut(
             question_types=override.question_types,
             successes_required=override.successes_required,
+            session_size=override.session_size,
             typing_check=override.typing_check,
             match_percent=override.match_percent,
             customized=True,
@@ -165,6 +169,8 @@ class StudyService:
         scheduler = self._scheduler(settings)
         now = datetime.now(tz=UTC)
         limit = max(1, min(limit, MAX_QUEUE_LIMIT))
+        if mode is StudyMode.learn:
+            limit = learn_settings.session_size if learn_settings else settings.learn_session_size
         directions = _directions(direction)
 
         states = {
@@ -179,6 +185,7 @@ class StudyService:
 
         due: list[QueueEntry] = []
         fresh: list[QueueEntry] = []
+        practice: list[QueueEntry] = []
         # Направление снаружи, карточки внутри: при `both` обратная сторона
         # оказывается на полный круг позже прямой, а не сразу за ней.
         for card_direction in directions:
@@ -188,19 +195,35 @@ class StudyService:
                     continue
                 state = _to_scheduler_state(stored, now) if stored else initial_state(due_at=now)
                 is_new = state.state is CardStateKind.new
-                if not _matches_scope(scope, state, now):
+                if mode is StudyMode.learn and scope is QueueScope.due:
+                    if is_new:
+                        fresh.append((card, card_direction, state))
+                    elif state.due_at <= now:
+                        due.append((card, card_direction, state))
+                    else:
+                        practice.append((card, card_direction, state))
                     continue
-                (fresh if is_new else due).append((card, card_direction, state))
+                if _matches_scope(scope, state, now):
+                    (fresh if is_new else due).append((card, card_direction, state))
 
         due_total = len(due)
         new_total = len(fresh)
-        if scope is QueueScope.due:
-            # В «Заучивании» дневные лимиты обязательны, иначе очередь после
-            # долгого перерыва превращается в несколько сотен карточек.
+        if scope is QueueScope.due and mode is not StudyMode.learn:
+            # В остальных режимах scope=due сохраняет прежние дневные квоты.
             due = due[:reviews_left]
             fresh = fresh[: max(0, min(new_left, limit - len(due)))]
 
-        selected = _interleave(due, fresh, shuffle=shuffle)[:limit]
+        if mode is StudyMode.learn and scope is QueueScope.due:
+            due.sort(key=lambda entry: entry[2].due_at)
+            practice.sort(
+                key=lambda entry: (
+                    scheduler.retrievability(entry[2], now=now),
+                    entry[2].last_reviewed_at or datetime.min.replace(tzinfo=UTC),
+                )
+            )
+            selected = (due + fresh + practice)[:limit]
+        else:
+            selected = _interleave(due, fresh, shuffle=shuffle)[:limit]
         asset_urls = await self._image_urls(study_set, [card for card, _, _ in selected])
 
         items = [
@@ -232,6 +255,9 @@ class StudyService:
                 learn_settings.successes_required
                 if learn_settings
                 else settings.learn_successes_required
+            ),
+            learn_session_size=(
+                learn_settings.session_size if learn_settings else settings.learn_session_size
             ),
             learn_typing_check=(
                 learn_settings.typing_check if learn_settings else settings.learn_typing_check
@@ -298,6 +324,8 @@ class StudyService:
             queues.append(queue)
 
         settings = await user_repo.get_or_create_settings(self.db, user.id)
+        if mode is StudyMode.learn:
+            limit = settings.learn_session_size
         scheduler = self._scheduler(settings)
         now = datetime.now(tz=UTC)
         combined: list[QueueItem] = []
@@ -313,7 +341,7 @@ class StudyService:
         selected_new = selected_reviews = 0
         for item in combined:
             is_new = item.state.state is CardStateKind.new
-            if scope is QueueScope.due:
+            if scope is QueueScope.due and mode is not StudyMode.learn:
                 if is_new and selected_new >= new_left:
                     continue
                 if not is_new and selected_reviews >= reviews_left:
@@ -332,6 +360,7 @@ class StudyService:
             answer_strictness=Strictness(settings.answer_strictness),
             learn_question_types=settings.learn_question_types,
             learn_successes_required=settings.learn_successes_required,
+            learn_session_size=settings.learn_session_size,
             learn_typing_check=settings.learn_typing_check,
             learn_match_percent=settings.learn_match_percent,
             mode=mode,
@@ -382,6 +411,8 @@ class StudyService:
             queues.append(queue)
 
         settings = await user_repo.get_or_create_settings(self.db, user.id)
+        if mode is StudyMode.learn:
+            limit = settings.learn_session_size
         scheduler = self._scheduler(settings)
         combined: list[QueueItem] = []
         per_set = [list(queue.items) for queue in queues]
@@ -396,7 +427,7 @@ class StudyService:
         selected_new = selected_reviews = 0
         for item in combined:
             is_new = item.state.state is CardStateKind.new
-            if scope is QueueScope.due:
+            if scope is QueueScope.due and mode is not StudyMode.learn:
                 if is_new and selected_new >= new_left:
                     continue
                 if not is_new and selected_reviews >= reviews_left:
@@ -415,6 +446,7 @@ class StudyService:
             answer_strictness=Strictness(settings.answer_strictness),
             learn_question_types=settings.learn_question_types,
             learn_successes_required=settings.learn_successes_required,
+            learn_session_size=settings.learn_session_size,
             learn_typing_check=settings.learn_typing_check,
             learn_match_percent=settings.learn_match_percent,
             mode=mode,

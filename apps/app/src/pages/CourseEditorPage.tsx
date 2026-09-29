@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
+import { CourseAttachments } from '../components/CourseAttachments';
 
 type Detail = components['schemas']['CourseEditorDetail'];
 type Section = components['schemas']['SectionWrite'] & { key: string };
@@ -615,6 +616,7 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
           )}
         </fieldset>
       </form>
+      <CourseAttachments courseId={base.id} articleId={articleId} canEdit />
     </div>
   );
 }

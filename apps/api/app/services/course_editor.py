@@ -23,6 +23,7 @@ from app.schemas.courses import (
     SectionWrite,
 )
 from app.services.agent import AgentService, digest
+from app.services.attachments import AttachmentService
 from app.services.content import ContentService
 from app.services.courses import CourseService
 
@@ -127,6 +128,11 @@ class CourseEditorService:
                 if material:
                     material.visibility = SetVisibility.private
                 await self.db.delete(article)
+        removed_article_ids = set(articles) - set(article_ids)
+        if removed_article_ids:
+            await AttachmentService(self.db).delete_objects_for(
+                course_id, article_ids=removed_article_ids
+            )
         await self.db.flush()
         for position, item in enumerate(body.sections):
             section = (
@@ -246,9 +252,7 @@ class CourseEditorService:
         )
         new_set.copied_from_id = material.id
         for card in material.cards:
-            values = CardWrite.model_validate(card, from_attributes=True).model_dump(
-                exclude={"id"}
-            )
+            values = CardWrite.model_validate(card, from_attributes=True).model_dump(exclude={"id"})
             for field in ("term_image_id", "definition_image_id"):
                 asset_id = values[field]
                 if asset_id is not None:

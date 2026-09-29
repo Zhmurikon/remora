@@ -95,6 +95,7 @@ class CourseAuthor(BaseModel):
 class CourseDetail(CourseSummary):
     author: CourseAuthor
     sections: list[CourseSectionPublic]
+    can_edit: bool = False
 
 
 class CourseSitemapEntry(BaseModel):

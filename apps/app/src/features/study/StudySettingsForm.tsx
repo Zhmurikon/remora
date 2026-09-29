@@ -35,6 +35,7 @@ export function StudySettingsForm() {
     setLearn({
       questionTypes: settings.data.learn_question_types,
       successesRequired: settings.data.learn_successes_required,
+      sessionSize: settings.data.learn_session_size,
       typingCheck: settings.data.learn_typing_check,
       matchPercent: settings.data.learn_match_percent,
     });
@@ -61,6 +62,7 @@ export function StudySettingsForm() {
         answer_strictness: String(form.get('strictness')) as Strictness,
         learn_question_types: learn.questionTypes,
         learn_successes_required: learn.successesRequired,
+        learn_session_size: learn.sessionSize,
         learn_typing_check: learn.typingCheck,
         learn_match_percent: learn.matchPercent,
       },

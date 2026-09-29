@@ -2,6 +2,7 @@
 
 import asyncio
 from functools import lru_cache
+from urllib.parse import quote
 
 import boto3
 from botocore.config import Config
@@ -26,6 +27,29 @@ class ObjectStorage:
         return self.client.generate_presigned_url(
             "get_object", Params={"Bucket": self.bucket, "Key": key}, ExpiresIn=ttl
         )
+
+    def attachment_download_url(self, key: str, filename: str, ttl: int) -> str:
+        """Принудительное скачивание с сохранением Unicode-имени файла."""
+        fallback = "".join(
+            c if c.isascii() and (c.isalnum() or c in "._-") else "_" for c in filename
+        )
+        disposition = (
+            f'attachment; filename="{fallback or "attachment"}"; '
+            f"filename*=UTF-8''{quote(filename)}"
+        )
+        return self.client.generate_presigned_url(
+            "get_object",
+            Params={
+                "Bucket": self.bucket,
+                "Key": key,
+                "ResponseContentDisposition": disposition,
+            },
+            ExpiresIn=ttl,
+        )
+
+    async def size(self, key: str) -> int:
+        response = await asyncio.to_thread(self.client.head_object, Bucket=self.bucket, Key=key)
+        return int(response["ContentLength"])
 
     async def read(self, key: str, max_bytes: int) -> tuple[bytes, int]:
         def load() -> tuple[bytes, int]:

@@ -230,7 +230,7 @@ async def test_card_is_learned_over_several_sessions(
 
 
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
-async def test_daily_new_limit_caps_the_queue(
+async def test_learn_queue_uses_session_size_instead_of_daily_limits(
     _mock_send: AsyncMock, client: pytest.fixture
 ) -> None:
     headers = await _auth(client, "limits")
@@ -243,8 +243,16 @@ async def test_daily_new_limit_caps_the_queue(
     assert updated.json()["new_cards_per_day"] == 3
 
     queue = await client.get(f"/api/v1/study/sets/{study_set['id']}/queue", headers=headers)
-    assert len(queue.json()["items"]) == 3
+    assert len(queue.json()["items"]) == 10
     assert queue.json()["new_total"] == 10
+
+    resized = await client.patch(
+        "/api/v1/study/settings", headers=headers, json={"learn_session_size": 5}
+    )
+    assert resized.status_code == 200
+    assert resized.json()["learn_session_size"] == 5
+    queue = await client.get(f"/api/v1/study/sets/{study_set['id']}/queue", headers=headers)
+    assert len(queue.json()["items"]) == 5
 
     # Фильтры режима «Карточки» дневным лимитом не ограничены: это просмотр,
     # а не планирование повторений.
@@ -254,6 +262,25 @@ async def test_daily_new_limit_caps_the_queue(
         params={"mode": "flashcards", "scope": "all"},
     )
     assert len(browse.json()["items"]) == 10
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_learn_queue_continues_with_future_cards(
+    _mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    headers = await _auth(client, "continue")
+    study_set = await _set_with_cards(client, headers, count=2)
+    reviews = [_review(card["id"], rating=4) for card in study_set["cards"]]
+    saved = await client.post("/api/v1/study/reviews", headers=headers, json={"reviews": reviews})
+    assert saved.status_code == 200
+    assert all(
+        datetime.fromisoformat(state["due_at"]) > datetime.now(tz=UTC)
+        for state in saved.json()["states"]
+    )
+
+    queue = await client.get(f"/api/v1/study/sets/{study_set['id']}/queue", headers=headers)
+    assert queue.status_code == 200
+    assert len(queue.json()["items"]) == 2
 
 
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)

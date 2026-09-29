@@ -13,7 +13,14 @@ from app.models.content import (
     SetVisibility,
     StudySet,
 )
-from app.models.courses import Course, CourseArticle, CourseLike, CourseSection, LibrarySave
+from app.models.courses import (
+    Course,
+    CourseArticle,
+    CourseAttachment,
+    CourseLike,
+    CourseSection,
+    LibrarySave,
+)
 from app.models.exports import AccountExportJob, AccountExportStatus
 from app.models.imports import ImportJob, ImportJobStatus
 from app.models.moderation import CourseReport, ReportReason, ReportStatus
@@ -62,6 +69,7 @@ __all__ = [
     "ContentType",
     "Course",
     "CourseArticle",
+    "CourseAttachment",
     "CourseLike",
     "CourseReport",
     "CourseSection",

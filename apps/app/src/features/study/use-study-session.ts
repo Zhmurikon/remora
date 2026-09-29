@@ -61,6 +61,7 @@ export function useStudySession({
     gcTime: 0,
     retry: 1,
     queryFn: async () => {
+      startedFor.current = null;
       const session = trackProgress
         ? await api.POST('/api/v1/study/sessions', {
             body: setId

@@ -17,7 +17,7 @@ import {
 } from '@remora/core';
 import { Badge, Button, Card, CardContent, Input } from '@remora/ui';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Diff, SessionSummary } from '../features/study/SessionSummary';
 import { answerLang, answerSide, questionImage, questionSide } from '../features/study/card-sides';
 import { StudyShell } from '../features/study/StudyShell';
@@ -27,8 +27,6 @@ import {
   useStudySession,
   type StudyDirectionMode,
 } from '../features/study/use-study-session';
-
-const ROUND_SIZE = 8;
 
 /** Порог стабильности (в днях), после которого спрашиваем строже. */
 const TYPING_THRESHOLD = 1;
@@ -42,7 +40,6 @@ export function LearnPage() {
   const targetId = setId ?? courseId ?? folderId ?? '';
   const isCourse = Boolean(courseId);
   const isFolder = Boolean(folderId);
-  const navigate = useNavigate();
   const [params] = useSearchParams();
   const direction = (params.get('direction') as StudyDirectionMode | null) ?? 'term_to_def';
 
@@ -130,12 +127,8 @@ export function LearnPage() {
       setTyped('');
       setChecked(null);
       shownAt.current = Date.now();
-      const answered = index + 1;
-      if (answered > 0 && answered % ROUND_SIZE === 0 && answered < items.length) {
-        setRoundBreak(true);
-      }
     },
-    [answer, answers, current, index, items.length, queue?.learn_successes_required],
+    [answer, answers, current, queue?.learn_successes_required],
   );
 
   const check = useCallback(() => {
@@ -203,40 +196,8 @@ export function LearnPage() {
   if (query.isPending) return <p className="text-fg-muted">Собираем очередь…</p>;
   if (query.isError) return <p className="text-danger">Не удалось загрузить очередь.</p>;
 
-  if (items.length === 0) {
-    return (
-      <Card className="mx-auto max-w-lg p-8 text-center">
-        <p className="text-4xl" aria-hidden="true">
-          🎯
-        </p>
-        <h1 className="mt-4 text-xl font-semibold">На сегодня всё повторено</h1>
-        <p className="text-fg-muted mt-2">
-          Новые карточки и повторения появятся, когда подойдёт срок.
-        </p>
-        <div className="mt-6 flex justify-center gap-3">
-          {!isCourse && (
-            <Button
-              onClick={() =>
-                navigate(
-                  isFolder ? `/folders/${targetId}/flashcards` : `/sets/${targetId}/flashcards`,
-                )
-              }
-            >
-              Открыть карточки
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            onClick={() =>
-              navigate(isCourse ? '/courses' : isFolder ? '/sets' : `/sets/${targetId}`)
-            }
-          >
-            {isCourse ? 'К курсам' : isFolder ? 'К папке' : 'К набору'}
-          </Button>
-        </div>
-      </Card>
-    );
-  }
+  if (items.length === 0)
+    return <p className="text-fg-muted">В этом наборе пока нет карточек для заучивания.</p>;
 
   if (finished || !current) {
     const last = answers.at(-1);
@@ -247,9 +208,10 @@ export function LearnPage() {
         backLabel={isCourse ? 'К курсам' : isFolder ? 'К папке' : undefined}
         answers={answers}
         nextDueSeconds={nextDueSeconds(items, last?.cardId)}
-        onRestart={() => {
+        onRestart={async () => {
+          await finishSession(sessionId);
           setFinished(false);
-          void query.refetch();
+          await query.refetch();
         }}
       />
     );

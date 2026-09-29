@@ -31,6 +31,7 @@ export function SetLearnSettings({ setId, disabled }: { setId: string; disabled:
     setValue({
       questionTypes: settings.data.question_types,
       successesRequired: settings.data.successes_required,
+      sessionSize: settings.data.session_size,
       typingCheck: settings.data.typing_check,
       matchPercent: settings.data.match_percent,
     });
@@ -48,6 +49,7 @@ export function SetLearnSettings({ setId, disabled }: { setId: string; disabled:
       body: {
         question_types: value.questionTypes,
         successes_required: value.successesRequired,
+        session_size: value.sessionSize,
         typing_check: value.typingCheck,
         match_percent: value.matchPercent,
       },

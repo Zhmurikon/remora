@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     account_export_ttl_hours: int = 24
     media_image_max_size_bytes: int = 10 * 1024 * 1024
     media_image_max_pixels: int = 25_000_000
+    course_attachment_max_size_bytes: int = 100 * 1024 * 1024
 
     # Ограничения чувствительных запросов на один IP и аккаунт
     rate_limit_register: int = 5

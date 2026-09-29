@@ -1,11 +1,12 @@
 import type { components } from '@remora/api-client';
 import { Badge, Button, Card, Input } from '@remora/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { CoursePublicationPanel } from './CoursePublicationPanel';
 import { CopyCourseButton } from './CourseReaderPage';
+import { ListSort, sortItems, useListSort } from '../features/library/ListSort';
 
 type Course = components['schemas']['CourseDetail'];
 const WEB_URL = import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000';
@@ -27,6 +28,7 @@ function failure(error: unknown): Error {
 
 export function CoursesPage() {
   const [origin, setOrigin] = useState<'all' | 'owned' | 'saved'>('all');
+  const [sortMode, setSortMode] = useListSort('remora:sort:courses');
   const courses = useQuery({
     queryKey: ['courses'],
     queryFn: async () => {
@@ -51,6 +53,23 @@ export function CoursesPage() {
       : origin === 'owned'
         ? courses.data?.length === 0
         : courses.data?.length === 0 && savedCourses.data?.length === 0);
+  const sortedCourses = useMemo(
+    () =>
+      sortItems(courses.data ?? [], sortMode, (course) => ({
+        title: course.title,
+        date: course.updated_at,
+      })),
+    [courses.data, sortMode],
+  );
+  const sortedSavedCourses = useMemo(
+    () =>
+      sortItems(savedCourses.data ?? [], sortMode, (course) => ({
+        title: course.title,
+        date: course.saved_at,
+        size: course.cards_count,
+      })),
+    [savedCourses.data, sortMode],
+  );
   return (
     <div className="space-y-6">
       <header>
@@ -103,9 +122,17 @@ export function CoursesPage() {
           </p>
         </Card>
       )}
+      <div className="flex justify-end">
+        <ListSort
+          value={sortMode}
+          onChange={setSortMode}
+          label="Сортировка курсов"
+          includeSize={false}
+        />
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {origin !== 'saved' &&
-          courses.data?.map((course) => (
+          sortedCourses.map((course) => (
             <Link
               key={course.id}
               to={`/courses/${course.id}`}
@@ -124,7 +151,7 @@ export function CoursesPage() {
             </Link>
           ))}
         {origin !== 'owned' &&
-          savedCourses.data?.map((course) => (
+          sortedSavedCourses.map((course) => (
             <Card key={course.id} className="h-full break-words">
               <a
                 href={`${WEB_URL}/kurs/${course.slug}`}

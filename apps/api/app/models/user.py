@@ -42,14 +42,10 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     username: Mapped[str] = mapped_column(String(32), unique=True, index=True)
     display_name: Mapped[str | None] = mapped_column(String(64))
     avatar_url: Mapped[str | None] = mapped_column(String(512))
-    role: Mapped[UserRole] = mapped_column(
-        server_default=text("'user'"), default=UserRole.user
-    )
+    role: Mapped[UserRole] = mapped_column(server_default=text("'user'"), default=UserRole.user)
     email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     birth_date: Mapped[date | None]
-    locale: Mapped[str] = mapped_column(
-        String(5), default="ru", server_default=text("'ru'")
-    )
+    locale: Mapped[str] = mapped_column(String(5), default="ru", server_default=text("'ru'"))
     timezone: Mapped[str] = mapped_column(
         String(40), default="Europe/Moscow", server_default=text("'Europe/Moscow'")
     )
@@ -79,8 +75,10 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         from datetime import date as _date
 
         today = _date.today()
-        age = today.year - self.birth_date.year - (
-            1 if (today.month, today.day) < (self.birth_date.month, self.birth_date.day) else 0
+        age = (
+            today.year
+            - self.birth_date.year
+            - (1 if (today.month, today.day) < (self.birth_date.month, self.birth_date.day) else 0)
         )
         return age < 14
 
@@ -92,12 +90,8 @@ class UserSettings(UUIDPrimaryKeyMixin, Base):
         ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True
     )
     daily_goal_cards: Mapped[int] = mapped_column(default=20, server_default=text("20"))
-    fsrs_desired_retention: Mapped[float] = mapped_column(
-        default=0.90, server_default=text("0.9")
-    )
-    fsrs_max_interval_days: Mapped[int] = mapped_column(
-        default=365, server_default=text("365")
-    )
+    fsrs_desired_retention: Mapped[float] = mapped_column(default=0.90, server_default=text("0.9"))
+    fsrs_max_interval_days: Mapped[int] = mapped_column(default=365, server_default=text("365"))
     new_cards_per_day: Mapped[int] = mapped_column(default=20, server_default=text("20"))
     reviews_per_day: Mapped[int] = mapped_column(default=200, server_default=text("200"))
     # Строгость проверки ответов в режимах «Письмо», «Тест» и «Аудирование».
@@ -109,9 +103,10 @@ class UserSettings(UUIDPrimaryKeyMixin, Base):
     learn_question_types: Mapped[list[str]] = mapped_column(
         JSONB,
         default=lambda: ["choice", "typing", "recall"],
-        server_default=text("'[\"choice\", \"typing\", \"recall\"]'::jsonb"),
+        server_default=text('\'["choice", "typing", "recall"]\'::jsonb'),
     )
     learn_successes_required: Mapped[int] = mapped_column(default=1, server_default=text("1"))
+    learn_session_size: Mapped[int] = mapped_column(default=10, server_default=text("10"))
     learn_typing_check: Mapped[str] = mapped_column(
         String(12), default="automatic", server_default=text("'automatic'")
     )
@@ -130,9 +125,7 @@ class UserSettings(UUIDPrimaryKeyMixin, Base):
 class RefreshToken(UUIDPrimaryKeyMixin, Base):
     __tablename__ = "refresh_tokens"
 
-    user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), index=True
-    )
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     token_hash: Mapped[str] = mapped_column(String(128), unique=True, index=True)
     family_id: Mapped[UUID] = mapped_column(index=True, default=uuid4)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
@@ -148,9 +141,7 @@ class ActionToken(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     __tablename__ = "action_tokens"
 
-    user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), index=True
-    )
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     purpose: Mapped[str] = mapped_column(String(32), index=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
@@ -169,9 +160,7 @@ class OauthAccount(UUIDPrimaryKeyMixin, Base):
         ),
     )
 
-    user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), index=True
-    )
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     provider: Mapped[str] = mapped_column(String(16), index=True)
     provider_user_id: Mapped[str] = mapped_column(String(128), index=True)
     raw_profile: Mapped[dict[str, Any]] = mapped_column(
@@ -184,9 +173,7 @@ class OauthAccount(UUIDPrimaryKeyMixin, Base):
 class Consent(UUIDPrimaryKeyMixin, Base):
     __tablename__ = "consents"
 
-    user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), index=True
-    )
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     kind: Mapped[ConsentKind] = mapped_column(index=True)
     version: Mapped[str] = mapped_column(String(16))
     accepted_at: Mapped[datetime] = mapped_column(

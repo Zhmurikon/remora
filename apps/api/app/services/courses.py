@@ -31,6 +31,7 @@ from app.schemas.courses import (
     CourseSummary,
 )
 from app.schemas.search import CourseSearchItem
+from app.services.attachments import AttachmentService
 from app.services.content import ContentService
 
 
@@ -55,8 +56,14 @@ class CourseService:
         ]
 
     async def detail(self, user: User, course_id: UUID) -> CourseDetail:
-        course = await self.owned(user, course_id)
-        return await self._detail(course)
+        course = await repo.get_course(self.db, course_id)
+        if course is None:
+            raise NotFoundError("Курс не найден")
+        if course.owner_id != user.id and (
+            not course.is_published or course.moderation_status == "blocked"
+        ):
+            raise ForbiddenError("Нет доступа к этому курсу")
+        return await self._detail(course, user)
 
     async def _resolve_article_media(
         self, articles: list[CourseArticle], owner_id: UUID
@@ -123,6 +130,7 @@ class CourseService:
                 avatar_url=author.avatar_url,
             ),
             sections=sections,
+            can_edit=bool(viewer and viewer.id == course.owner_id),
         )
 
     async def public_detail(self, slug: str, viewer: User | None = None) -> CourseDetail:
@@ -288,5 +296,6 @@ class CourseService:
             study_set = await content_repo.get_set(self.db, article.set_id)
             if study_set is not None and study_set.owner_id == user.id:
                 await content_repo.soft_delete_set(self.db, study_set)
+        await AttachmentService(self.db).delete_objects_for(course_id)
         await self.db.delete(course)
         await self.db.flush()

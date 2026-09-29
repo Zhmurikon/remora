@@ -77,6 +77,7 @@ class UserSetLearnSettings(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     question_types: Mapped[list[str]] = mapped_column(JSONB)
     successes_required: Mapped[int] = mapped_column(Integer)
+    session_size: Mapped[int] = mapped_column(Integer, default=10, server_default=text("10"))
     typing_check: Mapped[str] = mapped_column(String(12))
     match_percent: Mapped[int] = mapped_column(Integer)
 

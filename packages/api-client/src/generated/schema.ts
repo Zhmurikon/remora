@@ -586,13 +586,98 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Структура моего курса */
+        /** Чтение доступного курса */
         get: operations["get_course_api_v1_courses__course_id__get"];
         /** Изменить описание курса */
         put: operations["update_course_api_v1_courses__course_id__put"];
         post?: never;
         /** Удалить курс */
         delete: operations["delete_course_api_v1_courses__course_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/{course_id}/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Вложения курса */
+        get: operations["list_attachments_api_v1_courses__course_id__attachments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/{course_id}/attachments/upload-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Начать загрузку вложения */
+        post: operations["create_attachment_upload_api_v1_courses__course_id__attachments_upload_url_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/{course_id}/attachments/{attachment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Удалить вложение */
+        delete: operations["delete_attachment_api_v1_courses__course_id__attachments__attachment_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/{course_id}/attachments/{attachment_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Завершить загрузку вложения */
+        post: operations["complete_attachment_upload_api_v1_courses__course_id__attachments__attachment_id__complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/{course_id}/attachments/{attachment_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ссылка на скачивание вложения */
+        get: operations["download_attachment_api_v1_courses__course_id__attachments__attachment_id__download_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2329,6 +2414,48 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** AttachmentDownload */
+        AttachmentDownload: {
+            /** Expires In */
+            expires_in: number;
+            /** Url */
+            url: string;
+        };
+        /** AttachmentUploadRequest */
+        AttachmentUploadRequest: {
+            /** Article Id */
+            article_id?: string | null;
+            /** Filename */
+            filename: string;
+            /**
+             * Mime
+             * @default application/octet-stream
+             */
+            mime: string;
+            /** Size Bytes */
+            size_bytes: number;
+        };
+        /** AttachmentUploadTicket */
+        AttachmentUploadTicket: {
+            /** Expires In */
+            expires_in: number;
+            /** Headers */
+            headers: {
+                [key: string]: string;
+            };
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Method
+             * @default PUT
+             */
+            method: string;
+            /** Upload Url */
+            upload_url: string;
+        };
         /** AuthorProfile */
         AuthorProfile: {
             /** Avatar Url */
@@ -2540,6 +2667,27 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** CourseAttachmentPublic */
+        CourseAttachmentPublic: {
+            /** Article Id */
+            article_id: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Filename */
+            filename: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Mime */
+            mime: string;
+            /** Size Bytes */
+            size_bytes: number;
+        };
         /** CourseAuthor */
         CourseAuthor: {
             /** Avatar Url */
@@ -2574,6 +2722,11 @@ export interface components {
         /** CourseDetail */
         CourseDetail: {
             author: components["schemas"]["CourseAuthor"];
+            /**
+             * Can Edit
+             * @default false
+             */
+            can_edit: boolean;
             /**
              * Created At
              * Format: date-time
@@ -2629,6 +2782,11 @@ export interface components {
         /** CourseEditorDetail */
         CourseEditorDetail: {
             author: components["schemas"]["CourseAuthor"];
+            /**
+             * Can Edit
+             * @default false
+             */
+            can_edit: boolean;
             /**
              * Created At
              * Format: date-time
@@ -3846,6 +4004,8 @@ export interface components {
             match_percent: number;
             /** Question Types */
             question_types: components["schemas"]["LearnQuestionType"][];
+            /** Session Size */
+            session_size: number;
             /** Successes Required */
             successes_required: number;
             typing_check: components["schemas"]["LearnTypingCheck"];
@@ -3856,6 +4016,11 @@ export interface components {
             match_percent: number;
             /** Question Types */
             question_types: components["schemas"]["LearnQuestionType"][];
+            /**
+             * Session Size
+             * @default 10
+             */
+            session_size: number;
             /** Successes Required */
             successes_required: number;
             typing_check: components["schemas"]["LearnTypingCheck"];
@@ -4051,6 +4216,8 @@ export interface components {
             learn_match_percent: number;
             /** Learn Question Types */
             learn_question_types: components["schemas"]["LearnQuestionType"][];
+            /** Learn Session Size */
+            learn_session_size: number;
             /** Learn Successes Required */
             learn_successes_required: number;
             learn_typing_check: components["schemas"]["LearnTypingCheck"];
@@ -4081,6 +4248,8 @@ export interface components {
             learn_match_percent: number;
             /** Learn Question Types */
             learn_question_types: components["schemas"]["LearnQuestionType"][];
+            /** Learn Session Size */
+            learn_session_size: number;
             /** Learn Successes Required */
             learn_successes_required: number;
             learn_typing_check: components["schemas"]["LearnTypingCheck"];
@@ -4102,6 +4271,8 @@ export interface components {
             learn_match_percent?: number | null;
             /** Learn Question Types */
             learn_question_types?: components["schemas"]["LearnQuestionType"][] | null;
+            /** Learn Session Size */
+            learn_session_size?: number | null;
             /** Learn Successes Required */
             learn_successes_required?: number | null;
             learn_typing_check?: components["schemas"]["LearnTypingCheck"] | null;
@@ -5770,6 +5941,166 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_attachments_api_v1_courses__course_id__attachments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseAttachmentPublic"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_attachment_upload_api_v1_courses__course_id__attachments_upload_url_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttachmentUploadRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachmentUploadTicket"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_attachment_api_v1_courses__course_id__attachments__attachment_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+                attachment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    complete_attachment_upload_api_v1_courses__course_id__attachments__attachment_id__complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+                attachment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseAttachmentPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_attachment_api_v1_courses__course_id__attachments__attachment_id__download_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+                attachment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachmentDownload"];
+                };
             };
             /** @description Validation Error */
             422: {

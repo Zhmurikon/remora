@@ -114,6 +114,7 @@ class StudyQueue(BaseModel):
     answer_strictness: Strictness
     learn_question_types: list[LearnQuestionType]
     learn_successes_required: int
+    learn_session_size: int
     learn_typing_check: LearnTypingCheck
     learn_match_percent: int
     mode: StudyMode
@@ -227,6 +228,7 @@ class StudySettingsOut(BaseModel):
     answer_strictness: Strictness
     learn_question_types: list[LearnQuestionType]
     learn_successes_required: int
+    learn_session_size: int
     learn_typing_check: LearnTypingCheck
     learn_match_percent: int
 
@@ -242,6 +244,7 @@ class StudySettingsUpdate(BaseModel):
         default=None, min_length=1, max_length=3
     )
     learn_successes_required: int | None = Field(default=None, ge=1, le=5)
+    learn_session_size: int | None = Field(default=None, ge=5, le=20)
     learn_typing_check: LearnTypingCheck | None = None
     learn_match_percent: int | None = Field(default=None, ge=50, le=100)
 
@@ -249,6 +252,7 @@ class StudySettingsUpdate(BaseModel):
 class SetLearnSettingsOut(BaseModel):
     question_types: list[LearnQuestionType]
     successes_required: int
+    session_size: int
     typing_check: LearnTypingCheck
     match_percent: int
     customized: bool
@@ -257,5 +261,6 @@ class SetLearnSettingsOut(BaseModel):
 class SetLearnSettingsUpdate(BaseModel):
     question_types: list[LearnQuestionType] = Field(min_length=1, max_length=3)
     successes_required: int = Field(ge=1, le=5)
+    session_size: int = Field(default=10, ge=5, le=20)
     typing_check: LearnTypingCheck
     match_percent: int = Field(ge=50, le=100)

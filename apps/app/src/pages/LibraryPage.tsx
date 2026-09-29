@@ -1,9 +1,10 @@
 import type { components } from '@remora/api-client';
 import { Badge, Button, Card } from '@remora/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { ListSort, sortItems, useListSort } from '../features/library/ListSort';
 
 const WEB_URL = import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000';
 const catalogLinkStyle =
@@ -11,6 +12,7 @@ const catalogLinkStyle =
 
 export function LibraryPage() {
   const queryClient = useQueryClient();
+  const [sortMode, setSortMode] = useListSort('remora:sort:library');
   const library = useQuery({
     queryKey: ['library'],
     queryFn: async () => {
@@ -28,6 +30,15 @@ export function LibraryPage() {
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['library'] }),
   });
+  const sortedLibrary = useMemo(
+    () =>
+      sortItems(library.data ?? [], sortMode, (item) => ({
+        title: item.article_title ?? item.set_title ?? item.course_title,
+        date: item.saved_at,
+        size: item.cards_count,
+      })),
+    [library.data, sortMode],
+  );
 
   return (
     <div>
@@ -43,8 +54,11 @@ export function LibraryPage() {
       </header>
       {library.isPending && <p className="text-fg-muted mt-8">Загружаем библиотеку…</p>}
       {library.isError && <p className="text-danger mt-8">Не удалось загрузить библиотеку.</p>}
-      <div className="mt-8 grid gap-4 md:grid-cols-2">
-        {library.data?.map((item) => (
+      <div className="mt-8 flex justify-end">
+        <ListSort value={sortMode} onChange={setSortMode} label="Сортировка библиотеки" />
+      </div>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        {sortedLibrary.map((item) => (
           <LibraryCard
             key={item.id}
             item={item}

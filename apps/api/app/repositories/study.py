@@ -44,6 +44,7 @@ async def upsert_set_learn_settings(
     *,
     question_types: list[str],
     successes_required: int,
+    session_size: int,
     typing_check: str,
     match_percent: int,
 ) -> UserSetLearnSettings:
@@ -54,6 +55,7 @@ async def upsert_set_learn_settings(
             set_id=set_id,
             question_types=question_types,
             successes_required=successes_required,
+            session_size=session_size,
             typing_check=typing_check,
             match_percent=match_percent,
         )
@@ -62,6 +64,7 @@ async def upsert_set_learn_settings(
             set_={
                 "question_types": question_types,
                 "successes_required": successes_required,
+                "session_size": session_size,
                 "typing_check": typing_check,
                 "match_percent": match_percent,
                 "updated_at": func.now(),

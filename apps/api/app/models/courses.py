@@ -5,6 +5,7 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     CheckConstraint,
     DateTime,
@@ -65,6 +66,28 @@ class CourseArticle(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     title: Mapped[str] = mapped_column(String(160))
     body: Mapped[str] = mapped_column(Text, default="", server_default=text("''"))
     position: Mapped[int] = mapped_column(Integer)
+
+
+class CourseAttachment(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """Скачиваемый файл курса или одной его статьи."""
+
+    __tablename__ = "course_attachments"
+    __table_args__ = (
+        CheckConstraint("size_bytes > 0 AND size_bytes <= 104857600", name="size_range"),
+        UniqueConstraint("s3_key"),
+    )
+
+    course_id: Mapped[UUID] = mapped_column(
+        ForeignKey("courses.id", ondelete="CASCADE"), index=True
+    )
+    article_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("course_articles.id", ondelete="CASCADE"), index=True
+    )
+    filename: Mapped[str] = mapped_column(String(255))
+    mime: Mapped[str] = mapped_column(String(255))
+    size_bytes: Mapped[int] = mapped_column(BigInteger)
+    s3_key: Mapped[str] = mapped_column(String(500))
+    status: Mapped[str] = mapped_column(String(20), default="pending", server_default="pending")
 
 
 class CourseLike(UUIDPrimaryKeyMixin, TimestampMixin, Base):

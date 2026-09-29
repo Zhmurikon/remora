@@ -11,6 +11,12 @@ from app.core.config import get_settings
 from app.core.rate_limit import enforce_rate_limit
 from app.db.session import get_db
 from app.models.user import User
+from app.schemas.attachments import (
+    AttachmentDownload,
+    AttachmentUploadRequest,
+    AttachmentUploadTicket,
+    CourseAttachmentPublic,
+)
 from app.schemas.content import PublicSet
 from app.schemas.courses import (
     CourseCopyRequest,
@@ -26,11 +32,83 @@ from app.schemas.courses import (
 from app.schemas.moderation import ReportCreate, ReportSubmitted
 from app.schemas.search import CourseSearchItem
 from app.services.agent import AgentService
+from app.services.attachments import AttachmentService
 from app.services.course_editor import CourseEditorService
 from app.services.courses import CourseService
 from app.services.moderation import ModerationService
 
 router = APIRouter(prefix="/courses", tags=["courses"])
+
+
+@router.post(
+    "/{course_id}/attachments/upload-url",
+    response_model=AttachmentUploadTicket,
+    status_code=201,
+    summary="Начать загрузку вложения",
+)
+async def create_attachment_upload(
+    course_id: UUID,
+    body: AttachmentUploadRequest,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+) -> AttachmentUploadTicket:
+    return await AttachmentService(db).create_upload(user, course_id, body)
+
+
+@router.post(
+    "/{course_id}/attachments/{attachment_id}/complete",
+    response_model=CourseAttachmentPublic,
+    summary="Завершить загрузку вложения",
+)
+async def complete_attachment_upload(
+    course_id: UUID,
+    attachment_id: UUID,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+) -> CourseAttachmentPublic:
+    return await AttachmentService(db).complete(user, course_id, attachment_id)
+
+
+@router.get(
+    "/{course_id}/attachments",
+    response_model=list[CourseAttachmentPublic],
+    summary="Вложения курса",
+)
+async def list_attachments(
+    course_id: UUID,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[CourseAttachmentPublic]:
+    return await AttachmentService(db).list(user, course_id)
+
+
+@router.get(
+    "/{course_id}/attachments/{attachment_id}/download",
+    response_model=AttachmentDownload,
+    summary="Ссылка на скачивание вложения",
+)
+async def download_attachment(
+    course_id: UUID,
+    attachment_id: UUID,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+) -> AttachmentDownload:
+    return await AttachmentService(db).download(user, course_id, attachment_id)
+
+
+@router.delete(
+    "/{course_id}/attachments/{attachment_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Удалить вложение",
+)
+async def delete_attachment(
+    course_id: UUID,
+    attachment_id: UUID,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    await AttachmentService(db).delete(user, course_id, attachment_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get(
@@ -193,7 +271,7 @@ async def create_course(
     return await CourseService(db).create(user, body)
 
 
-@router.get("/{course_id}", response_model=CourseDetail, summary="Структура моего курса")
+@router.get("/{course_id}", response_model=CourseDetail, summary="Чтение доступного курса")
 async def get_course(
     course_id: UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
 ) -> CourseDetail:

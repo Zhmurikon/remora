@@ -6,6 +6,7 @@ export type LearnTypingCheck = 'automatic' | 'self_check';
 export interface LearnPreferences {
   questionTypes: LearnQuestionType[];
   successesRequired: number;
+  sessionSize: number;
   typingCheck: LearnTypingCheck;
   matchPercent: number;
 }
@@ -13,6 +14,7 @@ export interface LearnPreferences {
 export const DEFAULT_LEARN_PREFERENCES: LearnPreferences = {
   questionTypes: ['choice', 'typing', 'recall'],
   successesRequired: 1,
+  sessionSize: 10,
   typingCheck: 'automatic',
   matchPercent: 90,
 };
@@ -23,6 +25,7 @@ const PRESETS: Array<{ label: string; value: LearnPreferences }> = [
     value: {
       questionTypes: ['choice', 'recall'],
       successesRequired: 1,
+      sessionSize: 10,
       typingCheck: 'automatic',
       matchPercent: 80,
     },
@@ -33,6 +36,7 @@ const PRESETS: Array<{ label: string; value: LearnPreferences }> = [
     value: {
       questionTypes: ['choice', 'typing', 'recall'],
       successesRequired: 3,
+      sessionSize: 10,
       typingCheck: 'automatic',
       matchPercent: 95,
     },
@@ -108,6 +112,18 @@ export function LearnSettingsControls({
           })}
         </div>
       </fieldset>
+
+      <Input
+        label="Карточек в сессии"
+        hint="После сессии можно сразу продолжить. Обучение не заканчивается, даже если срок повторения ещё не наступил."
+        type="number"
+        inputMode="numeric"
+        min={5}
+        max={20}
+        step={5}
+        value={value.sessionSize}
+        onChange={(event) => onChange({ ...value, sessionSize: Number(event.target.value) })}
+      />
 
       <Input
         label="Успешных ответов на карточку"

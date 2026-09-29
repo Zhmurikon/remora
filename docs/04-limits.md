@@ -205,6 +205,7 @@ free:
 | Создание набора, копирование публичного        | `sets.max`, `cards.total`                |
 | Добавление карточек (в т.ч. батчем и импортом) | `cards.per_set`, `cards.total`           |
 | Запрос presigned URL на изображение            | `images.total`, `images.max_size`        |
+| Загрузка вложения курса                         | `feature(course.attachments)`            |
 | Вызов синтеза TTS (только при промахе кэша)    | `tts.chars_per_month` → `consume`        |
 | Старт импорта                                  | `import.per_day`, `import.cards_per_run` |
 | Создание класса, вступление ученика            | `classes.max`, `classes.students_max`    |

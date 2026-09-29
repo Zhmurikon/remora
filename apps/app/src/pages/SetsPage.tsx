@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState, type DragEvent, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { ListSort, sortItems, useListSort } from '../features/library/ListSort';
 
 const folderColors: Record<string, string> = {
   lime: 'bg-primary',
@@ -21,6 +22,7 @@ export function SetsPage() {
   const [search, setSearch] = useState('');
   const [newFolder, setNewFolder] = useState('');
   const [creatingFolder, setCreatingFolder] = useState(false);
+  const [sortMode, setSortMode] = useListSort('remora:sort:sets');
   const sets = useQuery({
     queryKey: ['sets'],
     queryFn: async () => {
@@ -55,31 +57,45 @@ export function SetsPage() {
   });
   const visibleSets = useMemo(() => {
     const source = selectedFolder === 'archived' ? archivedSets.data : sets.data;
-    return (source ?? []).filter((set) => {
-      const inFolder =
-        selectedFolder === 'archived' ||
-        selectedFolder === 'all' ||
-        set.folder_id === selectedFolder;
-      const needle = search.trim().toLocaleLowerCase('ru');
-      return (
-        inFolder &&
-        (!needle || `${set.title} ${set.description}`.toLocaleLowerCase('ru').includes(needle))
-      );
-    });
-  }, [archivedSets.data, search, selectedFolder, sets.data]);
+    return sortItems(
+      (source ?? []).filter((set) => {
+        const inFolder =
+          selectedFolder === 'archived' ||
+          selectedFolder === 'all' ||
+          set.folder_id === selectedFolder;
+        const needle = search.trim().toLocaleLowerCase('ru');
+        return (
+          inFolder &&
+          (!needle || `${set.title} ${set.description}`.toLocaleLowerCase('ru').includes(needle))
+        );
+      }),
+      sortMode,
+      (set) => ({ title: set.title, date: set.updated_at, size: set.cards_count }),
+    );
+  }, [archivedSets.data, search, selectedFolder, sets.data, sortMode]);
   const visibleSavedSets = useMemo(() => {
     const needle = search.trim().toLocaleLowerCase('ru');
-    return (savedSets.data ?? []).filter(
-      (set) =>
-        (selectedFolder === 'all' ||
-          selectedFolder === 'archived' ||
-          set.folder_id === selectedFolder) &&
-        (!needle ||
-          `${set.title} ${set.description} ${set.course_title}`
-            .toLocaleLowerCase('ru')
-            .includes(needle)),
+    return sortItems(
+      (savedSets.data ?? []).filter(
+        (set) =>
+          (selectedFolder === 'all' ||
+            selectedFolder === 'archived' ||
+            set.folder_id === selectedFolder) &&
+          (!needle ||
+            `${set.title} ${set.description} ${set.course_title}`
+              .toLocaleLowerCase('ru')
+              .includes(needle)),
+      ),
+      sortMode,
+      (set) => ({ title: set.title, date: set.saved_at, size: set.cards_count }),
     );
-  }, [savedSets.data, search, selectedFolder]);
+  }, [savedSets.data, search, selectedFolder, sortMode]);
+  const isEmpty = hasNoVisibleSets(
+    origin,
+    selectedFolder,
+    visibleSets.length,
+    visibleSavedSets.length,
+  );
 
   async function createSet() {
     const { data } = await api.POST('/api/v1/sets', {
@@ -286,6 +302,9 @@ export function SetsPage() {
           </p>
         </aside>
         <section>
+          <div className="mb-5 flex justify-end">
+            <ListSort value={sortMode} onChange={setSortMode} label="Сортировка наборов" />
+          </div>
           {typeof selectedFolder === 'string' &&
             selectedFolder !== 'all' &&
             selectedFolder !== 'archived' && (
@@ -330,32 +349,25 @@ export function SetsPage() {
           {(sets.isError || folders.isError || archivedSets.isError || savedSets.isError) && (
             <p className="text-danger">Не удалось загрузить библиотеку</p>
           )}
-          {!sets.isPending &&
-            !savedSets.isPending &&
-            (origin === 'saved'
-              ? visibleSavedSets.length === 0
-              : origin === 'owned'
-                ? visibleSets.length === 0
-                : visibleSets.length === 0 &&
-                  (selectedFolder !== 'all' || visibleSavedSets.length === 0)) && (
-              <Card className="grid min-h-64 place-items-center text-center">
-                <div>
-                  <p className="text-xl font-semibold">
-                    {selectedFolder === 'archived' ? 'Архив пуст' : 'Здесь пока пусто'}
-                  </p>
-                  <p className="text-fg-muted mt-2">
-                    {selectedFolder === 'archived'
-                      ? 'Удалённые курсы и наборы появятся здесь.'
-                      : 'Создайте набор или выберите другую папку.'}
-                  </p>
-                  {selectedFolder !== 'archived' && (
-                    <Button className="mt-5" onClick={() => void createSet()}>
-                      Создать набор
-                    </Button>
-                  )}
-                </div>
-              </Card>
-            )}
+          {!sets.isPending && !savedSets.isPending && isEmpty && (
+            <Card className="grid min-h-64 place-items-center text-center">
+              <div>
+                <p className="text-xl font-semibold">
+                  {selectedFolder === 'archived' ? 'Архив пуст' : 'Здесь пока пусто'}
+                </p>
+                <p className="text-fg-muted mt-2">
+                  {selectedFolder === 'archived'
+                    ? 'Удалённые курсы и наборы появятся здесь.'
+                    : 'Создайте набор или выберите другую папку.'}
+                </p>
+                {selectedFolder !== 'archived' && (
+                  <Button className="mt-5" onClick={() => void createSet()}>
+                    Создать набор
+                  </Button>
+                )}
+              </div>
+            </Card>
+          )}
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {origin !== 'saved' && selectedFolder === 'archived'
               ? visibleSets.map((set) => (
@@ -440,6 +452,17 @@ export function SetsPage() {
       </div>
     </div>
   );
+}
+
+export function hasNoVisibleSets(
+  origin: 'all' | 'owned' | 'saved',
+  selectedFolder: string | null | 'all' | 'archived',
+  ownedCount: number,
+  savedCount: number,
+): boolean {
+  if (origin === 'saved') return savedCount === 0;
+  if (origin === 'owned' || selectedFolder === 'archived') return ownedCount === 0;
+  return ownedCount === 0 && savedCount === 0;
 }
 
 function FolderButton({
