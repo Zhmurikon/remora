@@ -97,9 +97,10 @@ class RetentionService:
         self, user: User, streak: Streak, *, today: date | None = None
     ) -> None:
         today = today or datetime.now(_zone(user.timezone)).date()
-        await repo.delete_freezes(self.db, user.id)
+        await repo.reset_freezes(self.db, user.id)
         await self.db.flush()
         activities = await repo.list_activity(self.db, user.id)
+        by_date = {row.activity_date: row for row in activities}
         completed = {row.activity_date for row in activities if row.goal_reached_at is not None}
         if not completed:
             streak.current_days = 0
@@ -119,8 +120,17 @@ class RetentionService:
             elif current:
                 month = (cursor.year, cursor.month)
                 if used[month] < FREEZES_PER_MONTH:
-                    frozen = DailyActivity(user_id=user.id, activity_date=cursor, is_frozen=True)
-                    self.db.add(frozen)
+                    frozen = by_date.get(cursor)
+                    if frozen is None:
+                        frozen = DailyActivity(
+                            user_id=user.id, activity_date=cursor, is_frozen=True
+                        )
+                        self.db.add(frozen)
+                        by_date[cursor] = frozen
+                    else:
+                        # Частично выполненная цель уже занимает этот день. Та же строка
+                        # хранит заморозку, иначе повторная вставка нарушит уникальность.
+                        frozen.is_frozen = True
                     used[month] += 1
                     current += 1
                     longest = max(longest, current)

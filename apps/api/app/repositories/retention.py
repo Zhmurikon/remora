@@ -3,7 +3,7 @@
 from datetime import date
 from uuid import UUID
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.retention import DailyActivity, Streak
@@ -39,13 +39,22 @@ async def list_activity(
     return list(rows.all())
 
 
-async def delete_freezes(db: AsyncSession, user_id: UUID) -> None:
+async def reset_freezes(db: AsyncSession, user_id: UUID) -> None:
+    """Удаляет пустые заморозки и снимает отметку с дней с ответами перед пересчётом."""
     await db.execute(
         delete(DailyActivity).where(
             DailyActivity.user_id == user_id,
             DailyActivity.is_frozen.is_(True),
             DailyActivity.reviews_count == 0,
         )
+    )
+    await db.execute(
+        update(DailyActivity)
+        .where(
+            DailyActivity.user_id == user_id,
+            DailyActivity.is_frozen.is_(True),
+        )
+        .values(is_frozen=False)
     )
 
 

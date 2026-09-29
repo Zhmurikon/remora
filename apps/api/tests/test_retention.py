@@ -107,6 +107,45 @@ async def test_freezes_bridge_two_days_and_third_missed_day_breaks_streak(
 
 
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_partial_activity_day_can_be_reused_as_freeze(
+    _mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    headers = await _auth(client, "retention-partial-freeze")
+    study_set = await _set_with_cards(client, headers, count=4)
+    cards = study_set["cards"]
+    await client.patch(
+        "/api/v1/study/settings", headers=headers, json={"daily_goal_cards": 2}
+    )
+    today = datetime.now(UTC).date()
+
+    response = await client.post(
+        "/api/v1/study/reviews",
+        headers=headers,
+        json={
+            "reviews": [
+                _review(cards[0]["id"], reviewed_at=_at(today - timedelta(days=2))),
+                _review(cards[1]["id"], reviewed_at=_at(today - timedelta(days=2), 13)),
+                _review(cards[2]["id"], reviewed_at=_at(today - timedelta(days=1))),
+                _review(cards[3]["id"], reviewed_at=_at(today)),
+            ]
+        },
+    )
+    assert len(response.json()["accepted"]) == 4
+
+    summary = (await client.get("/api/v1/retention/summary", headers=headers)).json()
+    assert summary["current_streak_days"] == 2
+    activity = (
+        await client.get(
+            "/api/v1/retention/activity",
+            headers=headers,
+            params={"from": today - timedelta(days=2), "to": today},
+        )
+    ).json()
+    assert [day["reviews_count"] for day in activity] == [2, 1, 1]
+    assert [day["is_frozen"] for day in activity] == [False, True, False]
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
 async def test_activity_range_validation(_mock_send: AsyncMock, client: pytest.fixture) -> None:
     headers = await _auth(client, "retention-range")
     today = datetime.now(UTC).date()
