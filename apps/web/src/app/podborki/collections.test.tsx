@@ -60,14 +60,18 @@ function respond(items: CollectionCourse[] = [course()]) {
 afterEach(() => vi.unstubAllGlobals());
 
 it('публикует только выбранные редакцией непустые подборки', () => {
-  expect(publishedCollections().map((item) => item.slug)).toEqual(['test-collection']);
+  expect(publishedCollections().map((item) => item.slug)).toEqual([
+    'k-pervomu-zachetu',
+    'test-collection',
+  ]);
   expect(publishedCollections([], new Date())).toEqual([]);
   const html = renderToStaticMarkup(<CollectionsPage />);
+  expect(html).toContain('href="/podborki/k-pervomu-zachetu"');
   expect(html).toContain('href="/podborki/test-collection"');
-  expect(html).not.toMatch(/href="\/podborki\/(future|empty|k-pervomu-zachetu)/);
+  expect(html).not.toMatch(/href="\/podborki\/(future|empty)/);
 });
 
-it.each(['missing', 'k-pervomu-zachetu', 'future', 'empty', '../../content/collections'])(
+it.each(['missing', 'future', 'empty', '../../content/collections'])(
   'не раскрывает неопубликованную подборку %s',
   async (slug) => {
     const fetcher = respond();
