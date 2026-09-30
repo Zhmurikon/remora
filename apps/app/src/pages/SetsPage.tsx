@@ -5,10 +5,10 @@ import { useMemo, useState, type DragEvent, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import {
+  DropIndicator,
   ListSort,
   moveCustomItem,
   moveCustomItemTo,
-  OrderControls,
   sortItems,
   useCustomOrder,
   useDragOrder,
@@ -31,7 +31,7 @@ export function SetsPage() {
   const [search, setSearch] = useState('');
   const [newFolder, setNewFolder] = useState('');
   const [creatingFolder, setCreatingFolder] = useState(false);
-  const [sortMode, setSortMode] = useListSort('remora:sort:sets');
+  const [sortMode, setSortMode] = useListSort('remora:sort:sets', 'custom', false);
   const [customOrder, setCustomOrder] = useCustomOrder('remora:order:sets');
   const sets = useQuery({
     queryKey: ['sets'],
@@ -130,8 +130,8 @@ export function SetsPage() {
   const moveSetByDrag = (setId: string, targetId: string, afterTarget: boolean) => {
     setCustomOrder(moveCustomItemTo(allOrderedIds, setId, targetId, afterTarget));
   };
-  const ownedSetDrag = useDragOrder(moveSetByDrag, visibleOwnedIds);
-  const savedSetDrag = useDragOrder(moveSetByDrag, visibleSavedIds);
+  const ownedSetDrag = useDragOrder(moveSetByDrag, visibleOwnedIds, moveVisibleSet);
+  const savedSetDrag = useDragOrder(moveSetByDrag, visibleSavedIds, moveVisibleSet);
   const isEmpty = hasNoVisibleSets(
     origin,
     selectedFolder,
@@ -344,19 +344,12 @@ export function SetsPage() {
           </p>
         </aside>
         <section>
-          <div className="mb-5 flex flex-wrap justify-end gap-2">
+          <div className="mb-5 flex justify-end">
             <ListSort value={sortMode} onChange={setSortMode} label="Сортировка наборов" />
-            <Button
-              variant="secondary"
-              aria-pressed={sortMode === 'custom'}
-              onClick={() => setSortMode('custom')}
-            >
-              {sortMode === 'custom' ? 'Ручной порядок включён' : 'Изменить порядок'}
-            </Button>
           </div>
           {sortMode === 'custom' && selectedFolder !== 'archived' && (
             <p className="text-fg-muted mb-5 text-sm">
-              Перетаскивайте карточки за ручку. Новые наборы будут появляться сверху.
+              Перетаскивайте карточки. Новые наборы будут появляться сверху.
             </p>
           )}
           {typeof selectedFolder === 'string' &&
@@ -452,30 +445,15 @@ export function SetsPage() {
                 visibleSets.map((set) => (
                   <div
                     key={set.id}
-                    {...(sortMode === 'custom' ? ownedSetDrag.getDragProps(set.id) : {})}
-                    className={`relative transition-opacity ${
-                      ownedSetDrag.draggedId === set.id ? 'opacity-40' : ''
-                    }`}
+                    {...(sortMode === 'custom' ? ownedSetDrag.getDragProps(set.id, set.title) : {})}
+                    className={`focus-visible:outline-primary relative transition-opacity focus-visible:outline focus-visible:outline-2 ${
+                      sortMode === 'custom' ? 'cursor-grab active:cursor-grabbing' : ''
+                    } ${ownedSetDrag.draggedId === set.id ? 'opacity-40' : ''}`}
                   >
                     {ownedSetDrag.dropTarget?.id === set.id && (
-                      <span
-                        aria-hidden="true"
-                        className={`bg-primary pointer-events-none absolute inset-x-2 z-10 h-1 rounded-full ${
-                          ownedSetDrag.dropTarget.after ? '-bottom-1' : '-top-1'
-                        }`}
-                      />
+                      <DropIndicator edge={ownedSetDrag.dropTarget.edge} />
                     )}
                     <Card interactive className="h-full p-5">
-                      {sortMode === 'custom' && (
-                        <OrderControls
-                          itemLabel={set.title}
-                          canMoveEarlier={visibleOwnedIds.indexOf(set.id) > 0}
-                          canMoveLater={
-                            visibleOwnedIds.indexOf(set.id) < visibleOwnedIds.length - 1
-                          }
-                          onMove={(direction) => moveVisibleSet(set.id, direction)}
-                        />
-                      )}
                       <Link
                         to={`/sets/${set.id}`}
                         draggable={sortMode !== 'custom'}
@@ -508,29 +486,20 @@ export function SetsPage() {
               visibleSavedSets.map((set) => (
                 <div
                   key={set.id}
-                  {...(sortMode === 'custom' ? savedSetDrag.getDragProps(set.id) : {})}
-                  className={`relative transition-opacity ${
-                    savedSetDrag.draggedId === set.id ? 'opacity-40' : ''
-                  }`}
+                  {...(sortMode === 'custom' ? savedSetDrag.getDragProps(set.id, set.title) : {})}
+                  className={`focus-visible:outline-primary relative transition-opacity focus-visible:outline focus-visible:outline-2 ${
+                    sortMode === 'custom' ? 'cursor-grab active:cursor-grabbing' : ''
+                  } ${savedSetDrag.draggedId === set.id ? 'opacity-40' : ''}`}
                 >
                   {savedSetDrag.dropTarget?.id === set.id && (
-                    <span
-                      aria-hidden="true"
-                      className={`bg-primary pointer-events-none absolute inset-x-2 z-10 h-1 rounded-full ${
-                        savedSetDrag.dropTarget.after ? '-bottom-1' : '-top-1'
-                      }`}
-                    />
+                    <DropIndicator edge={savedSetDrag.dropTarget.edge} />
                   )}
                   <Card interactive className="h-full p-5">
-                    {sortMode === 'custom' && (
-                      <OrderControls
-                        itemLabel={set.title}
-                        canMoveEarlier={visibleSavedIds.indexOf(set.id) > 0}
-                        canMoveLater={visibleSavedIds.indexOf(set.id) < visibleSavedIds.length - 1}
-                        onMove={(direction) => moveVisibleSet(set.id, direction)}
-                      />
-                    )}
-                    <Link to={`/sets/${set.id}/learn`} className="group block">
+                    <Link
+                      to={`/sets/${set.id}/learn`}
+                      draggable={sortMode !== 'custom'}
+                      className="group block"
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <Badge>Сохранённый</Badge>
                         <span className="text-fg-subtle text-xs">{set.cards_count} карт.</span>

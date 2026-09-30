@@ -22,12 +22,19 @@ const labels: Record<SortMode, string> = {
 
 const collator = new Intl.Collator('ru', { numeric: true, sensitivity: 'base' });
 
-export function useListSort(storageKey: string, initial: SortMode = 'updated_desc') {
+export function useListSort(
+  storageKey: string,
+  initial: SortMode = 'updated_desc',
+  remember = true,
+) {
   const [mode, setMode] = useState<SortMode>(() => {
+    if (!remember) return initial;
     const saved = window.localStorage.getItem(storageKey);
     return saved && saved in labels ? (saved as SortMode) : initial;
   });
-  useEffect(() => window.localStorage.setItem(storageKey, mode), [mode, storageKey]);
+  useEffect(() => {
+    if (remember) window.localStorage.setItem(storageKey, mode);
+  }, [mode, remember, storageKey]);
   return [mode, setMode] as const;
 }
 
@@ -112,18 +119,39 @@ export function moveCustomItemTo(
   return result;
 }
 
-type DropTarget = { id: string; after: boolean } | null;
+export type DropEdge = 'top' | 'right' | 'bottom' | 'left';
+
+type DropTarget = { id: string; edge: DropEdge } | null;
+
+export function closestDropEdge(
+  bounds: Pick<DOMRect, 'top' | 'right' | 'bottom' | 'left'>,
+  clientX: number,
+  clientY: number,
+): DropEdge {
+  const distances: Array<[DropEdge, number]> = [
+    ['top', Math.abs(clientY - bounds.top)],
+    ['right', Math.abs(bounds.right - clientX)],
+    ['bottom', Math.abs(bounds.bottom - clientY)],
+    ['left', Math.abs(clientX - bounds.left)],
+  ];
+  return distances.reduce((closest, candidate) =>
+    candidate[1] < closest[1] ? candidate : closest,
+  )[0];
+}
 
 export function useDragOrder(
   onMove: (itemId: string, targetId: string, afterTarget: boolean) => void,
   allowedIds: readonly string[],
+  onKeyboardMove?: (itemId: string, direction: -1 | 1) => void,
 ) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<DropTarget>(null);
 
-  function getDragProps(itemId: string): HTMLAttributes<HTMLDivElement> {
+  function getDragProps(itemId: string, itemLabel: string): HTMLAttributes<HTMLDivElement> {
     return {
       draggable: true,
+      tabIndex: 0,
+      'aria-label': `${itemLabel}. Перетащите карточку или перемещайте её сочетанием Alt и стрелок.`,
       onDragStart: (event: DragEvent<HTMLDivElement>) => {
         event.dataTransfer.setData('text/remora-order-id', itemId);
         event.dataTransfer.effectAllowed = 'move';
@@ -135,18 +163,15 @@ export function useDragOrder(
         event.preventDefault();
         event.dataTransfer.dropEffect = 'move';
         const bounds = event.currentTarget.getBoundingClientRect();
-        const nearMiddle =
-          Math.abs(event.clientY - (bounds.top + bounds.height / 2)) < bounds.height / 4;
-        const after = nearMiddle
-          ? event.clientX > bounds.left + bounds.width / 2
-          : event.clientY > bounds.top + bounds.height / 2;
-        setDropTarget({ id: itemId, after });
+        setDropTarget({ id: itemId, edge: closestDropEdge(bounds, event.clientX, event.clientY) });
       },
       onDrop: (event: DragEvent<HTMLDivElement>) => {
         event.preventDefault();
         const sourceId = event.dataTransfer.getData('text/remora-order-id') || draggedId;
         if (sourceId && sourceId !== itemId && allowedIds.includes(sourceId)) {
-          onMove(sourceId, itemId, dropTarget?.after ?? false);
+          const bounds = event.currentTarget.getBoundingClientRect();
+          const edge = closestDropEdge(bounds, event.clientX, event.clientY);
+          onMove(sourceId, itemId, edge === 'right' || edge === 'bottom');
         }
         setDraggedId(null);
         setDropTarget(null);
@@ -155,79 +180,37 @@ export function useDragOrder(
         setDraggedId(null);
         setDropTarget(null);
       },
+      onKeyDown: (event) => {
+        if (!event.altKey || !onKeyboardMove) return;
+        const direction =
+          event.key === 'ArrowUp' || event.key === 'ArrowLeft'
+            ? -1
+            : event.key === 'ArrowDown' || event.key === 'ArrowRight'
+              ? 1
+              : null;
+        if (direction === null) return;
+        event.preventDefault();
+        onKeyboardMove(itemId, direction);
+      },
     };
   }
 
   return { draggedId, dropTarget, getDragProps };
 }
 
-export function OrderControls({
-  itemLabel,
-  canMoveEarlier,
-  canMoveLater,
-  onMove,
-}: {
-  itemLabel: string;
-  canMoveEarlier: boolean;
-  canMoveLater: boolean;
-  onMove: (direction: -1 | 1) => void;
-}) {
+const dropIndicatorClasses: Record<DropEdge, string> = {
+  top: 'inset-x-2 -top-1 h-1',
+  right: 'inset-y-2 -right-1 w-1',
+  bottom: 'inset-x-2 -bottom-1 h-1',
+  left: 'inset-y-2 -left-1 w-1',
+};
+
+export function DropIndicator({ edge }: { edge: DropEdge }) {
   return (
-    <div className="border-border mb-4 flex items-center justify-between gap-2 border-b pb-3">
-      <span className="text-fg-muted flex cursor-grab items-center gap-2 text-sm active:cursor-grabbing">
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 24 24"
-          className="h-5 w-5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <path d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01" strokeLinecap="round" />
-        </svg>
-        Перетащите
-      </span>
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          disabled={!canMoveEarlier}
-          onClick={() => onMove(-1)}
-          aria-label={`Поднять «${itemLabel}» выше`}
-          title="Поднять выше"
-          className="border-border bg-surface hover:bg-surface-muted focus-visible:outline-primary grid h-11 w-11 place-items-center rounded-md border focus-visible:outline focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="m6 15 6-6 6 6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-        <button
-          type="button"
-          disabled={!canMoveLater}
-          onClick={() => onMove(1)}
-          aria-label={`Опустить «${itemLabel}» ниже`}
-          title="Опустить ниже"
-          className="border-border bg-surface hover:bg-surface-muted focus-visible:outline-primary grid h-11 w-11 place-items-center rounded-md border focus-visible:outline focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-      </div>
-    </div>
+    <span
+      aria-hidden="true"
+      className={`bg-primary pointer-events-none absolute z-10 rounded-full ${dropIndicatorClasses[edge]}`}
+    />
   );
 }
 

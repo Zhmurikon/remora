@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { moveCustomItem, moveCustomItemTo, sortItems } from './ListSort';
+import { closestDropEdge, moveCustomItem, moveCustomItemTo, sortItems } from './ListSort';
 
 const items = [
   { title: 'Бета 10', date: '2026-01-01T00:00:00Z', size: 2 },
@@ -44,5 +44,13 @@ describe('сортировка списков', () => {
   it('переносит карточку до или после цели drag-and-drop', () => {
     expect(moveCustomItemTo(['a', 'b', 'c'], 'a', 'c', true)).toEqual(['b', 'c', 'a']);
     expect(moveCustomItemTo(['a', 'b', 'c'], 'c', 'a', false)).toEqual(['c', 'a', 'b']);
+  });
+
+  it('выбирает ближайшую грань карточки в двумерной сетке', () => {
+    const bounds = { top: 100, right: 300, bottom: 300, left: 100 };
+    expect(closestDropEdge(bounds, 105, 200)).toBe('left');
+    expect(closestDropEdge(bounds, 295, 200)).toBe('right');
+    expect(closestDropEdge(bounds, 200, 105)).toBe('top');
+    expect(closestDropEdge(bounds, 200, 295)).toBe('bottom');
   });
 });

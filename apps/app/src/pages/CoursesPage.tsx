@@ -7,10 +7,10 @@ import { api } from '../lib/api';
 import { CoursePublicationPanel } from './CoursePublicationPanel';
 import { CopyCourseButton } from './CourseReaderPage';
 import {
+  DropIndicator,
   ListSort,
   moveCustomItem,
   moveCustomItemTo,
-  OrderControls,
   sortItems,
   useCustomOrder,
   useDragOrder,
@@ -37,7 +37,7 @@ function failure(error: unknown): Error {
 
 export function CoursesPage() {
   const [origin, setOrigin] = useState<'all' | 'owned' | 'saved'>('all');
-  const [sortMode, setSortMode] = useListSort('remora:sort:courses');
+  const [sortMode, setSortMode] = useListSort('remora:sort:courses', 'custom', false);
   const [customOrder, setCustomOrder] = useCustomOrder('remora:order:courses');
   const courses = useQuery({
     queryKey: ['courses'],
@@ -103,8 +103,8 @@ export function CoursesPage() {
   const moveCourseByDrag = (courseId: string, targetId: string, afterTarget: boolean) => {
     setCustomOrder(moveCustomItemTo(allOrderedIds, courseId, targetId, afterTarget));
   };
-  const ownedCourseDrag = useDragOrder(moveCourseByDrag, visibleOwnedIds);
-  const savedCourseDrag = useDragOrder(moveCourseByDrag, visibleSavedIds);
+  const ownedCourseDrag = useDragOrder(moveCourseByDrag, visibleOwnedIds, moveCourse);
+  const savedCourseDrag = useDragOrder(moveCourseByDrag, visibleSavedIds, moveCourse);
   return (
     <div className="space-y-6">
       <header>
@@ -157,24 +157,17 @@ export function CoursesPage() {
           </p>
         </Card>
       )}
-      <div className="flex flex-wrap justify-end gap-2">
+      <div className="flex justify-end">
         <ListSort
           value={sortMode}
           onChange={setSortMode}
           label="Сортировка курсов"
           includeSize={false}
         />
-        <Button
-          variant="secondary"
-          aria-pressed={sortMode === 'custom'}
-          onClick={() => setSortMode('custom')}
-        >
-          {sortMode === 'custom' ? 'Ручной порядок включён' : 'Изменить порядок'}
-        </Button>
       </div>
       {sortMode === 'custom' && (
         <p className="text-fg-muted text-sm">
-          Перетаскивайте карточки за ручку. Новые курсы будут появляться сверху.
+          Перетаскивайте карточки. Новые курсы будут появляться сверху.
         </p>
       )}
       <div className="grid gap-4 sm:grid-cols-2">
@@ -182,28 +175,17 @@ export function CoursesPage() {
           sortedCourses.map((course) => (
             <div
               key={course.id}
-              {...(sortMode === 'custom' ? ownedCourseDrag.getDragProps(course.id) : {})}
-              className={`relative transition-opacity ${
-                ownedCourseDrag.draggedId === course.id ? 'opacity-40' : ''
-              }`}
+              {...(sortMode === 'custom'
+                ? ownedCourseDrag.getDragProps(course.id, course.title)
+                : {})}
+              className={`focus-visible:outline-primary relative transition-opacity focus-visible:outline focus-visible:outline-2 ${
+                sortMode === 'custom' ? 'cursor-grab active:cursor-grabbing' : ''
+              } ${ownedCourseDrag.draggedId === course.id ? 'opacity-40' : ''}`}
             >
               {ownedCourseDrag.dropTarget?.id === course.id && (
-                <span
-                  aria-hidden="true"
-                  className={`bg-primary pointer-events-none absolute inset-x-2 z-10 h-1 rounded-full ${
-                    ownedCourseDrag.dropTarget.after ? '-bottom-1' : '-top-1'
-                  }`}
-                />
+                <DropIndicator edge={ownedCourseDrag.dropTarget.edge} />
               )}
               <Card className="h-full break-words">
-                {sortMode === 'custom' && (
-                  <OrderControls
-                    itemLabel={course.title}
-                    canMoveEarlier={visibleOwnedIds.indexOf(course.id) > 0}
-                    canMoveLater={visibleOwnedIds.indexOf(course.id) < visibleOwnedIds.length - 1}
-                    onMove={(direction) => moveCourse(course.id, direction)}
-                  />
-                )}
                 <Link
                   to={`/courses/${course.id}`}
                   draggable={sortMode !== 'custom'}
@@ -225,28 +207,17 @@ export function CoursesPage() {
           sortedSavedCourses.map((course) => (
             <div
               key={course.id}
-              {...(sortMode === 'custom' ? savedCourseDrag.getDragProps(course.id) : {})}
-              className={`relative transition-opacity ${
-                savedCourseDrag.draggedId === course.id ? 'opacity-40' : ''
-              }`}
+              {...(sortMode === 'custom'
+                ? savedCourseDrag.getDragProps(course.id, course.title)
+                : {})}
+              className={`focus-visible:outline-primary relative transition-opacity focus-visible:outline focus-visible:outline-2 ${
+                sortMode === 'custom' ? 'cursor-grab active:cursor-grabbing' : ''
+              } ${savedCourseDrag.draggedId === course.id ? 'opacity-40' : ''}`}
             >
               {savedCourseDrag.dropTarget?.id === course.id && (
-                <span
-                  aria-hidden="true"
-                  className={`bg-primary pointer-events-none absolute inset-x-2 z-10 h-1 rounded-full ${
-                    savedCourseDrag.dropTarget.after ? '-bottom-1' : '-top-1'
-                  }`}
-                />
+                <DropIndicator edge={savedCourseDrag.dropTarget.edge} />
               )}
               <Card className="h-full break-words">
-                {sortMode === 'custom' && (
-                  <OrderControls
-                    itemLabel={course.title}
-                    canMoveEarlier={visibleSavedIds.indexOf(course.id) > 0}
-                    canMoveLater={visibleSavedIds.indexOf(course.id) < visibleSavedIds.length - 1}
-                    onMove={(direction) => moveCourse(course.id, direction)}
-                  />
-                )}
                 <a
                   href={`${WEB_URL}/kurs/${course.slug}`}
                   draggable={sortMode !== 'custom'}

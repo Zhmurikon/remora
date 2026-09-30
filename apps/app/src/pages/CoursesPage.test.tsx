@@ -86,7 +86,7 @@ describe('Курсы в кабинете', () => {
     expect(screen.getByText('Физика')).toBeTruthy();
   });
 
-  it('включает drag-and-drop заметной кнопкой и запоминает порядок', async () => {
+  it('включает drag-and-drop по умолчанию и запоминает порядок', async () => {
     vi.mocked(api.GET).mockImplementation(async (path) => {
       if (path === '/api/v1/courses') {
         return {
@@ -100,13 +100,26 @@ describe('Курсы в кабинете', () => {
       return { data: [], response: new Response() } as never;
     });
 
+    window.localStorage.setItem('remora:sort:courses', 'title_asc');
     mount();
     await screen.findByText('Геометрия');
-    await userEvent.click(screen.getByRole('button', { name: 'Изменить порядок' }));
+    expect((screen.getByLabelText('Сортировка курсов') as HTMLSelectElement).value).toBe('custom');
+    expect(screen.queryByText('Перетащите')).toBeNull();
     const source = screen.getByText('Алгебра').closest('[draggable="true"]');
     const target = screen.getByText('Геометрия').closest('[draggable="true"]');
     expect(source).toBeTruthy();
     expect(target).toBeTruthy();
+    vi.spyOn(target!, 'getBoundingClientRect').mockReturnValue({
+      top: 0,
+      right: 200,
+      bottom: 100,
+      left: 0,
+      width: 200,
+      height: 100,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
     const values = new Map<string, string>();
     const dataTransfer = {
       effectAllowed: 'none',
@@ -115,8 +128,8 @@ describe('Курсы в кабинете', () => {
       getData: (type: string) => values.get(type) ?? '',
     };
     fireEvent.dragStart(source!, { dataTransfer });
-    fireEvent.dragOver(target!, { dataTransfer, clientX: 0, clientY: 0 });
-    fireEvent.drop(target!, { dataTransfer, clientX: 0, clientY: 0 });
+    fireEvent.dragOver(target!, { dataTransfer, clientX: 1, clientY: 50 });
+    fireEvent.drop(target!, { dataTransfer, clientX: 1, clientY: 50 });
 
     await waitFor(() =>
       expect(JSON.parse(window.localStorage.getItem('remora:order:courses') ?? '[]')).toEqual([
