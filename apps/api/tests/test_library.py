@@ -63,6 +63,9 @@ async def test_course_save_grants_study_but_not_edit_and_revokes_on_unpublish(
     assert saved_sets[0]["id"] == set_id
     assert saved_sets[0]["access_via"] == "course"
     assert saved_sets[0]["course_id"] == course["id"]
+    saved_detail = await client.get(f"/api/v1/sets/{set_id}", headers=learner)
+    assert saved_detail.status_code == 200
+    assert saved_detail.json()["id"] == set_id
     folder_id = saved_sets[0]["folder_id"]
     assert folder_id is not None
     folders = (await client.get("/api/v1/folders", headers=learner)).json()

@@ -56,7 +56,7 @@ async def create_set(
 async def get_set(
     set_id: UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
 ) -> SetDetail:
-    study_set = await ContentService(db).get_owned_set(user, set_id, with_cards=True)
+    study_set = await ContentService(db).get_study_set(user, set_id, with_cards=True)
     return SetDetail.model_validate(study_set)
 
 
