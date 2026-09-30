@@ -27,6 +27,8 @@ export function NotesIllustration() {
       </div>
       <svg className="home-drawn-arrow" viewBox="0 0 100 55" aria-hidden="true">
         <path
+          className="home-motion-path"
+          pathLength="1"
           d="M5 20C40-10 75 10 85 40m-17-9 18 11 3-20"
           fill="none"
           stroke="currentColor"
@@ -98,7 +100,7 @@ export function ChatIllustration() {
         <div className="home-bubble">
           Верно!
           <br />
-          <strong>Knowledge — знание.</strong>
+          <strong>Knowledge значит «знание».</strong>
         </div>
         <div className="home-chat-next">
           Следующий вопрос

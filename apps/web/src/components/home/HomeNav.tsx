@@ -1,14 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FishMark } from '@remora/ui';
 import { PublicAuthLink } from '../auth/PublicSession';
 
 export function HomeNav() {
   const [open, setOpen] = useState(false);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return;
+      setOpen(false);
+      toggleRef.current?.focus();
+    }
+
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [open]);
+
   return (
     <header className="home-header">
-      <a className="home-brand" href="/" aria-label="Remora — главная">
+      <a className="home-brand" href="/" aria-label="Remora, главная">
         <FishMark />
         Remora
       </a>
@@ -26,6 +41,7 @@ export function HomeNav() {
         </a>
       </div>
       <button
+        ref={toggleRef}
         className="home-menu-toggle"
         type="button"
         aria-expanded={open}
@@ -50,12 +66,6 @@ export function HomeNav() {
         className="home-mobile-nav"
         aria-label="Мобильная навигация"
         hidden={!open}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') {
-            setOpen(false);
-            document.querySelector<HTMLButtonElement>('.home-menu-toggle')?.focus();
-          }
-        }}
       >
         <a href="#features" onClick={() => setOpen(false)}>
           Возможности

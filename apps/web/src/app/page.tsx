@@ -8,6 +8,10 @@ import { HomeNav } from '../components/home/HomeNav';
 import { HomeTheme } from '../components/home/HomeTheme';
 import { HomeIcon } from '../components/home/HomeIcon';
 import { ModePreview } from '../components/home/ModePreview';
+import { HomeMotion } from '../components/home/HomeMotion';
+import { HomeCatalog } from '../components/home/HomeCatalog';
+import { HomeFaq } from '../components/home/HomeFaq';
+import { HomeFinal } from '../components/home/HomeFinal';
 import {
   AiIllustration,
   ChatIllustration,
@@ -23,54 +27,32 @@ const description =
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:5173').replace(/\/$/, '');
 
 export const metadata: Metadata = {
-  title: { absolute: `${title} — Remora` },
+  title: { absolute: `${title} | Remora` },
   description,
   alternates: { canonical: '/' },
   openGraph: {
     type: 'website',
-    title: `${title} — Remora`,
+    title: `${title} | Remora`,
     description,
     url: '/',
     locale: 'ru_RU',
     siteName: 'Remora',
     images: [
-      { url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: 'Remora — карточки для запоминания' },
+      { url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: 'Remora, карточки для запоминания' },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: `${title} — Remora`,
+    title: `${title} | Remora`,
     description,
     images: [DEFAULT_OG_IMAGE],
   },
 };
 
-const faqs = [
-  [
-    'Обучение действительно бесплатное?',
-    'Да. Все пять режимов обучения и повторения доступны бесплатно. Можно учиться по своим наборам без ограничения числа повторений.',
-  ],
-  [
-    'Как добавить свои материалы?',
-    'Создайте карточки вручную или импортируйте CSV, TSV либо набор Anki. Перед сохранением можно проверить результат и исправить карточки. Теорию и наборы можно объединить в курс.',
-  ],
-  [
-    'Можно подключить свою нейросеть?',
-    'Да, если ваш ИИ-помощник поддерживает MCP или работу с API. Подключение настраивается в кабинете, в разделе «API и ИИ-агенты». Модель работает на стороне вашего помощника; её доступ и стоимость зависят от выбранного сервиса.',
-  ],
-  [
-    'Как учиться в Telegram и ВКонтакте?',
-    'Зарегистрируйтесь в Remora и привяжите бота в настройках аккаунта. После этого в чате можно открыть свои материалы и начать обучение. Ответы учитываются в общем учебном прогрессе.',
-  ],
-  [
-    'Сохранится ли результат демо?',
-    'Демо работает прямо на этой странице без аккаунта. Его результат не сохраняется после перезагрузки. Для постоянного учебного прогресса зарегистрируйтесь и начните занятие по своему набору.',
-  ],
-];
-
 export default function HomePage() {
   return (
     <div className="home">
+      <HomeMotion />
       <HomeBackground />
       <a className="home-skip" href="#main-content">
         Перейти к содержимому
@@ -96,41 +78,57 @@ export default function HomePage() {
           ],
         }}
       />
-      <div className="home-shell">
+      <div className="home-shell home-nav-shell">
         <HomeNav />
       </div>
       <main id="main-content">
         <section className="home-hero home-shell" aria-labelledby="home-title">
-          <p className="home-eyebrow">
-            <span />
-            Меньше зубрёжки. Больше понимания.
-          </p>
-          <h1 id="home-title">
-            Карточки для запоминания —<br />
-            <span>к экзамену и надолго</span>
-          </h1>
-          <p className="home-hero-description">
-            Собирайте главное из лекций, проверяйте себя
-            <br className="home-desktop-break" /> и повторяйте материал в своём темпе.
-          </p>
-          <a className="home-button home-hero-cta" href="#demo">
-            Попробовать без регистрации
-            <HomeIcon name="arrow" />
-          </a>
-          <p className="home-free-note">Все режимы обучения бесплатны</p>
-          <HomeDemo />
+          <div className="home-hero-copy" data-home-hero-copy>
+            <p className="home-eyebrow">Меньше зубрёжки. Больше понимания.</p>
+            <h1 id="home-title">
+              Карточки, которые помогают <span>вспомнить главное</span>
+            </h1>
+            <p className="home-hero-description">
+              Собирайте материал из лекций, проверяйте себя и возвращайтесь к знаниям в нужный
+              момент.
+            </p>
+            <div className="home-hero-actions">
+              <a className="home-button home-hero-cta" href="#demo">
+                Попробовать без регистрации
+                <HomeIcon name="arrow" />
+              </a>
+              <a className="home-hero-link" href="#features">
+                Посмотреть, как это работает
+              </a>
+            </div>
+            <p className="home-free-note">Все режимы обучения бесплатны</p>
+          </div>
+          <div className="home-hero-demo" data-home-hero-demo>
+            <HomeDemo />
+          </div>
         </section>
 
         <div id="features" className="home-features home-shell">
-          <section className="home-feature home-mint" aria-labelledby="notes-title">
+          <div className="home-journey-heading" data-home-story>
+            <p>Один материал. Несколько способов запомнить.</p>
+            <h2>От первой заметки до уверенного ответа</h2>
+          </div>
+          <div className="home-story-rail" aria-hidden="true">
+            <span data-home-story-progress />
+          </div>
+          <section
+            className="home-feature home-mint home-story-card"
+            aria-labelledby="notes-title"
+            data-home-story
+          >
             <div className="home-feature-copy">
-              <span className="home-kicker">01 / Ваши материалы</span>
+              <span className="home-kicker">Ваши материалы</span>
               <h2 id="notes-title">
                 Из конспекта
                 <br />в карточки
               </h2>
               <p>
-                Соберите главное из лекций. Добавьте свои вопросы и начните повторять — по одному
+                Соберите главное из лекций. Добавьте свои вопросы и начните повторять, по одному
                 понятному шагу за раз.
               </p>
               <a className="home-link" href="/register">
@@ -142,19 +140,20 @@ export default function HomePage() {
           </section>
 
           <section
-            className="home-feature home-lavender home-feature-reverse"
+            className="home-feature home-lavender home-feature-reverse home-story-card"
             aria-labelledby="chat-title"
+            data-home-story
           >
             <div className="home-feature-copy">
-              <span className="home-kicker">02 / Учёба с вами</span>
+              <span className="home-kicker">Учёба с вами</span>
               <h2 id="chat-title">
                 Учитесь
                 <br />
                 где удобно
               </h2>
               <p>
-                Дома — на сайте. По дороге на пару — в Telegram или ВКонтакте. Ваши материалы и
-                прогресс связаны с одним аккаунтом.
+                Дома на сайте. По дороге на пару в Telegram или ВКонтакте. Ваши материалы и прогресс
+                связаны с одним аккаунтом.
               </p>
               <div className="home-platforms">
                 <span>
@@ -173,9 +172,13 @@ export default function HomePage() {
             <ChatIllustration />
           </section>
 
-          <section className="home-modes" aria-labelledby="modes-title">
+          <section
+            className="home-modes home-story-card"
+            aria-labelledby="modes-title"
+            data-home-story
+          >
             <div className="home-section-heading">
-              <span className="home-kicker">03 / Найдите свой способ</span>
+              <span className="home-kicker">Найдите свой способ</span>
               <h2 id="modes-title">Не только переворачивать карточки</h2>
               <p>
                 Вспоминайте, выбирайте, пишите и слушайте.
@@ -186,19 +189,23 @@ export default function HomePage() {
             <ModePreview />
           </section>
 
-          <section className="home-feature home-peach" aria-labelledby="repeat-title">
+          <section
+            className="home-feature home-peach home-story-card"
+            aria-labelledby="repeat-title"
+            data-home-story
+          >
             <div className="home-feature-copy">
-              <span className="home-kicker">04 / Чтобы помнить дольше</span>
+              <span className="home-kicker">Чтобы помнить дольше</span>
               <h2 id="repeat-title">
                 Повторяйте
                 <br />в нужный момент
               </h2>
               <p>
                 Remora планирует интервальные повторения по вашим ответам. Сложное возвращается
-                чаще, знакомое — реже.
+                чаще, знакомое реже.
               </p>
               <p className="home-feature-detail">
-                В основе — алгоритм FSRS. Просто начните занятие, а расписание возьмём на себя.
+                В основе алгоритм FSRS. Просто начните занятие, а расписание возьмём на себя.
               </p>
               <a className="home-link" href="#demo">
                 Начать с короткого упражнения
@@ -209,18 +216,19 @@ export default function HomePage() {
           </section>
 
           <section
-            className="home-feature home-neutral home-feature-reverse"
+            className="home-feature home-neutral home-feature-reverse home-story-card"
             aria-labelledby="import-title"
+            data-home-story
           >
             <div className="home-feature-copy">
-              <span className="home-kicker">05 / Лёгкий старт</span>
+              <span className="home-kicker">Лёгкий старт</span>
               <h2 id="import-title">
                 Материалы уже есть?
                 <br />
                 Перенесите их
               </h2>
               <p>
-                Загрузите таблицу или набор Anki. Проверьте термины и определения перед импортом — и
+                Загрузите таблицу или набор Anki. Проверьте термины и определения перед импортом и
                 продолжайте учиться.
               </p>
               <div className="home-format-tags">
@@ -236,9 +244,13 @@ export default function HomePage() {
             <ImportIllustration />
           </section>
 
-          <section className="home-feature home-lavender" aria-labelledby="ai-title">
+          <section
+            className="home-feature home-lavender home-story-card"
+            aria-labelledby="ai-title"
+            data-home-story
+          >
             <div className="home-feature-copy">
-              <span className="home-kicker">06 / Ваш привычный помощник</span>
+              <span className="home-kicker">Ваш привычный помощник</span>
               <h2 id="ai-title">
                 Своя нейросеть.
                 <br />
@@ -249,7 +261,8 @@ export default function HomePage() {
                 конспекту, проверьте результат и начните учиться.
               </p>
               <p className="home-feature-detail">
-                Для помощников с поддержкой MCP или API. Подключение — в настройках аккаунта.
+                Для помощников с поддержкой MCP или API. Подключение находится в настройках
+                аккаунта.
               </p>
               <a className="home-link" href={`${APP_URL}/settings`}>
                 Настроить подключение
@@ -260,78 +273,14 @@ export default function HomePage() {
           </section>
         </div>
 
-        <section id="catalog" className="home-catalog home-shell" aria-labelledby="catalog-title">
-          <div className="home-section-heading">
-            <span className="home-kicker">Можно начать с готового</span>
-            <h2 id="catalog-title">Найдите свою тему</h2>
-            <p>
-              Посмотрите, какие курсы и карточки
-              <br />
-              уже опубликовало сообщество.
-            </p>
-          </div>
-          <form action="/kursy" method="get" role="search" className="home-search">
-            <label className="sr-only" htmlFor="home-search">
-              Тема курса
-            </label>
-            <HomeIcon name="search" />
-            <input
-              id="home-search"
-              name="q"
-              type="search"
-              maxLength={200}
-              placeholder="Например, анатомия или английский"
-            />
-            <button type="submit" className="home-button">
-              Найти курсы
-              <HomeIcon name="arrow" />
-            </button>
-          </form>
-          <a className="home-link" href="/kursy">
-            Посмотреть весь каталог
-            <HomeIcon name="arrow" />
-          </a>
-        </section>
+        <HomeCatalog />
 
-        <section id="questions" className="home-faq home-shell" aria-labelledby="faq-title">
-          <div>
-            <span className="home-kicker">Перед началом</span>
-            <h2 id="faq-title">
-              Остались <br />
-              вопросы?
-            </h2>
-            <FishMark className="home-faq-fish" />
-          </div>
-          <div>
-            {faqs.map(([question, answer]) => (
-              <details key={question}>
-                <summary>
-                  {question}
-                  <span aria-hidden="true">+</span>
-                </summary>
-                <p>{answer}</p>
-              </details>
-            ))}
-          </div>
-        </section>
+        <HomeFaq />
 
-        <section className="home-final home-shell" aria-labelledby="final-title">
-          <FishMark />
-          <h2 id="final-title">
-            Сегодня — первые карточки.
-            <br />
-            Завтра — чуть больше знаний.
-          </h2>
-          <p>Начните со своей темы. Всё остальное — постепенно.</p>
-          <a href="/register" className="home-button">
-            Создать свои карточки
-            <HomeIcon name="arrow" />
-          </a>
-          <span>Обучение и повторения — бесплатно</span>
-        </section>
+        <HomeFinal />
       </main>
       <footer className="home-footer home-shell">
-        <a className="home-brand" href="/" aria-label="Remora — главная">
+        <a className="home-brand" href="/" aria-label="Remora, главная">
           <FishMark />
           Remora
         </a>

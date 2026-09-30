@@ -10,7 +10,7 @@ const questions = [
     question: 'Столица Японии?',
     options: ['Токио', 'Сеул', 'Пекин', 'Бангкок'],
     answer: 0,
-    explanation: 'Токио — столица Японии.',
+    explanation: 'Токио, столица Японии.',
     icon: 'globe',
   },
   {
@@ -42,7 +42,7 @@ const questions = [
     question: 'Кто написал «Евгения Онегина»?',
     options: ['Лев Толстой', 'Александр Пушкин', 'Михаил Лермонтов', 'Николай Гоголь'],
     answer: 1,
-    explanation: 'Автор романа в стихах — Александр Пушкин.',
+    explanation: 'Автор романа в стихах, Александр Пушкин.',
     icon: 'book',
   },
 ] as const;
@@ -153,7 +153,7 @@ export function HomeDemo() {
               <p>
                 Верных ответов: <strong>{score} из 5</strong>
               </p>
-              <p className="home-muted">Теперь попробуйте так же — со своим конспектом.</p>
+              <p className="home-muted">Теперь попробуйте так же со своим конспектом.</p>
               <a className="home-button" href="/register">
                 Создать свои карточки
                 <HomeIcon name="arrow" />
@@ -219,7 +219,7 @@ export function HomeDemo() {
       </section>
       <p className="home-demo-caption">
         <HomeIcon name="check" />
-        Без регистрации · прямо здесь · в вашем темпе
+        Без регистрации, прямо здесь, в вашем темпе
       </p>
       <noscript>
         <p className="home-demo-caption">

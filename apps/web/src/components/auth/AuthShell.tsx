@@ -1,100 +1,130 @@
+import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { BookIcon, ChartIcon, SparkIcon } from './Icons';
+import { AuthMotionToggle } from './AuthMotionToggle';
+import { BookIcon, ChartIcon } from './Icons';
 import { Logo } from './Logo';
 
 interface AuthShellProps {
   children: ReactNode;
-  eyebrow?: string;
-  title?: string;
-  description?: string;
 }
 
-export function AuthShell({
-  children,
-  eyebrow = 'Учитесь в своём ритме',
-  title = 'Запоминайте больше. Повторяйте вовремя.',
-  description = 'Remora помогает превратить любые заметки в карточки и строит расписание повторений за вас.',
-}: AuthShellProps) {
+export function AuthShell({ children }: AuthShellProps) {
   return (
-    <main className="auth-page bg-bg text-fg grid min-h-dvh place-items-center p-3 sm:p-5 lg:p-7">
-      <div className="auth-shell border-border/80 bg-surface mx-auto grid w-full max-w-[1440px] overflow-hidden rounded-[2rem] border shadow-[0_30px_100px_rgb(0_0_0/0.16)] lg:grid-cols-[minmax(420px,0.92fr)_minmax(520px,1.08fr)]">
-        <section className="relative hidden overflow-hidden bg-[#0b1009] p-12 text-white lg:flex lg:flex-col xl:p-16">
-          <div className="auth-glow absolute inset-0" aria-hidden="true" />
-          <div className="relative z-10">
-            <Logo inverted />
-          </div>
-
-          <div className="relative z-10 my-auto max-w-xl py-16">
-            <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/75 backdrop-blur">
-              <SparkIcon className="text-primary h-4 w-4" />
-              {eyebrow}
-            </p>
-            <h2 className="max-w-lg text-4xl font-semibold leading-[1.08] tracking-[-0.045em] xl:text-5xl">
-              {title}
-            </h2>
-            <p className="mt-6 max-w-md text-base leading-7 text-white/60">{description}</p>
-
-            <div className="relative mt-12 h-[260px] max-w-[560px]" aria-hidden="true">
-              <div className="absolute left-4 top-0 w-[72%] rotate-[-3deg] rounded-[1.75rem] border border-white/10 bg-[#171d14]/95 p-6 shadow-2xl backdrop-blur">
-                <div className="flex items-center justify-between text-sm text-white/55">
-                  <span>Сегодня</span>
-                  <span className="bg-primary/15 text-primary rounded-full px-3 py-1">
-                    12 карточек
-                  </span>
-                </div>
-                <p className="mt-8 text-2xl font-medium">Что такое интервальное повторение?</p>
-                <div className="mt-8 h-2 overflow-hidden rounded-full bg-white/10">
-                  <div className="bg-primary h-full w-2/3 rounded-full" />
-                </div>
-              </div>
-              <div className="absolute bottom-0 right-0 w-[58%] rotate-[4deg] rounded-[1.75rem] border border-white/10 bg-[#20251d]/95 p-5 shadow-2xl backdrop-blur">
-                <div className="flex items-center gap-3">
-                  <span className="bg-primary text-primary-fg grid h-11 w-11 place-items-center rounded-2xl">
-                    <ChartIcon />
-                  </span>
-                  <div>
-                    <p className="text-xs text-white/45">Прогресс недели</p>
-                    <p className="mt-0.5 text-lg font-medium">84% изучено</p>
-                  </div>
-                </div>
-                <div className="mt-5 flex h-20 items-end gap-2">
-                  {[38, 56, 42, 72, 62, 90, 78].map((height, index) => (
-                    <span
-                      key={index}
-                      className="bg-primary/80 flex-1 rounded-t-md"
-                      style={{ height: `${height}%`, opacity: 0.4 + index * 0.08 }}
-                    />
-                  ))}
-                </div>
-              </div>
-              <span className="absolute bottom-8 left-0 grid h-16 w-16 place-items-center rounded-3xl border border-white/10 bg-[#d8ff7d] text-[#17200d] shadow-2xl">
-                <BookIcon className="h-7 w-7" />
-              </span>
-            </div>
-          </div>
-
-          <p className="relative z-10 text-xs text-white/35">© 2026 Remora</p>
-        </section>
-
-        <section className="flex min-h-0 flex-col overflow-y-auto px-5 py-6 sm:px-10 sm:py-8 lg:px-14 xl:px-24">
-          <div className="mb-12 flex items-center justify-between lg:hidden">
-            <Logo />
-          </div>
-          <div className="mx-auto flex w-full max-w-[460px] flex-1 flex-col justify-center py-4 sm:py-10">
-            {children}
-          </div>
-          <p className="text-fg-subtle mt-10 text-center text-xs leading-5">
-            Продолжая, вы принимаете{' '}
-            <a href="#" className="decoration-border hover:text-fg underline underline-offset-4">
-              условия использования
-            </a>{' '}
-            и{' '}
-            <a href="#" className="decoration-border hover:text-fg underline underline-offset-4">
-              политику конфиденциальности
-            </a>
-          </p>
-        </section>
+    <main className="auth-page bg-bg text-fg min-h-dvh">
+      <div className="auth-ambient" aria-hidden="true">
+        <span className="auth-ambient-shape" />
+        <svg className="auth-memory-map" viewBox="0 0 1600 900" preserveAspectRatio="none">
+          <path id="auth-route-one" d="M88 694C272 632 330 763 493 716C622 679 618 542 753 516" />
+          <path
+            id="auth-route-two"
+            d="M1021 210C1172 192 1190 334 1338 297C1430 274 1466 213 1552 229"
+          />
+          <path id="auth-route-three" d="M1080 630C1197 537 1316 558 1442 703" />
+          <circle cx="88" cy="694" r="5" />
+          <circle cx="493" cy="716" r="7" />
+          <circle cx="1021" cy="210" r="5" />
+          <circle cx="1338" cy="297" r="7" />
+          <circle cx="1442" cy="703" r="5" />
+          <circle className="auth-memory-runner" r="5">
+            <animateMotion dur="78s" repeatCount="indefinite" begin="-21s">
+              <mpath href="#auth-route-one" />
+            </animateMotion>
+          </circle>
+          <circle className="auth-memory-runner auth-memory-runner-accent" r="4">
+            <animateMotion dur="92s" repeatCount="indefinite" begin="-57s">
+              <mpath href="#auth-route-two" />
+            </animateMotion>
+          </circle>
+          <circle className="auth-memory-runner" r="4.5">
+            <animateMotion dur="84s" repeatCount="indefinite" begin="-38s">
+              <mpath href="#auth-route-three" />
+            </animateMotion>
+          </circle>
+        </svg>
+        <span className="auth-orbit auth-orbit-one">
+          <i />
+        </span>
+        <span className="auth-orbit auth-orbit-two">
+          <i />
+        </span>
+        <span className="auth-mote auth-mote-one" />
+        <span className="auth-mote auth-mote-two" />
+        <span className="auth-mote auth-mote-three" />
+        <span className="auth-mote auth-mote-four" />
+        <span className="auth-spark auth-spark-one">
+          <i />
+          <i />
+          <i />
+        </span>
+        <span className="auth-spark auth-spark-two">
+          <i />
+          <i />
+          <i />
+        </span>
       </div>
+
+      <header className="auth-header">
+        <Logo />
+        <Link href="/" className="auth-home-link">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m14.5 6-6 6 6 6M9 12h10" />
+          </svg>
+          На главную
+        </Link>
+      </header>
+
+      <div className="auth-stage">
+        <section className="auth-statement" aria-label="О Remora">
+          <h2>
+            <span className="auth-title-word auth-title-word-one">Знания</span>
+            <em className="auth-title-word auth-title-word-two">остаются</em>
+            <span className="auth-title-word auth-title-word-three">с вами</span>
+          </h2>
+          <p>Собирайте важное в карточки и возвращайтесь к нему именно тогда, когда нужно.</p>
+        </section>
+
+        <div className="auth-form-panel">
+          <div className="auth-form-content">{children}</div>
+          <p className="auth-legal">
+            Продолжая, вы принимаете <a href="#">условия использования</a> и{' '}
+            <a href="#">политику конфиденциальности</a>
+          </p>
+        </div>
+
+        <div className="auth-note auth-note-card" aria-hidden="true">
+          <span className="auth-note-icon">
+            <BookIcon />
+          </span>
+          <p>Что такое интервальное повторение?</p>
+          <i />
+          <i />
+        </div>
+
+        <div className="auth-note auth-note-progress" aria-hidden="true">
+          <span className="auth-note-icon">
+            <ChartIcon />
+          </span>
+          <div>
+            <small>Прогресс недели</small>
+            <strong>84% изучено</strong>
+          </div>
+          <span className="auth-mini-chart">
+            <i />
+            <i />
+            <i />
+            <i />
+            <i />
+          </span>
+        </div>
+
+        <span className="auth-hand-note auth-hand-note-top" aria-hidden="true">
+          Лучше запоминаю
+        </span>
+        <span className="auth-hand-note auth-hand-note-side" aria-hidden="true">
+          Больше возможностей
+        </span>
+      </div>
+      <AuthMotionToggle />
     </main>
   );
 }
