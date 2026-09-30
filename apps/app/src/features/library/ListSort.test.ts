@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { moveCustomItem, sortItems } from './ListSort';
+import { moveCustomItem, moveCustomItemTo, sortItems } from './ListSort';
 
 const items = [
   { title: 'Бета 10', date: '2026-01-01T00:00:00Z', size: 2 },
@@ -39,5 +39,10 @@ describe('сортировка списков', () => {
 
   it('меняет местами соседей в отфильтрованном списке, не теряя скрытые элементы', () => {
     expect(moveCustomItem(['a', 'hidden', 'b'], ['a', 'b'], 'b', -1)).toEqual(['b', 'hidden', 'a']);
+  });
+
+  it('переносит карточку до или после цели drag-and-drop', () => {
+    expect(moveCustomItemTo(['a', 'b', 'c'], 'a', 'c', true)).toEqual(['b', 'c', 'a']);
+    expect(moveCustomItemTo(['a', 'b', 'c'], 'c', 'a', false)).toEqual(['c', 'a', 'b']);
   });
 });

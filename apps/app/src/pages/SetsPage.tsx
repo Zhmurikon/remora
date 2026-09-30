@@ -7,9 +7,11 @@ import { api } from '../lib/api';
 import {
   ListSort,
   moveCustomItem,
+  moveCustomItemTo,
   OrderControls,
   sortItems,
   useCustomOrder,
+  useDragOrder,
   useListSort,
 } from '../features/library/ListSort';
 
@@ -125,6 +127,11 @@ export function SetsPage() {
     const visibleIds = visibleOwnedIds.includes(setId) ? visibleOwnedIds : visibleSavedIds;
     setCustomOrder(moveCustomItem(allOrderedIds, visibleIds, setId, direction));
   }
+  const moveSetByDrag = (setId: string, targetId: string, afterTarget: boolean) => {
+    setCustomOrder(moveCustomItemTo(allOrderedIds, setId, targetId, afterTarget));
+  };
+  const ownedSetDrag = useDragOrder(moveSetByDrag, visibleOwnedIds);
+  const savedSetDrag = useDragOrder(moveSetByDrag, visibleSavedIds);
   const isEmpty = hasNoVisibleSets(
     origin,
     selectedFolder,
@@ -337,13 +344,19 @@ export function SetsPage() {
           </p>
         </aside>
         <section>
-          <div className="mb-5 flex justify-end">
+          <div className="mb-5 flex flex-wrap justify-end gap-2">
             <ListSort value={sortMode} onChange={setSortMode} label="Сортировка наборов" />
+            <Button
+              variant="secondary"
+              aria-pressed={sortMode === 'custom'}
+              onClick={() => setSortMode('custom')}
+            >
+              {sortMode === 'custom' ? 'Ручной порядок включён' : 'Изменить порядок'}
+            </Button>
           </div>
           {sortMode === 'custom' && selectedFolder !== 'archived' && (
             <p className="text-fg-muted mb-5 text-sm">
-              Используйте кнопки на карточках, чтобы собрать свой порядок. Новые наборы появятся
-              сверху.
+              Перетаскивайте карточки за ручку. Новые наборы будут появляться сверху.
             </p>
           )}
           {typeof selectedFolder === 'string' &&
@@ -437,27 +450,89 @@ export function SetsPage() {
                 ))
               : origin !== 'saved' &&
                 visibleSets.map((set) => (
-                  <Card key={set.id} interactive className="h-full p-5">
+                  <div
+                    key={set.id}
+                    {...(sortMode === 'custom' ? ownedSetDrag.getDragProps(set.id) : {})}
+                    className={`relative transition-opacity ${
+                      ownedSetDrag.draggedId === set.id ? 'opacity-40' : ''
+                    }`}
+                  >
+                    {ownedSetDrag.dropTarget?.id === set.id && (
+                      <span
+                        aria-hidden="true"
+                        className={`bg-primary pointer-events-none absolute inset-x-2 z-10 h-1 rounded-full ${
+                          ownedSetDrag.dropTarget.after ? '-bottom-1' : '-top-1'
+                        }`}
+                      />
+                    )}
+                    <Card interactive className="h-full p-5">
+                      {sortMode === 'custom' && (
+                        <OrderControls
+                          itemLabel={set.title}
+                          canMoveEarlier={visibleOwnedIds.indexOf(set.id) > 0}
+                          canMoveLater={
+                            visibleOwnedIds.indexOf(set.id) < visibleOwnedIds.length - 1
+                          }
+                          onMove={(direction) => moveVisibleSet(set.id, direction)}
+                        />
+                      )}
+                      <Link
+                        to={`/sets/${set.id}`}
+                        draggable={sortMode !== 'custom'}
+                        onDragStart={(event) => {
+                          if (sortMode === 'custom') return;
+                          event.dataTransfer.setData('text/remora-set-id', set.id);
+                          event.dataTransfer.effectAllowed = 'move';
+                        }}
+                        className="group block"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <Badge>{visibilityLabel(set.visibility)}</Badge>
+                          <span className="text-fg-subtle text-xs">{set.cards_count} карт.</span>
+                        </div>
+                        <h2 className="group-hover:text-primary mt-5 text-lg font-semibold transition-colors">
+                          {set.title}
+                        </h2>
+                        <p className="text-fg-muted mt-2 line-clamp-2 text-sm">
+                          {set.description || 'Описание не добавлено'}
+                        </p>
+                        <p className="text-fg-subtle mt-5 text-xs">
+                          Изменён {new Date(set.updated_at).toLocaleDateString('ru-RU')}
+                        </p>
+                      </Link>
+                    </Card>
+                  </div>
+                ))}
+            {origin !== 'owned' &&
+              (origin === 'saved' || selectedFolder !== 'archived') &&
+              visibleSavedSets.map((set) => (
+                <div
+                  key={set.id}
+                  {...(sortMode === 'custom' ? savedSetDrag.getDragProps(set.id) : {})}
+                  className={`relative transition-opacity ${
+                    savedSetDrag.draggedId === set.id ? 'opacity-40' : ''
+                  }`}
+                >
+                  {savedSetDrag.dropTarget?.id === set.id && (
+                    <span
+                      aria-hidden="true"
+                      className={`bg-primary pointer-events-none absolute inset-x-2 z-10 h-1 rounded-full ${
+                        savedSetDrag.dropTarget.after ? '-bottom-1' : '-top-1'
+                      }`}
+                    />
+                  )}
+                  <Card interactive className="h-full p-5">
                     {sortMode === 'custom' && (
                       <OrderControls
                         itemLabel={set.title}
-                        canMoveEarlier={visibleOwnedIds.indexOf(set.id) > 0}
-                        canMoveLater={visibleOwnedIds.indexOf(set.id) < visibleOwnedIds.length - 1}
+                        canMoveEarlier={visibleSavedIds.indexOf(set.id) > 0}
+                        canMoveLater={visibleSavedIds.indexOf(set.id) < visibleSavedIds.length - 1}
                         onMove={(direction) => moveVisibleSet(set.id, direction)}
                       />
                     )}
-                    <Link
-                      to={`/sets/${set.id}`}
-                      draggable={sortMode !== 'custom'}
-                      onDragStart={(event) => {
-                        if (sortMode === 'custom') return;
-                        event.dataTransfer.setData('text/remora-set-id', set.id);
-                        event.dataTransfer.effectAllowed = 'move';
-                      }}
-                      className="group block"
-                    >
+                    <Link to={`/sets/${set.id}/learn`} className="group block">
                       <div className="flex items-start justify-between gap-3">
-                        <Badge>{visibilityLabel(set.visibility)}</Badge>
+                        <Badge>Сохранённый</Badge>
                         <span className="text-fg-subtle text-xs">{set.cards_count} карт.</span>
                       </div>
                       <h2 className="group-hover:text-primary mt-5 text-lg font-semibold transition-colors">
@@ -467,42 +542,14 @@ export function SetsPage() {
                         {set.description || 'Описание не добавлено'}
                       </p>
                       <p className="text-fg-subtle mt-5 text-xs">
-                        Изменён {new Date(set.updated_at).toLocaleDateString('ru-RU')}
+                        {set.course_title} · {set.author.display_name || `@${set.author.username}`}
                       </p>
+                      {set.has_updates && (
+                        <p className="text-warning mt-2 text-xs">Для курса доступно обновление</p>
+                      )}
                     </Link>
                   </Card>
-                ))}
-            {origin !== 'owned' &&
-              (origin === 'saved' || selectedFolder !== 'archived') &&
-              visibleSavedSets.map((set) => (
-                <Card key={set.id} interactive className="h-full p-5">
-                  {sortMode === 'custom' && (
-                    <OrderControls
-                      itemLabel={set.title}
-                      canMoveEarlier={visibleSavedIds.indexOf(set.id) > 0}
-                      canMoveLater={visibleSavedIds.indexOf(set.id) < visibleSavedIds.length - 1}
-                      onMove={(direction) => moveVisibleSet(set.id, direction)}
-                    />
-                  )}
-                  <Link to={`/sets/${set.id}/learn`} className="group block">
-                    <div className="flex items-start justify-between gap-3">
-                      <Badge>Сохранённый</Badge>
-                      <span className="text-fg-subtle text-xs">{set.cards_count} карт.</span>
-                    </div>
-                    <h2 className="group-hover:text-primary mt-5 text-lg font-semibold transition-colors">
-                      {set.title}
-                    </h2>
-                    <p className="text-fg-muted mt-2 line-clamp-2 text-sm">
-                      {set.description || 'Описание не добавлено'}
-                    </p>
-                    <p className="text-fg-subtle mt-5 text-xs">
-                      {set.course_title} · {set.author.display_name || `@${set.author.username}`}
-                    </p>
-                    {set.has_updates && (
-                      <p className="text-warning mt-2 text-xs">Для курса доступно обновление</p>
-                    )}
-                  </Link>
-                </Card>
+                </div>
               ))}
           </div>
         </section>

@@ -9,9 +9,11 @@ import { CopyCourseButton } from './CourseReaderPage';
 import {
   ListSort,
   moveCustomItem,
+  moveCustomItemTo,
   OrderControls,
   sortItems,
   useCustomOrder,
+  useDragOrder,
   useListSort,
 } from '../features/library/ListSort';
 
@@ -98,6 +100,11 @@ export function CoursesPage() {
     const visibleIds = visibleOwnedIds.includes(courseId) ? visibleOwnedIds : visibleSavedIds;
     setCustomOrder(moveCustomItem(allOrderedIds, visibleIds, courseId, direction));
   }
+  const moveCourseByDrag = (courseId: string, targetId: string, afterTarget: boolean) => {
+    setCustomOrder(moveCustomItemTo(allOrderedIds, courseId, targetId, afterTarget));
+  };
+  const ownedCourseDrag = useDragOrder(moveCourseByDrag, visibleOwnedIds);
+  const savedCourseDrag = useDragOrder(moveCourseByDrag, visibleSavedIds);
   return (
     <div className="space-y-6">
       <header>
@@ -150,85 +157,126 @@ export function CoursesPage() {
           </p>
         </Card>
       )}
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
         <ListSort
           value={sortMode}
           onChange={setSortMode}
           label="Сортировка курсов"
           includeSize={false}
         />
+        <Button
+          variant="secondary"
+          aria-pressed={sortMode === 'custom'}
+          onClick={() => setSortMode('custom')}
+        >
+          {sortMode === 'custom' ? 'Ручной порядок включён' : 'Изменить порядок'}
+        </Button>
       </div>
       {sortMode === 'custom' && (
         <p className="text-fg-muted text-sm">
-          Используйте кнопки на карточках, чтобы собрать свой порядок. Новые курсы появятся сверху.
+          Перетаскивайте карточки за ручку. Новые курсы будут появляться сверху.
         </p>
       )}
       <div className="grid gap-4 sm:grid-cols-2">
         {origin !== 'saved' &&
           sortedCourses.map((course) => (
-            <Card key={course.id} className="h-full break-words">
-              {sortMode === 'custom' && (
-                <OrderControls
-                  itemLabel={course.title}
-                  canMoveEarlier={visibleOwnedIds.indexOf(course.id) > 0}
-                  canMoveLater={visibleOwnedIds.indexOf(course.id) < visibleOwnedIds.length - 1}
-                  onMove={(direction) => moveCourse(course.id, direction)}
+            <div
+              key={course.id}
+              {...(sortMode === 'custom' ? ownedCourseDrag.getDragProps(course.id) : {})}
+              className={`relative transition-opacity ${
+                ownedCourseDrag.draggedId === course.id ? 'opacity-40' : ''
+              }`}
+            >
+              {ownedCourseDrag.dropTarget?.id === course.id && (
+                <span
+                  aria-hidden="true"
+                  className={`bg-primary pointer-events-none absolute inset-x-2 z-10 h-1 rounded-full ${
+                    ownedCourseDrag.dropTarget.after ? '-bottom-1' : '-top-1'
+                  }`}
                 />
               )}
-              <Link
-                to={`/courses/${course.id}`}
-                className="focus-visible:outline-primary block rounded-lg focus-visible:outline focus-visible:outline-2"
-              >
-                <Badge>Ваш курс</Badge>
-                <h2 className="text-xl font-semibold">{course.title}</h2>
-                <p className="text-fg-muted mt-2 line-clamp-3">
-                  {course.description || 'Описание пока не добавлено'}
-                </p>
-                <p className="text-fg-subtle mt-4 text-sm">
-                  Изменён {new Date(course.updated_at).toLocaleDateString('ru-RU')}
-                </p>
-              </Link>
-            </Card>
+              <Card className="h-full break-words">
+                {sortMode === 'custom' && (
+                  <OrderControls
+                    itemLabel={course.title}
+                    canMoveEarlier={visibleOwnedIds.indexOf(course.id) > 0}
+                    canMoveLater={visibleOwnedIds.indexOf(course.id) < visibleOwnedIds.length - 1}
+                    onMove={(direction) => moveCourse(course.id, direction)}
+                  />
+                )}
+                <Link
+                  to={`/courses/${course.id}`}
+                  draggable={sortMode !== 'custom'}
+                  className="focus-visible:outline-primary block rounded-lg focus-visible:outline focus-visible:outline-2"
+                >
+                  <Badge>Ваш курс</Badge>
+                  <h2 className="text-xl font-semibold">{course.title}</h2>
+                  <p className="text-fg-muted mt-2 line-clamp-3">
+                    {course.description || 'Описание пока не добавлено'}
+                  </p>
+                  <p className="text-fg-subtle mt-4 text-sm">
+                    Изменён {new Date(course.updated_at).toLocaleDateString('ru-RU')}
+                  </p>
+                </Link>
+              </Card>
+            </div>
           ))}
         {origin !== 'owned' &&
           sortedSavedCourses.map((course) => (
-            <Card key={course.id} className="h-full break-words">
-              {sortMode === 'custom' && (
-                <OrderControls
-                  itemLabel={course.title}
-                  canMoveEarlier={visibleSavedIds.indexOf(course.id) > 0}
-                  canMoveLater={visibleSavedIds.indexOf(course.id) < visibleSavedIds.length - 1}
-                  onMove={(direction) => moveCourse(course.id, direction)}
+            <div
+              key={course.id}
+              {...(sortMode === 'custom' ? savedCourseDrag.getDragProps(course.id) : {})}
+              className={`relative transition-opacity ${
+                savedCourseDrag.draggedId === course.id ? 'opacity-40' : ''
+              }`}
+            >
+              {savedCourseDrag.dropTarget?.id === course.id && (
+                <span
+                  aria-hidden="true"
+                  className={`bg-primary pointer-events-none absolute inset-x-2 z-10 h-1 rounded-full ${
+                    savedCourseDrag.dropTarget.after ? '-bottom-1' : '-top-1'
+                  }`}
                 />
               )}
-              <a
-                href={`${WEB_URL}/kurs/${course.slug}`}
-                className="focus-visible:outline-primary block rounded-lg focus-visible:outline focus-visible:outline-2"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge>Сохранённый</Badge>
-                  {course.has_updates && <Badge tone="warning">Есть обновление</Badge>}
-                </div>
-                <h2 className="mt-3 text-xl font-semibold">{course.title}</h2>
-                <p className="text-fg-muted mt-2 line-clamp-3">
-                  {course.description || 'Описание пока не добавлено'}
-                </p>
-                <p className="text-fg-subtle mt-4 text-sm">
-                  Автор: {course.author.display_name || `@${course.author.username}`} ·{' '}
-                  {course.cards_count} карточек
-                </p>
-              </a>
-              <div className="mt-5 flex flex-wrap gap-2">
-                <Link to={`/courses/${course.id}/learn`}>
-                  <Button size="sm">Учить весь курс</Button>
-                </Link>
-                <a href={`${WEB_URL}/kurs/${course.slug}`}>
-                  <Button size="sm" variant="secondary">
-                    Открыть курс
-                  </Button>
+              <Card className="h-full break-words">
+                {sortMode === 'custom' && (
+                  <OrderControls
+                    itemLabel={course.title}
+                    canMoveEarlier={visibleSavedIds.indexOf(course.id) > 0}
+                    canMoveLater={visibleSavedIds.indexOf(course.id) < visibleSavedIds.length - 1}
+                    onMove={(direction) => moveCourse(course.id, direction)}
+                  />
+                )}
+                <a
+                  href={`${WEB_URL}/kurs/${course.slug}`}
+                  draggable={sortMode !== 'custom'}
+                  className="focus-visible:outline-primary block rounded-lg focus-visible:outline focus-visible:outline-2"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge>Сохранённый</Badge>
+                    {course.has_updates && <Badge tone="warning">Есть обновление</Badge>}
+                  </div>
+                  <h2 className="mt-3 text-xl font-semibold">{course.title}</h2>
+                  <p className="text-fg-muted mt-2 line-clamp-3">
+                    {course.description || 'Описание пока не добавлено'}
+                  </p>
+                  <p className="text-fg-subtle mt-4 text-sm">
+                    Автор: {course.author.display_name || `@${course.author.username}`} ·{' '}
+                    {course.cards_count} карточек
+                  </p>
                 </a>
-              </div>
-            </Card>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <Link to={`/courses/${course.id}/learn`}>
+                    <Button size="sm">Учить весь курс</Button>
+                  </Link>
+                  <a href={`${WEB_URL}/kurs/${course.slug}`}>
+                    <Button size="sm" variant="secondary">
+                      Открыть курс
+                    </Button>
+                  </a>
+                </div>
+              </Card>
+            </div>
           ))}
       </div>
     </div>

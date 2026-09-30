@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type DragEvent, type HTMLAttributes } from 'react';
 
 export type SortMode =
   'custom' | 'updated_desc' | 'updated_asc' | 'title_asc' | 'title_desc' | 'size_desc' | 'size_asc';
@@ -97,6 +97,70 @@ export function moveCustomItem(
   return result;
 }
 
+export function moveCustomItemTo(
+  fullOrder: readonly string[],
+  itemId: string,
+  targetId: string,
+  afterTarget: boolean,
+): string[] {
+  if (itemId === targetId || !fullOrder.includes(itemId) || !fullOrder.includes(targetId)) {
+    return [...fullOrder];
+  }
+  const result = fullOrder.filter((id) => id !== itemId);
+  const targetIndex = result.indexOf(targetId);
+  result.splice(targetIndex + (afterTarget ? 1 : 0), 0, itemId);
+  return result;
+}
+
+type DropTarget = { id: string; after: boolean } | null;
+
+export function useDragOrder(
+  onMove: (itemId: string, targetId: string, afterTarget: boolean) => void,
+  allowedIds: readonly string[],
+) {
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<DropTarget>(null);
+
+  function getDragProps(itemId: string): HTMLAttributes<HTMLDivElement> {
+    return {
+      draggable: true,
+      onDragStart: (event: DragEvent<HTMLDivElement>) => {
+        event.dataTransfer.setData('text/remora-order-id', itemId);
+        event.dataTransfer.effectAllowed = 'move';
+        setDraggedId(itemId);
+      },
+      onDragOver: (event: DragEvent<HTMLDivElement>) => {
+        const sourceId = event.dataTransfer.getData('text/remora-order-id') || draggedId;
+        if (!sourceId || sourceId === itemId || !allowedIds.includes(sourceId)) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+        const bounds = event.currentTarget.getBoundingClientRect();
+        const nearMiddle =
+          Math.abs(event.clientY - (bounds.top + bounds.height / 2)) < bounds.height / 4;
+        const after = nearMiddle
+          ? event.clientX > bounds.left + bounds.width / 2
+          : event.clientY > bounds.top + bounds.height / 2;
+        setDropTarget({ id: itemId, after });
+      },
+      onDrop: (event: DragEvent<HTMLDivElement>) => {
+        event.preventDefault();
+        const sourceId = event.dataTransfer.getData('text/remora-order-id') || draggedId;
+        if (sourceId && sourceId !== itemId && allowedIds.includes(sourceId)) {
+          onMove(sourceId, itemId, dropTarget?.after ?? false);
+        }
+        setDraggedId(null);
+        setDropTarget(null);
+      },
+      onDragEnd: () => {
+        setDraggedId(null);
+        setDropTarget(null);
+      },
+    };
+  }
+
+  return { draggedId, dropTarget, getDragProps };
+}
+
 export function OrderControls({
   itemLabel,
   canMoveEarlier,
@@ -109,26 +173,58 @@ export function OrderControls({
   onMove: (direction: -1 | 1) => void;
 }) {
   return (
-    <div className="border-border mb-4 flex flex-col gap-2 border-b pb-3 sm:flex-row sm:items-center sm:justify-between">
-      <span className="text-fg-muted text-sm">Место в списке</span>
+    <div className="border-border mb-4 flex items-center justify-between gap-2 border-b pb-3">
+      <span className="text-fg-muted flex cursor-grab items-center gap-2 text-sm active:cursor-grabbing">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          className="h-5 w-5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <path d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01" strokeLinecap="round" />
+        </svg>
+        Перетащите
+      </span>
       <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
           disabled={!canMoveEarlier}
           onClick={() => onMove(-1)}
           aria-label={`Поднять «${itemLabel}» выше`}
-          className="border-border bg-surface hover:bg-surface-muted focus-visible:outline-primary min-h-11 rounded-md border px-3 text-sm focus-visible:outline focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-40"
+          title="Поднять выше"
+          className="border-border bg-surface hover:bg-surface-muted focus-visible:outline-primary grid h-11 w-11 place-items-center rounded-md border focus-visible:outline focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Раньше
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="m6 15 6-6 6 6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
         <button
           type="button"
           disabled={!canMoveLater}
           onClick={() => onMove(1)}
           aria-label={`Опустить «${itemLabel}» ниже`}
-          className="border-border bg-surface hover:bg-surface-muted focus-visible:outline-primary min-h-11 rounded-md border px-3 text-sm focus-visible:outline focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-40"
+          title="Опустить ниже"
+          className="border-border bg-surface hover:bg-surface-muted focus-visible:outline-primary grid h-11 w-11 place-items-center rounded-md border focus-visible:outline focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Позже
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
       </div>
     </div>

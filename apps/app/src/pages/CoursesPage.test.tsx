@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -86,8 +86,7 @@ describe('Курсы в кабинете', () => {
     expect(screen.getByText('Физика')).toBeTruthy();
   });
 
-  it('запоминает ручной порядок курсов', async () => {
-    window.localStorage.setItem('remora:sort:courses', 'custom');
+  it('включает drag-and-drop заметной кнопкой и запоминает порядок', async () => {
     vi.mocked(api.GET).mockImplementation(async (path) => {
       if (path === '/api/v1/courses') {
         return {
@@ -102,7 +101,22 @@ describe('Курсы в кабинете', () => {
     });
 
     mount();
-    await userEvent.click(await screen.findByRole('button', { name: 'Опустить «Геометрия» ниже' }));
+    await screen.findByText('Геометрия');
+    await userEvent.click(screen.getByRole('button', { name: 'Изменить порядок' }));
+    const source = screen.getByText('Алгебра').closest('[draggable="true"]');
+    const target = screen.getByText('Геометрия').closest('[draggable="true"]');
+    expect(source).toBeTruthy();
+    expect(target).toBeTruthy();
+    const values = new Map<string, string>();
+    const dataTransfer = {
+      effectAllowed: 'none',
+      dropEffect: 'none',
+      setData: (type: string, value: string) => values.set(type, value),
+      getData: (type: string) => values.get(type) ?? '',
+    };
+    fireEvent.dragStart(source!, { dataTransfer });
+    fireEvent.dragOver(target!, { dataTransfer, clientX: 0, clientY: 0 });
+    fireEvent.drop(target!, { dataTransfer, clientX: 0, clientY: 0 });
 
     await waitFor(() =>
       expect(JSON.parse(window.localStorage.getItem('remora:order:courses') ?? '[]')).toEqual([
