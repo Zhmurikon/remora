@@ -4,7 +4,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState, type DragEvent, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
-import { ListSort, sortItems, useListSort } from '../features/library/ListSort';
+import {
+  ListSort,
+  moveCustomItem,
+  OrderControls,
+  sortItems,
+  useCustomOrder,
+  useListSort,
+} from '../features/library/ListSort';
 
 const folderColors: Record<string, string> = {
   lime: 'bg-primary',
@@ -23,6 +30,7 @@ export function SetsPage() {
   const [newFolder, setNewFolder] = useState('');
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [sortMode, setSortMode] = useListSort('remora:sort:sets');
+  const [customOrder, setCustomOrder] = useCustomOrder('remora:order:sets');
   const sets = useQuery({
     queryKey: ['sets'],
     queryFn: async () => {
@@ -70,9 +78,10 @@ export function SetsPage() {
         );
       }),
       sortMode,
-      (set) => ({ title: set.title, date: set.updated_at, size: set.cards_count }),
+      (set) => ({ id: set.id, title: set.title, date: set.updated_at, size: set.cards_count }),
+      customOrder,
     );
-  }, [archivedSets.data, search, selectedFolder, sets.data, sortMode]);
+  }, [archivedSets.data, customOrder, search, selectedFolder, sets.data, sortMode]);
   const visibleSavedSets = useMemo(() => {
     const needle = search.trim().toLocaleLowerCase('ru');
     return sortItems(
@@ -87,9 +96,35 @@ export function SetsPage() {
               .includes(needle)),
       ),
       sortMode,
-      (set) => ({ title: set.title, date: set.saved_at, size: set.cards_count }),
+      (set) => ({ id: set.id, title: set.title, date: set.saved_at, size: set.cards_count }),
+      customOrder,
     );
-  }, [savedSets.data, search, selectedFolder, sortMode]);
+  }, [customOrder, savedSets.data, search, selectedFolder, sortMode]);
+  const allOrderedIds = [
+    ...sortItems(
+      sets.data ?? [],
+      sortMode,
+      (set) => ({ id: set.id, title: set.title, date: set.updated_at, size: set.cards_count }),
+      customOrder,
+    ),
+    ...sortItems(
+      savedSets.data ?? [],
+      sortMode,
+      (set) => ({ id: set.id, title: set.title, date: set.saved_at, size: set.cards_count }),
+      customOrder,
+    ),
+  ].map((set) => set.id);
+  const visibleOwnedIds =
+    origin === 'saved' || selectedFolder === 'archived' ? [] : visibleSets.map((set) => set.id);
+  const visibleSavedIds =
+    origin === 'owned' || selectedFolder === 'archived'
+      ? []
+      : visibleSavedSets.map((set) => set.id);
+
+  function moveVisibleSet(setId: string, direction: -1 | 1) {
+    const visibleIds = visibleOwnedIds.includes(setId) ? visibleOwnedIds : visibleSavedIds;
+    setCustomOrder(moveCustomItem(allOrderedIds, visibleIds, setId, direction));
+  }
   const isEmpty = hasNoVisibleSets(
     origin,
     selectedFolder,
@@ -305,6 +340,12 @@ export function SetsPage() {
           <div className="mb-5 flex justify-end">
             <ListSort value={sortMode} onChange={setSortMode} label="Сортировка наборов" />
           </div>
+          {sortMode === 'custom' && selectedFolder !== 'archived' && (
+            <p className="text-fg-muted mb-5 text-sm">
+              Используйте кнопки на карточках, чтобы собрать свой порядок. Новые наборы появятся
+              сверху.
+            </p>
+          )}
           {typeof selectedFolder === 'string' &&
             selectedFolder !== 'all' &&
             selectedFolder !== 'archived' && (
@@ -396,17 +437,25 @@ export function SetsPage() {
                 ))
               : origin !== 'saved' &&
                 visibleSets.map((set) => (
-                  <Link
-                    key={set.id}
-                    to={`/sets/${set.id}`}
-                    draggable
-                    onDragStart={(event) => {
-                      event.dataTransfer.setData('text/remora-set-id', set.id);
-                      event.dataTransfer.effectAllowed = 'move';
-                    }}
-                    className="group"
-                  >
-                    <Card interactive className="h-full p-5">
+                  <Card key={set.id} interactive className="h-full p-5">
+                    {sortMode === 'custom' && (
+                      <OrderControls
+                        itemLabel={set.title}
+                        canMoveEarlier={visibleOwnedIds.indexOf(set.id) > 0}
+                        canMoveLater={visibleOwnedIds.indexOf(set.id) < visibleOwnedIds.length - 1}
+                        onMove={(direction) => moveVisibleSet(set.id, direction)}
+                      />
+                    )}
+                    <Link
+                      to={`/sets/${set.id}`}
+                      draggable={sortMode !== 'custom'}
+                      onDragStart={(event) => {
+                        if (sortMode === 'custom') return;
+                        event.dataTransfer.setData('text/remora-set-id', set.id);
+                        event.dataTransfer.effectAllowed = 'move';
+                      }}
+                      className="group block"
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <Badge>{visibilityLabel(set.visibility)}</Badge>
                         <span className="text-fg-subtle text-xs">{set.cards_count} карт.</span>
@@ -420,14 +469,22 @@ export function SetsPage() {
                       <p className="text-fg-subtle mt-5 text-xs">
                         Изменён {new Date(set.updated_at).toLocaleDateString('ru-RU')}
                       </p>
-                    </Card>
-                  </Link>
+                    </Link>
+                  </Card>
                 ))}
             {origin !== 'owned' &&
               (origin === 'saved' || selectedFolder !== 'archived') &&
               visibleSavedSets.map((set) => (
-                <Link key={set.id} to={`/sets/${set.id}/learn`} className="group">
-                  <Card interactive className="h-full p-5">
+                <Card key={set.id} interactive className="h-full p-5">
+                  {sortMode === 'custom' && (
+                    <OrderControls
+                      itemLabel={set.title}
+                      canMoveEarlier={visibleSavedIds.indexOf(set.id) > 0}
+                      canMoveLater={visibleSavedIds.indexOf(set.id) < visibleSavedIds.length - 1}
+                      onMove={(direction) => moveVisibleSet(set.id, direction)}
+                    />
+                  )}
+                  <Link to={`/sets/${set.id}/learn`} className="group block">
                     <div className="flex items-start justify-between gap-3">
                       <Badge>Сохранённый</Badge>
                       <span className="text-fg-subtle text-xs">{set.cards_count} карт.</span>
@@ -444,8 +501,8 @@ export function SetsPage() {
                     {set.has_updates && (
                       <p className="text-warning mt-2 text-xs">Для курса доступно обновление</p>
                     )}
-                  </Card>
-                </Link>
+                  </Link>
+                </Card>
               ))}
           </div>
         </section>

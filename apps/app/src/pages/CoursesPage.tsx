@@ -6,7 +6,14 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { CoursePublicationPanel } from './CoursePublicationPanel';
 import { CopyCourseButton } from './CourseReaderPage';
-import { ListSort, sortItems, useListSort } from '../features/library/ListSort';
+import {
+  ListSort,
+  moveCustomItem,
+  OrderControls,
+  sortItems,
+  useCustomOrder,
+  useListSort,
+} from '../features/library/ListSort';
 
 type Course = components['schemas']['CourseDetail'];
 const WEB_URL = import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000';
@@ -29,6 +36,7 @@ function failure(error: unknown): Error {
 export function CoursesPage() {
   const [origin, setOrigin] = useState<'all' | 'owned' | 'saved'>('all');
   const [sortMode, setSortMode] = useListSort('remora:sort:courses');
+  const [customOrder, setCustomOrder] = useCustomOrder('remora:order:courses');
   const courses = useQuery({
     queryKey: ['courses'],
     queryFn: async () => {
@@ -55,21 +63,41 @@ export function CoursesPage() {
         : courses.data?.length === 0 && savedCourses.data?.length === 0);
   const sortedCourses = useMemo(
     () =>
-      sortItems(courses.data ?? [], sortMode, (course) => ({
-        title: course.title,
-        date: course.updated_at,
-      })),
-    [courses.data, sortMode],
+      sortItems(
+        courses.data ?? [],
+        sortMode,
+        (course) => ({
+          id: course.id,
+          title: course.title,
+          date: course.updated_at,
+        }),
+        customOrder,
+      ),
+    [courses.data, customOrder, sortMode],
   );
   const sortedSavedCourses = useMemo(
     () =>
-      sortItems(savedCourses.data ?? [], sortMode, (course) => ({
-        title: course.title,
-        date: course.saved_at,
-        size: course.cards_count,
-      })),
-    [savedCourses.data, sortMode],
+      sortItems(
+        savedCourses.data ?? [],
+        sortMode,
+        (course) => ({
+          id: course.id,
+          title: course.title,
+          date: course.saved_at,
+          size: course.cards_count,
+        }),
+        customOrder,
+      ),
+    [customOrder, savedCourses.data, sortMode],
   );
+  const allOrderedIds = [...sortedCourses, ...sortedSavedCourses].map((course) => course.id);
+  const visibleOwnedIds = origin === 'saved' ? [] : sortedCourses.map((course) => course.id);
+  const visibleSavedIds = origin === 'owned' ? [] : sortedSavedCourses.map((course) => course.id);
+
+  function moveCourse(courseId: string, direction: -1 | 1) {
+    const visibleIds = visibleOwnedIds.includes(courseId) ? visibleOwnedIds : visibleSavedIds;
+    setCustomOrder(moveCustomItem(allOrderedIds, visibleIds, courseId, direction));
+  }
   return (
     <div className="space-y-6">
       <header>
@@ -130,15 +158,27 @@ export function CoursesPage() {
           includeSize={false}
         />
       </div>
+      {sortMode === 'custom' && (
+        <p className="text-fg-muted text-sm">
+          Используйте кнопки на карточках, чтобы собрать свой порядок. Новые курсы появятся сверху.
+        </p>
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
         {origin !== 'saved' &&
           sortedCourses.map((course) => (
-            <Link
-              key={course.id}
-              to={`/courses/${course.id}`}
-              className="focus-visible:outline-primary rounded-xl focus-visible:outline focus-visible:outline-2"
-            >
-              <Card interactive className="h-full break-words">
+            <Card key={course.id} className="h-full break-words">
+              {sortMode === 'custom' && (
+                <OrderControls
+                  itemLabel={course.title}
+                  canMoveEarlier={visibleOwnedIds.indexOf(course.id) > 0}
+                  canMoveLater={visibleOwnedIds.indexOf(course.id) < visibleOwnedIds.length - 1}
+                  onMove={(direction) => moveCourse(course.id, direction)}
+                />
+              )}
+              <Link
+                to={`/courses/${course.id}`}
+                className="focus-visible:outline-primary block rounded-lg focus-visible:outline focus-visible:outline-2"
+              >
                 <Badge>Ваш курс</Badge>
                 <h2 className="text-xl font-semibold">{course.title}</h2>
                 <p className="text-fg-muted mt-2 line-clamp-3">
@@ -147,12 +187,20 @@ export function CoursesPage() {
                 <p className="text-fg-subtle mt-4 text-sm">
                   Изменён {new Date(course.updated_at).toLocaleDateString('ru-RU')}
                 </p>
-              </Card>
-            </Link>
+              </Link>
+            </Card>
           ))}
         {origin !== 'owned' &&
           sortedSavedCourses.map((course) => (
             <Card key={course.id} className="h-full break-words">
+              {sortMode === 'custom' && (
+                <OrderControls
+                  itemLabel={course.title}
+                  canMoveEarlier={visibleSavedIds.indexOf(course.id) > 0}
+                  canMoveLater={visibleSavedIds.indexOf(course.id) < visibleSavedIds.length - 1}
+                  onMove={(direction) => moveCourse(course.id, direction)}
+                />
+              )}
               <a
                 href={`${WEB_URL}/kurs/${course.slug}`}
                 className="focus-visible:outline-primary block rounded-lg focus-visible:outline focus-visible:outline-2"

@@ -45,7 +45,10 @@ function mount(path = '/courses') {
   );
 }
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  window.localStorage.clear();
+});
 afterEach(cleanup);
 
 describe('Курсы в кабинете', () => {
@@ -81,6 +84,32 @@ describe('Курсы в кабинете', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Сохранённые' }));
     expect(screen.queryByText('Алгебра')).toBeNull();
     expect(screen.getByText('Физика')).toBeTruthy();
+  });
+
+  it('запоминает ручной порядок курсов', async () => {
+    window.localStorage.setItem('remora:sort:courses', 'custom');
+    vi.mocked(api.GET).mockImplementation(async (path) => {
+      if (path === '/api/v1/courses') {
+        return {
+          data: [
+            course,
+            { ...course, id: 'course-2', title: 'Геометрия', updated_at: '2026-09-20' },
+          ],
+          response: new Response(),
+        } as never;
+      }
+      return { data: [], response: new Response() } as never;
+    });
+
+    mount();
+    await userEvent.click(await screen.findByRole('button', { name: 'Опустить «Геометрия» ниже' }));
+
+    await waitFor(() =>
+      expect(JSON.parse(window.localStorage.getItem('remora:order:courses') ?? '[]')).toEqual([
+        'course-1',
+        'course-2',
+      ]),
+    );
   });
 
   it('публикует курс с тегами и снимает с публикации после подтверждения', async () => {

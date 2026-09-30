@@ -33,6 +33,7 @@ export function LibraryPage() {
   const sortedLibrary = useMemo(
     () =>
       sortItems(library.data ?? [], sortMode, (item) => ({
+        id: item.id,
         title: item.article_title ?? item.set_title ?? item.course_title,
         date: item.saved_at,
         size: item.cards_count,
