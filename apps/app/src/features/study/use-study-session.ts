@@ -7,8 +7,8 @@
  */
 
 import type { StudyMode } from '@remora/core';
-import { useQuery } from '@tanstack/react-query';
-import { useEffect, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useRef } from 'react';
 import { api } from '../../lib/api';
 import { detachSession, flush } from './review-queue';
 import { useStudyStore } from './study-store';
@@ -123,12 +123,44 @@ export function useStudySession({
 }
 
 /** Завершает сессию на сервере, предварительно отдав всё, что не ушло. */
-export async function finishSession(sessionId: string | null): Promise<void> {
-  await flush();
+export async function finishSession(sessionId: string | null): Promise<boolean> {
+  const flushed = await flush();
+  if (!flushed.ok) return false;
   if (sessionId) {
-    await api.POST('/api/v1/study/sessions/{session_id}/finish', {
+    const { error } = await api.POST('/api/v1/study/sessions/{session_id}/finish', {
       params: { path: { session_id: sessionId } },
     });
+    if (error) return false;
   }
   detachSession();
+  return true;
+}
+
+/**
+ * Завершает сессию один раз и обновляет все экраны, которые показывают
+ * прогресс, дневную цель, опыт и достижения.
+ */
+export function useStudySessionFinalizer(sessionId: string | null) {
+  const queryClient = useQueryClient();
+  const finalizing = useRef<{ sessionId: string | null; promise: Promise<boolean> } | null>(null);
+
+  return useCallback(() => {
+    if (finalizing.current?.sessionId === sessionId) return finalizing.current.promise;
+    const promise = finishSession(sessionId).then(async (finished) => {
+      if (!finished) {
+        finalizing.current = null;
+        return false;
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['study', 'stats'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'set-stats'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'forecast'] }),
+        queryClient.invalidateQueries({ queryKey: ['retention'] }),
+      ]);
+      if (sessionId === null) finalizing.current = null;
+      return true;
+    });
+    finalizing.current = { sessionId, promise };
+    return promise;
+  }, [queryClient, sessionId]);
 }

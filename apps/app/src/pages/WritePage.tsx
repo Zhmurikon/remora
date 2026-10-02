@@ -15,8 +15,8 @@ import { StudyShell } from '../features/study/StudyShell';
 import { answerSide, questionImage, questionSide } from '../features/study/card-sides';
 import { selectCurrent, useStudyStore } from '../features/study/study-store';
 import {
-  finishSession,
   useStudySession,
+  useStudySessionFinalizer,
   type StudyDirectionMode,
 } from '../features/study/use-study-session';
 
@@ -43,6 +43,7 @@ export function WritePage() {
   const [finished, setFinished] = useState(false);
   const shownAt = useRef(Date.now());
   const inputRef = useRef<HTMLInputElement>(null);
+  const finalizeSession = useStudySessionFinalizer(sessionId);
 
   const queue = query.data?.queue;
   const answerLang =
@@ -51,6 +52,10 @@ export function WritePage() {
   useEffect(() => {
     inputRef.current?.focus();
   }, [index, result]);
+
+  useEffect(() => {
+    if (items.length > 0 && (finished || !current)) void finalizeSession();
+  }, [current, finalizeSession, finished, items.length]);
 
   const next = useCallback(() => {
     setTyped('');
@@ -126,9 +131,10 @@ export function WritePage() {
         backHref={isFolder ? '/sets' : undefined}
         backLabel={isFolder ? 'К папке' : undefined}
         answers={answers}
-        onRestart={() => {
+        onRestart={async () => {
+          if (!(await finalizeSession())) return;
           setFinished(false);
-          void query.refetch();
+          await query.refetch();
         }}
       />
     );
@@ -144,7 +150,7 @@ export function WritePage() {
       done={index}
       total={items.length}
       onExit={() => {
-        void finishSession(sessionId);
+        void finalizeSession();
         setFinished(true);
       }}
       footer={

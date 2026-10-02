@@ -18,8 +18,8 @@ import { StudyShell } from '../features/study/StudyShell';
 import { answerLang, questionSide } from '../features/study/card-sides';
 import { selectCurrent, useStudyStore, type QueueItem } from '../features/study/study-store';
 import {
-  finishSession,
   useStudySession,
+  useStudySessionFinalizer,
   type StudyDirectionMode,
 } from '../features/study/use-study-session';
 import { api } from '../lib/api';
@@ -64,6 +64,7 @@ export function ListenPage() {
   const [finished, setFinished] = useState(false);
   const shownAt = useRef(Date.now());
   const inputRef = useRef<HTMLInputElement>(null);
+  const finalizeSession = useStudySessionFinalizer(sessionId);
 
   const queue = query.data?.queue;
   const audio = useAudio(current, 'question');
@@ -72,6 +73,10 @@ export function ListenPage() {
   useEffect(() => {
     inputRef.current?.focus();
   }, [index]);
+
+  useEffect(() => {
+    if (items.length > 0 && (finished || !current)) void finalizeSession();
+  }, [current, finalizeSession, finished, items.length]);
 
   const next = useCallback(() => {
     setTyped('');
@@ -160,9 +165,10 @@ export function ListenPage() {
         backHref={isFolder ? '/sets' : undefined}
         backLabel={isFolder ? 'К папке' : undefined}
         answers={answers}
-        onRestart={() => {
+        onRestart={async () => {
+          if (!(await finalizeSession())) return;
           setFinished(false);
-          void query.refetch();
+          await query.refetch();
         }}
       />
     );
@@ -180,7 +186,7 @@ export function ListenPage() {
       done={index}
       total={items.length}
       onExit={() => {
-        void finishSession(sessionId);
+        void finalizeSession();
         setFinished(true);
       }}
     >

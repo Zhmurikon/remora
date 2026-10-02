@@ -23,8 +23,8 @@ import { answerLang, answerSide, questionImage, questionSide } from '../features
 import { StudyShell } from '../features/study/StudyShell';
 import { selectCurrent, useStudyStore, type QueueItem } from '../features/study/study-store';
 import {
-  finishSession,
   useStudySession,
+  useStudySessionFinalizer,
   type StudyDirectionMode,
 } from '../features/study/use-study-session';
 
@@ -59,6 +59,7 @@ export function LearnPage() {
   const sessionId = useStudyStore((state) => state.sessionId);
   const current = useStudyStore(selectCurrent);
   const answer = useStudyStore((state) => state.answer);
+  const finalizeSession = useStudySessionFinalizer(sessionId);
 
   const [typed, setTyped] = useState('');
   const [checked, setChecked] = useState<CheckedAnswer | null>(null);
@@ -163,6 +164,10 @@ export function LearnPage() {
   }, [index, kind]);
 
   useEffect(() => {
+    if (items.length > 0 && (finished || !current)) void finalizeSession();
+  }, [current, finalizeSession, finished, items.length]);
+
+  useEffect(() => {
     function onKey(event: KeyboardEvent) {
       const position = Number(event.key);
       if (!Number.isInteger(position) || position < 1) return;
@@ -209,7 +214,7 @@ export function LearnPage() {
         answers={answers}
         nextDueSeconds={nextDueSeconds(items, last?.cardId)}
         onRestart={async () => {
-          await finishSession(sessionId);
+          if (!(await finalizeSession())) return;
           setFinished(false);
           await query.refetch();
         }}
@@ -234,7 +239,7 @@ export function LearnPage() {
           <Button
             variant="ghost"
             onClick={() => {
-              void finishSession(sessionId);
+              void finalizeSession();
               setFinished(true);
             }}
           >
@@ -265,7 +270,7 @@ export function LearnPage() {
       done={index}
       total={items.length}
       onExit={() => {
-        void finishSession(sessionId);
+        void finalizeSession();
         setFinished(true);
       }}
     >

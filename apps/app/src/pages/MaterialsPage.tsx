@@ -58,6 +58,9 @@ type SetItem = {
 const emptyProgress: MaterialProgress = {
   cardsTotal: 0,
   masteredCount: 0,
+  learningCount: 0,
+  studiedCount: 0,
+  studiedPercent: 0,
   masteryPercent: 0,
   dueNow: 0,
   lastStudiedAt: null,
@@ -568,16 +571,17 @@ function CourseNavigator({
           <div>
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <p className="text-fg-muted text-sm">Освоение курса</p>
+                <p className="text-fg-muted text-sm">Прогресс курса</p>
                 <p className="mt-1 text-3xl font-semibold tabular-nums">
-                  {progress.loading ? '—' : `${Math.round(progress.masteryPercent)}%`}
+                  {progress.loading ? '—' : `${Math.round(progress.studiedPercent)}%`}
                 </p>
               </div>
               <LearningStatus progress={progress} />
             </div>
             <ProgressBar progress={progress} className="mt-4" />
             <p className="text-fg-muted mt-2 text-sm">
-              {progress.masteredCount} из {progress.cardsTotal} карточек освоено
+              {progress.studiedCount} из {progress.cardsTotal} карточек изучались ·{' '}
+              {progress.masteredCount} закреплено
             </p>
           </div>
           <div className="flex flex-wrap gap-2 lg:justify-end">
@@ -701,17 +705,17 @@ function SetNavigator({
           <section className="border-border bg-surface mt-8 rounded-2xl border p-5 sm:p-7">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="text-fg-muted text-sm">Освоение набора</p>
+                <p className="text-fg-muted text-sm">Прогресс набора</p>
                 <p className="mt-1 text-4xl font-semibold tabular-nums">
-                  {progress.loading ? '—' : `${Math.round(progress.masteryPercent)}%`}
+                  {progress.loading ? '—' : `${Math.round(progress.studiedPercent)}%`}
                 </p>
               </div>
               <LearningStatus progress={progress} />
             </div>
             <ProgressBar progress={progress} className="mt-5" />
             <p className="text-fg-muted mt-3 text-sm">
-              {progress.masteredCount} освоено · {progress.dueNow} ждут повторения ·{' '}
-              {item.cardsCount} всего
+              {progress.studiedCount} изучались · {progress.masteredCount} закреплено ·{' '}
+              {progress.dueNow} ждут повторения · {item.cardsCount} всего
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
               <Link to={`/sets/${item.id}/learn`}>
@@ -812,10 +816,10 @@ function LibraryNavigator({
                   </div>
                   <div>
                     <div className="flex items-center justify-between gap-3 text-sm">
-                      <span className="text-fg-muted">Освоено</span>
+                      <span className="text-fg-muted">Прогресс</span>
                       <span className="font-semibold tabular-nums">
                         {item.set_id && !progress.loading
-                          ? `${Math.round(progress.masteryPercent)}%`
+                          ? `${Math.round(progress.studiedPercent)}%`
                           : '—'}
                       </span>
                     </div>
@@ -905,9 +909,9 @@ function ArticleProgressRow({
       </div>
       <div>
         <div className="flex items-center justify-between text-xs">
-          <span className="text-fg-muted">Освоено</span>
+          <span className="text-fg-muted">Прогресс</span>
           <span className="font-semibold tabular-nums">
-            {progress.loading ? '—' : `${Math.round(progress.masteryPercent)}%`}
+            {progress.loading ? '—' : `${Math.round(progress.studiedPercent)}%`}
           </span>
         </div>
         <ProgressBar progress={progress} className="mt-2" />
@@ -958,7 +962,7 @@ function MaterialTreeItem({
             <div className="flex items-start justify-between gap-2">
               <span className="truncate text-sm font-semibold">{title}</span>
               <span className="text-fg-muted shrink-0 text-xs tabular-nums">
-                {progress.loading ? '—' : `${Math.round(progress.masteryPercent)}%`}
+                {progress.loading ? '—' : `${Math.round(progress.studiedPercent)}%`}
               </span>
             </div>
             <p className="text-fg-muted mt-0.5 truncate text-xs">
@@ -995,9 +999,11 @@ function LearningStatus({
       ? 'text-danger bg-danger-subtle'
       : status.kind === 'weak'
         ? 'text-warning bg-warning-subtle'
-        : status.kind === 'good'
-          ? 'text-success bg-success-subtle'
-          : 'text-fg-muted bg-surface-muted';
+        : status.kind === 'learning'
+          ? 'text-primary bg-primary-subtle'
+          : status.kind === 'good'
+            ? 'text-success bg-success-subtle'
+            : 'text-fg-muted bg-surface-muted';
   return (
     <span
       className={`inline-flex items-center rounded-full px-2.5 py-1 font-medium ${compact ? 'text-xs' : 'text-sm'} ${tone}`}
@@ -1014,9 +1020,11 @@ function StatusDot({ progress }: { progress: MaterialProgress }) {
       ? 'bg-danger'
       : kind === 'weak'
         ? 'bg-warning'
-        : kind === 'good'
-          ? 'bg-success'
-          : 'bg-fg-subtle';
+        : kind === 'learning'
+          ? 'bg-primary'
+          : kind === 'good'
+            ? 'bg-success'
+            : 'bg-fg-subtle';
   return (
     <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${color}`} aria-hidden="true" />
   );
@@ -1029,7 +1037,7 @@ function ProgressBar({
   progress: MaterialProgress;
   className?: string;
 }) {
-  const value = Math.max(0, Math.min(100, progress.masteryPercent));
+  const value = Math.max(0, Math.min(100, progress.studiedPercent));
   return (
     <div
       className={`materials-progress-track h-1.5 overflow-hidden rounded-full ${className}`}
@@ -1216,6 +1224,11 @@ function fromSetStats(stats: SetStats): MaterialProgress {
   return {
     cardsTotal: stats.cards_total,
     masteredCount: stats.mastered_count,
+    learningCount: stats.learning_count,
+    studiedCount: stats.mastered_count + stats.learning_count,
+    studiedPercent: stats.cards_total
+      ? ((stats.mastered_count + stats.learning_count) / stats.cards_total) * 100
+      : 0,
     masteryPercent: stats.mastery_percent,
     dueNow: stats.due_now,
     lastStudiedAt: stats.last_studied_at,
@@ -1232,7 +1245,9 @@ function weakestSectionIndex(
     const progress = aggregateStats(section.articles.map((article) => stats.get(article.set_id)));
     const score = progress.loading
       ? 101
-      : progress.masteryPercent - Math.min(progress.dueNow, 20) * 2;
+      : progress.masteryPercent +
+        progress.studiedPercent * 0.25 -
+        Math.min(progress.dueNow, 20) * 2;
     if (score < weakestScore) {
       weakest = index;
       weakestScore = score;

@@ -24,6 +24,7 @@ function memoryStorage(): Storage {
 }
 
 const { clear, detachSession, enqueue, flush, pendingCount } = await import('./review-queue');
+const { finishSession } = await import('./use-study-session');
 
 function review(id: string) {
   return {
@@ -140,5 +141,27 @@ describe('очередь неотправленных ответов', () => {
 
     await flush();
     expect(post.mock.calls[0]?.[1].body.session_id).toBeNull();
+  });
+
+  it('перед завершением сессии отправляет последний неполный батч', async () => {
+    post.mockResolvedValue({ data: {} });
+    enqueue(review('a'), 'session-1');
+
+    await expect(finishSession('session-1')).resolves.toBe(true);
+
+    expect(post).toHaveBeenCalledTimes(2);
+    expect(post.mock.calls[0]?.[0]).toBe('/api/v1/study/reviews');
+    expect(post.mock.calls[1]?.[0]).toBe('/api/v1/study/sessions/{session_id}/finish');
+    expect(pendingCount()).toBe(0);
+  });
+
+  it('не закрывает сессию, если последний батч не отправился', async () => {
+    post.mockResolvedValue({ error: { code: 'NETWORK' } });
+    enqueue(review('a'), 'session-1');
+
+    await expect(finishSession('session-1')).resolves.toBe(false);
+
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(pendingCount()).toBe(1);
   });
 });

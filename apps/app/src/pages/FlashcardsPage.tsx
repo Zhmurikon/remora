@@ -14,8 +14,8 @@ import { SessionSummary } from '../features/study/SessionSummary';
 import { StudyShell } from '../features/study/StudyShell';
 import { selectCurrent, useStudyStore } from '../features/study/study-store';
 import {
-  finishSession,
   useStudySession,
+  useStudySessionFinalizer,
   type StudyScope,
 } from '../features/study/use-study-session';
 
@@ -58,6 +58,7 @@ export function FlashcardsPage() {
   const current = useStudyStore(selectCurrent);
   const goTo = useStudyStore((state) => state.goTo);
   const answer = useStudyStore((state) => state.answer);
+  const finalizeSession = useStudySessionFinalizer(sessionId);
 
   const move = useCallback(
     (delta: number) => {
@@ -113,6 +114,10 @@ export function FlashcardsPage() {
     return () => clearTimeout(timer);
   }, [autoplay, current, finished, flipped, move]);
 
+  useEffect(() => {
+    if (items.length > 0 && (finished || !current)) void finalizeSession();
+  }, [current, finalizeSession, finished, items.length]);
+
   const touchStart = useRef<number | null>(null);
 
   if (query.isPending) return <p className="text-fg-muted">Готовим карточки…</p>;
@@ -134,9 +139,10 @@ export function FlashcardsPage() {
         backHref={isFolder ? '/sets' : undefined}
         backLabel={isFolder ? 'К папке' : undefined}
         answers={answers}
-        onRestart={() => {
+        onRestart={async () => {
+          if (!(await finalizeSession())) return;
           setFinished(false);
-          void query.refetch();
+          await query.refetch();
         }}
       />
     );
@@ -154,7 +160,7 @@ export function FlashcardsPage() {
       done={index}
       total={items.length}
       onExit={() => {
-        void finishSession(sessionId);
+        void finalizeSession();
         setFinished(true);
       }}
       footer={

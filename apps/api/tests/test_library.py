@@ -107,6 +107,7 @@ async def test_course_save_grants_study_but_not_edit_and_revokes_on_unpublish(
     assert course_session.status_code == 201, course_session.text
     assert course_session.json()["course_id"] == course["id"]
     assert course_session.json()["set_id"] is None
+    course_session_id = course_session.json()["id"]
     repeated = await client.post(
         "/api/v1/library",
         headers=learner,
@@ -127,6 +128,7 @@ async def test_course_save_grants_study_but_not_edit_and_revokes_on_unpublish(
         "/api/v1/study/reviews",
         headers=learner,
         json={
+            "session_id": course_session_id,
             "reviews": [
                 {
                     "client_review_id": str(uuid4()),
@@ -135,17 +137,24 @@ async def test_course_save_grants_study_but_not_edit_and_revokes_on_unpublish(
                     "mode": "learn",
                     "rating": 3,
                     "answer_correct": True,
-                    "duration_ms": 100,
+                    "duration_ms": 1500,
                     "reviewed_at": datetime.now(tz=UTC).isoformat(),
                 }
             ]
         },
     )
     assert len(reviewed.json()["accepted"]) == 1
+    finished_course = await client.post(
+        f"/api/v1/study/sessions/{course_session_id}/finish", headers=learner
+    )
+    assert finished_course.json()["status"] == "finished"
     owner_stats = await client.get(f"/api/v1/study/sets/{set_id}/stats", headers=owner)
     learner_stats = await client.get(f"/api/v1/study/sets/{set_id}/stats", headers=learner)
     assert owner_stats.json()["learning_count"] == 0
     assert learner_stats.json()["learning_count"] == 1
+    retention = (await client.get("/api/v1/retention/summary", headers=learner)).json()
+    assert retention["reviews_today"] == 1
+    assert retention["xp_today"] == 10
 
     changed_cards = {
         "cards": [
