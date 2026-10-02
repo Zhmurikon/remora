@@ -3,13 +3,27 @@
 Сервер `home-server`, каталог `/opt/remora-dev`. Всё приложение и сборка работают в Docker.
 Существующий Nginx Proxy Manager завершает TLS и проксирует сеть `proxy` на
 `http://remora-dev-gateway:80`. Канонический домен — `remora.com.ru`, кабинет —
-`https://remora.com.ru/app`. `www.remora.com.ru` перенаправляется на домен без `www`.
+`https://remora.com.ru/app`, административная панель — `https://admin.remora.com.ru`.
+Для административного домена нужен отдельный Proxy Host на тот же gateway с собственным TLS;
+gateway выбирает статическую сборку по заголовку Host. `www.remora.com.ru` перенаправляется
+на домен без `www`.
 `edu-remora.ru` и `test.edu-remora.ru` остаются рабочими алиасами на время перехода. Страницы двух прежних
 доменов отдают `301` на `remora.com.ru` с тем же путём и query-параметрами. Без редиректа
 остаются `/api/`, callback Telegram/VK, `/remora-media/`, `/remora-audio/` и
 `/rasshifrovka/api/`; MCP использует сохранённый `/api/v1/agent/`.
-В серверном `deploy/.env` значение `CORS_ORIGINS` должно включать все четыре источника.
+В серверном `deploy/.env` значение `CORS_ORIGINS` должно включать публичный домен, `www`,
+административный домен и оба переходных источника.
 После изменения пересоздать api/worker/bot-api и перезагрузить gateway.
+
+Первую роль администратора выдать существующему подтверждённому аккаунту из консоли сервера:
+
+```bash
+docker compose --env-file deploy/.env -f deploy/compose.yml exec -T api \
+  python scripts/set_admin.py user@example.com
+```
+
+Публичного API для выдачи роли нет. После смены роли нужно заново войти на
+`https://admin.remora.com.ru`.
 
 ## Первая установка
 

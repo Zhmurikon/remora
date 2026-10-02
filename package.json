@@ -10,6 +10,7 @@
     "dev": "pnpm --parallel --filter \"./apps/*\" dev",
     "dev:web": "pnpm --filter @remora/web dev",
     "dev:app": "pnpm --filter @remora/app dev",
+    "dev:admin": "pnpm --filter @remora/admin dev",
     "build": "pnpm -r build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

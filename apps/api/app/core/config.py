@@ -70,7 +70,11 @@ class Settings(BaseSettings):
     rate_limit_public_read_window_seconds: int = 60
 
     # CORS: адреса обоих фронтендов
-    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    cors_origins: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:5174",
+    ]
 
     # Адреса фронтендов для ссылок в письмах
     web_url: str = "http://localhost:3000"

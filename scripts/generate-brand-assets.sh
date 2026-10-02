@@ -97,7 +97,10 @@ convert -background none "$assets_dir/remora-logo-horizontal-inverse.svg" "$asse
 convert -background none "$assets_dir/remora-logo-stacked.svg" "$assets_dir/remora-logo-stacked.png"
 convert -background none "$assets_dir/remora-logo-stacked-inverse.svg" "$assets_dir/remora-logo-stacked-inverse.png"
 
-for app_dir in "$repo_root/apps/web/public" "$repo_root/apps/app/public"; do
+for app_dir in \
+  "$repo_root/apps/web/public" \
+  "$repo_root/apps/app/public" \
+  "$repo_root/apps/admin/public"; do
   mkdir -p "$app_dir/icons"
   for size in 16 32 48 192 512; do
     convert "$assets_dir/remora-mark-compact.png" -resize "${size}x${size}" \
@@ -113,7 +116,8 @@ done
 
 for apple_icon in \
   "$repo_root/apps/web/src/app/apple-icon.png" \
-  "$repo_root/apps/app/public/apple-touch-icon.png"; do
+  "$repo_root/apps/app/public/apple-touch-icon.png" \
+  "$repo_root/apps/admin/public/apple-touch-icon.png"; do
   convert -size 180x180 xc:'#FAFAF9' \
     \( "$assets_dir/remora-mark-compact.png" -resize 162x162 \) \
     -gravity center -compose over -composite "$apple_icon"
@@ -121,6 +125,7 @@ done
 
 cp "$assets_dir/remora-mark-compact.svg" "$repo_root/apps/web/src/app/icon.svg"
 cp "$assets_dir/remora-mark-compact.svg" "$repo_root/apps/app/public/favicon.svg"
+cp "$assets_dir/remora-mark-compact.svg" "$repo_root/apps/admin/public/favicon.svg"
 cp "$assets_dir/remora-mark-compact.svg" "$repo_root/apps/mobile/assets/remora-mark.svg"
 cp "$assets_dir/remora-logo-horizontal.svg" \
   "$repo_root/apps/mobile/assets/remora-logo-horizontal.svg"
@@ -141,6 +146,7 @@ convert \
   "$repo_root/apps/app/public/icons/icon-48.png" \
   "$repo_root/apps/app/public/favicon.ico"
 cp "$repo_root/apps/app/public/favicon.ico" "$repo_root/apps/web/src/app/favicon.ico"
+cp "$repo_root/apps/app/public/favicon.ico" "$repo_root/apps/admin/public/favicon.ico"
 
 brand_dir="$repo_root/assets/brand"
 mkdir -p "$brand_dir/source" "$brand_dir/mark" "$brand_dir/lockups" "$brand_dir/icons"

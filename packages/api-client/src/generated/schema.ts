@@ -9,6 +9,40 @@
  */
 
 export interface paths {
+    "/api/v1/admin/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Сводка продукта */
+        get: operations["get_overview_api_v1_admin_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Пользователи */
+        get: operations["list_users_api_v1_admin_users_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/agent/courses": {
         parameters: {
             query?: never;
@@ -2024,6 +2058,74 @@ export interface components {
             reviews_count: number;
             /** Xp Earned */
             xp_earned: number;
+        };
+        /** AdminOverview */
+        AdminOverview: {
+            /** Courses Published */
+            courses_published: number;
+            /** Courses Total */
+            courses_total: number;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Reports Open */
+            reports_open: number;
+            /** Reviews 7D */
+            reviews_7d: number;
+            /** Sets Total */
+            sets_total: number;
+            /** Users Active 7D */
+            users_active_7d: number;
+            /** Users New 7D */
+            users_new_7d: number;
+            /** Users Total */
+            users_total: number;
+        };
+        /** AdminUserItem */
+        AdminUserItem: {
+            /** Courses Count */
+            courses_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Display Name */
+            display_name: string | null;
+            /** Email */
+            email: string | null;
+            /** Email Verified */
+            email_verified: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Last Active At */
+            last_active_at: string | null;
+            /** Reviews Count */
+            reviews_count: number;
+            /** Role */
+            role: string;
+            /** Sets Count */
+            sets_count: number;
+            /** Status */
+            status: string;
+            /** Username */
+            username: string;
+        };
+        /** AdminUserList */
+        AdminUserList: {
+            /** Items */
+            items: components["schemas"]["AdminUserItem"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
         };
         /** AgentArticleDetail */
         AgentArticleDetail: {
@@ -4593,6 +4695,59 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    get_overview_api_v1_admin_overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminOverview"];
+                };
+            };
+        };
+    };
+    list_users_api_v1_admin_users_get: {
+        parameters: {
+            query?: {
+                query?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_courses_api_v1_agent_courses_get: {
         parameters: {
             query?: {

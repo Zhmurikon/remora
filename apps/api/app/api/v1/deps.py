@@ -62,6 +62,13 @@ async def moderator_user(user: User = Depends(current_user)) -> User:
     return user
 
 
+async def admin_user(user: User = Depends(current_user)) -> User:
+    """Доступ к служебной статистике и данным пользователей только для владельца."""
+    if user.role is not UserRole.admin:
+        raise ForbiddenError("Требуются права администратора")
+    return user
+
+
 def _is_internal(host: str | None) -> bool:
     """Публичные страницы рендерит Next и ходит в API по внутренней сети.
 
