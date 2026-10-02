@@ -85,9 +85,16 @@ class Settings(BaseSettings):
     refresh_token_ttl_days: int = 30
     email_verification_ttl_hours: int = 24
     password_reset_ttl_minutes: int = 30
+    oauth_state_ttl_minutes: int = Field(default=10, ge=1, le=30)
+
+    # Google OpenID Connect. Без пары client_id/client_secret вход через Google выключен.
+    google_oauth_client_id: str | None = None
+    google_oauth_client_secret: SecretStr | None = None
+    google_oauth_redirect_uri: str = "http://localhost:8000/api/v1/auth/oauth/google/callback"
 
     # Cookie для refresh-токена
     refresh_cookie_name: str = "remora_refresh"
+    oauth_state_cookie_name: str = "remora_oauth_state"
     cookie_secure: bool = False
     cookie_samesite: Literal["lax", "none", "strict"] = "lax"
     cookie_domain: str | None = None

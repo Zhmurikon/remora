@@ -15,6 +15,20 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const oauthError = new URLSearchParams(window.location.search).get('oauth_error');
+    if (!oauthError) return;
+    const messages: Record<string, string> = {
+      denied: 'Вы отменили вход через Google.',
+      invalid_state: 'Сессия входа устарела. Попробуйте войти через Google ещё раз.',
+      unavailable: 'Вход через Google пока не настроен.',
+      link_required:
+        'Для безопасности этот адрес нельзя связать автоматически. Войдите по email и паролю.',
+      failed: 'Не удалось войти через Google. Попробуйте ещё раз.',
+    };
+    setError(messages[oauthError] ?? messages.failed ?? null);
+  }, []);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);

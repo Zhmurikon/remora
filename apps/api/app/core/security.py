@@ -21,7 +21,7 @@ from app.core.config import get_settings
 _hasher = PasswordHasher()
 
 # Тип субъекта токена
-TokenType = Literal["access", "email_verification", "password_reset"]
+TokenType = Literal["access", "email_verification", "password_reset", "oauth_state"]
 
 
 def hash_password(password: str) -> str:
@@ -60,6 +60,8 @@ def create_jwt(
         ttl = timedelta(hours=settings.email_verification_ttl_hours)
     elif token_type == "password_reset":
         ttl = timedelta(minutes=settings.password_reset_ttl_minutes)
+    elif token_type == "oauth_state":
+        ttl = timedelta(minutes=settings.oauth_state_ttl_minutes)
 
     now = datetime.now(tz=UTC)
     payload: dict[str, str | int] = {

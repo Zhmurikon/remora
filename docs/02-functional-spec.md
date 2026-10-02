@@ -169,7 +169,7 @@ remora/
 
 **users** — `email` (уникальный, nullable для соцвхода), `password_hash` (argon2id, nullable), `username` (уникальный, для публичного URL), `display_name`, `avatar_url`, `role` (`user` | `teacher` | `moderator` | `admin`), `email_verified_at`, `birth_date` (для возрастного гейта), `locale`, `timezone`, `status` (`active` | `suspended` | `deleted`), `deleted_at`.
 
-**oauth_accounts** — `user_id`, `provider` (`vk` | `yandex` | `telegram`), `provider_user_id`, `raw_profile` (jsonb). Уникальность по (provider, provider_user_id).
+**oauth_accounts** — `user_id`, `provider` (`google` | `vk` | `yandex` | `telegram`), `provider_user_id`, `raw_profile` (jsonb). Уникальность по (provider, provider_user_id). Google-аккаунт автоматически связывается с существующим пользователем по подтверждённому адресу, для которого Google является авторитетным источником (`@gmail.com` или Google Workspace с `hd`); пароли и прежние данные пользователя сохраняются. Сторонний адрес Google-аккаунта требует отдельного подтверждения, чтобы исключить захват аккаунта после смены владельца почты.
 
 **refresh_tokens** — `user_id`, `token_hash`, `family_id`, `expires_at`, `revoked_at`, `user_agent`, `ip`. Ротация: при использовании старого токена вся семья отзывается.
 

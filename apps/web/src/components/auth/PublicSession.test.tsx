@@ -9,6 +9,7 @@ import { APP_URL } from '../../lib/auth-api';
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  window.history.replaceState({}, '', '/');
 });
 
 it('проверяет общую сессию один раз и обновляет все ссылки', async () => {
@@ -47,6 +48,21 @@ it.each([false, 'offline'])('оставляет гостю форму входа
   );
   expect(await screen.findByRole('heading', { name: 'Войдите в Remora' })).toBeTruthy();
   expect(screen.getByRole('link', { name: 'Войти' }).getAttribute('href')).toBe('/login');
+});
+
+it('объясняет безопасный отказ в автоматическом связывании сторонней почты', async () => {
+  window.history.replaceState({}, '', '/login?oauth_error=link_required');
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
+
+  render(
+    <PublicSessionProvider>
+      <LoginForm />
+    </PublicSessionProvider>,
+  );
+
+  expect((await screen.findByRole('alert')).textContent).toContain(
+    'Для безопасности этот адрес нельзя связать автоматически.',
+  );
 });
 
 it('перенаправляет вошедшего пользователя без формы пароля', async () => {

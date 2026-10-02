@@ -154,6 +154,8 @@ cp "$source_png" "$brand_dir/source/remora-mascot-source.png"
 cp "$assets_dir/remora-mark.svg" "$assets_dir/remora-mark.png" \
   "$assets_dir/remora-mark-compact.svg" "$assets_dir/remora-mark-compact.png" \
   "$brand_dir/mark/"
+convert "$assets_dir/remora-mark-compact.png" -resize 120x120 \
+  "$brand_dir/mark/remora-google-oauth.png"
 cp "$assets_dir"/remora-logo-horizontal*.svg "$assets_dir"/remora-logo-horizontal*.png \
   "$assets_dir"/remora-logo-stacked*.svg "$assets_dir"/remora-logo-stacked*.png \
   "$brand_dir/lockups/"

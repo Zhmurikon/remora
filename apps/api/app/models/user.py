@@ -162,7 +162,7 @@ class OauthAccount(UUIDPrimaryKeyMixin, Base):
 
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     provider: Mapped[str] = mapped_column(String(16), index=True)
-    provider_user_id: Mapped[str] = mapped_column(String(128), index=True)
+    provider_user_id: Mapped[str] = mapped_column(String(255), index=True)
     raw_profile: Mapped[dict[str, Any]] = mapped_column(
         JSONB, default=dict, server_default=text("'{}'::jsonb")
     )

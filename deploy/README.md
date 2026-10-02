@@ -49,6 +49,38 @@ docker build -t remora-dev-api:local -f deploy/Dockerfile.api deploy
 в `deploy/.env`. MailHog остаётся в compose для тестов, приложение его не использует.
 Его интерфейс не публикуется в интернете.
 
+### Вход через Google
+
+Создать в Google Cloud Console OAuth client типа `Web application` и добавить точный
+разрешённый redirect URI:
+
+```text
+https://remora.com.ru/api/v1/auth/oauth/google/callback
+```
+
+В `deploy/.env` задать `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` и
+`GOOGLE_OAUTH_REDIRECT_URI`. Secret не передавать во фронтенды. После изменения пересоздать
+контейнер `api`. Для локальной проверки используется callback
+`http://localhost:8000/api/v1/auth/oauth/google/callback`; Google допускает HTTP только для
+localhost. Google-профиль с подтверждённым Gmail или адресом Google Workspace автоматически
+связывается с уже существующим аккаунтом Remora. Сторонний адрес Google-аккаунта не сращивается
+без дополнительного подтверждения владения почтой.
+
+Для раздела `Google Auth Platform → Branding` использовать:
+
+```text
+App home page:       https://remora.com.ru
+Privacy policy:      https://remora.com.ru/privacy
+Terms of service:    https://remora.com.ru/terms
+Authorized domain:   remora.com.ru
+```
+
+Загрузить `assets/brand/mark/remora-google-oauth.png`: это PNG 120 × 120 px, собранный
+из утверждённого знака Remora. Русские страницы доступны по адресам выше, английские —
+по `/en/privacy` и `/en/terms`. Перед отправкой Branding на проверку убедиться, что адрес
+`support@remora.com.ru`, указанный на юридических страницах, принимает письма, а сами страницы
+опубликованы и открываются без авторизации.
+
 ### Логи API
 
 API и внутренний API ботов пишут структурные логи в `deploy/logs/api.log` и

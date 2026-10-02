@@ -1,7 +1,8 @@
 'use client';
 
 import { Input } from '@remora/ui';
-import { useState, type InputHTMLAttributes } from 'react';
+import { useState, type InputHTMLAttributes, type MouseEvent } from 'react';
+import { API_URL, GOOGLE_OAUTH_URL } from '../../lib/auth-api';
 import { EyeIcon } from './Icons';
 
 export function PasswordField({
@@ -31,11 +32,32 @@ export function PasswordField({
 }
 
 export function SocialButtons() {
+  function continueWithGoogle(event: MouseEvent<HTMLAnchorElement>) {
+    const next = new URLSearchParams(window.location.search).get('next');
+    if (!next) return;
+    event.preventDefault();
+    const target = new URL('/api/v1/auth/oauth/google/start', API_URL);
+    target.searchParams.set('next', next);
+    window.location.assign(target.href);
+  }
+
   return (
-    <div className="grid grid-cols-3 gap-3" aria-label="Социальные сети">
-      <SocialButton label="VK ID" mark="VK" />
-      <SocialButton label="Яндекс ID" mark="Я" />
-      <SocialButton label="Telegram" mark="✈" />
+    <div className="space-y-3" aria-label="Вход через другой сервис">
+      <a
+        href={GOOGLE_OAUTH_URL}
+        onClick={continueWithGoogle}
+        className="border-border bg-surface text-fg hover:bg-surface-muted focus-visible:ring-primary flex h-12 w-full items-center justify-center gap-3 rounded-xl border text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+      >
+        <span aria-hidden="true" className="text-base font-bold">
+          G
+        </span>
+        Продолжить с Google
+      </a>
+      <div className="grid grid-cols-3 gap-3" aria-label="Другие сервисы">
+        <SocialButton label="VK ID" mark="VK" />
+        <SocialButton label="Яндекс ID" mark="Я" />
+        <SocialButton label="Telegram" mark="TG" />
+      </div>
     </div>
   );
 }

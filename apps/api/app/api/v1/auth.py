@@ -8,6 +8,8 @@
 - POST /auth/logout       — отзыв сессии
 - POST /auth/password-reset      — запрос сброса пароля
 - POST /auth/password-reset/confirm — сброс пароля
+- GET  /auth/oauth/google/start    — начало входа через Google
+- GET  /auth/oauth/google/callback — callback Google OpenID Connect
 - GET  /auth/me           — текущий пользователь
 
 Мобильный клиент (X-Client: mobile) получает refresh-токен в теле ответа;
@@ -17,16 +19,21 @@
 
 from __future__ import annotations
 
+import hmac
 from datetime import UTC, datetime
-from uuid import UUID
+from urllib.parse import urlencode, urljoin, urlsplit
+from uuid import UUID, uuid4
 
+import structlog
 from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.deps import current_user
 from app.core.config import get_settings
-from app.core.errors import UnauthorizedError
+from app.core.errors import AppError, UnauthorizedError
 from app.core.rate_limit import enforce_rate_limit
+from app.core.security import create_jwt, decode_jwt
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import (
@@ -43,9 +50,11 @@ from app.schemas.auth import (
     UserPublic,
     VerifyEmailRequest,
 )
+from app.services import google_oauth
 from app.services.auth import AuthService, to_user_public
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+log = structlog.get_logger()
 
 
 def _is_mobile_client(request: Request) -> bool:
@@ -89,6 +98,135 @@ def _clear_refresh_cookie(response: Response) -> None:
         path="/api/v1/auth",
         domain=settings.cookie_domain,
     )
+
+
+def _safe_oauth_next(candidate: str | None) -> str:
+    settings = get_settings()
+    if not candidate:
+        return settings.app_url
+    target = urljoin(settings.app_url, candidate)
+    parsed = urlsplit(target)
+    allowed_origins = {
+        (urlsplit(settings.web_url).scheme, urlsplit(settings.web_url).netloc),
+        (urlsplit(settings.app_url).scheme, urlsplit(settings.app_url).netloc),
+    }
+    if (
+        parsed.scheme not in {"http", "https"}
+        or (parsed.scheme, parsed.netloc) not in allowed_origins
+    ):
+        return settings.app_url
+    return target
+
+
+def _set_oauth_state_cookie(response: Response, token: str) -> None:
+    settings = get_settings()
+    response.set_cookie(
+        key=settings.oauth_state_cookie_name,
+        value=token,
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite="lax",
+        domain=settings.cookie_domain,
+        max_age=settings.oauth_state_ttl_minutes * 60,
+        path="/api/v1/auth/oauth/google/callback",
+    )
+
+
+def _clear_oauth_state_cookie(response: Response) -> None:
+    settings = get_settings()
+    response.delete_cookie(
+        key=settings.oauth_state_cookie_name,
+        domain=settings.cookie_domain,
+        path="/api/v1/auth/oauth/google/callback",
+    )
+
+
+def _oauth_error_redirect(code: str, next_url: str | None = None) -> RedirectResponse:
+    settings = get_settings()
+    query: dict[str, str] = {"oauth_error": code}
+    if next_url:
+        query["next"] = next_url
+    response = RedirectResponse(
+        url=f"{settings.web_url.rstrip('/')}/login?{urlencode(query)}",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+    _clear_oauth_state_cookie(response)
+    return response
+
+
+@router.get(
+    "/oauth/google/start",
+    response_class=RedirectResponse,
+    summary="Начать вход через Google",
+)
+async def google_oauth_start(next: str | None = None) -> RedirectResponse:
+    target = _safe_oauth_next(next)
+    nonce = str(uuid4())
+    state_token = create_jwt(nonce, "oauth_state", extra={"next": target})
+    try:
+        authorization_url = google_oauth.build_authorization_url(nonce)
+    except AppError:
+        return _oauth_error_redirect("unavailable", target)
+    response = RedirectResponse(
+        url=authorization_url,
+        status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+    )
+    _set_oauth_state_cookie(response, state_token)
+    return response
+
+
+@router.get(
+    "/oauth/google/callback",
+    response_class=RedirectResponse,
+    summary="Завершить вход через Google",
+)
+async def google_oauth_callback(
+    request: Request,
+    state: str | None = None,
+    code: str | None = None,
+    error: str | None = None,
+    db: AsyncSession = Depends(get_db),
+) -> RedirectResponse:
+    settings = get_settings()
+    state_token = request.cookies.get(settings.oauth_state_cookie_name)
+    payload = decode_jwt(state_token, "oauth_state") if state_token else None
+    next_claim = payload.get("next") if payload else None
+    target = _safe_oauth_next(next_claim if isinstance(next_claim, str) else None)
+
+    if payload is None or state is None or not hmac.compare_digest(payload["sub"], state):
+        return _oauth_error_redirect("invalid_state", target)
+    if error is not None:
+        return _oauth_error_redirect("denied", target)
+    if code is None:
+        return _oauth_error_redirect("invalid_state", target)
+
+    ip = request.client.host if request.client else None
+    try:
+        await enforce_rate_limit(
+            scope="oauth-login",
+            ip=ip or "unknown",
+            identity="google",
+            limit=settings.rate_limit_login,
+            window_seconds=settings.rate_limit_window_seconds,
+        )
+        profile = await google_oauth.exchange_code(code)
+        _user, _access, refresh_raw, expires_at = await AuthService(db).login_with_google(
+            profile,
+            user_agent=request.headers.get("user-agent"),
+            ip=ip,
+        )
+    except AppError as exc:
+        log.warning("auth.oauth_failed", provider="google", reason=exc.code)
+        oauth_error = exc.details.get("oauth_error")
+        return _oauth_error_redirect(
+            oauth_error if isinstance(oauth_error, str) else "failed",
+            target,
+        )
+
+    redirect = RedirectResponse(url=target, status_code=status.HTTP_303_SEE_OTHER)
+    _set_refresh_cookie(redirect, refresh_raw, expires_at)
+    _clear_oauth_state_cookie(redirect)
+    return redirect
 
 
 @router.post(

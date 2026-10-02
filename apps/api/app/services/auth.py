@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import re
 from datetime import UTC, date, datetime, timedelta
 from typing import Literal
 from uuid import UUID, uuid4
@@ -27,9 +29,11 @@ from app.core.security import (
 )
 from app.models.user import User, UserStatus
 from app.repositories import action_token as action_token_repo
+from app.repositories import oauth as oauth_repo
 from app.repositories import token as token_repo
 from app.repositories import user as user_repo
 from app.schemas.auth import SessionPublic, UserPublic
+from app.services.google_oauth import GoogleProfile
 
 log = structlog.get_logger()
 
@@ -42,6 +46,28 @@ class AuthService:
 
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
+
+    async def _create_session(
+        self,
+        user: User,
+        *,
+        user_agent: str | None,
+        ip: str | None,
+    ) -> tuple[str, str, datetime]:
+        access_token = create_jwt(str(user.id), "access")
+        raw_token, token_hash = generate_refresh_token()
+        settings = get_settings()
+        expires_at = datetime.now(tz=UTC) + timedelta(days=settings.refresh_token_ttl_days)
+        await token_repo.create_token(
+            self.db,
+            user_id=user.id,
+            token_hash=token_hash,
+            family_id=uuid4(),
+            expires_at=expires_at,
+            user_agent=user_agent,
+            ip=ip,
+        )
+        return access_token, raw_token, expires_at
 
     async def register(
         self,
@@ -127,18 +153,8 @@ class AuthService:
         log.info("auth.email_verified", user_id=str(user_id))
 
         if create_session:
-            access_token = create_jwt(str(user.id), "access")
-            raw_token, token_hash = generate_refresh_token()
-            settings = get_settings()
-            expires_at = datetime.now(tz=UTC) + timedelta(
-                days=settings.refresh_token_ttl_days
-            )
-            await token_repo.create_token(
-                self.db,
-                user_id=user.id,
-                token_hash=token_hash,
-                family_id=uuid4(),
-                expires_at=expires_at,
+            access_token, raw_token, expires_at = await self._create_session(
+                user,
                 user_agent=user_agent,
                 ip=ip,
             )
@@ -165,25 +181,136 @@ class AuthService:
         if user.status != UserStatus.active:
             raise UnauthorizedError("Аккаунт недоступен")
 
-        access_token = create_jwt(str(user.id), "access")
-        raw_token, token_hash = generate_refresh_token()
-
-        settings = get_settings()
-        expires_at = datetime.now(tz=UTC) + timedelta(days=settings.refresh_token_ttl_days)
-
-        await token_repo.create_token(
-            self.db,
-            user_id=user.id,
-            token_hash=token_hash,
-            family_id=uuid4(),
-            expires_at=expires_at,
+        access_token, raw_token, expires_at = await self._create_session(
+            user,
             user_agent=user_agent,
             ip=ip,
         )
-        # family_id генерируется моделью (default=uuid4) при flush
 
         log.info("auth.login", user_id=str(user.id))
         return user, access_token, raw_token, expires_at
+
+    async def login_with_google(
+        self,
+        profile: GoogleProfile,
+        *,
+        user_agent: str | None = None,
+        ip: str | None = None,
+    ) -> tuple[User, str, str, datetime]:
+        """Входит по Google и безопасно сращивает аккаунт по подтверждённому email."""
+        linked = await oauth_repo.get_account_with_user(
+            self.db,
+            provider="google",
+            provider_user_id=profile.subject,
+        )
+        if linked is not None:
+            account, linked_user = linked
+            if linked_user.status != UserStatus.active:
+                raise UnauthorizedError("Аккаунт недоступен")
+            await oauth_repo.update_account_profile(self.db, account, profile.raw)
+            await oauth_repo.fill_missing_profile(
+                self.db,
+                linked_user,
+                verify_email=(
+                    linked_user.email is not None
+                    and linked_user.email.strip().casefold() == profile.email
+                ),
+                display_name=profile.name,
+                avatar_url=profile.picture,
+            )
+            access, refresh, expires_at = await self._create_session(
+                linked_user, user_agent=user_agent, ip=ip
+            )
+            log.info("auth.oauth_login", provider="google", user_id=str(linked_user.id))
+            return linked_user, access, refresh, expires_at
+
+        if not profile.email_verified:
+            raise UnauthorizedError("Google не подтвердил адрес электронной почты")
+
+        user = await oauth_repo.get_user_by_normalized_email(self.db, profile.email)
+        created_user: User | None = None
+        if user is not None and not profile.email_authoritative:
+            raise ConflictError(
+                "Для связывания этого адреса войдите паролем",
+                details={"oauth_error": "link_required"},
+            )
+        if user is None:
+            username = await self._available_oauth_username(profile.email, profile.subject)
+            try:
+                async with self.db.begin_nested():
+                    user = await oauth_repo.create_oauth_user(
+                        self.db,
+                        email=profile.email,
+                        username=username,
+                        display_name=profile.name,
+                        avatar_url=profile.picture,
+                    )
+                created_user = user
+            except IntegrityError:
+                # Параллельный callback мог успеть создать пользователя с тем же email.
+                user = await oauth_repo.get_user_by_normalized_email(self.db, profile.email)
+                if user is None:
+                    raise ConflictError("Не удалось создать аккаунт") from None
+
+        if user.status != UserStatus.active:
+            raise UnauthorizedError("Аккаунт недоступен")
+
+        try:
+            async with self.db.begin_nested():
+                await oauth_repo.create_account(
+                    self.db,
+                    user=user,
+                    provider="google",
+                    provider_user_id=profile.subject,
+                    raw_profile=profile.raw,
+                )
+        except IntegrityError:
+            # Идентичность Google всегда важнее совпадения email при гонке callback'ов.
+            linked = await oauth_repo.get_account_with_user(
+                self.db,
+                provider="google",
+                provider_user_id=profile.subject,
+            )
+            if linked is None:
+                raise ConflictError("Не удалось связать аккаунт Google") from None
+            _account, linked_user = linked
+            if created_user is not None and created_user.id != linked_user.id:
+                await self.db.delete(created_user)
+                await self.db.flush()
+                created_user = None
+            user = linked_user
+
+        if user.status != UserStatus.active:
+            raise UnauthorizedError("Аккаунт недоступен")
+
+        await oauth_repo.fill_missing_profile(
+            self.db,
+            user,
+            verify_email=True,
+            display_name=profile.name,
+            avatar_url=profile.picture,
+        )
+        access, refresh, expires_at = await self._create_session(user, user_agent=user_agent, ip=ip)
+        log.info(
+            "auth.oauth_linked",
+            provider="google",
+            user_id=str(user.id),
+            created=created_user is not None,
+        )
+        return user, access, refresh, expires_at
+
+    async def _available_oauth_username(self, email: str, subject: str) -> str:
+        local_part = email.split("@", maxsplit=1)[0].casefold()
+        base = re.sub(r"[^a-z0-9_-]+", "-", local_part).strip("-_")
+        if len(base) < 3:
+            base = "user"
+        digest = hashlib.sha256(subject.encode()).hexdigest()
+        for offset in range(0, 24, 6):
+            suffix = digest[offset : offset + 6]
+            candidate = f"{base[:25]}-{suffix}"
+            if await user_repo.get_user_by_username(self.db, candidate) is None:
+                return candidate
+        return f"user-{uuid4().hex[:12]}"
 
     async def refresh(
         self,

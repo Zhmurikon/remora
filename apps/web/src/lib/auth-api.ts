@@ -2,9 +2,10 @@
 
 import { createApiClient, type ApiError } from '@remora/api-client';
 
-export const authApi = createApiClient({
-  baseUrl: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000',
-});
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
+export const GOOGLE_OAUTH_URL = new URL('/api/v1/auth/oauth/google/start', API_URL).href;
+
+export const authApi = createApiClient({ baseUrl: API_URL });
 
 export function getErrorMessage(error: unknown): string {
   if (

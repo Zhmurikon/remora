@@ -86,8 +86,8 @@ export function AuthShell({ children }: AuthShellProps) {
         <div className="auth-form-panel">
           <div className="auth-form-content">{children}</div>
           <p className="auth-legal">
-            Продолжая, вы принимаете <a href="#">условия использования</a> и{' '}
-            <a href="#">политику конфиденциальности</a>
+            Продолжая, вы принимаете <Link href="/terms">условия использования</Link> и{' '}
+            <Link href="/privacy">политику конфиденциальности</Link>
           </p>
         </div>
 

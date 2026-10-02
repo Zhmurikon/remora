@@ -4,7 +4,7 @@ import { Button, Input } from '@remora/ui';
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { authApi, getErrorMessage } from '../../lib/auth-api';
-import { FormError, PasswordField } from './AuthFields';
+import { FormDivider, FormError, PasswordField, SocialButtons } from './AuthFields';
 
 export function RegisterForm() {
   const [loading, setLoading] = useState(false);
@@ -101,7 +101,21 @@ export function RegisterForm() {
             className="border-border accent-primary mt-0.5 h-5 w-5 shrink-0 rounded"
           />
           <span>
-            Я принимаю условия использования и даю согласие на обработку персональных данных.
+            Я принимаю{' '}
+            <Link
+              href="/terms"
+              className="text-primary hover:text-primary-hover underline underline-offset-2"
+            >
+              условия использования
+            </Link>{' '}
+            и даю согласие на обработку персональных данных в соответствии с{' '}
+            <Link
+              href="/privacy"
+              className="text-primary hover:text-primary-hover underline underline-offset-2"
+            >
+              политикой конфиденциальности
+            </Link>
+            .
           </span>
         </label>
         {error && <FormError>{error}</FormError>}
@@ -115,6 +129,10 @@ export function RegisterForm() {
           Создать аккаунт
         </Button>
       </form>
+      <div className="my-7">
+        <FormDivider />
+      </div>
+      <SocialButtons />
       <p className="text-fg-muted mt-7 text-center text-sm">
         Уже есть аккаунт?{' '}
         <Link href="/login" className="text-primary hover:text-primary-hover font-semibold">
