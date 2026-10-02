@@ -49,6 +49,10 @@ it('сохраняет статические URL при недоступном 
     'http://localhost:3000/',
     'http://localhost:3000/kursy',
     'http://localhost:3000/blog',
+    'http://localhost:3000/privacy',
+    'http://localhost:3000/terms',
+    'http://localhost:3000/en/privacy',
+    'http://localhost:3000/en/terms',
     ...publishedPosts().map((post) => `http://localhost:3000/blog/${post.slug}`),
   ]);
 });

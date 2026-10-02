@@ -291,6 +291,8 @@ export default function HomePage() {
           <a href="/blog">Блог</a>
           <a href="/podborki">Подборки</a>
           <a href="#questions">Вопросы и ответы</a>
+          <a href="/privacy">Конфиденциальность</a>
+          <a href="/terms">Условия использования</a>
           <PublicAuthLink />
         </nav>
       </footer>
