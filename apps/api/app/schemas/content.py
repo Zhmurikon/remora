@@ -84,6 +84,7 @@ class SetSummary(BaseModel):
 
 
 class SetDetail(SetSummary):
+    can_edit: bool = False
     lang_term: str
     lang_definition: str
     cards: list[CardPublic]

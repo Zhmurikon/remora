@@ -218,8 +218,8 @@ export function CoursesPage() {
                 <DropIndicator edge={savedCourseDrag.dropTarget.edge} />
               )}
               <Card className="h-full break-words">
-                <a
-                  href={`${WEB_URL}/kurs/${course.slug}`}
+                <Link
+                  to={`/courses/${course.id}`}
                   draggable={sortMode !== 'custom'}
                   className="focus-visible:outline-primary block rounded-lg focus-visible:outline focus-visible:outline-2"
                 >
@@ -235,14 +235,19 @@ export function CoursesPage() {
                     Автор: {course.author.display_name || `@${course.author.username}`} ·{' '}
                     {course.cards_count} карточек
                   </p>
-                </a>
+                </Link>
                 <div className="mt-5 flex flex-wrap gap-2">
                   <Link to={`/courses/${course.id}/learn`}>
                     <Button size="sm">Учить весь курс</Button>
                   </Link>
-                  <a href={`${WEB_URL}/kurs/${course.slug}`}>
+                  <Link to={`/courses/${course.id}`}>
                     <Button size="sm" variant="secondary">
                       Открыть курс
+                    </Button>
+                  </Link>
+                  <a href={`${WEB_URL}/kurs/${course.slug}`}>
+                    <Button size="sm" variant="ghost">
+                      Публичная страница
                     </Button>
                   </a>
                 </div>

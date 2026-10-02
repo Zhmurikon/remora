@@ -29,7 +29,11 @@ async def test_set_lifecycle_and_card_batch(mock_send: AsyncMock, client: pytest
     )
     assert created.status_code == 201
     assert created.json()["visibility"] == "public"
+    assert created.json()["can_edit"] is True
     set_id = created.json()["id"]
+
+    owned_detail = await client.get(f"/api/v1/sets/{set_id}", headers=headers)
+    assert owned_detail.json()["can_edit"] is True
 
     public = await client.get(f"/api/v1/sets/public/{created.json()['slug']}")
     assert public.status_code == 200
@@ -95,6 +99,7 @@ async def test_set_lifecycle_and_card_batch(mock_send: AsyncMock, client: pytest
         },
     )
     assert updated.status_code == 200
+    assert updated.json()["can_edit"] is True
     assert updated.json()["title"] == "Машинное обучение от статистики до нейросетей"
     assert len(updated.json()["cards"]) == 2
 

@@ -20,6 +20,15 @@ export function DashboardPage() {
     },
   });
 
+  const savedSets = useQuery({
+    queryKey: ['library', 'sets'],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/library/sets');
+      if (error || !data) throw new Error('Не удалось загрузить сохранённые наборы');
+      return data;
+    },
+  });
+
   const forecast = useQuery({
     queryKey: ['study', 'forecast'],
     queryFn: async () => {
@@ -33,7 +42,8 @@ export function DashboardPage() {
 
   const dueToday = forecast.data?.[0]?.count ?? 0;
   const dueWeek = (forecast.data ?? []).reduce((sum, day) => sum + day.count, 0);
-  const recent = (sets.data ?? []).slice(0, 5);
+  const availableSets = mergeRecentSets(sets.data ?? [], savedSets.data ?? []);
+  const recent = availableSets.slice(0, 5);
 
   return (
     <div>
@@ -55,7 +65,7 @@ export function DashboardPage() {
       </header>
 
       <section className="mt-10 grid gap-4 sm:grid-cols-3" aria-label="Статистика">
-        <Stat label="Наборов" value={sets.data?.length ?? 0} />
+        <Stat label="Наборов" value={availableSets.length} />
         <Stat label="К повторению сегодня" value={dueToday} />
         <Stat label="За неделю" value={dueWeek} />
       </section>
@@ -109,6 +119,29 @@ export function DashboardPage() {
         )}
       </Card>
     </div>
+  );
+}
+
+type RecentSet = {
+  id: string;
+  title: string;
+  cards_count: number;
+  recent_at: string;
+};
+
+export function mergeRecentSets(
+  owned: { id: string; title: string; cards_count: number; updated_at: string }[],
+  saved: { id: string; title: string; cards_count: number; saved_at: string }[],
+): RecentSet[] {
+  const byId = new Map<string, RecentSet>();
+  for (const item of owned) {
+    byId.set(item.id, { ...item, recent_at: item.updated_at });
+  }
+  for (const item of saved) {
+    if (!byId.has(item.id)) byId.set(item.id, { ...item, recent_at: item.saved_at });
+  }
+  return [...byId.values()].sort(
+    (left, right) => Date.parse(right.recent_at) - Date.parse(left.recent_at),
   );
 }
 

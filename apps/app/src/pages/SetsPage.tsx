@@ -496,7 +496,7 @@ export function SetsPage() {
                   )}
                   <Card interactive className="h-full p-5">
                     <Link
-                      to={`/sets/${set.id}/learn`}
+                      to={`/sets/${set.id}`}
                       draggable={sortMode !== 'custom'}
                       className="group block"
                     >

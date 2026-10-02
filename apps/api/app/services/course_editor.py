@@ -286,7 +286,7 @@ class CourseEditorService:
             raise
         return SetDetail.model_validate(
             await self.content.get_owned_set(user, copied.id, with_cards=True)
-        )
+        ).model_copy(update={"can_edit": True})
 
     async def copy_set_once(self, user: User, set_id: UUID, key: str) -> SetDetail:
         result = await AgentService(self.db).once(

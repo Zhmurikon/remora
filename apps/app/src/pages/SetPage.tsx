@@ -53,9 +53,11 @@ export function SetPage() {
               Открыть публичную страницу
             </a>
           )}
-          <Link to={`/sets/${set.id}/edit`}>
-            <Button variant="secondary">Редактировать</Button>
-          </Link>
+          {set.can_edit && (
+            <Link to={`/sets/${set.id}/edit`}>
+              <Button variant="secondary">Редактировать</Button>
+            </Link>
+          )}
         </div>
       </header>
       <div className="mt-8">

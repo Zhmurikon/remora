@@ -49,7 +49,7 @@ async def create_set(
 ) -> SetDetail:
     study_set = await ContentService(db).create_set(user, body)
     loaded = await ContentService(db).get_owned_set(user, study_set.id, with_cards=True)
-    return SetDetail.model_validate(loaded)
+    return SetDetail.model_validate(loaded).model_copy(update={"can_edit": True})
 
 
 @router.get("/{set_id}", response_model=SetDetail, summary="Получить набор")
@@ -57,7 +57,9 @@ async def get_set(
     set_id: UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
 ) -> SetDetail:
     study_set = await ContentService(db).get_study_set(user, set_id, with_cards=True)
-    return SetDetail.model_validate(study_set)
+    return SetDetail.model_validate(study_set).model_copy(
+        update={"can_edit": study_set.owner_id == user.id}
+    )
 
 
 @router.patch("/{set_id}", response_model=SetDetail, summary="Изменить набор")
@@ -68,7 +70,7 @@ async def update_set(
     db: AsyncSession = Depends(get_db),
 ) -> SetDetail:
     study_set = await ContentService(db).update_set(user, set_id, body)
-    return SetDetail.model_validate(study_set)
+    return SetDetail.model_validate(study_set).model_copy(update={"can_edit": True})
 
 
 @router.delete("/{set_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Удалить набор")
@@ -107,7 +109,7 @@ async def duplicate_set(
     set_id: UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
 ) -> SetDetail:
     study_set = await ContentService(db).duplicate_set(user, set_id)
-    return SetDetail.model_validate(study_set)
+    return SetDetail.model_validate(study_set).model_copy(update={"can_edit": True})
 
 
 @router.post(
@@ -134,4 +136,4 @@ async def sync_cards(
     db: AsyncSession = Depends(get_db),
 ) -> SetDetail:
     study_set = await ContentService(db).sync_cards(user, set_id, body)
-    return SetDetail.model_validate(study_set)
+    return SetDetail.model_validate(study_set).model_copy(update={"can_edit": True})

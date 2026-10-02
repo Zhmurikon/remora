@@ -82,7 +82,11 @@ class AgentService:
 
     async def set_detail(self, user: User, set_id: UUID) -> AgentSetDetail:
         study_set = await self.content.get_owned_set(user, set_id, with_cards=True)
-        data = SetDetail.model_validate(study_set).model_dump(mode="json")
+        data = (
+            SetDetail.model_validate(study_set)
+            .model_copy(update={"can_edit": True})
+            .model_dump(mode="json")
+        )
         return AgentSetDetail(**data, revision=digest(data))
 
     async def list_folders(self, user: User) -> list[AgentFolderDetail]:

@@ -78,6 +78,15 @@ describe('Курсы в кабинете', () => {
     expect(screen.getByRole('link', { name: 'Учить весь курс' }).getAttribute('href')).toBe(
       '/courses/saved-course/learn',
     );
+    expect(screen.getByRole('link', { name: 'Открыть курс' }).getAttribute('href')).toBe(
+      '/courses/saved-course',
+    );
+    expect(screen.getByRole('link', { name: /Физика Механика/ }).getAttribute('href')).toBe(
+      '/courses/saved-course',
+    );
+    expect(screen.getByRole('link', { name: 'Публичная страница' }).getAttribute('href')).toBe(
+      'http://localhost:3000/kurs/fizika-saved',
+    );
     await userEvent.click(screen.getByRole('button', { name: 'Созданные мной' }));
     expect(screen.queryByText('Физика')).toBeNull();
     expect(screen.getByText('Алгебра')).toBeTruthy();

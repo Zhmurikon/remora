@@ -2260,6 +2260,11 @@ export interface components {
         };
         /** AgentSetDetail */
         AgentSetDetail: {
+            /**
+             * Can Edit
+             * @default false
+             */
+            can_edit: boolean;
             /** Cards */
             cards: components["schemas"]["CardPublic"][];
             /** Cards Count */
@@ -4033,6 +4038,11 @@ export interface components {
         };
         /** SetDetail */
         SetDetail: {
+            /**
+             * Can Edit
+             * @default false
+             */
+            can_edit: boolean;
             /** Cards */
             cards: components["schemas"]["CardPublic"][];
             /** Cards Count */
