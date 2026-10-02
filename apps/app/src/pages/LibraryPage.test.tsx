@@ -58,9 +58,9 @@ it('показывает изменения и применяет их по кн
   expect(screen.getByRole('link', { name: 'Найти курсы' }).getAttribute('href')).toBe(
     'http://localhost:3000/kursy',
   );
-  await userEvent.click(await screen.findByRole('button', { name: 'Посмотреть изменения' }));
+  await userEvent.click(await screen.findByRole('button', { name: 'Обновить «Статья»' }));
   expect(await screen.findByText('Добавлено карточек: 1')).toBeTruthy();
-  await userEvent.click(screen.getByRole('button', { name: 'Обновить' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Применить обновление' }));
   await waitFor(() =>
     expect(api.POST).toHaveBeenCalledWith('/api/v1/library/{save_id}/accept', {
       params: { path: { save_id: 'save-1' } },

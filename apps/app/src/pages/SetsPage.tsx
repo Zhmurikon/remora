@@ -14,6 +14,7 @@ import {
   useDragOrder,
   useListSort,
 } from '../features/library/ListSort';
+import { LibraryUpdateControl } from '../features/library/LibraryUpdateControl';
 
 const folderColors: Record<string, string> = {
   lime: 'bg-primary',
@@ -501,7 +502,10 @@ export function SetsPage() {
                       className="group block"
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <Badge>Сохранённый</Badge>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge>Сохранённый</Badge>
+                          {set.has_updates && <Badge tone="warning">Есть обновление</Badge>}
+                        </div>
                         <span className="text-fg-subtle text-xs">{set.cards_count} карт.</span>
                       </div>
                       <h2 className="group-hover:text-primary mt-5 text-lg font-semibold transition-colors">
@@ -513,10 +517,12 @@ export function SetsPage() {
                       <p className="text-fg-subtle mt-5 text-xs">
                         {set.course_title} · {set.author.display_name || `@${set.author.username}`}
                       </p>
-                      {set.has_updates && (
-                        <p className="text-warning mt-2 text-xs">Для курса доступно обновление</p>
-                      )}
                     </Link>
+                    {set.has_updates && (
+                      <div className="border-border mt-4 flex flex-wrap gap-2 border-t pt-4">
+                        <LibraryUpdateControl saveId={set.save_id} title={set.title} />
+                      </div>
+                    )}
                   </Card>
                 </div>
               ))}

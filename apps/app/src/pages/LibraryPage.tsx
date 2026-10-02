@@ -1,9 +1,10 @@
 import type { components } from '@remora/api-client';
 import { Badge, Button, Card } from '@remora/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { LibraryUpdateControl } from '../features/library/LibraryUpdateControl';
 import { ListSort, sortItems, useListSort } from '../features/library/ListSort';
 
 const WEB_URL = import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000';
@@ -88,31 +89,7 @@ function LibraryCard({
   removing: boolean;
   onRemove: () => void;
 }) {
-  const queryClient = useQueryClient();
-  const [showChanges, setShowChanges] = useState(false);
-  const changes = useQuery({
-    queryKey: ['library', item.id, 'changes'],
-    enabled: showChanges && item.has_updates,
-    queryFn: async () => {
-      const { data, error } = await api.GET('/api/v1/library/{save_id}/changes', {
-        params: { path: { save_id: item.id } },
-      });
-      if (error) throw new Error('Не удалось загрузить изменения');
-      return data;
-    },
-  });
-  const accept = useMutation({
-    mutationFn: async () => {
-      const { error } = await api.POST('/api/v1/library/{save_id}/accept', {
-        params: { path: { save_id: item.id } },
-      });
-      if (error) throw new Error('Не удалось применить обновление');
-    },
-    onSuccess: async () => {
-      setShowChanges(false);
-      await queryClient.invalidateQueries({ queryKey: ['library'] });
-    },
-  });
+  const title = item.article_title ?? item.set_title ?? item.course_title;
   return (
     <Card className="p-5">
       <div className="flex flex-wrap items-center gap-2">
@@ -125,29 +102,10 @@ function LibraryCard({
         </Badge>
         {item.has_updates && <Badge tone="warning">Есть обновление</Badge>}
       </div>
-      <h2 className="mt-3 text-xl font-semibold">
-        {item.article_title ?? item.set_title ?? item.course_title}
-      </h2>
+      <h2 className="mt-3 text-xl font-semibold">{title}</h2>
       <p className="text-fg-muted mt-2 text-sm">
         {item.course_title} · {item.cards_count} карточек
       </p>
-      {showChanges && (
-        <div className="bg-surface-muted mt-4 rounded-xl p-4">
-          {changes.isPending && <p className="text-fg-muted text-sm">Сравниваем версии…</p>}
-          {changes.data && (
-            <>
-              <ul className="space-y-1 text-sm">
-                {changes.data.summary.map((entry) => (
-                  <li key={entry}>{entry}</li>
-                ))}
-              </ul>
-              <Button className="mt-4" loading={accept.isPending} onClick={() => accept.mutate()}>
-                Обновить
-              </Button>
-            </>
-          )}
-        </div>
-      )}
       <div className="mt-5 flex flex-wrap gap-3">
         {item.set_id ? (
           <Link to={`/sets/${item.set_id}/learn`}>
@@ -158,11 +116,7 @@ function LibraryCard({
             <Button>Открыть курс</Button>
           </a>
         )}
-        {item.has_updates && (
-          <Button variant="secondary" onClick={() => setShowChanges((value) => !value)}>
-            {showChanges ? 'Скрыть изменения' : 'Посмотреть изменения'}
-          </Button>
-        )}
+        {item.has_updates && <LibraryUpdateControl saveId={item.id} title={title} />}
         <Button variant="ghost" loading={removing} onClick={onRemove}>
           Убрать
         </Button>

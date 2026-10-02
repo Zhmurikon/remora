@@ -16,6 +16,7 @@ import {
   useDragOrder,
   useListSort,
 } from '../features/library/ListSort';
+import { LibraryUpdateControl } from '../features/library/LibraryUpdateControl';
 
 type Course = components['schemas']['CourseDetail'];
 const WEB_URL = import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000';
@@ -237,6 +238,9 @@ export function CoursesPage() {
                   </p>
                 </Link>
                 <div className="mt-5 flex flex-wrap gap-2">
+                  {course.has_updates && (
+                    <LibraryUpdateControl saveId={course.save_id} title={course.title} />
+                  )}
                   <Link to={`/courses/${course.id}/learn`}>
                     <Button size="sm">Учить весь курс</Button>
                   </Link>

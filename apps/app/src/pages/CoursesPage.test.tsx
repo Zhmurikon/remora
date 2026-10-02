@@ -65,6 +65,9 @@ describe('Курсы в кабинете', () => {
             title: 'Физика',
             description: 'Механика',
             cards_count: 42,
+            save_id: 'save-course',
+            saved_at: '2026-09-17T00:00:00Z',
+            accepted_at: '2026-09-17T00:00:00Z',
             has_updates: true,
             author: { id: 'author', username: 'teacher', display_name: 'Преподаватель' },
           },
@@ -87,6 +90,7 @@ describe('Курсы в кабинете', () => {
     expect(screen.getByRole('link', { name: 'Публичная страница' }).getAttribute('href')).toBe(
       'http://localhost:3000/kurs/fizika-saved',
     );
+    expect(screen.getByRole('button', { name: 'Обновить «Физика»' })).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Созданные мной' }));
     expect(screen.queryByText('Физика')).toBeNull();
     expect(screen.getByText('Алгебра')).toBeTruthy();
