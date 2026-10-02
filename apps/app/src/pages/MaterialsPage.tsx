@@ -1,9 +1,18 @@
 import type { components } from '@remora/api-client';
 import { Badge, Button, FishMark, Input } from '@remora/ui';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type HTMLAttributes, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LibraryUpdateControl } from '../features/library/LibraryUpdateControl';
+import {
+  DropIndicator,
+  moveCustomItem,
+  moveCustomItemTo,
+  sortItems,
+  useCustomOrder,
+  useDragOrder,
+  type DropEdge,
+} from '../features/library/ListSort';
 import {
   aggregateStats,
   learningStatus,
@@ -30,6 +39,7 @@ type CourseItem = {
   saveId?: string;
   slug: string;
   author?: string;
+  orderDate: string;
 };
 
 type SetItem = {
@@ -42,6 +52,7 @@ type SetItem = {
   folderId: string | null;
   hasUpdates: boolean;
   saveId?: string;
+  orderDate: string;
 };
 
 const emptyProgress: MaterialProgress = {
@@ -61,6 +72,8 @@ export function MaterialsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [mobileDetailOpen, setMobileDetailOpen] = useState(initialView === 'library');
+  const [courseOrder, setCourseOrder] = useCustomOrder('remora:order:courses');
+  const [setOrder, setSetOrder] = useCustomOrder('remora:order:sets');
 
   useEffect(() => {
     setView(viewFromPath(location.pathname));
@@ -212,8 +225,33 @@ export function MaterialsPage() {
     return result;
   }, [setItems, statsBySetId]);
 
-  const filteredCourses = filterBySearch(courseItems, search);
-  const filteredSets = filterBySearch(setItems, search);
+  const orderedCourses = useMemo(
+    () =>
+      sortItems(
+        courseItems,
+        'custom',
+        (item) => ({ id: item.id, title: item.title, date: item.orderDate }),
+        courseOrder,
+      ),
+    [courseItems, courseOrder],
+  );
+  const orderedSets = useMemo(
+    () =>
+      sortItems(
+        setItems,
+        'custom',
+        (item) => ({
+          id: item.id,
+          title: item.title,
+          date: item.orderDate,
+          size: item.cardsCount,
+        }),
+        setOrder,
+      ),
+    [setItems, setOrder],
+  );
+  const filteredCourses = filterBySearch(orderedCourses, search);
+  const filteredSets = filterBySearch(orderedSets, search);
   const filteredArchive = filterBySearch(archiveItems, search);
   const selectedCourse = courseItems.find((item) => item.id === selectedId);
   const selectedSet = [...setItems, ...archiveItems].find((item) => item.id === selectedId);
@@ -224,6 +262,32 @@ export function MaterialsPage() {
     if (view === 'sets' && filteredSets[0]) setSelectedId(filteredSets[0].id);
     if (view === 'archive' && filteredArchive[0]) setSelectedId(filteredArchive[0].id);
   }, [filteredArchive, filteredCourses, filteredSets, selectedId, view]);
+
+  const allCourseIds = orderedCourses.map((item) => item.id);
+  const visibleCourseIds = filteredCourses.map((item) => item.id);
+  const allSetOrderIds = orderedSets.map((item) => item.id);
+  const visibleSetIds = filteredSets.map((item) => item.id);
+
+  function moveCourse(courseId: string, direction: -1 | 1) {
+    setCourseOrder(moveCustomItem(allCourseIds, visibleCourseIds, courseId, direction));
+  }
+
+  function moveSet(setId: string, direction: -1 | 1) {
+    setSetOrder(moveCustomItem(allSetOrderIds, visibleSetIds, setId, direction));
+  }
+
+  const courseDrag = useDragOrder(
+    (courseId, targetId, afterTarget) =>
+      setCourseOrder(moveCustomItemTo(allCourseIds, courseId, targetId, afterTarget)),
+    visibleCourseIds,
+    moveCourse,
+  );
+  const setDrag = useDragOrder(
+    (setId, targetId, afterTarget) =>
+      setSetOrder(moveCustomItemTo(allSetOrderIds, setId, targetId, afterTarget)),
+    visibleSetIds,
+    moveSet,
+  );
 
   function switchView(next: MaterialView) {
     setView(next);
@@ -325,6 +389,13 @@ export function MaterialsPage() {
                       meta={course.saved ? 'Сохранённый курс' : 'Ваш курс'}
                       progress={courseProgress.get(course.id) ?? emptyProgress}
                       active={selectedId === course.id}
+                      dragProps={courseDrag.getDragProps(course.id, course.title)}
+                      dragging={courseDrag.draggedId === course.id}
+                      dropEdge={
+                        courseDrag.dropTarget?.id === course.id
+                          ? courseDrag.dropTarget.edge
+                          : undefined
+                      }
                       onClick={() => {
                         setSelectedId(course.id);
                         setMobileDetailOpen(true);
@@ -332,7 +403,7 @@ export function MaterialsPage() {
                     />
                   ))}
                 </TreeGroup>
-                <ManagementLink to="/courses/manage">Настроить порядок</ManagementLink>
+                <ManagementLink to="/courses/manage">Другие способы сортировки</ManagementLink>
               </>
             )}
             {!loading && view === 'sets' && (
@@ -345,6 +416,11 @@ export function MaterialsPage() {
                       meta={folderName(folders.data, set.folderId, set.saved)}
                       progress={setProgress.get(set.id) ?? emptyProgress}
                       active={selectedId === set.id}
+                      dragProps={setDrag.getDragProps(set.id, set.title)}
+                      dragging={setDrag.draggedId === set.id}
+                      dropEdge={
+                        setDrag.dropTarget?.id === set.id ? setDrag.dropTarget.edge : undefined
+                      }
                       onClick={() => {
                         setSelectedId(set.id);
                         setMobileDetailOpen(true);
@@ -360,7 +436,7 @@ export function MaterialsPage() {
                   <span>Архив</span>
                   <span>{archiveItems.length}</span>
                 </button>
-                <ManagementLink to="/sets/manage">Папки и ручной порядок</ManagementLink>
+                <ManagementLink to="/sets/manage">Папки и другие сортировки</ManagementLink>
               </>
             )}
             {!loading && view === 'archive' && (
@@ -469,9 +545,18 @@ function CourseNavigator({
               <Badge>{course.saved ? 'Сохранённый курс' : 'Ваш курс'}</Badge>
               {course.hasUpdates && <Badge tone="warning">Есть обновление</Badge>}
             </div>
-            <h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">
-              {course.title}
-            </h2>
+            <Link
+              to={`/courses/${course.id}/read`}
+              className="focus-visible:outline-primary group mt-4 inline-block rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
+              aria-label={`Читать курс «${course.title}»`}
+            >
+              <h2 className="group-hover:text-primary text-3xl font-semibold tracking-tight sm:text-4xl">
+                {course.title}
+              </h2>
+              <span className="text-primary mt-2 inline-flex text-sm font-semibold">
+                Читать курс →
+              </span>
+            </Link>
             <p className="text-fg-muted mt-3 max-w-2xl">
               {course.description || 'Описание пока не добавлено.'}
             </p>
@@ -553,7 +638,7 @@ function CourseNavigator({
                       <ArticleProgressRow
                         key={article.id}
                         courseId={course.id}
-                        setId={article.set_id}
+                        articleId={article.id}
                         title={article.title}
                         progress={
                           statsBySetId.has(article.set_id)
@@ -796,22 +881,27 @@ function LibraryTree({ library, search }: { library: LibraryItem[]; search: stri
 
 function ArticleProgressRow({
   courseId,
-  setId,
+  articleId,
   title,
   progress,
 }: {
   courseId: string;
-  setId: string;
+  articleId: string;
   title: string;
   progress: MaterialProgress;
 }) {
   return (
     <div className="border-border grid gap-3 border-b py-4 last:border-0 sm:grid-cols-[minmax(0,1fr)_180px_auto] sm:items-center">
       <div className="min-w-0">
-        <Link to={`/sets/${setId}`} className="hover:text-primary block truncate font-medium">
-          {title}
+        <Link
+          to={`/courses/${courseId}/read?article=${articleId}`}
+          className="group/read focus-visible:outline-primary flex min-h-11 min-w-0 items-center gap-2 rounded-lg font-medium focus-visible:outline focus-visible:outline-2"
+          aria-label={`Читать материал «${title}»`}
+        >
+          <span className="group-hover/read:text-primary truncate">{title}</span>
+          <span className="text-primary shrink-0 text-xs font-semibold">Читать →</span>
         </Link>
-        <p className="text-fg-muted mt-1 text-sm">{progress.cardsTotal} карточек</p>
+        <p className="text-fg-muted text-sm">{progress.cardsTotal} карточек</p>
       </div>
       <div>
         <div className="flex items-center justify-between text-xs">
@@ -836,36 +926,59 @@ function MaterialTreeItem({
   meta,
   progress,
   active,
+  dragProps,
+  dragging = false,
+  dropEdge,
   onClick,
 }: {
   title: string;
   meta: string;
   progress: MaterialProgress;
   active: boolean;
+  dragProps?: HTMLAttributes<HTMLDivElement>;
+  dragging?: boolean;
+  dropEdge?: DropEdge;
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`group mb-1 min-h-16 w-full rounded-xl px-3 py-2.5 text-left transition-colors ${active ? 'bg-primary-subtle text-fg' : 'hover:bg-surface-muted text-fg'}`}
+    <div
+      {...dragProps}
+      className={`focus-visible:outline-primary relative mb-1 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${dragProps ? 'cursor-grab active:cursor-grabbing' : ''} ${dragging ? 'opacity-55' : ''}`}
     >
-      <div className="flex items-start gap-3">
-        <StatusDot progress={progress} />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <span className="truncate text-sm font-semibold">{title}</span>
-            <span className="text-fg-muted shrink-0 text-xs tabular-nums">
-              {progress.loading ? '—' : `${Math.round(progress.masteryPercent)}%`}
-            </span>
+      {dropEdge && <DropIndicator edge={dropEdge} />}
+      <button
+        type="button"
+        onClick={onClick}
+        className={`group min-h-16 w-full rounded-xl px-3 py-2.5 text-left transition-colors ${active ? 'bg-primary-subtle text-fg' : 'hover:bg-surface-muted text-fg'}`}
+      >
+        <div className="flex items-start gap-2.5">
+          {dragProps && <DragHandle />}
+          <StatusDot progress={progress} />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-2">
+              <span className="truncate text-sm font-semibold">{title}</span>
+              <span className="text-fg-muted shrink-0 text-xs tabular-nums">
+                {progress.loading ? '—' : `${Math.round(progress.masteryPercent)}%`}
+              </span>
+            </div>
+            <p className="text-fg-muted mt-0.5 truncate text-xs">
+              {progress.dueNow > 0 ? `${progress.dueNow} ждут повторения` : meta}
+            </p>
+            <ProgressBar progress={progress} className="mt-2" />
           </div>
-          <p className="text-fg-muted mt-0.5 truncate text-xs">
-            {progress.dueNow > 0 ? `${progress.dueNow} ждут повторения` : meta}
-          </p>
-          <ProgressBar progress={progress} className="mt-2" />
         </div>
-      </div>
-    </button>
+      </button>
+    </div>
+  );
+}
+
+function DragHandle() {
+  return (
+    <span className="text-fg-subtle mt-0.5 grid shrink-0 grid-cols-2 gap-0.5" aria-hidden="true">
+      {Array.from({ length: 6 }, (_, index) => (
+        <span key={index} className="h-1 w-1 rounded-full bg-current" />
+      ))}
+    </span>
   );
 }
 
@@ -1136,6 +1249,7 @@ function ownedCourseItem(course: CourseSummary): CourseItem {
     saved: false,
     hasUpdates: false,
     slug: course.slug,
+    orderDate: course.updated_at,
   };
 }
 
@@ -1149,6 +1263,7 @@ function savedCourseItem(course: SavedCourse): CourseItem {
     saveId: course.save_id,
     slug: course.slug,
     author: course.author.display_name || `@${course.author.username}`,
+    orderDate: course.saved_at,
   };
 }
 
@@ -1162,6 +1277,7 @@ function ownedSetItem(set: SetSummary, archived: boolean): SetItem {
     archived,
     folderId: set.folder_id ?? null,
     hasUpdates: false,
+    orderDate: set.updated_at,
   };
 }
 
@@ -1176,6 +1292,7 @@ function savedSetItem(set: SavedSet): SetItem {
     folderId: set.folder_id ?? null,
     hasUpdates: set.has_updates,
     saveId: set.save_id,
+    orderDate: set.saved_at,
   };
 }
 
