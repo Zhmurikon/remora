@@ -26,3 +26,34 @@
   font-size: 0.85em;
   line-height: 1.6;
 }
+
+/* Материалы используют собственную спокойную пару тем из общих токенов. */
+.materials-page {
+  --rm-bg: var(--rm-materials-bg);
+  --rm-surface: var(--rm-materials-panel);
+  --rm-surface-muted: var(--rm-materials-panel-muted);
+  --rm-border: var(--rm-materials-border);
+  --rm-fg: var(--rm-materials-fg);
+  --rm-fg-muted: var(--rm-materials-muted);
+  --rm-primary: var(--rm-materials-primary);
+  --rm-primary-hover: var(--rm-materials-primary-hover);
+  --rm-primary-subtle: var(--rm-materials-primary-subtle);
+  --rm-danger: var(--rm-materials-danger);
+  --rm-danger-subtle: var(--rm-materials-danger-subtle);
+  background: rgb(var(--rm-bg));
+  color: rgb(var(--rm-fg));
+}
+
+.materials-progress-track {
+  background: rgb(var(--rm-border));
+}
+
+.materials-progress-fill {
+  background: rgb(var(--rm-primary));
+}
+
+.materials-course-cover {
+  background:
+    radial-gradient(circle at 78% 22%, rgb(var(--rm-primary) / 0.13), transparent 34%),
+    rgb(var(--rm-primary-subtle));
+}

@@ -34,6 +34,19 @@
   --rm-danger: 208 61 61;
   --rm-danger-subtle: 253 228 228;
 
+  /* Навигатор материалов: светлая бумажная поверхность без жёлтого оттенка. */
+  --rm-materials-bg: 247 249 248;
+  --rm-materials-panel: 255 255 255;
+  --rm-materials-panel-muted: 241 245 244;
+  --rm-materials-border: 219 228 226;
+  --rm-materials-fg: 18 43 50;
+  --rm-materials-muted: 91 111 116;
+  --rm-materials-primary: 14 122 119;
+  --rm-materials-primary-hover: 11 99 97;
+  --rm-materials-primary-subtle: 222 241 238;
+  --rm-materials-danger: 193 82 70;
+  --rm-materials-danger-subtle: 250 233 230;
+
   color-scheme: light;
 }
 
@@ -64,6 +77,19 @@
   --rm-danger: 232 96 96;
   --rm-danger-subtle: 68 28 28;
 
+  /* Нейтральный графит; бирюзовый здесь приглушён, а не неоновый. */
+  --rm-materials-bg: 18 23 27;
+  --rm-materials-panel: 25 31 35;
+  --rm-materials-panel-muted: 31 39 43;
+  --rm-materials-border: 53 64 69;
+  --rm-materials-fg: 235 240 239;
+  --rm-materials-muted: 158 173 176;
+  --rm-materials-primary: 91 166 163;
+  --rm-materials-primary-hover: 113 184 181;
+  --rm-materials-primary-subtle: 37 63 63;
+  --rm-materials-danger: 218 123 111;
+  --rm-materials-danger-subtle: 70 40 38;
+
   color-scheme: dark;
 }
 
@@ -93,6 +119,18 @@
     --rm-warning-subtle: 62 50 16;
     --rm-danger: 232 96 96;
     --rm-danger-subtle: 68 28 28;
+
+    --rm-materials-bg: 18 23 27;
+    --rm-materials-panel: 25 31 35;
+    --rm-materials-panel-muted: 31 39 43;
+    --rm-materials-border: 53 64 69;
+    --rm-materials-fg: 235 240 239;
+    --rm-materials-muted: 158 173 176;
+    --rm-materials-primary: 91 166 163;
+    --rm-materials-primary-hover: 113 184 181;
+    --rm-materials-primary-subtle: 37 63 63;
+    --rm-materials-danger: 218 123 111;
+    --rm-materials-danger-subtle: 70 40 38;
 
     color-scheme: dark;
   }

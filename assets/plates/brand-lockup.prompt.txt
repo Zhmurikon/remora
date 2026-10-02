@@ -1,0 +1,12 @@
+Use case: compositing
+Asset type: production brand lockup plate for a web application
+Primary request: Recreate the compact Remora brand lockup from Image 1 at exactly the same visual scale and horizontal composition, using the official fish artwork from Image 2 as the identity reference.
+Input images: Image 1 is the approved composition and scale reference; Image 2 is the exact approved Remora fish geometry, colors, glasses, and orange book that must be preserved.
+Scene/backdrop: flat very pale cool white background, approximately #f7f8f8, filling the entire frame.
+Subject: a small official Remora fish mark on the left and the word Remora immediately to its right.
+Style/medium: crisp clean rasterization of an existing vector-style brand mark; no reinterpretation.
+Composition/framing: landscape 516×188. Keep the lockup compact in the left half, matching Image 1: fish about 62 px tall around x68, y54; wordmark begins around x175 and is vertically centered with it. Leave the right half empty.
+Color palette: official teal and orange from Image 2; wordmark deep navy #0d3448; background #f7f8f8.
+Text (verbatim): "Remora"
+Constraints: preserve the fish silhouette, glasses, facial expression, orange book, proportions, and official colors from Image 2; keep the exact text spelling; crisp edges; opaque background; no interface chrome.
+Avoid: no extra objects, no shadows, no borders, no cards, no gradients, no watermark, no alternate fish, no restyling, no additional words.

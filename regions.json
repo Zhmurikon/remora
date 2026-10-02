@@ -1,0 +1,26 @@
+{
+  "regions": [
+    {"id":"brand-lockup","kind":"plate","grid":"A0:B0","note":"approved Remora fish lockup with wordmark"},
+    {"id":"global-navigation","kind":"chrome","grid":"A1:B6","snap":false,"container":true,"note":"persistent global navigation with selected Materials item"},
+    {"id":"brand-watermark","kind":"plate","grid":"A7:B8","note":"large low-contrast Remora fish watermark"},
+    {"id":"brand-tagline","kind":"text","grid":"A9:B9","note":"two-line brand tagline"},
+    {"id":"materials-title","kind":"text","grid":"B0:C0","note":"My materials workspace title"},
+    {"id":"create-action","kind":"control","grid":"D0:D0","note":"compact primary create button"},
+    {"id":"materials-search","kind":"control","grid":"B1:D1","snap":false,"note":"search field for materials"},
+    {"id":"course-tree","kind":"control","grid":"B2:D5","snap":false,"container":true,"note":"expanded courses hierarchy with the selected course and its sections"},
+    {"id":"secondary-tree","kind":"control","grid":"B5:D6","snap":false,"container":true,"note":"standalone sets saved items and archive hierarchy"},
+    {"id":"breadcrumbs","kind":"chrome","grid":"E0:J0","snap":false,"container":true,"note":"course breadcrumbs and overflow action"},
+    {"id":"course-cover","kind":"plate","grid":"E1:F2","note":"approved Remora fish course cover with restrained dot motif"},
+    {"id":"course-heading","kind":"text","grid":"F1:I1","note":"large Python course heading"},
+    {"id":"course-description","kind":"text","grid":"F1:I2","note":"two-line course description below heading"},
+    {"id":"course-progress","kind":"control","grid":"F2:I2","snap":false,"container":true,"note":"mastery percent and due review summary"},
+    {"id":"continue-course","kind":"control","grid":"I2:J2","note":"primary continue course button"},
+    {"id":"blocks-heading","kind":"text","grid":"E3:G3","note":"course blocks section heading"},
+    {"id":"collapse-action","kind":"control","grid":"I3:J3","note":"collapse all course blocks action"},
+    {"id":"block-one","kind":"control","grid":"E4:J4","snap":false,"container":true,"note":"first course block row with mastery state"},
+    {"id":"block-two","kind":"control","grid":"E5:J5","snap":false,"container":true,"note":"second course block row with mastery state"},
+    {"id":"expanded-block","kind":"control","grid":"E5:J7","snap":false,"container":true,"note":"expanded third course block with nested sets and problem state"},
+    {"id":"block-four","kind":"control","grid":"E8:J8","snap":false,"container":true,"note":"not started fourth course block row"},
+    {"id":"block-five","kind":"control","grid":"E9:J9","snap":false,"container":true,"note":"not started fifth course block row"}
+  ]
+}

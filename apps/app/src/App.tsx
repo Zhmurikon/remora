@@ -10,6 +10,7 @@ import { CourseCopyPage, CourseReaderPage } from './pages/CourseReaderPage';
 import { FlashcardsPage } from './pages/FlashcardsPage';
 import { LearnPage } from './pages/LearnPage';
 import { LibraryPage } from './pages/LibraryPage';
+import { MaterialsPage } from './pages/MaterialsPage';
 import { ListenPage } from './pages/ListenPage';
 import { PracticePage, PythonPracticePage, PythonTaskPage } from './pages/PracticePage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -29,8 +30,12 @@ export function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
               <Route index element={<DashboardPage />} />
-              <Route path="sets" element={<SetsPage />} />
-              <Route path="courses" element={<CoursesPage />} />
+              <Route path="materials" element={<MaterialsPage />} />
+              <Route path="sets" element={<MaterialsPage />} />
+              <Route path="courses" element={<MaterialsPage />} />
+              <Route path="sets/manage" element={<SetsPage />} />
+              <Route path="courses/manage" element={<CoursesPage />} />
+              <Route path="library/manage" element={<LibraryPage />} />
               <Route path="courses/new" element={<NewCoursePage />} />
               <Route path="courses/:courseId" element={<CourseReaderPage />} />
               <Route path="courses/:courseId/edit" element={<CoursePage />} />
@@ -53,7 +58,7 @@ export function App() {
               <Route path="sets/:setId/write" element={<WritePage />} />
               <Route path="sets/:setId/test" element={<TestPage />} />
               <Route path="sets/:setId/listen" element={<ListenPage />} />
-              <Route path="library" element={<LibraryPage />} />
+              <Route path="library" element={<MaterialsPage />} />
               <Route path="practice" element={<PracticePage />} />
               <Route path="practice/python" element={<PythonPracticePage />} />
               <Route path="practice/python/:taskSlug" element={<PythonTaskPage />} />

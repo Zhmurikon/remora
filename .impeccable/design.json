@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-02T14:36:54+10:00",
+  "title": "Design System: Remora",
+  "extensions": {
+    "colorMeta": {
+      "materials-paper": {
+        "role": "neutral",
+        "displayName": "Cool Paper",
+        "canonical": "rgb(247 249 248)",
+        "tonalRamp": ["#18201f", "#303c3a", "#52615e", "#7d8c88", "#aab6b3", "#d4dcda", "#eef2f1", "#f7f9f8"]
+      },
+      "materials-ink": {
+        "role": "neutral",
+        "displayName": "Blue Graphite Ink",
+        "canonical": "rgb(18 43 50)",
+        "tonalRamp": ["#0d1b20", "#122b32", "#29444b", "#4d666c", "#778d92", "#a5b5b8", "#d5dfe0", "#f1f5f5"]
+      },
+      "materials-teal": {
+        "role": "primary",
+        "displayName": "Desaturated Study Teal",
+        "canonical": "rgb(14 122 119)",
+        "tonalRamp": ["#082827", "#0a4644", "#0c6663", "#0e7a77", "#3c9996", "#78bbb8", "#b9ddda", "#e5f4f2"]
+      },
+      "materials-graphite": {
+        "role": "neutral",
+        "displayName": "Graphite Night",
+        "canonical": "rgb(18 23 27)",
+        "tonalRamp": ["#12171b", "#191f23", "#252e33", "#3a464c", "#617077", "#94a0a5", "#c9d0d3", "#edf0f1"]
+      },
+      "warning": {
+        "role": "tertiary",
+        "displayName": "Attention Amber",
+        "canonical": "rgb(202 138 4)",
+        "tonalRamp": ["#302000", "#543700", "#795000", "#a26c00", "#ca8a04", "#e8b84c", "#f7db94", "#fff3c7"]
+      }
+    },
+    "typographyMeta": {
+      "headline": { "displayName": "Cabinet Headline", "purpose": "Названия курса, набора и главных разделов detail." },
+      "title": { "displayName": "Section Title", "purpose": "Заголовки разделов и экрана материалов." },
+      "body": { "displayName": "Interface Body", "purpose": "Описания и основной текст кабинета." },
+      "label": { "displayName": "Control Label", "purpose": "Навигация, кнопки, статусы и метаданные." }
+    },
+    "shadows": [
+      { "name": "pop", "value": "0 8px 32px rgb(0 0 0 / 0.16)", "purpose": "Только всплывающее меню создания; основные поверхности материалов остаются плоскими." }
+    ],
+    "motion": [
+      { "name": "fast", "value": "120ms", "purpose": "Hover и смена цвета интерактивных элементов." },
+      { "name": "default", "value": "180ms", "purpose": "Обычный переход состояния." },
+      { "name": "progress", "value": "300ms", "purpose": "Изменение ширины progress bar; при reduced motion практически отключается." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Materials Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Основное продолжение обучения или создание материала.",
+      "html": "<button class=\"ds-btn-primary\">Продолжить курс</button>",
+      "css": ".ds-btn-primary { height: 48px; padding: 0 24px; border: 0; border-radius: 10px; background: rgb(var(--rm-materials-primary)); color: rgb(var(--rm-primary-fg)); font: 500 18px/28px var(--rm-font-sans); transition: background-color 120ms; } .ds-btn-primary:hover { background: rgb(var(--rm-materials-primary-hover)); } .ds-btn-primary:focus-visible { outline: 2px solid rgb(var(--rm-materials-primary)); outline-offset: 2px; }"
+    },
+    {
+      "name": "Materials Search",
+      "kind": "input",
+      "description": "Поиск курса или набора в дереве материалов.",
+      "html": "<input class=\"ds-materials-search\" type=\"search\" placeholder=\"Найти курс или набор\" />",
+      "css": ".ds-materials-search { width: 100%; height: 44px; padding: 0 12px; border: 1px solid rgb(var(--rm-materials-border)); border-radius: 10px; background: rgb(var(--rm-materials-panel)); color: rgb(var(--rm-materials-fg)); font: 400 16px/24px var(--rm-font-sans); transition: border-color 120ms, background-color 120ms; } .ds-materials-search::placeholder { color: rgb(var(--rm-materials-muted)); } .ds-materials-search:hover { background: rgb(var(--rm-materials-panel-muted)); } .ds-materials-search:focus-visible { outline: 2px solid rgb(var(--rm-materials-primary)); outline-offset: 2px; }"
+    },
+    {
+      "name": "Material Tree Item",
+      "kind": "nav",
+      "refersTo": "material-tree-item-active",
+      "description": "Плотная строка выбора с освоением, срочностью и прогрессом.",
+      "html": "<button class=\"ds-tree-item\"><span class=\"ds-status-dot\"></span><span class=\"ds-tree-copy\"><span class=\"ds-tree-title\">Python для анализа данных</span><span class=\"ds-tree-meta\">31 ждёт повторения</span><span class=\"ds-progress\"><span></span></span></span><strong>58%</strong></button>",
+      "css": ".ds-tree-item { display: flex; align-items: flex-start; gap: 12px; width: 100%; min-height: 64px; padding: 10px 12px; border: 0; border-radius: 14px; background: rgb(var(--rm-materials-primary-subtle)); color: rgb(var(--rm-materials-fg)); text-align: left; font-family: var(--rm-font-sans); transition: background-color 120ms; } .ds-tree-item:hover { background: rgb(var(--rm-materials-panel-muted)); } .ds-tree-item:focus-visible { outline: 2px solid rgb(var(--rm-materials-primary)); outline-offset: 2px; } .ds-status-dot { width: 10px; height: 10px; margin-top: 6px; border-radius: 999px; background: rgb(var(--rm-danger)); } .ds-tree-copy { display: grid; flex: 1; gap: 2px; min-width: 0; } .ds-tree-title { overflow: hidden; font-size: 14px; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; } .ds-tree-meta { color: rgb(var(--rm-materials-muted)); font-size: 12px; } .ds-tree-item strong { color: rgb(var(--rm-materials-muted)); font-size: 12px; font-variant-numeric: tabular-nums; } .ds-progress { height: 6px; margin-top: 6px; overflow: hidden; border-radius: 999px; background: rgb(var(--rm-materials-border)); } .ds-progress span { display: block; width: 58%; height: 100%; border-radius: inherit; background: rgb(var(--rm-materials-primary)); }"
+    },
+    {
+      "name": "Learning Status",
+      "kind": "chip",
+      "description": "Текстовый статус дополняет, но не заменяет цветовой сигнал.",
+      "html": "<span class=\"ds-learning-status\">Требует внимания</span>",
+      "css": ".ds-learning-status { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; background: rgb(var(--rm-warning-subtle)); color: rgb(var(--rm-warning)); font: 500 14px/20px var(--rm-font-sans); }"
+    },
+    {
+      "name": "Course Section",
+      "kind": "card",
+      "description": "Нативно раскрываемый раздел курса; слабейший открыт первым.",
+      "html": "<details class=\"ds-course-section\" open><summary><span class=\"ds-section-index\">03</span><span><strong>Работа с данными в Pandas</strong><small>Требует внимания</small></span><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m7 9 5 5 5-5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></summary><div class=\"ds-section-body\">Уроки и действия обучения</div></details>",
+      "css": ".ds-course-section { overflow: hidden; border: 1px solid rgb(var(--rm-materials-border)); border-radius: 24px; background: rgb(var(--rm-materials-panel)); color: rgb(var(--rm-materials-fg)); font-family: var(--rm-font-sans); } .ds-course-section summary { display: flex; align-items: center; gap: 16px; min-height: 64px; padding: 12px 20px; cursor: pointer; list-style: none; transition: background-color 120ms; } .ds-course-section summary:hover { background: rgb(var(--rm-materials-panel-muted)); } .ds-course-section summary:focus-visible { outline: 2px solid rgb(var(--rm-materials-primary)); outline-offset: -3px; } .ds-course-section summary > span:nth-child(2) { display: flex; flex: 1; flex-wrap: wrap; justify-content: space-between; gap: 8px; } .ds-course-section strong { font-size: 16px; } .ds-course-section small, .ds-section-index { color: rgb(var(--rm-materials-muted)); font-size: 14px; } .ds-course-section svg { width: 20px; height: 20px; transition: transform 180ms; } .ds-course-section[open] svg { transform: rotate(180deg); } .ds-section-body { padding: 16px 20px; border-top: 1px solid rgb(var(--rm-materials-border)); color: rgb(var(--rm-materials-muted)); }"
+    },
+    {
+      "name": "Materials App Navigation",
+      "kind": "nav",
+      "description": "Активный пункт глобального rail для всех маршрутов материалов.",
+      "html": "<a class=\"ds-app-nav-active\" href=\"#\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M5 4.5h10.5A2.5 2.5 0 0 1 18 7v13H7.5A2.5 2.5 0 0 1 5 17.5v-13Zm0 13A2.5 2.5 0 0 1 7.5 15H18M9 8h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>Материалы</a>",
+      "css": ".ds-app-nav-active { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 14px; background: rgb(var(--rm-materials-primary-subtle)); color: rgb(var(--rm-materials-primary)); font: 500 14px/20px var(--rm-font-sans); text-decoration: none; transition: background-color 120ms; } .ds-app-nav-active svg { width: 20px; height: 20px; } .ds-app-nav-active:hover { background: rgb(var(--rm-materials-panel-muted)); } .ds-app-nav-active:focus-visible { outline: 2px solid rgb(var(--rm-materials-primary)); outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Спокойный атлас знаний",
+    "overview": "Маршруты материалов объединены в рабочую поверхность, где пользователь сначала видит состояние знаний, а затем выбирает действие. Характер системы — плотный, бумажный и утилитарный: прохладные нейтральные поверхности, ненасыщенный бирюзовый акцент, тонкие разделители и минимум декоративной глубины.",
+    "keyCharacteristics": ["Прохладная бумажная светлая тема", "Нейтральная графитовая тёмная тема", "Три уровня на десктопе и list → detail на телефоне", "Взвешенное освоение вместе со срочностью", "Официальный FishMark как бренд-якорь"],
+    "rules": [
+      { "name": "The Quiet Teal Rule", "body": "Бирюзовый отмечает основное действие, активный выбор и прогресс; большие поверхности получают только его приглушённый subtle-вариант.", "section": "colors" },
+      { "name": "The Warning Means Attention Rule", "body": "Жёлтый не украшает экран и не служит вторым акцентом: он появляется только там, где материал действительно требует внимания.", "section": "colors" },
+      { "name": "The Three-Level Desktop Rule", "body": "На широком экране глобальная навигация, дерево материалов и выбранный объект остаются тремя различимыми уровнями; на телефоне они превращаются в последовательные экраны с явным возвратом.", "section": "layout" }
+    ],
+    "dos": ["Do показывать освоение и dueNow рядом: один показатель не заменяет другой.", "Do открывать слабейший раздел курса и оставлять остальные доступными через нативное раскрытие.", "Do сохранять официальные management routes вместо дублирования управления в detail.", "Do использовать семантические токены обеих тем и официальный FishMark."],
+    "donts": ["Don't возвращать три конкурирующие сетки карточек для курсов, наборов и библиотеки.", "Don't использовать жёлтый как декоративный акцент или как обычное состояние прогресса.", "Don't сжимать дерево материалов рядом с detail на телефоне; сохранять list → detail.", "Don't канонизировать служебные uppercase-kickers: текущие подписи остаются точечной особенностью отгруженной поверхности, а не правилом для новых экранов."]
+  }
+}
