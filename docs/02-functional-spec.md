@@ -23,6 +23,7 @@ Remora
 │   ├── Режим «Тест»
 │   ├── Режим «Письмо»
 │   ├── Режим «Аудирование»
+│   ├── Режим «Битва 1×1»
 │   └── Журнал ответов и статистика
 ├── 4. Публичный слой
 │   ├── Каталог и поиск наборов
@@ -241,6 +242,11 @@ remora/
 После результата пользователь может начать следующую сессию; все ответы обновляют FSRS.
 
 **test_attempts** — `user_id`, `set_id`, `config` (число вопросов, типы, направление), `questions` (jsonb — зафиксированный список), `answers` (jsonb), `score`, `finished_at`.
+
+**battles** / **battle_participants** / **battle_answers** — общий серверный снимок вопросов,
+два участника и их идемпотентные ответы для соревновательного режима. Точность важнее времени;
+ответы учитываются в активности, но не меняют FSRS. Полный контракт —
+[14-battles.md](14-battles.md).
 
 **user_set_progress** — денормализованная сводка: `user_id`, `set_id`, `mastered_count`, `learning_count`, `not_started_count`, `last_studied_at`, `mastery_percent`. Пересчитывается фоново и при завершении сессии.
 
@@ -588,6 +594,7 @@ media/        upload-url, {id}, {id}/status
 tts/          synthesize, voices
 study/        {set_id}/queue, {set_id}/session, sessions/{id}/answers (batch),
               sessions/{id}/finish, due-today, forecast
+battles/      create, {id}, {id}/join, {id}/ready, {id}/answers, {id}/result, {id}/rematch
 tests/        create, {id}, {id}/submit, {id}/print
 import/       parse-preview, text, csv, apkg, jobs/{id}
 search/       sets, suggest
