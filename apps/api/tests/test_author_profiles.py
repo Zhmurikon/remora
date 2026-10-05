@@ -71,7 +71,9 @@ async def test_public_profile_metrics_and_only_available_courses(client: AsyncCl
     }
     assert [item["title"] for item in profile["courses"]] == ["Алгебра"]
     assert "email" not in profile
-    assert profile["badges"] == []
+    assert profile["badges"] == [
+        {"code": "published_1", "title": "Первый курс", "icon": "globe"}
+    ]
 
     async with get_engine().begin() as connection:
         await connection.execute(

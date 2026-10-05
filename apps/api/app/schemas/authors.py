@@ -16,6 +16,12 @@ class AuthorStats(BaseModel):
     current_streak_days: int
 
 
+class AuthorBadge(BaseModel):
+    code: str
+    title: str
+    icon: str
+
+
 class AuthorProfile(BaseModel):
     id: UUID
     username: str
@@ -23,5 +29,5 @@ class AuthorProfile(BaseModel):
     avatar_url: str | None
     joined_at: datetime
     stats: AuthorStats
-    badges: list[str]
+    badges: list[AuthorBadge]
     courses: list[CourseSearchItem]

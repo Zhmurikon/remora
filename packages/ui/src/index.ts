@@ -1,6 +1,7 @@
 export { cn } from './lib/cn';
 export { FishMark } from './components/FishMark';
 export { ArticleContent, type ArticleMedia } from './components/ArticleContent';
+export { ArticleContentServer } from './components/ArticleContentServer';
 export { articleMediaIds, mediaId } from './components/article-markdown';
 export { Button, type ButtonProps, type ButtonVariant, type ButtonSize } from './components/Button';
 export { Input, type InputProps } from './components/Input';

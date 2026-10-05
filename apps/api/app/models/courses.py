@@ -134,3 +134,20 @@ class LibrarySave(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     accepted_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=text("now()")
     )
+
+
+class CourseSearchSync(Base):
+    """Накопленная задача точечной пересборки одного документа каталога.
+
+    Версия не позволяет воркеру потерять правку, пришедшую пока он отправлял
+    предыдущую версию документа в Meilisearch.
+    """
+
+    __tablename__ = "course_search_sync"
+
+    # В очереди остаётся ID уже удалённого курса: воркер должен удалить документ из поиска.
+    course_id: Mapped[UUID] = mapped_column(primary_key=True)
+    version: Mapped[int] = mapped_column(Integer, default=1, server_default=text("1"))
+    requested_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=text("now()")
+    )

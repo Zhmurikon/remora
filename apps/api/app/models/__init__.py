@@ -25,6 +25,7 @@ from app.models.courses import (
     CourseArticle,
     CourseAttachment,
     CourseLike,
+    CourseSearchSync,
     CourseSection,
     LibrarySave,
 )
@@ -85,6 +86,7 @@ __all__ = [
     "CourseAttachment",
     "CourseLike",
     "CourseReport",
+    "CourseSearchSync",
     "CourseSection",
     "DailyActivity",
     "Folder",

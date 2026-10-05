@@ -25,6 +25,7 @@ from app.schemas.library import (
     SavedCourseItem,
     SavedSetItem,
 )
+from app.services.search_sync import queue_course
 
 
 class LibraryService:
@@ -46,6 +47,7 @@ class LibraryService:
         saved.accepted_snapshot = await self._snapshot(body.target_type, course, article, study_set)
         self.db.add(saved)
         await self.db.flush()
+        await queue_course(self.db, course.id)
         return await self._item(saved, course=course, article=article, study_set=study_set)
 
     async def _create_course_folder(self, user: User, course: Course) -> UUID:
@@ -63,13 +65,27 @@ class LibraryService:
     async def remove(self, user: User, save_id: UUID) -> None:
         saved = await repo.get_save(self.db, user.id, save_id)
         folder_id = saved.folder_id if saved is not None and saved.course_id is not None else None
+        course = await self._course_for_save(saved) if saved is not None else None
         if not await repo.remove_save(self.db, user.id, save_id):
             raise NotFoundError("Сохранение не найдено")
+        if course is not None:
+            await queue_course(self.db, course.id)
         if folder_id is not None:
             folder = await content_repo.get_folder(self.db, folder_id)
             owned_sets = await content_repo.list_sets(self.db, user.id)
             if folder is not None and not any(item.folder_id == folder_id for item in owned_sets):
                 await content_repo.delete_folder(self.db, folder)
+
+    async def _course_for_save(self, saved: LibrarySave) -> Course | None:
+        if saved.course_id is not None:
+            return await course_repo.get_course(self.db, saved.course_id)
+        if saved.article_id is not None:
+            article = await self.db.get(CourseArticle, saved.article_id)
+            section = await self.db.get(CourseSection, article.section_id) if article else None
+            return await course_repo.get_course(self.db, section.course_id) if section else None
+        if saved.set_id is not None:
+            return await course_repo.course_for_set(self.db, saved.set_id)
+        return None
 
     async def list_items(self, user: User) -> list[LibraryItem]:
         result: list[LibraryItem] = []

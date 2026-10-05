@@ -2801,12 +2801,21 @@ export interface components {
             /** Upload Url */
             upload_url: string;
         };
+        /** AuthorBadge */
+        AuthorBadge: {
+            /** Code */
+            code: string;
+            /** Icon */
+            icon: string;
+            /** Title */
+            title: string;
+        };
         /** AuthorProfile */
         AuthorProfile: {
             /** Avatar Url */
             avatar_url: string | null;
             /** Badges */
-            badges: string[];
+            badges: components["schemas"]["AuthorBadge"][];
             /** Courses */
             courses: components["schemas"]["CourseSearchItem"][];
             /** Display Name */

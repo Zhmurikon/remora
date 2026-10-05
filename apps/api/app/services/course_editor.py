@@ -26,6 +26,7 @@ from app.services.agent import AgentService, digest
 from app.services.attachments import AttachmentService
 from app.services.content import ContentService
 from app.services.courses import CourseService
+from app.services.search_sync import queue_course
 
 
 class CourseEditorService:
@@ -169,6 +170,7 @@ class CourseEditorService:
                 await self.db.delete(section)
         course.updated_at = datetime.now(UTC)
         await self.db.flush()
+        await queue_course(self.db, course.id)
         return await self.detail(user, course_id)
 
     async def _copy_media_asset(

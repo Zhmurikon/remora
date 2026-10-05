@@ -1,5 +1,5 @@
 import type { components } from '@remora/api-client';
-import { ArticleContent, Badge } from '@remora/ui';
+import { ArticleContentServer, Badge } from '@remora/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -211,7 +211,7 @@ export default async function PublicCoursePage({ params }: { params: Promise<{ s
                     </p>
                   </header>
                   {article.body && (
-                    <ArticleContent
+                    <ArticleContentServer
                       value={article.body}
                       media={Object.fromEntries(
                         (article.media ?? []).map((item) => [item.id, item]),

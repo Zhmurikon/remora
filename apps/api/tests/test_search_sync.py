@@ -2,9 +2,10 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import text
+from sqlalchemy import delete, text
 
 from app.db.session import get_session_factory
+from app.models.courses import CourseSearchSync
 from app.services import search_sync
 
 
@@ -46,3 +47,46 @@ async def test_reconcile_retries_after_failure_without_losing_documents(client, 
         await search_sync.reconcile(index)
     await search_sync.reconcile(index)
     assert index.replace.await_count == 2
+
+
+async def test_pending_sync_coalesces_course_changes_and_removes_completed_task(
+    client, monkeypatch
+):
+    course_id = uuid4()
+    async with get_session_factory()() as db:
+        await db.execute(delete(CourseSearchSync))
+        await search_sync.queue_course(db, course_id)
+        await search_sync.queue_course(db, course_id)
+        await db.commit()
+        queued = await db.get(CourseSearchSync, course_id)
+        assert queued is not None
+        assert queued.version == 2
+
+    index = AsyncMock()
+    monkeypatch.setattr(
+        search_sync,
+        "course_documents",
+        AsyncMock(return_value=[{"id": str(course_id), "title": "Алгебра"}]),
+    )
+    assert await search_sync.synchronize_pending(index) == 1
+    index.replace.assert_awaited_once_with([{"id": str(course_id), "title": "Алгебра"}])
+
+    async with get_session_factory()() as db:
+        assert await db.get(CourseSearchSync, course_id) is None
+
+
+async def test_pending_sync_keeps_task_after_index_failure(client, monkeypatch):
+    course_id = uuid4()
+    async with get_session_factory()() as db:
+        await db.execute(delete(CourseSearchSync))
+        await search_sync.queue_course(db, course_id)
+        await db.commit()
+    index = AsyncMock()
+    index.replace.side_effect = RuntimeError("unavailable")
+    monkeypatch.setattr(
+        search_sync, "course_documents", AsyncMock(return_value=[{"id": str(course_id)}])
+    )
+    with pytest.raises(RuntimeError, match="unavailable"):
+        await search_sync.synchronize_pending(index)
+    async with get_session_factory()() as db:
+        assert await db.get(CourseSearchSync, course_id) is not None

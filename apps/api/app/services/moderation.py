@@ -19,6 +19,7 @@ from app.repositories import courses as courses_repo
 from app.repositories import moderation as repo
 from app.repositories.api_tokens import lock_request
 from app.schemas.moderation import ReportCreate, ReportItem, ReportResolution, ReportSubmitted
+from app.services.search_sync import queue_course
 
 MODERATOR_ROLES = frozenset({UserRole.moderator, UserRole.admin})
 
@@ -98,5 +99,5 @@ class ModerationService:
         await self.db.flush()
         await self.db.refresh(report)
         await self.db.refresh(course)
-        # Индекс поиска подтянет изменение ближайшей сверкой; доступ уже закрыт в PostgreSQL.
+        await queue_course(self.db, course.id)
         return _item(report, course, reporter.username if reporter else "")

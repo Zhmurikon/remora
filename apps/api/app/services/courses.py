@@ -33,6 +33,7 @@ from app.schemas.courses import (
 from app.schemas.search import CourseSearchItem
 from app.services.attachments import AttachmentService
 from app.services.content import ContentService
+from app.services.search_sync import queue_course
 
 
 class CourseService:
@@ -167,6 +168,7 @@ class CourseService:
         if course is None:
             raise NotFoundError("Курс не найден")
         await repo.add_like(self.db, course.id, user.id)
+        await queue_course(self.db, course.id)
         return await self._detail(course, user)
 
     async def unlike(self, user: User, slug: str) -> CourseDetail:
@@ -175,6 +177,7 @@ class CourseService:
         if course is None:
             raise NotFoundError("Курс не найден")
         await repo.remove_like(self.db, course.id, user.id)
+        await queue_course(self.db, course.id)
         return await self._detail(course, user)
 
     async def public_article(
@@ -221,6 +224,7 @@ class CourseService:
         course.tags = body.tags
         await self.db.flush()
         await self.db.refresh(course)
+        await queue_course(self.db, course.id)
         return await self._detail(course)
 
     async def unpublish(self, user: User, course_id: UUID) -> CourseDetail:
@@ -229,6 +233,7 @@ class CourseService:
         course.is_published = False
         await self.db.flush()
         await self.db.refresh(course)
+        await queue_course(self.db, course.id)
         return await self._detail(course)
 
     async def create(self, user: User, body: CourseCreate) -> CourseDetail:
@@ -276,6 +281,7 @@ class CourseService:
         except IntegrityError as exc:
             # Уникальность защищает и от двух одновременных запросов создания курса.
             raise ConflictError("Не удалось связать набор с курсом") from exc
+        await queue_course(self.db, course_id)
         return await self.detail(user, course_id)
 
     async def update(self, user: User, course_id: UUID, body: CourseMetadata) -> CourseDetail:
@@ -284,6 +290,7 @@ class CourseService:
         course.title, course.description = body.title, body.description
         await self.db.flush()
         await self.db.refresh(course)
+        await queue_course(self.db, course.id)
         return await self.detail(user, course_id)
 
     async def delete(self, user: User, course_id: UUID) -> None:
@@ -297,5 +304,6 @@ class CourseService:
             if study_set is not None and study_set.owner_id == user.id:
                 await content_repo.soft_delete_set(self.db, study_set)
         await AttachmentService(self.db).delete_objects_for(course_id)
+        await queue_course(self.db, course_id)
         await self.db.delete(course)
         await self.db.flush()

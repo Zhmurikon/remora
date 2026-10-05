@@ -23,7 +23,7 @@ from app.models.transcriptions import TranscriptionJob, TranscriptionStatus
 from app.models.user import User
 from app.services.account_exports import AccountExportService
 from app.services.imports import ImportService
-from app.services.search_sync import synchronize_courses
+from app.services.search_sync import synchronize_courses, synchronize_pending_courses
 
 
 async def _set_progress(job_id: UUID, value: int) -> None:
@@ -245,6 +245,11 @@ async def shutdown(_: dict[str, Any]) -> None:
 
 
 async def sync_course_search(_context: dict[str, Any]) -> None:
+    await synchronize_pending_courses()
+
+
+async def reconcile_course_search(_context: dict[str, Any]) -> None:
+    # Полная сверка ловит ошибки доставки задачи и изменения, сделанные вне приложения.
     await synchronize_courses()
 
 
@@ -285,6 +290,9 @@ class WorkerSettings:
     ]
     cron_jobs: ClassVar[list[object]] = [
         cron("app.worker.sync_course_search", minute=None, second=0, run_at_startup=True),
+        cron(
+            "app.worker.reconcile_course_search", hour=4, minute=17, second=0, run_at_startup=True
+        ),
         cron("app.worker.cleanup_transcriptions", minute=17, second=0),
     ]
     redis_settings = RedisSettings.from_dsn(str(get_settings().redis_url))

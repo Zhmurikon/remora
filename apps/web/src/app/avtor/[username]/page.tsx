@@ -115,7 +115,7 @@ export default async function AuthorPage({ params }: { params: Promise<{ usernam
         {profile.badges.length > 0 && (
           <div className="mt-5 flex flex-wrap gap-2">
             {profile.badges.map((badge) => (
-              <Badge key={badge}>{badge}</Badge>
+              <Badge key={badge.code}>{badge.title}</Badge>
             ))}
           </div>
         )}

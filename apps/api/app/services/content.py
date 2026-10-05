@@ -33,6 +33,7 @@ from app.schemas.content import (
     SetCreate,
     SetUpdate,
 )
+from app.services.search_sync import queue_course
 
 _HTML_TAG = re.compile(r"<\s*/?\s*[a-zA-Z][^>]*>")
 
@@ -40,6 +41,11 @@ _HTML_TAG = re.compile(r"<\s*/?\s*[a-zA-Z][^>]*>")
 class ContentService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
+
+    async def _queue_set_course(self, set_id: UUID) -> None:
+        course = await course_repo.course_for_set(self.db, set_id)
+        if course is not None:
+            await queue_course(self.db, course.id)
 
     async def list_sets(
         self, user: User, *, offset: int = 0, limit: int | None = None
@@ -190,24 +196,28 @@ class ContentService:
         # PostgreSQL вычисляет updated_at при UPDATE. Загружаем значение в async-контексте,
         # чтобы сериализация ответа не пыталась лениво обратиться к БД.
         await self.db.refresh(study_set, attribute_names=["updated_at"])
+        await self._queue_set_course(study_set.id)
         return study_set
 
     async def delete_set(self, user: User, set_id: UUID) -> None:
         await lock_request(self.db, user.id)
-        await content_repo.soft_delete_set(self.db, await self.get_owned_set(user, set_id))
+        study_set = await self.get_owned_set(user, set_id)
+        await content_repo.soft_delete_set(self.db, study_set)
+        await self._queue_set_course(study_set.id)
 
     async def restore_set(self, user: User, set_id: UUID) -> StudySet:
         await lock_request(self.db, user.id)
         study_set = await self.get_owned_archived_set(user, set_id)
         await content_repo.restore_set(self.db, study_set)
         await self.db.refresh(study_set)
+        await self._queue_set_course(study_set.id)
         return study_set
 
     async def permanently_delete_set(self, user: User, set_id: UUID) -> None:
         await lock_request(self.db, user.id)
-        await content_repo.permanently_delete_set(
-            self.db, await self.get_owned_archived_set(user, set_id)
-        )
+        study_set = await self.get_owned_archived_set(user, set_id)
+        await content_repo.permanently_delete_set(self.db, study_set)
+        await self._queue_set_course(study_set.id)
 
     async def duplicate_set(self, user: User, set_id: UUID) -> StudySet:
         source = await self.get_owned_set(user, set_id, with_cards=True)
@@ -278,6 +288,7 @@ class ContentService:
         study_set.cards_count = len(result)
         study_set.updated_at = datetime.now(UTC)
         await self.db.flush()
+        await self._queue_set_course(study_set.id)
         return await self.get_owned_set(user, set_id, with_cards=True)
 
     async def _validate_images(self, user: User, *image_ids: UUID | None) -> None:

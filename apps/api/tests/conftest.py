@@ -38,7 +38,7 @@ async def client() -> AsyncClient:
     async with engine.begin() as conn:
         await conn.execute(
             text(
-                "TRUNCATE users, user_settings, refresh_tokens, action_tokens, "
+                "TRUNCATE users, user_settings, refresh_tokens, action_tokens, course_search_sync, "
                 "oauth_accounts, consents, transcription_jobs CASCADE"
             )
         )
