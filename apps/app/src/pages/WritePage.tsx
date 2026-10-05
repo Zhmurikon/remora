@@ -12,7 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Diff, SessionSummary } from '../features/study/SessionSummary';
 import { StudyShell } from '../features/study/StudyShell';
-import { answerSide, questionImage, questionSide } from '../features/study/card-sides';
+import { answerImage, answerSide, questionImage, questionSide } from '../features/study/card-sides';
 import { selectCurrent, useStudyStore } from '../features/study/study-store';
 import {
   useStudySession,
@@ -241,9 +241,15 @@ export function WritePage() {
       {wrong && (
         <Card className="border-danger mt-5 p-5">
           <p className="text-danger text-sm font-medium">Не совсем</p>
-          <p className="mt-2">
-            Правильно: <span className="font-medium">{expected}</span>
-          </p>
+          <p className="mt-2 text-sm">Правильно:</p>
+          <CardContent
+            value={expected}
+            type={current.card.content_type}
+            codeLanguage={current.card.code_language}
+            imageUrl={answerImage(current)}
+            imageAlt="Изображение ответа"
+            className="font-medium"
+          />
           {typed && (
             <p className="text-fg-subtle mt-1 text-sm">
               Вы ввели: <Diff expected={expected} typed={typed} />

@@ -360,7 +360,11 @@ function QuestionCard({
                 checked={answer?.value === option}
                 onChange={() => onAnswer({ value: option })}
               />
-              {option}
+              <CardContent
+                value={option}
+                type={question.content_type}
+                codeLanguage={question.code_language}
+              />
             </label>
           ))}
         </div>
@@ -368,9 +372,15 @@ function QuestionCard({
 
       {question.kind === 'true_false' && (
         <>
-          <p className="text-fg-muted mt-3">
-            Утверждение: <span className="text-fg font-medium">{question.statement}</span>
-          </p>
+          <div className="text-fg-muted mt-3">
+            <span>Утверждение:</span>
+            <CardContent
+              value={question.statement ?? ''}
+              type={question.content_type}
+              codeLanguage={question.code_language}
+              className="text-fg font-medium"
+            />
+          </div>
           <div className="mt-4 flex gap-3">
             {[
               ['true', 'Верно'],
@@ -405,25 +415,39 @@ function QuestionCard({
         <div className="mt-4 space-y-2">
           <p className="text-fg-muted text-sm">Подберите пару к каждому пункту.</p>
           {(question.pairs ?? []).map((left, position) => (
-            <div key={left} className="grid items-center gap-2 sm:grid-cols-2">
-              <span className="font-medium">{left}</span>
-              <select
-                value={answer?.values?.[position] ?? ''}
-                aria-label={`Пара для «${left}»`}
-                className="border-border bg-surface text-fg h-11 w-full rounded-md border px-3"
-                onChange={(event) => {
-                  const values = [...(answer?.values ?? [])];
-                  values[position] = event.target.value;
-                  onAnswer({ values });
-                }}
-              >
-                <option value="">— выберите —</option>
+            <div key={left} className="grid items-start gap-2 sm:grid-cols-2">
+              <CardContent
+                value={left}
+                type={question.content_type}
+                codeLanguage={question.code_language}
+                className="font-medium"
+              />
+              <div role="radiogroup" aria-label={`Пара для «${left}»`} className="grid gap-2">
                 {(question.options ?? []).map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
+                  <button
+                    key={option}
+                    type="button"
+                    role="radio"
+                    aria-checked={answer?.values?.[position] === option}
+                    className={`focus-visible:ring-primary min-h-11 rounded-md border px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 ${
+                      answer?.values?.[position] === option
+                        ? 'border-primary bg-primary-subtle'
+                        : 'border-border bg-surface'
+                    }`}
+                    onClick={() => {
+                      const values = [...(answer?.values ?? [])];
+                      values[position] = option;
+                      onAnswer({ values });
+                    }}
+                  >
+                    <CardContent
+                      value={option}
+                      type={question.content_type}
+                      codeLanguage={question.code_language}
+                    />
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
           ))}
         </div>
@@ -511,21 +535,45 @@ function TestReview({
                   {item.correct ? (item.verdict === 'typo' ? 'опечатка' : 'верно') : 'ошибка'}
                 </Badge>
               </div>
-              <p className="mt-2 font-medium">{item.question.prompt}</p>
+              <CardContent
+                value={item.question.prompt}
+                type={item.question.content_type}
+                codeLanguage={item.question.code_language}
+                imageUrl={item.question.prompt_image_url}
+                imageAlt="Изображение вопроса"
+                className="mt-2 font-medium"
+              />
               {item.question.statement && (
-                <p className="text-fg-muted mt-1 text-sm">Утверждение: {item.question.statement}</p>
+                <div className="text-fg-muted mt-1 text-sm">
+                  <span>Утверждение:</span>
+                  <CardContent
+                    value={item.question.statement}
+                    type={item.question.content_type}
+                    codeLanguage={item.question.code_language}
+                  />
+                </div>
               )}
               <dl className="mt-3 space-y-1 text-sm">
                 <div className="flex gap-2">
                   <dt className="text-fg-subtle">Ваш ответ:</dt>
-                  <dd className={item.correct ? '' : 'text-danger'}>
-                    {formatGiven(item) || '— не отвечено —'}
+                  <dd className={`min-w-0 flex-1 ${item.correct ? '' : 'text-danger'}`}>
+                    <CardContent
+                      value={formatGiven(item) || '— не отвечено —'}
+                      type={item.question.content_type}
+                      codeLanguage={item.question.code_language}
+                    />
                   </dd>
                 </div>
                 {!item.correct && (
                   <div className="flex gap-2">
                     <dt className="text-fg-subtle">Правильно:</dt>
-                    <dd className="font-medium">{formatExpected(item)}</dd>
+                    <dd className="min-w-0 flex-1 font-medium">
+                      <CardContent
+                        value={formatExpected(item)}
+                        type={item.question.content_type}
+                        codeLanguage={item.question.code_language}
+                      />
+                    </dd>
                   </div>
                 )}
               </dl>

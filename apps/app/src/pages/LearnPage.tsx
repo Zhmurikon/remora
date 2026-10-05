@@ -19,7 +19,13 @@ import { Badge, Button, Card, CardContent, Input } from '@remora/ui';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Diff, SessionSummary } from '../features/study/SessionSummary';
-import { answerLang, answerSide, questionImage, questionSide } from '../features/study/card-sides';
+import {
+  answerImage,
+  answerLang,
+  answerSide,
+  questionImage,
+  questionSide,
+} from '../features/study/card-sides';
 import { StudyShell } from '../features/study/StudyShell';
 import { selectCurrent, useStudyStore, type QueueItem } from '../features/study/study-store';
 import {
@@ -305,10 +311,16 @@ export function LearnPage() {
               type="button"
               onClick={() => pick(option)}
               disabled={checked !== null}
-              className={`focus-visible:ring-primary min-h-16 rounded-lg border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 ${optionStyle(option, expected, checked)}`}
+              className={`focus-visible:ring-primary flex min-h-16 items-start gap-2 rounded-lg border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 ${optionStyle(option, expected, checked)}`}
             >
-              <span className="text-fg-subtle mr-2 text-sm">{position + 1}</span>
-              {option}
+              <span className="text-fg-subtle shrink-0 text-sm">{position + 1}</span>
+              <div className="min-w-0 flex-1">
+                <CardContent
+                  value={option}
+                  type={current.card.content_type}
+                  codeLanguage={current.card.code_language}
+                />
+              </div>
             </button>
           ))}
         </div>
@@ -347,7 +359,12 @@ export function LearnPage() {
           {checked?.correct === null && (
             <Card className="mt-4 p-5">
               <p className="text-fg-muted text-sm">Правильный ответ</p>
-              <p className="mt-1 font-medium">{expected}</p>
+              <CardContent
+                value={expected}
+                type={current.card.content_type}
+                codeLanguage={current.card.code_language}
+                className="mt-1 font-medium"
+              />
               <p className="text-fg-subtle mt-3 text-sm">
                 Ваш ответ: <Diff expected={expected} typed={checked.value} />
               </p>
@@ -375,7 +392,13 @@ export function LearnPage() {
           ) : (
             <>
               <Card className="p-5">
-                <CardContent value={expected} type={current.card.content_type} />
+                <CardContent
+                  value={expected}
+                  type={current.card.content_type}
+                  codeLanguage={current.card.code_language}
+                  imageUrl={answerImage(current)}
+                  imageAlt="Изображение ответа"
+                />
               </Card>
               <p className="text-fg-muted mt-4 text-sm">
                 Насколько легко вспомнилось? Клавиши 1–4.
@@ -408,9 +431,15 @@ export function LearnPage() {
       {checked?.correct === false && (
         <Card className="border-danger mt-5 p-5">
           <p className="text-danger text-sm font-medium">Не совсем</p>
-          <p className="mt-2">
-            Правильно: <span className="font-medium">{expected}</span>
-          </p>
+          <p className="mt-2 text-sm">Правильно:</p>
+          <CardContent
+            value={expected}
+            type={current.card.content_type}
+            codeLanguage={current.card.code_language}
+            imageUrl={answerImage(current)}
+            imageAlt="Изображение ответа"
+            className="font-medium"
+          />
           {checked.value && (
             <p className="text-fg-subtle mt-1 text-sm">
               Вы ввели: <Diff expected={expected} typed={checked.value} />

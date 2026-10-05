@@ -35,10 +35,14 @@ export function ArticleContent({
   value,
   headingLevel = 3,
   media = {},
+  variant = 'article',
+  className = '',
 }: {
   value: string;
   headingLevel?: 2 | 3;
   media?: Record<string, ArticleMedia>;
+  variant?: 'article' | 'card';
+  className?: string;
 }) {
   let key = 0;
   const nextKey = () => (key += 1);
@@ -161,7 +165,7 @@ export function ArticleContent({
       case 'text':
         return token.content;
       case 'softbreak':
-        return ' ';
+        return variant === 'card' ? <br key={nextKey()} /> : ' ';
       case 'hardbreak':
         return <br key={nextKey()} />;
       case 'hr':
@@ -247,7 +251,9 @@ export function ArticleContent({
   }
 
   return (
-    <div className="course-article max-w-prose space-y-4 break-words leading-relaxed">
+    <div
+      className={`${variant === 'article' ? 'course-article max-w-prose space-y-4' : 'space-y-3'} break-words leading-relaxed ${className}`}
+    >
       {render(md.parse(value ?? '', {}))}
     </div>
   );

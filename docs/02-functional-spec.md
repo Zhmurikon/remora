@@ -183,7 +183,7 @@ remora/
 
 **study_sets** — `owner_id`, `folder_id`, `title`, `description`, `subject_id`, `lang_term` (ISO-код языка стороны «термин»), `lang_definition`, `visibility` (`private` | `unlisted` | `public`), `slug` (для SEO-URL), `cards_count` (денормализовано), `copied_from_id`, `is_template`, `moderation_status` (`ok` | `pending` | `blocked`), `published_at`, `stats` (jsonb: просмотры, копирования, лайки).
 
-**cards** — `set_id`, `position`, `term` (текст с ограниченным Markdown), `definition`, `term_transcription`, `definition_transcription`, `hint`, `term_image_id`, `definition_image_id`, `term_audio_id`, `definition_audio_id`, `content_type` (`text` | `latex` | `code`), `code_language`, `alt_answers` (массив: допустимые синонимы для режима «Письмо»), `is_starred_by` — нет, вынесено отдельно.
+**cards** — `set_id`, `position`, `term` (текст с ограниченным Markdown и формулами `$...$` / `$$...$$`), `definition`, `term_transcription`, `definition_transcription`, `hint`, `term_image_id`, `definition_image_id`, `term_audio_id`, `definition_audio_id`, `content_type` (`text` для смешанного текста, `latex` для формулы на всю сторону, `code`), `code_language`, `alt_answers` (массив: допустимые синонимы для режима «Письмо»), `is_starred_by` — нет, вынесено отдельно.
 
 **card_stars** — `user_id`, `card_id`. «Избранные»/«сложные» карточки пользователя, включая чужие наборы.
 

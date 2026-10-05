@@ -397,7 +397,7 @@ export function SetEditorPage() {
                   onChange={(event) => setCardType(card.key, event.target.value as CardContentType)}
                   className="border-border bg-surface-muted text-fg h-10 rounded-lg border px-3 text-sm"
                 >
-                  <option value="text">Текст</option>
+                  <option value="text">Текст и формулы</option>
                   <option value="latex">Формула</option>
                   <option value="code">Код</option>
                 </select>
@@ -1341,7 +1341,12 @@ function CardField({
         placeholder={fieldPlaceholder(label, contentType)}
       />
       <ImageUpload imageId={imageId} label={label} onChange={onImageChange} />
-      {contentType !== 'text' && value && (
+      {contentType === 'text' && (
+        <span className="text-fg-subtle mt-2 block text-xs normal-case tracking-normal">
+          Формула в тексте: $...$, отдельным блоком: $$...$$
+        </span>
+      )}
+      {value && (
         <div className="border-border bg-surface mt-3 rounded-xl border p-3 normal-case tracking-normal">
           <span className="text-fg-subtle mb-2 block text-xs">Предпросмотр</span>
           <CardContent value={value} type={contentType} codeLanguage={codeLanguage} />

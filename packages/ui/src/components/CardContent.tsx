@@ -1,6 +1,7 @@
 'use client';
 
 import { lazy, Suspense } from 'react';
+import { ArticleContent } from './ArticleContent';
 import './card-content.css';
 
 export type CardContentType = 'text' | 'latex' | 'code';
@@ -83,7 +84,7 @@ function renderContent(
       </Suspense>
     );
   }
-  return <p className={`whitespace-pre-wrap break-words ${className}`}>{value}</p>;
+  return <ArticleContent value={value} variant="card" className={className} />;
 }
 
 function CodeFallback({ value, className }: { value: string; className: string }) {
