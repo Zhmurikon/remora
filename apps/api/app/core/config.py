@@ -86,6 +86,7 @@ class Settings(BaseSettings):
     email_verification_ttl_hours: int = 24
     password_reset_ttl_minutes: int = 30
     oauth_state_ttl_minutes: int = Field(default=10, ge=1, le=30)
+    battle_invite_ttl_minutes: int = Field(default=10, ge=1, le=60)
 
     # Google OpenID Connect. Без пары client_id/client_secret вход через Google выключен.
     google_oauth_client_id: str | None = None

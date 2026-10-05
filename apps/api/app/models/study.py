@@ -55,6 +55,7 @@ class StudyMode(enum.Enum):
     test = "test"
     write = "write"
     listen = "listen"
+    battle = "battle"
 
 
 class SessionStatus(enum.Enum):

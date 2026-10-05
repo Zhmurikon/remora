@@ -526,6 +526,142 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/battles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Создать битву и ссылку-приглашение */
+        post: operations["create_battle_api_v1_battles_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/battles/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Войти в битву по приглашению */
+        post: operations["join_battle_api_v1_battles_join_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/battles/{battle_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Состояние комнаты битвы */
+        get: operations["get_battle_api_v1_battles__battle_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/battles/{battle_id}/answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Отправить ответ */
+        post: operations["answer_battle_api_v1_battles__battle_id__answers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/battles/{battle_id}/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Покинуть битву */
+        post: operations["leave_battle_api_v1_battles__battle_id__leave_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/battles/{battle_id}/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Подтвердить готовность */
+        post: operations["ready_for_battle_api_v1_battles__battle_id__ready_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/battles/{battle_id}/rematch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Создать реванш */
+        post: operations["rematch_battle_api_v1_battles__battle_id__rematch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/battles/{battle_id}/result": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Итог и свой разбор битвы */
+        get: operations["battle_result_api_v1_battles__battle_id__result_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/courses": {
         parameters: {
             query?: never;
@@ -2702,6 +2838,251 @@ export interface components {
             /** Saves Received */
             saves_received: number;
         };
+        /** BattleAnswerIn */
+        BattleAnswerIn: {
+            /**
+             * Client Answer Id
+             * Format: uuid
+             */
+            client_answer_id: string;
+            /** Question Id */
+            question_id: string;
+            /** Value */
+            value: string;
+        };
+        /** BattleAnswerOut */
+        BattleAnswerOut: {
+            /** Accepted */
+            accepted: boolean;
+            /** Duplicate */
+            duplicate: boolean;
+            room: components["schemas"]["BattleRoomOut"];
+        };
+        /** BattleCreate */
+        BattleCreate: {
+            /** @default term_to_def */
+            direction: components["schemas"]["StudyDirection"];
+            /**
+             * Question Count
+             * @default 10
+             */
+            question_count: number;
+            /**
+             * Request Key
+             * Format: uuid
+             */
+            request_key: string;
+            /**
+             * Set Id
+             * Format: uuid
+             */
+            set_id: string;
+        };
+        /** BattleCreateOut */
+        BattleCreateOut: {
+            /** Deadline At */
+            deadline_at: string | null;
+            direction: components["schemas"]["StudyDirection"];
+            finish_reason: components["schemas"]["BattleFinishReason"] | null;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Invite Token */
+            invite_token: string;
+            /** Is Draw */
+            is_draw: boolean;
+            /** Participants */
+            participants: components["schemas"]["BattleParticipantOut"][];
+            /** Question Count */
+            question_count: number;
+            /** Questions */
+            questions: components["schemas"]["BattleQuestionOut"][];
+            /**
+             * Server Now
+             * Format: date-time
+             */
+            server_now: string;
+            /**
+             * Set Id
+             * Format: uuid
+             */
+            set_id: string;
+            /** Set Title */
+            set_title: string;
+            /** Starts At */
+            starts_at: string | null;
+            status: components["schemas"]["BattleStatus"];
+            /** Winner Id */
+            winner_id: string | null;
+        };
+        /**
+         * BattleFinishReason
+         * @enum {string}
+         */
+        BattleFinishReason: "completed" | "timeout";
+        /** BattleJoin */
+        BattleJoin: {
+            /** Invite Token */
+            invite_token: string;
+        };
+        /** BattleParticipantOut */
+        BattleParticipantOut: {
+            /** Answered Count */
+            answered_count: number;
+            /** Avatar Url */
+            avatar_url: string | null;
+            /** Correct Count */
+            correct_count?: number | null;
+            /** Display Name */
+            display_name: string | null;
+            /** Duration Ms */
+            duration_ms?: number | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Is Current */
+            is_current: boolean;
+            /** Ready */
+            ready: boolean;
+            /** Slot */
+            slot: number;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Username */
+            username: string;
+        };
+        /** BattleQuestionOut */
+        BattleQuestionOut: {
+            /**
+             * Card Id
+             * Format: uuid
+             */
+            card_id: string;
+            /** Code Language */
+            code_language?: string | null;
+            content_type: components["schemas"]["ContentType"];
+            direction: components["schemas"]["StudyDirection"];
+            /** Hint */
+            hint?: string | null;
+            /** Id */
+            id: string;
+            /** Options */
+            options: string[];
+            /** Prompt */
+            prompt: string;
+            /** Prompt Image Url */
+            prompt_image_url?: string | null;
+        };
+        /** BattleQuestionReview */
+        BattleQuestionReview: {
+            /** Correct */
+            correct: boolean;
+            /** Expected */
+            expected: string;
+            /** Given */
+            given: string;
+            /** Question Id */
+            question_id: string;
+        };
+        /** BattleRematch */
+        BattleRematch: {
+            /**
+             * Request Key
+             * Format: uuid
+             */
+            request_key: string;
+        };
+        /** BattleResultOut */
+        BattleResultOut: {
+            /** Deadline At */
+            deadline_at: string | null;
+            direction: components["schemas"]["StudyDirection"];
+            finish_reason: components["schemas"]["BattleFinishReason"] | null;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Draw */
+            is_draw: boolean;
+            /** Participants */
+            participants: components["schemas"]["BattleParticipantOut"][];
+            /** Question Count */
+            question_count: number;
+            /** Questions */
+            questions: components["schemas"]["BattleQuestionOut"][];
+            /** Review */
+            review: components["schemas"]["BattleQuestionReview"][];
+            /**
+             * Server Now
+             * Format: date-time
+             */
+            server_now: string;
+            /**
+             * Set Id
+             * Format: uuid
+             */
+            set_id: string;
+            /** Set Title */
+            set_title: string;
+            /** Starts At */
+            starts_at: string | null;
+            status: components["schemas"]["BattleStatus"];
+            /** Winner Id */
+            winner_id: string | null;
+        };
+        /** BattleRoomOut */
+        BattleRoomOut: {
+            /** Deadline At */
+            deadline_at: string | null;
+            direction: components["schemas"]["StudyDirection"];
+            finish_reason: components["schemas"]["BattleFinishReason"] | null;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Draw */
+            is_draw: boolean;
+            /** Participants */
+            participants: components["schemas"]["BattleParticipantOut"][];
+            /** Question Count */
+            question_count: number;
+            /** Questions */
+            questions: components["schemas"]["BattleQuestionOut"][];
+            /**
+             * Server Now
+             * Format: date-time
+             */
+            server_now: string;
+            /**
+             * Set Id
+             * Format: uuid
+             */
+            set_id: string;
+            /** Set Title */
+            set_title: string;
+            /** Starts At */
+            starts_at: string | null;
+            status: components["schemas"]["BattleStatus"];
+            /** Winner Id */
+            winner_id: string | null;
+        };
+        /**
+         * BattleStatus
+         * @enum {string}
+         */
+        BattleStatus: "waiting" | "countdown" | "active" | "finished" | "cancelled" | "expired";
         /** BotCodeCreated */
         BotCodeCreated: {
             /** Bot Url */
@@ -4397,7 +4778,7 @@ export interface components {
          * StudyMode
          * @enum {string}
          */
-        StudyMode: "flashcards" | "learn" | "test" | "write" | "listen";
+        StudyMode: "flashcards" | "learn" | "test" | "write" | "listen" | "battle";
         /**
          * StudyQueue
          * @description Всё, что нужно тренировке на одну сессию, одним запросом.
@@ -5905,6 +6286,266 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuthorProfile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_battle_api_v1_battles_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BattleCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BattleCreateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    join_battle_api_v1_battles_join_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BattleJoin"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BattleRoomOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_battle_api_v1_battles__battle_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                battle_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BattleRoomOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    answer_battle_api_v1_battles__battle_id__answers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                battle_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BattleAnswerIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BattleAnswerOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    leave_battle_api_v1_battles__battle_id__leave_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                battle_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BattleRoomOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ready_for_battle_api_v1_battles__battle_id__ready_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                battle_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BattleRoomOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rematch_battle_api_v1_battles__battle_id__rematch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                battle_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BattleRematch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BattleCreateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    battle_result_api_v1_battles__battle_id__result_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                battle_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BattleResultOut"];
                 };
             };
             /** @description Validation Error */

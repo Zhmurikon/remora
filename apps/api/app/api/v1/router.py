@@ -13,6 +13,7 @@ from app.api.v1 import (
     api_tokens,
     auth,
     authors,
+    battles,
     bots,
     courses,
     exports,
@@ -41,6 +42,7 @@ api_router.include_router(api_tokens.router)
 api_router.include_router(health.router)
 api_router.include_router(auth.router)
 api_router.include_router(authors.router)
+api_router.include_router(battles.router)
 api_router.include_router(courses.router)
 api_router.include_router(library.router)
 api_router.include_router(moderation.router)

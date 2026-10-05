@@ -1,6 +1,13 @@
 """Модели SQLAlchemy. Импортируются Alembic при автогенерации миграций."""
 
 from app.models.api_tokens import AgentRequest, ApiToken
+from app.models.battles import (
+    Battle,
+    BattleAnswer,
+    BattleFinishReason,
+    BattleParticipant,
+    BattleStatus,
+)
 from app.models.bots import BotEvent, BotLink, BotLinkCode
 from app.models.content import (
     Card,
@@ -59,6 +66,11 @@ __all__ = [
     "ActionToken",
     "AgentRequest",
     "ApiToken",
+    "Battle",
+    "BattleAnswer",
+    "BattleFinishReason",
+    "BattleParticipant",
+    "BattleStatus",
     "BotEvent",
     "BotLink",
     "BotLinkCode",

@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.base import Executable
 
+from app.models.battles import Battle, BattleAnswer, BattleParticipant
 from app.models.content import Card, Folder, MediaAsset, StudySet
 from app.models.courses import Course, CourseArticle, CourseSection
 from app.models.exports import AccountExportJob
@@ -31,6 +32,11 @@ async def latest_job(db: AsyncSession, user_id: UUID) -> AccountExportJob | None
 async def account_rows(db: AsyncSession, user_id: UUID) -> dict[str, list[Any]]:
     sets = list((await db.scalars(select(StudySet).where(StudySet.owner_id == user_id))).all())
     set_ids = [item.id for item in sets]
+    battle_participants = await _all(
+        db, select(BattleParticipant).where(BattleParticipant.user_id == user_id)
+    )
+    participant_ids = [item.id for item in battle_participants]
+    battle_ids = [item.battle_id for item in battle_participants]
     return {
         "courses": await _all(db, select(Course).where(Course.owner_id == user_id)),
         "course_sections": await _all(
@@ -57,6 +63,15 @@ async def account_rows(db: AsyncSession, user_id: UUID) -> dict[str, list[Any]]:
             db, select(StudySession).where(StudySession.user_id == user_id)
         ),
         "test_attempts": await _all(db, select(TestAttempt).where(TestAttempt.user_id == user_id)),
+        "battles": await _all(db, select(Battle).where(Battle.id.in_(battle_ids)))
+        if battle_ids
+        else [],
+        "battle_participants": battle_participants,
+        "battle_answers": await _all(
+            db, select(BattleAnswer).where(BattleAnswer.participant_id.in_(participant_ids))
+        )
+        if participant_ids
+        else [],
         "set_progress": await _all(
             db, select(UserSetProgress).where(UserSetProgress.user_id == user_id)
         ),
