@@ -2,8 +2,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 # Только выделенный каталог Remora; чужие приложения не затрагиваются.
-ssh home-server 'mkdir -p /opt/remora-releases && chmod 700 /opt/remora-releases && if test -d /opt/remora-dev; then tar --exclude=node_modules --exclude=.pnpm-store --exclude=.venv --exclude=.next --exclude=dist --exclude=build --exclude=.dart_tool --exclude=.gradle --exclude=.kotlin --exclude=.env --exclude=".env.*" --exclude=.private --exclude=backups --exclude=deploy/logs --exclude=__pycache__ -czf /opt/remora-releases/source-$(date -u +%Y%m%dT%H%M%SZ).tar.gz -C /opt/remora-dev .; fi'
-rsync -az --exclude=.git --exclude=.private --exclude=.env --exclude='.env.*' \
+ssh home-server 'mkdir -p /opt/remora-releases && chmod 700 /opt/remora-releases && if test -d /opt/remora-dev; then tar --exclude=node_modules --exclude=.pnpm-store --exclude=.venv --exclude=.next --exclude=dist --exclude=build --exclude=.dart_tool --exclude=.gradle --exclude=.kotlin --exclude=.env --exclude=".env.*" --exclude=.private --exclude=.codex --exclude=backups --exclude=deploy/logs --exclude=__pycache__ -czf /opt/remora-releases/source-$(date -u +%Y%m%dT%H%M%SZ).tar.gz -C /opt/remora-dev .; fi'
+rsync -az --exclude=.git --exclude=.private --exclude=.codex --exclude=.env --exclude='.env.*' \
   --exclude=node_modules --exclude=.pnpm-store --exclude=.venv --exclude=.next --exclude=dist \
   --exclude=build --exclude=.dart_tool --exclude=.gradle --exclude=.kotlin \
   --exclude=__pycache__ --exclude=.mypy_cache --exclude=.pytest_cache \
