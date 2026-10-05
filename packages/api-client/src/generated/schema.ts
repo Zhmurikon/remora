@@ -680,6 +680,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/classes/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Вступить в класс по коду */
+        post: operations["join_class_api_v1_classes_join_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/classes/{class_id}": {
         parameters: {
             query?: never;
@@ -698,6 +715,58 @@ export interface paths {
         patch: operations["update_class_api_v1_classes__class_id__patch"];
         trace?: never;
     };
+    "/api/v1/classes/{class_id}/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Задания класса */
+        get: operations["list_class_assignments_api_v1_classes__class_id__assignments_get"];
+        put?: never;
+        /** Создать задание */
+        post: operations["create_class_assignment_api_v1_classes__class_id__assignments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/classes/{class_id}/invite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Код и ссылка класса */
+        get: operations["get_class_invite_api_v1_classes__class_id__invite_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/classes/{class_id}/invite/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Сменить код вступления */
+        post: operations["rotate_class_invite_api_v1_classes__class_id__invite_rotate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/classes/{class_id}/members": {
         parameters: {
             query?: never;
@@ -710,6 +779,58 @@ export interface paths {
         /** Добавить участника */
         post: operations["add_class_member_api_v1_classes__class_id__members_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/classes/{class_id}/members/{member_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Одобрить вступление в класс */
+        post: operations["approve_class_member_api_v1_classes__class_id__members__member_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/classes/{class_id}/sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Наборы класса */
+        get: operations["list_class_sets_api_v1_classes__class_id__sets_get"];
+        put?: never;
+        /** Расшарить набор в классе */
+        post: operations["share_class_set_api_v1_classes__class_id__sets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/classes/{class_id}/sets/{set_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Убрать набор из класса */
+        delete: operations["unshare_class_set_api_v1_classes__class_id__sets__set_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2812,6 +2933,57 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** AssignmentCreate */
+        AssignmentCreate: {
+            /** Due At */
+            due_at?: string | null;
+            goal_type: components["schemas"]["AssignmentGoalType"];
+            /** Goal Value */
+            goal_value: number;
+            mode_required?: components["schemas"]["StudyMode"] | null;
+            /** Open At */
+            open_at?: string | null;
+            /**
+             * Set Id
+             * Format: uuid
+             */
+            set_id: string;
+            /** Title */
+            title: string;
+        };
+        /**
+         * AssignmentGoalType
+         * @enum {string}
+         */
+        AssignmentGoalType: "mastery_percent" | "cards_count" | "test_score";
+        /** AssignmentOut */
+        AssignmentOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Due At */
+            due_at: string | null;
+            goal_type: components["schemas"]["AssignmentGoalType"];
+            /** Goal Value */
+            goal_value: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            mode_required: components["schemas"]["StudyMode"] | null;
+            /** Open At */
+            open_at: string | null;
+            /**
+             * Set Id
+             * Format: uuid
+             */
+            set_id: string;
+            /** Title */
+            title: string;
+        };
         /** AttachmentDownload */
         AttachmentDownload: {
             /** Expires In */
@@ -3305,6 +3477,31 @@ export interface components {
          * @enum {string}
          */
         ClassMemberStatus: "active" | "pending" | "left";
+        /** ClassSetAdd */
+        ClassSetAdd: {
+            /**
+             * Set Id
+             * Format: uuid
+             */
+            set_id: string;
+        };
+        /** ClassSetOut */
+        ClassSetOut: {
+            /**
+             * Added At
+             * Format: date-time
+             */
+            added_at: string;
+            /** Cards Count */
+            cards_count: number;
+            /**
+             * Set Id
+             * Format: uuid
+             */
+            set_id: string;
+            /** Title */
+            title: string;
+        };
         /** ClassroomCreate */
         ClassroomCreate: {
             /**
@@ -3351,6 +3548,29 @@ export interface components {
              */
             updated_at: string;
         };
+        /** ClassroomInviteOut */
+        ClassroomInviteOut: {
+            /** Join Code */
+            join_code: string;
+            /** Join Url */
+            join_url: string;
+        };
+        /** ClassroomJoin */
+        ClassroomJoin: {
+            /** Join Code */
+            join_code: string;
+        };
+        /** ClassroomJoinOut */
+        ClassroomJoinOut: {
+            /**
+             * Class Id
+             * Format: uuid
+             */
+            class_id: string;
+            /** Class Title */
+            class_title: string;
+            status: components["schemas"]["ClassMemberStatus"];
+        };
         /** ClassroomMemberAdd */
         ClassroomMemberAdd: {
             /** @default student */
@@ -3362,6 +3582,11 @@ export interface components {
         ClassroomMemberOut: {
             /** Display Name */
             display_name: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
             /**
              * Joined At
              * Format: date-time
@@ -6796,6 +7021,39 @@ export interface operations {
             };
         };
     };
+    join_class_api_v1_classes_join_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassroomJoin"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassroomJoinOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_class_api_v1_classes__class_id__get: {
         parameters: {
             query?: never;
@@ -6862,6 +7120,134 @@ export interface operations {
             };
         };
     };
+    list_class_assignments_api_v1_classes__class_id__assignments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_class_assignment_api_v1_classes__class_id__assignments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignmentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_class_invite_api_v1_classes__class_id__invite_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassroomInviteOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rotate_class_invite_api_v1_classes__class_id__invite_rotate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassroomInviteOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     add_class_member_api_v1_classes__class_id__members_post: {
         parameters: {
             query?: never;
@@ -6885,6 +7271,134 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ClassroomMemberOut"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_class_member_api_v1_classes__class_id__members__member_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_id: string;
+                member_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassroomMemberOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_class_sets_api_v1_classes__class_id__sets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassSetOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    share_class_set_api_v1_classes__class_id__sets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassSetAdd"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassSetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unshare_class_set_api_v1_classes__class_id__sets__set_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_id: string;
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

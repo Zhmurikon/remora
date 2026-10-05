@@ -1,5 +1,6 @@
 """Классы: роли не дают обойти изоляцию или повысить привилегии."""
 
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -122,3 +123,116 @@ async def test_class_owner_can_update_own_class(
     assert updated.json()["title"] == "После"
     assert updated.json()["description"] == "Описание"
     assert updated.json()["requires_approval"] is True
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_join_share_private_set_and_assignment(
+    _mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    owner = await _auth(client, "flowowner")
+    student = await _auth(client, "flowstudent")
+    second_student = await _auth(client, "flowsecond")
+    material = await client.post(
+        "/api/v1/sets",
+        headers=owner,
+        json={"title": "Столицы", "visibility": "private"},
+    )
+    assert material.status_code == 201
+    set_id = material.json()["id"]
+    assert (
+        await client.put(
+            f"/api/v1/sets/{set_id}/cards",
+            headers=owner,
+            json={"cards": [{"term": "Франция", "definition": "Париж"}]},
+        )
+    ).status_code == 200
+
+    classroom = await client.post(
+        "/api/v1/classes",
+        headers=owner,
+        json={"title": "География", "requires_approval": True},
+    )
+    class_id = classroom.json()["id"]
+    original_code = classroom.json()["join_code"]
+    invite = await client.get(f"/api/v1/classes/{class_id}/invite", headers=owner)
+    assert invite.status_code == 200
+    assert invite.json()["join_code"] == original_code
+    assert invite.json()["join_url"].endswith(f"/classes/join?code={original_code}")
+
+    joined = await client.post(
+        "/api/v1/classes/join", headers=student, json={"join_code": original_code.lower()}
+    )
+    assert joined.status_code == 200
+    assert joined.json()["status"] == "pending"
+    assert (await client.get(f"/api/v1/classes/{class_id}", headers=student)).status_code == 403
+
+    detail = await client.get(f"/api/v1/classes/{class_id}", headers=owner)
+    pending = next(
+        member for member in detail.json()["members"] if member["username"] == "classflowstudent"
+    )
+    approved = await client.post(
+        f"/api/v1/classes/{class_id}/members/{pending['id']}/approve", headers=owner
+    )
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["status"] == "active"
+
+    cannot_assign = await client.post(
+        f"/api/v1/classes/{class_id}/assignments",
+        headers=owner,
+        json={
+            "set_id": set_id,
+            "title": "Выучить столицы",
+            "goal_type": "mastery_percent",
+            "goal_value": 80,
+        },
+    )
+    assert cannot_assign.status_code == 409
+    shared = await client.post(
+        f"/api/v1/classes/{class_id}/sets", headers=owner, json={"set_id": set_id}
+    )
+    assert shared.status_code == 201, shared.text
+    assert shared.json()["set_id"] == set_id
+    assert (
+        await client.post(
+            f"/api/v1/classes/{class_id}/sets", headers=student, json={"set_id": set_id}
+        )
+    ).status_code == 403
+
+    # Приватный набор открывается активному ученику через общий учебный контур.
+    assert (await client.get(f"/api/v1/sets/{set_id}", headers=student)).status_code == 200
+    assert (
+        await client.get(
+            f"/api/v1/study/sets/{set_id}/queue", headers=student, params={"mode": "flashcards"}
+        )
+    ).status_code == 200
+
+    opened_at = datetime.now(UTC) + timedelta(hours=1)
+    due_at = opened_at + timedelta(days=3)
+    assignment = await client.post(
+        f"/api/v1/classes/{class_id}/assignments",
+        headers=owner,
+        json={
+            "set_id": set_id,
+            "title": "Выучить столицы",
+            "mode_required": "learn",
+            "goal_type": "mastery_percent",
+            "goal_value": 80,
+            "open_at": opened_at.isoformat(),
+            "due_at": due_at.isoformat(),
+        },
+    )
+    assert assignment.status_code == 201, assignment.text
+    assert assignment.json()["goal_value"] == 80
+    assert assignment.json()["mode_required"] == "learn"
+    listed = await client.get(f"/api/v1/classes/{class_id}/assignments", headers=student)
+    assert listed.status_code == 200
+    assert [item["id"] for item in listed.json()] == [assignment.json()["id"]]
+
+    rotated = await client.post(f"/api/v1/classes/{class_id}/invite/rotate", headers=owner)
+    assert rotated.status_code == 200
+    assert rotated.json()["join_code"] != original_code
+    assert (
+        await client.post(
+            "/api/v1/classes/join", headers=second_student, json={"join_code": original_code}
+        )
+    ).status_code == 404

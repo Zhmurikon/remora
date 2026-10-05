@@ -7,6 +7,7 @@ from sqlalchemy import delete, or_, select
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.classes import ClassMember, ClassMemberStatus, Classroom, ClassSet
 from app.models.content import Card, ContentType, StudySet
 from app.models.courses import Course, CourseArticle, CourseSection, LibrarySave
 from app.models.user import User, UserStatus
@@ -128,6 +129,20 @@ async def can_study_set(db: AsyncSession, user_id: UUID, set_id: UUID) -> bool:
     if study_set is None or study_set.deleted_at is not None:
         return False
     if study_set.owner_id == user_id:
+        return True
+    class_access = await db.scalar(
+        select(ClassSet.id)
+        .join(Classroom, Classroom.id == ClassSet.class_id)
+        .join(ClassMember, ClassMember.class_id == Classroom.id)
+        .where(
+            ClassSet.set_id == set_id,
+            Classroom.archived_at.is_(None),
+            ClassMember.user_id == user_id,
+            ClassMember.status == ClassMemberStatus.active,
+        )
+        .limit(1)
+    )
+    if class_access is not None:
         return True
     saved = await db.scalar(
         select(LibrarySave.id)

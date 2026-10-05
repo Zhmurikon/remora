@@ -5,7 +5,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.models.classes import ClassMemberRole, ClassMemberStatus
+from app.models.classes import AssignmentGoalType, ClassMemberRole, ClassMemberStatus
+from app.models.study import StudyMode
 
 
 class ClassroomCreate(BaseModel):
@@ -25,7 +26,23 @@ class ClassroomMemberAdd(BaseModel):
     role: ClassMemberRole = ClassMemberRole.student
 
 
+class ClassroomJoin(BaseModel):
+    join_code: str = Field(min_length=8, max_length=12)
+
+
+class ClassroomJoinOut(BaseModel):
+    class_id: UUID
+    class_title: str
+    status: ClassMemberStatus
+
+
+class ClassroomInviteOut(BaseModel):
+    join_code: str
+    join_url: str
+
+
 class ClassroomMemberOut(BaseModel):
+    id: UUID
     user_id: UUID
     username: str
     display_name: str | None
@@ -48,3 +65,36 @@ class ClassroomOut(BaseModel):
 
 class ClassroomDetailOut(ClassroomOut):
     members: list[ClassroomMemberOut]
+
+
+class ClassSetAdd(BaseModel):
+    set_id: UUID
+
+
+class ClassSetOut(BaseModel):
+    set_id: UUID
+    title: str
+    cards_count: int
+    added_at: datetime
+
+
+class AssignmentCreate(BaseModel):
+    set_id: UUID
+    title: str = Field(min_length=1, max_length=160)
+    mode_required: StudyMode | None = None
+    goal_type: AssignmentGoalType
+    goal_value: int = Field(ge=1, le=100_000)
+    open_at: datetime | None = None
+    due_at: datetime | None = None
+
+
+class AssignmentOut(BaseModel):
+    id: UUID
+    set_id: UUID
+    title: str
+    mode_required: StudyMode | None
+    goal_type: AssignmentGoalType
+    goal_value: int
+    open_at: datetime | None
+    due_at: datetime | None
+    created_at: datetime
