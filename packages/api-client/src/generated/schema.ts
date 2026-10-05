@@ -2952,6 +2952,8 @@ export interface components {
             duration_ms?: number | null;
             /** Finished At */
             finished_at?: string | null;
+            /** Is Connected */
+            is_connected: boolean;
             /** Is Current */
             is_current: boolean;
             /** Ready */

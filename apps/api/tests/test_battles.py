@@ -85,6 +85,7 @@ async def test_battle_keeps_snapshot_and_hides_answers(
         item["id"] for item in battle["questions"]
     ]
     assert len(joined.json()["participants"]) == 2
+    assert all(item["is_connected"] for item in joined.json()["participants"])
 
 
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)

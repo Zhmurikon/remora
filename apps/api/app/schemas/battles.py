@@ -57,6 +57,7 @@ class BattleParticipantOut(BaseModel):
     correct_count: int | None = None
     finished_at: datetime | None = None
     duration_ms: int | None = None
+    is_connected: bool
     is_current: bool
 
 

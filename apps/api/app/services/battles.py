@@ -45,6 +45,7 @@ INVITE_WINDOW = timedelta(minutes=10)
 COUNTDOWN = timedelta(seconds=3)
 SECONDS_PER_QUESTION = 30
 DRAW_THRESHOLD_MS = 500
+CONNECTION_WINDOW = timedelta(seconds=3)
 REVIEW_NAMESPACE = UUID("31bdffab-5075-4ac5-af04-c782c7214939")
 
 
@@ -385,6 +386,7 @@ class BattleService:
                     correct_count=item.correct_count if reveal else None,
                     finished_at=item.finished_at if reveal else None,
                     duration_ms=item.duration_ms if reveal else None,
+                    is_connected=now - item.last_seen_at <= CONNECTION_WINDOW,
                     is_current=item.user_id == user.id,
                 )
                 for item in participant_rows
