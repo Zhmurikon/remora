@@ -69,6 +69,11 @@ export function SetStudyPanel({ setId, cardsCount }: { setId: string; cardsCount
             Тест
           </Button>
         </Link>
+        <Link to={`/sets/${setId}/battle`} aria-disabled={disabled}>
+          <Button variant="secondary" disabled={disabled}>
+            Битва
+          </Button>
+        </Link>
         <Link to={`/sets/${setId}/listen`} aria-disabled={disabled}>
           <Button variant="secondary" disabled={disabled}>
             Аудирование

@@ -20,6 +20,7 @@ import { SetsPage } from './pages/SetsPage';
 import { TestPage } from './pages/TestPage';
 import { WritePage } from './pages/WritePage';
 import { AchievementsPage } from './pages/AchievementsPage';
+import { BattlePage } from './pages/BattlePage';
 
 export function App() {
   return (
@@ -57,6 +58,8 @@ export function App() {
               <Route path="sets/:setId/flashcards" element={<FlashcardsPage />} />
               <Route path="sets/:setId/write" element={<WritePage />} />
               <Route path="sets/:setId/test" element={<TestPage />} />
+              <Route path="sets/:setId/battle" element={<BattlePage />} />
+              <Route path="battles/:battleId" element={<BattlePage />} />
               <Route path="sets/:setId/listen" element={<ListenPage />} />
               <Route path="library" element={<MaterialsPage />} />
               <Route path="practice" element={<PracticePage />} />
