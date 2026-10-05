@@ -15,6 +15,7 @@ from app.api.v1 import (
     authors,
     battles,
     bots,
+    classes,
     courses,
     exports,
     folders,
@@ -43,6 +44,7 @@ api_router.include_router(health.router)
 api_router.include_router(auth.router)
 api_router.include_router(authors.router)
 api_router.include_router(battles.router)
+api_router.include_router(classes.router)
 api_router.include_router(courses.router)
 api_router.include_router(library.router)
 api_router.include_router(moderation.router)

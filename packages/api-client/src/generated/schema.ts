@@ -662,6 +662,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/classes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Мои классы */
+        get: operations["list_classes_api_v1_classes_get"];
+        put?: never;
+        /** Создать класс */
+        post: operations["create_class_api_v1_classes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/classes/{class_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Открыть класс */
+        get: operations["get_class_api_v1_classes__class_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Изменить класс */
+        patch: operations["update_class_api_v1_classes__class_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/classes/{class_id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Добавить участника */
+        post: operations["add_class_member_api_v1_classes__class_id__members_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/courses": {
         parameters: {
             query?: never;
@@ -3241,6 +3294,126 @@ export interface components {
             wrong_definition_answers?: string[];
             /** Wrong Term Answers */
             wrong_term_answers?: string[];
+        };
+        /**
+         * ClassMemberRole
+         * @enum {string}
+         */
+        ClassMemberRole: "teacher" | "assistant" | "student";
+        /**
+         * ClassMemberStatus
+         * @enum {string}
+         */
+        ClassMemberStatus: "active" | "pending" | "left";
+        /** ClassroomCreate */
+        ClassroomCreate: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Requires Approval
+             * @default false
+             */
+            requires_approval: boolean;
+            /** Title */
+            title: string;
+        };
+        /** ClassroomDetailOut */
+        ClassroomDetailOut: {
+            /** Archived At */
+            archived_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Join Code */
+            join_code: string;
+            /** Members */
+            members: components["schemas"]["ClassroomMemberOut"][];
+            my_role: components["schemas"]["ClassMemberRole"];
+            /** Requires Approval */
+            requires_approval: boolean;
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ClassroomMemberAdd */
+        ClassroomMemberAdd: {
+            /** @default student */
+            role: components["schemas"]["ClassMemberRole"];
+            /** Username */
+            username: string;
+        };
+        /** ClassroomMemberOut */
+        ClassroomMemberOut: {
+            /** Display Name */
+            display_name: string | null;
+            /**
+             * Joined At
+             * Format: date-time
+             */
+            joined_at: string;
+            role: components["schemas"]["ClassMemberRole"];
+            status: components["schemas"]["ClassMemberStatus"];
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Username */
+            username: string;
+        };
+        /** ClassroomOut */
+        ClassroomOut: {
+            /** Archived At */
+            archived_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Join Code */
+            join_code: string;
+            my_role: components["schemas"]["ClassMemberRole"];
+            /** Requires Approval */
+            requires_approval: boolean;
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ClassroomUpdate */
+        ClassroomUpdate: {
+            /** Description */
+            description?: string | null;
+            /** Requires Approval */
+            requires_approval?: boolean | null;
+            /** Title */
+            title?: string | null;
         };
         /**
          * ContentType
@@ -6557,6 +6730,160 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BattleResultOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_classes_api_v1_classes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassroomOut"][];
+                };
+            };
+        };
+    };
+    create_class_api_v1_classes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassroomCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassroomOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_class_api_v1_classes__class_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassroomDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_class_api_v1_classes__class_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassroomUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassroomOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_class_member_api_v1_classes__class_id__members_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassroomMemberAdd"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassroomMemberOut"];
                 };
             };
             /** @description Validation Error */

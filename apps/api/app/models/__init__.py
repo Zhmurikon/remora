@@ -9,6 +9,17 @@ from app.models.battles import (
     BattleStatus,
 )
 from app.models.bots import BotEvent, BotLink, BotLinkCode
+from app.models.classes import (
+    Assignment,
+    AssignmentGoalType,
+    AssignmentProgress,
+    AssignmentProgressStatus,
+    ClassMember,
+    ClassMemberRole,
+    ClassMemberStatus,
+    ClassSet,
+    Classroom,
+)
 from app.models.content import (
     Card,
     ContentType,
@@ -75,9 +86,18 @@ __all__ = [
     "BotEvent",
     "BotLink",
     "BotLinkCode",
+    "Assignment",
+    "AssignmentGoalType",
+    "AssignmentProgress",
+    "AssignmentProgressStatus",
     "Card",
     "CardState",
     "CardStateKind",
+    "ClassMember",
+    "ClassMemberRole",
+    "ClassMemberStatus",
+    "ClassSet",
+    "Classroom",
     "Consent",
     "ConsentKind",
     "ContentType",
