@@ -15,7 +15,7 @@ export default function CollectionsPage() {
     <>
       <JsonLd data={collectionsStructuredData()} />
       <header className="blog-intro">
-        <span className="home-kicker">Подборки Remora</span>
+        <span className="home-kicker">Подборки «Запоминальни»</span>
         <h1>
           Меньше искать.
           <br />

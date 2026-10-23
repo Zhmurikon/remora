@@ -1,4 +1,4 @@
-const DEFAULT_SITE_URL = 'http://localhost:3000';
+const DEFAULT_SITE_URL = 'https://zapominalnya.ru';
 
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? DEFAULT_SITE_URL).replace(/\/$/, '');
 export const DEFAULT_OG_IMAGE = '/opengraph-image';

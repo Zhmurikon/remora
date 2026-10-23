@@ -37,10 +37,10 @@ export function LegalPage({ kind, language }: LegalPageProps) {
           <Link
             href="/"
             className="focus-visible:ring-primary flex min-h-11 items-center gap-2 rounded-lg text-xl font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-            aria-label={isRu ? 'Remora, на главную' : 'Remora, home'}
+            aria-label={isRu ? 'Запоминальня, на главную' : 'Zapominalnya, home'}
           >
             <FishMark className="h-11 w-11" />
-            <span>Remora</span>
+            <span>{isRu ? 'Запоминальня' : 'Zapominalnya'}</span>
           </Link>
           <Link
             href={paths[otherLanguage][kind]}

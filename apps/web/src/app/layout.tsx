@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
-import { DEFAULT_OG_IMAGE } from '../lib/seo';
+import { DEFAULT_OG_IMAGE, SITE_URL } from '../lib/seo';
 import { PublicSessionProvider } from '../components/auth/PublicSession';
 
 export const metadata: Metadata = {
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   },
   description:
     'Карточки для заучивания и запоминания. Все режимы обучения бесплатны, в основе — алгоритм интервальных повторений FSRS.',
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
+  metadataBase: new URL(SITE_URL),
   manifest: '/manifest.webmanifest',
   icons: {
     icon: [

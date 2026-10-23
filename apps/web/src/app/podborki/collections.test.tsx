@@ -159,8 +159,8 @@ it('добавляет в sitemap только подборки с доступ�
     ),
   );
   let urls = (await sitemap()).map((item) => item.url);
-  expect(urls).toContain('http://localhost:3000/podborki/test-collection');
-  expect(urls).toContain('http://localhost:3000/podborki');
+  expect(urls).toContain('https://zapominalnya.ru/podborki/test-collection');
+  expect(urls).toContain('https://zapominalnya.ru/podborki');
   expect(urls.join()).not.toMatch(/future|k-pervomu-zachetu|\/empty/);
   respond([]);
   urls = (await sitemap()).map((item) => item.url);

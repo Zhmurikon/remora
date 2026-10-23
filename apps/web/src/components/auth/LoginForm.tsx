@@ -64,7 +64,7 @@ export function LoginForm() {
       <div>
         <p className="text-primary text-sm font-medium">С возвращением</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">
-          Войдите в Remora
+          Войдите в «Запоминальню»
         </h1>
         <p className="text-fg-muted mt-3">Ваши карточки и прогресс уже ждут.</p>
       </div>

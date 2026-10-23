@@ -36,15 +36,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   return {
     title: 'Каталог курсов',
-    description: 'Найдите учебный курс и карточки по интересующей теме на Remora.',
+    description: 'Найдите учебный курс и карточки по интересующей теме в сервисе «Запоминальня».',
     alternates: { canonical: '/kursy' },
     robots: { index: catalogParams(await searchParams).size === 0, follow: true },
     openGraph: {
       title: 'Каталог курсов',
-      description: 'Найдите учебный курс и карточки по интересующей теме на Remora.',
+      description: 'Найдите учебный курс и карточки по интересующей теме в сервисе «Запоминальня».',
       type: 'website',
       url: '/kursy',
-      images: [{ url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: 'Каталог Remora' }],
+      images: [{ url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: 'Каталог Запоминальня' }],
     },
     twitter: { card: 'summary_large_image' },
   };
@@ -84,7 +84,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
             '@context': 'https://schema.org',
             '@type': 'CollectionPage',
             url: absoluteUrl('/kursy'),
-            name: 'Каталог курсов Remora',
+            name: 'Каталог курсов «Запоминальни»',
             mainEntity: {
               '@type': 'ItemList',
               itemListElement: result.items.map((course, index) => ({
@@ -102,7 +102,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
           href="/"
           className="text-primary inline-flex min-h-11 items-center text-xl font-semibold"
         >
-          Remora
+          Запоминальня
         </Link>
         <PublicAuthLink className="text-primary inline-flex min-h-11 items-center underline" />
       </nav>

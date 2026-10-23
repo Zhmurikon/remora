@@ -90,7 +90,7 @@ export default async function PublicSetPage({ params }: { params: Promise<{ slug
             <span className="bg-primary text-primary-fg grid h-9 w-9 place-items-center rounded-xl">
               R
             </span>
-            Remora
+            Запоминальня
           </Link>
           <PublicAuthLink className="border-border bg-surface hover:bg-surface-muted inline-flex h-11 items-center rounded-full border px-5 text-sm font-medium transition-colors" />
         </nav>

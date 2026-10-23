@@ -3,7 +3,7 @@ import { LegalPage } from '../../components/legal/LegalPage';
 
 export const metadata: Metadata = {
   title: 'Условия использования',
-  description: 'Основные правила использования сайта и приложений Remora.',
+  description: 'Основные правила использования сайта и приложений «Запоминальни».',
   alternates: {
     canonical: '/terms',
     languages: { ru: '/terms', en: '/en/terms' },

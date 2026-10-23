@@ -57,7 +57,7 @@ it('показывает список и полный текст без клие
     const article = renderToStaticMarkup(
       await BlogPostPage({ params: Promise.resolve({ slug: post.slug }) }),
     );
-    expect(article).toContain('Редакция Remora');
+    expect(article).toContain('Редакция «Запоминальни»');
     expect(article).toContain('Что почитать дальше');
     expect(article).toContain('href="/#demo"');
     for (const section of post.sections) {
@@ -87,10 +87,10 @@ it('использует одинаковые публичные материа�
   const entries = await sitemap();
   const urls = entries.map((entry) => entry.url);
   const structured = JSON.stringify(blogStructuredData());
-  expect(urls).toContain('http://localhost:3000/blog');
+  expect(urls).toContain('https://zapominalnya.ru/blog');
   for (const post of publishedPosts()) {
     expect(entries).toContainEqual({
-      url: `http://localhost:3000/blog/${post.slug}`,
+      url: `https://zapominalnya.ru/blog/${post.slug}`,
       lastModified: new Date(post.updatedAt),
     });
     expect(structured).toContain(`/blog/${post.slug}`);
@@ -107,7 +107,7 @@ it('формирует canonical, article Open Graph, Twitter и согласо�
     type: 'article',
     publishedTime: post.publishedAt,
     modifiedTime: post.updatedAt,
-    authors: ['Редакция Remora'],
+    authors: ['Редакция «Запоминальни»'],
   });
   expect(metadata.twitter).toMatchObject({ card: 'summary_large_image' });
   const graph = blogStructuredData(post)['@graph'];
@@ -117,7 +117,7 @@ it('формирует canonical, article Open Graph, Twitter и согласо�
         '@type': 'BlogPosting',
         headline: post.title,
         dateModified: post.updatedAt,
-        mainEntityOfPage: `http://localhost:3000/blog/${post.slug}`,
+        mainEntityOfPage: `https://zapominalnya.ru/blog/${post.slug}`,
       }),
     ]),
   );
