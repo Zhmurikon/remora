@@ -42,6 +42,7 @@ async def test_transcription_upload_is_chunked_and_queued(
         },
     )
     assert created.status_code == 201
+    assert created.json()["provider"] == "faster_whisper"
     job_id = created.json()["id"]
 
     uploaded = await client.put(
@@ -60,3 +61,22 @@ async def test_transcription_upload_is_chunked_and_queued(
     assert completed.json()["status"] == "queued"
     enqueue.assert_awaited_once_with(job_id)
 
+
+@pytest.mark.asyncio
+async def test_transcription_accepts_yandex_provider(client: AsyncClient) -> None:
+    headers = {"X-Transcriber-Token": get_settings().secret_key}
+    created = await client.post(
+        "/api/v1/internal/transcriptions",
+        headers=headers,
+        json={
+            "filename": "lecture.mp4",
+            "content_type": "video/mp4",
+            "size_bytes": 4,
+            "total_parts": 1,
+            "provider": "yandex_speechkit",
+            "language": "ru",
+        },
+    )
+
+    assert created.status_code == 201
+    assert created.json()["provider"] == "yandex_speechkit"

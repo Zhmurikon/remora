@@ -9,8 +9,9 @@ gateway выбирает статическую сборку по заголов
 на домен без `www`.
 `edu-remora.ru` и `test.edu-remora.ru` остаются рабочими алиасами на время перехода. Страницы двух прежних
 доменов отдают `301` на `remora.com.ru` с тем же путём и query-параметрами. Без редиректа
-остаются `/api/`, callback Telegram/VK, `/remora-media/`, `/remora-audio/` и
-`/rasshifrovka/api/`; MCP использует сохранённый `/api/v1/agent/`.
+остаются `/api/`, callback Telegram/VK, `/remora-media/`, `/remora-audio/`,
+`/rasshifrovka/api/` и `/rasshifrovka-yandex/api/`; MCP использует сохранённый
+`/api/v1/agent/`.
 В серверном `deploy/.env` значение `CORS_ORIGINS` должно включать публичный домен, `www`,
 административный домен и оба переходных источника.
 После изменения пересоздать api/worker/bot-api и перезагрузить gateway.
@@ -65,6 +66,21 @@ https://remora.com.ru/api/v1/auth/oauth/google/callback
 localhost. Google-профиль с подтверждённым Gmail или адресом Google Workspace автоматически
 связывается с уже существующим аккаунтом Remora. Сторонний адрес Google-аккаунта не сращивается
 без дополнительного подтверждения владения почтой.
+
+### Закрытая расшифровка через SpeechKit
+
+Вторая скрытая страница `/rasshifrovka-yandex` использует тот же `TRANSCRIBER_ACCESS_CODE`,
+но отдельную подписанную cookie. Для неё в `deploy/.env` нужен
+`YANDEX_SPEECHKIT_API_KEY` сервисного аккаунта с ролью `ai.speechkit-stt.user`.
+Идентификатор API-ключа не является идентификатором каталога и в env не нужен.
+`YANDEX_SPEECHKIT_FOLDER_ID` остаётся необязательным; его задают только при необходимости
+явно выбрать каталог. После изменения окружения пересоздать `web`, `api` и `worker`.
+
+Тестовый контур передаёт сжатый MP3 непосредственно в SpeechKit API v3 и ограничивает
+подготовленное аудио значением `YANDEX_TRANSCRIPTION_MAX_AUDIO_BYTES` (по умолчанию 60 МБ —
+лимит тела запроса API v3). Идентификатор операции сохраняется в PostgreSQL, а worker раз в
+минуту забирает готовые результаты, не занимая процесс ожиданием до 24 часов. Для отдельного
+микросервиса длинных записей следует перейти на URI файла в Yandex Object Storage.
 
 Для раздела `Google Auth Platform → Branding` использовать:
 

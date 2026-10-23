@@ -19,7 +19,6 @@ type Job = {
 };
 
 const CHUNK_BYTES = 16 * 1024 * 1024;
-const JOB_KEY = 'remora-transcription-job';
 const statusText: Record<JobStatus, string> = {
   uploading: 'Загружаем файл',
   queued: 'Файл загружен и ожидает обработки',
@@ -67,7 +66,15 @@ async function uploadWithRetry(url: string, chunk: Blob) {
   throw lastError instanceof Error ? lastError : new Error('Не удалось загрузить файл');
 }
 
-export function Transcriber({ initialAccess }: { initialAccess: boolean }) {
+type TranscriberProps = {
+  initialAccess: boolean;
+  provider?: 'faster_whisper' | 'yandex_speechkit';
+};
+
+export function Transcriber({ initialAccess, provider = 'faster_whisper' }: TranscriberProps) {
+  const yandex = provider === 'yandex_speechkit';
+  const basePath = yandex ? '/rasshifrovka-yandex' : '/rasshifrovka';
+  const jobKey = yandex ? 'remora-yandex-transcription-job' : 'remora-transcription-job';
   const [hasAccess, setHasAccess] = useState(initialAccess);
   const [accessError, setAccessError] = useState('');
   const [file, setFile] = useState<File | null>(null);
@@ -82,9 +89,9 @@ export function Transcriber({ initialAccess }: { initialAccess: boolean }) {
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem(JOB_KEY);
+    const stored = localStorage.getItem(jobKey);
     if (stored) setJobId(stored);
-  }, []);
+  }, [jobKey]);
 
   useEffect(() => {
     if (!jobId || !hasAccess) return;
@@ -92,18 +99,23 @@ export function Transcriber({ initialAccess }: { initialAccess: boolean }) {
     async function check() {
       try {
         const job = await json<Job>(
-          await fetch(`/rasshifrovka/api/jobs/${jobId}`, { cache: 'no-store' }),
+          await fetch(`${basePath}/api/jobs/${jobId}`, { cache: 'no-store' }),
         );
         if (stopped) return;
         setStage(job.status);
-        setStatus(job.error_message || statusText[job.status]);
+        setStatus(
+          job.error_message ||
+            (yandex && job.status === 'transcribing'
+              ? 'SpeechKit обрабатывает запись в отложенном режиме'
+              : statusText[job.status]),
+        );
         setResultFilename(job.filename);
         if (job.status === 'completed') {
           setResult(job.result_text ?? '');
-          localStorage.removeItem(JOB_KEY);
+          localStorage.removeItem(jobKey);
           setJobId(null);
         } else if (job.status === 'failed') {
-          localStorage.removeItem(JOB_KEY);
+          localStorage.removeItem(jobKey);
           setJobId(null);
         }
       } catch (error) {
@@ -117,13 +129,13 @@ export function Transcriber({ initialAccess }: { initialAccess: boolean }) {
       stopped = true;
       window.clearInterval(timer);
     };
-  }, [hasAccess, jobId]);
+  }, [basePath, hasAccess, jobId, jobKey, yandex]);
 
   async function unlock(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setAccessError('');
     const form = new FormData(event.currentTarget);
-    const response = await fetch('/rasshifrovka/api/access', {
+    const response = await fetch(`${basePath}/api/access`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code: form.get('code') }),
@@ -167,7 +179,7 @@ export function Transcriber({ initialAccess }: { initialAccess: boolean }) {
     try {
       const totalParts = Math.ceil(file.size / CHUNK_BYTES);
       const job = await json<Job>(
-        await fetch('/rasshifrovka/api/jobs', {
+        await fetch(`${basePath}/api/jobs`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -175,24 +187,25 @@ export function Transcriber({ initialAccess }: { initialAccess: boolean }) {
             content_type: file.type || 'application/octet-stream',
             size_bytes: file.size,
             total_parts: totalParts,
+            provider,
             language: form.get('language') || null,
-            beam_size: Number(form.get('beam_size')),
-            vad_filter: form.has('vad_filter'),
-            word_timestamps: form.has('word_timestamps'),
+            beam_size: yandex ? 5 : Number(form.get('beam_size')),
+            vad_filter: yandex || form.has('vad_filter'),
+            word_timestamps: !yandex && form.has('word_timestamps'),
           }),
         }),
       );
       setJobId(job.id);
-      localStorage.setItem(JOB_KEY, job.id);
+      localStorage.setItem(jobKey, job.id);
       for (let part = 0; part < totalParts; part += 1) {
         setStatus(`Загружаем файл: ${part + 1} из ${totalParts}`);
         await uploadWithRetry(
-          `/rasshifrovka/api/jobs/${job.id}/parts/${part}`,
+          `${basePath}/api/jobs/${job.id}/parts/${part}`,
           file.slice(part * CHUNK_BYTES, Math.min(file.size, (part + 1) * CHUNK_BYTES)),
         );
         setUploadProgress(Math.round(((part + 1) / totalParts) * 100));
       }
-      await json<Job>(await fetch(`/rasshifrovka/api/jobs/${job.id}/complete`, { method: 'POST' }));
+      await json<Job>(await fetch(`${basePath}/api/jobs/${job.id}/complete`, { method: 'POST' }));
       setStage('queued');
       setStatus(statusText.queued);
       setFile(null);
@@ -305,20 +318,29 @@ export function Transcriber({ initialAccess }: { initialAccess: boolean }) {
           <option value="ru">Русский</option>
           <option value="en">Английский</option>
         </select>
-        <label htmlFor="beam_size">Точность распознавания</label>
-        <select id="beam_size" name="beam_size" defaultValue="5">
-          <option value="3">Быстрее</option>
-          <option value="5">Оптимальная</option>
-          <option value="8">Максимальная</option>
-        </select>
-        <label className="transcriber-check">
-          <input type="checkbox" name="vad_filter" defaultChecked />
-          <span>Убирать длинные паузы</span>
-        </label>
-        <label className="transcriber-check">
-          <input type="checkbox" name="word_timestamps" />
-          <span>Добавить таймкоды слов</span>
-        </label>
+        {yandex ? (
+          <div className="transcriber-provider-note">
+            <strong>Отложенное распознавание</strong>
+            <span>Модель deferred-general · SpeechKit API v3</span>
+          </div>
+        ) : (
+          <>
+            <label htmlFor="beam_size">Точность распознавания</label>
+            <select id="beam_size" name="beam_size" defaultValue="5">
+              <option value="3">Быстрее</option>
+              <option value="5">Оптимальная</option>
+              <option value="8">Максимальная</option>
+            </select>
+            <label className="transcriber-check">
+              <input type="checkbox" name="vad_filter" defaultChecked />
+              <span>Убирать длинные паузы</span>
+            </label>
+            <label className="transcriber-check">
+              <input type="checkbox" name="word_timestamps" />
+              <span>Добавить таймкоды слов</span>
+            </label>
+          </>
+        )}
         <button className="transcriber-button" disabled={!file || busy} type="submit">
           {busy ? 'Обрабатываем…' : 'Начать расшифровку'}
         </button>

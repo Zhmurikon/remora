@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.transcriptions import TranscriptionStatus
+from app.models.transcriptions import TranscriptionProvider, TranscriptionStatus
 
 
 class TranscriptionCreate(BaseModel):
@@ -11,6 +11,7 @@ class TranscriptionCreate(BaseModel):
     content_type: str = Field(default="application/octet-stream", max_length=120)
     size_bytes: int = Field(gt=0, le=1024 * 1024 * 1024)
     total_parts: int = Field(gt=0, le=64)
+    provider: TranscriptionProvider = TranscriptionProvider.faster_whisper
     language: str | None = Field(default=None, max_length=12)
     beam_size: int = Field(default=5, ge=1, le=10)
     vad_filter: bool = True
@@ -26,9 +27,9 @@ class TranscriptionPublic(BaseModel):
     total_parts: int
     uploaded_parts: int
     status: TranscriptionStatus
+    provider: TranscriptionProvider
     result_text: str | None
     error_message: str | None
     created_at: datetime
     started_at: datetime | None
     finished_at: datetime | None
-

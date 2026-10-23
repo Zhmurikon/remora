@@ -241,6 +241,22 @@
   margin: 1px 0 0;
   accent-color: rgb(var(--rm-primary));
 }
+.transcriber-provider-note {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgb(var(--rm-primary-subtle));
+  color: rgb(var(--rm-fg));
+}
+.transcriber-provider-note strong {
+  font-size: 14px;
+}
+.transcriber-provider-note span {
+  color: rgb(var(--rm-fg-muted));
+  font-size: 13px;
+  line-height: 1.35;
+}
 .transcriber-settings > .transcriber-button {
   width: 100%;
   margin-top: 8px;

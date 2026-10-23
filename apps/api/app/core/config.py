@@ -126,6 +126,8 @@ class Settings(BaseSettings):
     # Закрытый инструмент расшифровки; ключ используется только сервером и worker.
     faster_whisper_url: str = "http://host.docker.internal:8178"
     faster_whisper_api_key: SecretStr | None = None
+    # API v3 принимает в теле запроса не больше 60 МБ аудио.
+    yandex_transcription_max_audio_bytes: int = 60 * 1024 * 1024
 
     @property
     def is_local(self) -> bool:

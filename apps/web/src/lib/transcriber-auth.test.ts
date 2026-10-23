@@ -10,6 +10,7 @@ const original = {
   secret: process.env.SECRET_KEY,
   code: process.env.TRANSCRIBER_ACCESS_CODE,
   apiKey: process.env.FASTER_WHISPER_API_KEY,
+  yandexApiKey: process.env.YANDEX_SPEECHKIT_API_KEY,
 };
 
 afterEach(() => {
@@ -17,6 +18,7 @@ afterEach(() => {
     SECRET_KEY: original.secret,
     TRANSCRIBER_ACCESS_CODE: original.code,
     FASTER_WHISPER_API_KEY: original.apiKey,
+    YANDEX_SPEECHKIT_API_KEY: original.yandexApiKey,
   })) {
     if (value === undefined) delete process.env[key];
     else process.env[key] = value;
@@ -39,5 +41,16 @@ describe('доступ к расшифровке', () => {
     expect(verifyTranscriberCode('1449')).toBe(false);
     expect(verifyTranscriberCookie(createTranscriberCookieValue())).toBe(true);
     expect(verifyTranscriberCookie('v1.forged')).toBe(false);
+  });
+
+  it('разделяет доступ к локальному и Яндекс-провайдеру', () => {
+    process.env.SECRET_KEY = 'test-secret-key-with-at-least-32-characters';
+    process.env.TRANSCRIBER_ACCESS_CODE = '1448';
+    process.env.FASTER_WHISPER_API_KEY = 'test-api-key';
+    process.env.YANDEX_SPEECHKIT_API_KEY = 'test-yandex-key';
+
+    const yandexCookie = createTranscriberCookieValue('yandex_speechkit');
+    expect(verifyTranscriberCookie(yandexCookie, 'yandex_speechkit')).toBe(true);
+    expect(verifyTranscriberCookie(yandexCookie)).toBe(false);
   });
 });
