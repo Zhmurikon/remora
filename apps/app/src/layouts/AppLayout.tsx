@@ -108,9 +108,12 @@ export function AppLayout() {
 
 function Brand() {
   return (
-    <div className="flex items-center gap-2.5 font-semibold tracking-tight">
+    <div
+      className="flex items-center gap-2.5 font-semibold tracking-tight"
+      aria-label="Запоминальня"
+    >
       <FishMark className="h-9 w-9 shrink-0" />
-      <span className="text-xl">Remora</span>
+      <span className="hidden text-xl min-[360px]:inline">Запоминальня</span>
     </div>
   );
 }

@@ -28,11 +28,14 @@ export function AdminLayout() {
       </a>
       <aside className="border-border bg-surface border-b px-4 py-3 lg:sticky lg:top-0 lg:h-dvh lg:border-b-0 lg:border-r lg:p-5">
         <div className="flex items-center justify-between gap-4 lg:block">
-          <div className="flex items-center gap-2.5 px-1">
+          <div
+            className="flex items-center gap-2.5 px-1"
+            aria-label="Запоминальня — администрирование"
+          >
             <FishMark className="h-9 w-9 shrink-0" />
-            <div>
-              <p className="font-semibold leading-tight">Remora</p>
-              <p className="text-fg-subtle text-xs">Управление</p>
+            <div className="hidden min-[430px]:block lg:block">
+              <p className="font-semibold leading-tight">Запоминальня</p>
+              <p className="text-fg-subtle text-xs">Администрирование</p>
             </div>
           </div>
           <nav className="flex gap-1 lg:mt-8 lg:block lg:space-y-1" aria-label="Разделы панели">

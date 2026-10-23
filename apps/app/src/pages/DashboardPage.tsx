@@ -85,8 +85,8 @@ export function DashboardPage() {
               </span>
               <h3 className="mt-5 text-xl font-semibold">Здесь появятся ваши наборы</h3>
               <p className="text-fg-muted mx-auto mt-2 max-w-md">
-                Создайте первый набор — и Remora начнёт возвращать карточки ровно тогда, когда вы
-                готовы их забыть.
+                Создайте первый набор — и Запоминальня начнёт возвращать карточки ровно тогда, когда
+                вы готовы их забыть.
               </p>
               <Button className="mt-6" onClick={() => navigate('/sets')}>
                 Создать набор

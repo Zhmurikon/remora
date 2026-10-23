@@ -62,7 +62,8 @@ export function BotConnections() {
   }
 
   async function revoke(id: string) {
-    if (!window.confirm('Отключить бота? Ваши материалы и прогресс останутся в Remora.')) return;
+    if (!window.confirm('Отключить бота? Ваши материалы и прогресс останутся в «Запоминальне».'))
+      return;
     setBusy(true);
     setMessage(null);
     try {
