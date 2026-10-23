@@ -25,6 +25,10 @@ server {
     access_log /var/log/nginx/zapominalnya_access.log;
     error_log /var/log/nginx/zapominalnya_error.log warn;
 
+    location ~* /(\.env|\.git|\.aws|\.ssh|wp-admin|wp-login\.php|xmlrpc\.php|phpmyadmin|\.docker|\.vscode|config\.php|id_rsa|\.htpasswd|\.DS_Store)(/|$) {
+        return 404;
+    }
+
     location / {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;

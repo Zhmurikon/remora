@@ -1,0 +1,16 @@
+# Временный HTTP-vhost нужен только для первого выпуска сертификата старого домена.
+# После `certbot certonly --webroot` его заменяет основной host-nginx.conf.example.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name remora.com.ru www.remora.com.ru;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt;
+        default_type text/plain;
+    }
+
+    location / {
+        return 301 https://zapominalnya.ru$request_uri;
+    }
+}
