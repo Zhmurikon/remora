@@ -23,9 +23,9 @@ export function HomeNav() {
 
   return (
     <header className="home-header">
-      <a className="home-brand" href="/" aria-label="Remora, главная">
+      <a className="home-brand" href="/" aria-label="Запоминальня, главная">
         <FishMark />
-        Remora
+        Запоминальня
       </a>
       <nav className="home-desktop-nav" aria-label="Основная навигация">
         <a href="#features">Возможности</a>

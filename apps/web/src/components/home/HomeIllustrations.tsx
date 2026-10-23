@@ -60,7 +60,7 @@ export function ChatIllustration() {
     <div
       className="home-chat-scene"
       role="img"
-      aria-label="Примеры обучения: вопрос бота Remora в Telegram и верный ответ во ВКонтакте"
+      aria-label="Примеры обучения: вопрос бота «Запоминальня» в Telegram и верный ответ во ВКонтакте"
     >
       <div className="home-chat">
         <div className="home-chat-header">
@@ -68,7 +68,7 @@ export function ChatIllustration() {
             <HomeIcon name="telegram" />
           </span>
           <div>
-            <strong>Remora</strong>
+            <strong>Запоминальня</strong>
             <small>Telegram · бот</small>
           </div>
           <span>···</span>
@@ -91,7 +91,7 @@ export function ChatIllustration() {
         <div className="home-chat-header">
           <span className="home-chat-avatar home-vk">VK</span>
           <div>
-            <strong>Remora</strong>
+            <strong>Запоминальня</strong>
             <small>ВКонтакте · бот</small>
           </div>
           <span>···</span>
@@ -165,7 +165,7 @@ export function AiIllustration() {
     <div
       className="home-ai-scene"
       role="img"
-      aria-label="Свой ИИ-помощник получает задание создать курс, а Remora хранит теорию и карточки"
+      aria-label="Свой ИИ-помощник получает задание создать курс, а «Запоминальня» хранит теорию и карточки"
     >
       <div className="home-ai-prompt">
         <span className="home-mini-label">
@@ -184,7 +184,7 @@ export function AiIllustration() {
       <div className="home-ai-course">
         <span className="home-brand">
           <FishMark />
-          Remora
+          Запоминальня
         </span>
         <div>
           <HomeIcon name="book" />
