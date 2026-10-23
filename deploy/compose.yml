@@ -12,6 +12,8 @@ x-api: &api
     - ./logs:/var/log/remora
   extra_hosts:
     - host.docker.internal:host-gateway
+    # На servtech SMTP идёт через закрытый host-туннель из-за блокировки исходящего 587.
+    - smtp.timeweb.ru:host-gateway
   networks: [internal]
   restart: unless-stopped
 
@@ -167,6 +169,8 @@ services:
       retries: 18
   gateway:
     image: nginx:1.28-alpine
+    ports:
+      - 127.0.0.1:8280:80
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ../apps/app/dist:/srv/app:ro

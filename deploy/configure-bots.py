@@ -1,4 +1,4 @@
-"""Явный перенос только реквизитов ботов из локального .env на home-server."""
+"""Явный перенос только реквизитов ботов из локального .env на servtech."""
 
 import json
 import subprocess
@@ -12,7 +12,7 @@ def main() -> None:
     names = ["TG_BOT_TOKEN", "VK_GROUP_TOKEN", "VK_CALLBACK_URL_TOKEN", "VK_GROUP_ID"]
     values = {key: source.get(key) or "" for key in names}
     assert all(values.values()), "Не хватает переменных ботов в локальном .env"
-    assert source.get("VK_CALLBACK_URL") == "https://remora.com.ru/callback/vk_v1/", (
+    assert source.get("VK_CALLBACK_URL") == "https://zapominalnya.ru/callback/vk_v1/", (
         "Проверьте адрес Callback VK"
     )
     # Данные идут по stdin SSH, а не через аргументы процессов или журналы.
@@ -70,7 +70,7 @@ if data["TG_BOT_USERNAME"]: print("Telegram: https://t.me/"+data["TG_BOT_USERNAM
 '''
     import shlex
     command = "docker run --rm -i --add-host host.docker.internal:host-gateway -v /opt/remora-dev:/workspace -v remora-dev_python-deps:/opt/venv:ro remora-dev-api:local python -c " + shlex.quote(script)
-    subprocess.run(["ssh", "home-server", command], input=json.dumps(values), text=True, check=True)
+    subprocess.run(["ssh", "servtech", command], input=json.dumps(values), text=True, check=True)
 
 
 if __name__ == "__main__":

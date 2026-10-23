@@ -1,0 +1,83 @@
+# Host nginx завершает TLS перед Docker gateway на 127.0.0.1:8280.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name zapominalnya.ru www.zapominalnya.ru xn--80aatfqdicdj3mnb.xn--p1ai;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt;
+        default_type text/plain;
+    }
+
+    location / {
+        return 301 https://zapominalnya.ru$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name zapominalnya.ru;
+
+    ssl_certificate /etc/letsencrypt/live/zapominalnya.ru/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/zapominalnya.ru/privkey.pem;
+
+    access_log /var/log/nginx/zapominalnya_access.log;
+    error_log /var/log/nginx/zapominalnya_error.log warn;
+
+    location / {
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_pass http://127.0.0.1:8280;
+    }
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name www.zapominalnya.ru;
+
+    ssl_certificate /etc/letsencrypt/live/zapominalnya.ru/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/zapominalnya.ru/privkey.pem;
+
+    return 301 https://zapominalnya.ru$request_uri;
+}
+
+# Старый домен сохраняет API, callbacks и S3-ссылки, а страницы переводит на новый host.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name remora.com.ru www.remora.com.ru;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt;
+        default_type text/plain;
+    }
+
+    location / {
+        return 301 https://zapominalnya.ru$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name remora.com.ru www.remora.com.ru;
+
+    ssl_certificate /etc/letsencrypt/live/remora.com.ru/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/remora.com.ru/privkey.pem;
+
+    location ~ ^/(api/|callback/|remora-(media|audio)/|rasshifrovka(-yandex)?/api/) {
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_pass http://127.0.0.1:8280;
+    }
+
+    location / {
+        return 301 https://zapominalnya.ru$request_uri;
+    }
+}
