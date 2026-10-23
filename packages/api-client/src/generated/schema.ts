@@ -662,6 +662,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/billing/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Отменить продление */
+        post: operations["cancel_subscription_api_v1_billing_cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/billing/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Checkout */
+        post: operations["create_checkout_api_v1_billing_checkout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/billing/entitlements": {
         parameters: {
             query?: never;
@@ -671,6 +705,23 @@ export interface paths {
         };
         /** Мой тариф и квоты */
         get: operations["my_entitlements_api_v1_billing_entitlements_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/billing/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Подписка и платежи */
+        get: operations["billing_overview_api_v1_billing_overview_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3437,6 +3488,14 @@ export interface components {
          * @enum {string}
          */
         BattleStatus: "waiting" | "countdown" | "active" | "finished" | "cancelled" | "expired";
+        /** BillingOverview */
+        BillingOverview: {
+            /** Payments */
+            payments: components["schemas"]["PaymentPublic"][];
+            /** Referral Code */
+            referral_code: string;
+            subscription: components["schemas"]["SubscriptionPublic"] | null;
+        };
         /** BotCodeCreated */
         BotCodeCreated: {
             /** Bot Url */
@@ -3611,6 +3670,40 @@ export interface components {
             wrong_definition_answers?: string[];
             /** Wrong Term Answers */
             wrong_term_answers?: string[];
+        };
+        /** CheckoutRequest */
+        CheckoutRequest: {
+            /**
+             * Interval
+             * @enum {string}
+             */
+            interval: "month" | "year";
+            /**
+             * Plan Code
+             * @enum {string}
+             */
+            plan_code: "plus" | "pro";
+            /** Promo Code */
+            promo_code?: string | null;
+            /**
+             * Request Key
+             * Format: uuid
+             */
+            request_key: string;
+        };
+        /** CheckoutResponse */
+        CheckoutResponse: {
+            /** Amount */
+            amount: number;
+            /** Confirmation Url */
+            confirmation_url: string;
+            /** Currency */
+            currency: string;
+            /**
+             * Payment Id
+             * Format: uuid
+             */
+            payment_id: string;
         };
         /** ClassCardReportOut */
         ClassCardReportOut: {
@@ -4570,6 +4663,37 @@ export interface components {
              */
             email: string;
         };
+        /** PaymentPublic */
+        PaymentPublic: {
+            /** Amount */
+            amount: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /** Discount Amount */
+            discount_amount: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Interval */
+            interval: string;
+            /** Paid At */
+            paid_at: string | null;
+            /** Plan Code */
+            plan_code: string;
+            /** Plan Name */
+            plan_name: string;
+            /** Receipt Url */
+            receipt_url: string | null;
+            /** Status */
+            status: string;
+        };
         /** PlanPublic */
         PlanPublic: {
             /** Code */
@@ -4861,6 +4985,8 @@ export interface components {
             email: string;
             /** Password */
             password: string;
+            /** Referral Code */
+            referral_code?: string | null;
             /** Username */
             username: string;
         };
@@ -5572,6 +5698,29 @@ export interface components {
             new_cards_per_day?: number | null;
             /** Reviews Per Day */
             reviews_per_day?: number | null;
+        };
+        /** SubscriptionPublic */
+        SubscriptionPublic: {
+            /** Cancel At Period End */
+            cancel_at_period_end: boolean;
+            /**
+             * Current Period End
+             * Format: date-time
+             */
+            current_period_end: string;
+            /**
+             * Current Period Start
+             * Format: date-time
+             */
+            current_period_start: string;
+            /** Interval */
+            interval: string;
+            /** Plan Code */
+            plan_code: string;
+            /** Plan Name */
+            plan_name: string;
+            /** Status */
+            status: string;
         };
         /** TestAnswerIn */
         TestAnswerIn: {
@@ -7254,6 +7403,59 @@ export interface operations {
             };
         };
     };
+    cancel_subscription_api_v1_billing_cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionPublic"];
+                };
+            };
+        };
+    };
+    create_checkout_api_v1_billing_checkout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     my_entitlements_api_v1_billing_entitlements_get: {
         parameters: {
             query?: never;
@@ -7270,6 +7472,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EntitlementsPublic"];
+                };
+            };
+        };
+    };
+    billing_overview_api_v1_billing_overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingOverview"];
                 };
             };
         };

@@ -33,6 +33,7 @@ from app.repositories import oauth as oauth_repo
 from app.repositories import token as token_repo
 from app.repositories import user as user_repo
 from app.schemas.auth import SessionPublic, UserPublic
+from app.services.billing import BillingService
 from app.services.google_oauth import GoogleProfile
 
 log = structlog.get_logger()
@@ -76,6 +77,7 @@ class AuthService:
         password: str,
         username: str,
         birth_date: date | None = None,
+        referral_code: str | None = None,
     ) -> tuple[User, str]:
         """Создаёт пользователя, возвращает (user, verification_token)."""
         # Проверка пароля по словарю и политике
@@ -104,6 +106,7 @@ class AuthService:
             raise ConflictError("Email или имя пользователя уже заняты") from exc
 
         settings = get_settings()
+        await BillingService(self.db).attach_referral(user, referral_code)
         token = create_jwt(str(user.id), EMAIL_VERIFICATION, extra={"email": email})
         await action_token_repo.create_token(
             self.db,

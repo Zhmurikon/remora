@@ -2,7 +2,7 @@
 
 import { Button, Input } from '@remora/ui';
 import Link from 'next/link';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { authApi, getErrorMessage } from '../../lib/auth-api';
 import { FormDivider, FormError, PasswordField, SocialButtons } from './AuthFields';
 
@@ -10,6 +10,11 @@ export function RegisterForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const [referralCode, setReferralCode] = useState('');
+
+  useEffect(() => {
+    setReferralCode(new URLSearchParams(window.location.search).get('ref')?.toUpperCase() ?? '');
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -25,6 +30,7 @@ export function RegisterForm() {
           username: String(data.get('username')),
           password: String(data.get('password')),
           birth_date: String(data.get('birth_date')),
+          referral_code: referralCode.trim() || null,
         },
       });
       if (response.error) {
@@ -93,6 +99,16 @@ export function RegisterForm() {
           required
           className="h-12 rounded-xl"
           hint="Нужна для возрастных настроек аккаунта"
+        />
+        <Input
+          label="Пригласительный код"
+          name="referral_code"
+          value={referralCode}
+          onChange={(event) => setReferralCode(event.target.value.toUpperCase())}
+          placeholder="RMR-XXXXXXXX"
+          maxLength={24}
+          className="h-12 rounded-xl"
+          hint="Необязательно. После первой оплаты вы оба получите 30 дней Plus"
         />
         <label className="text-fg-muted flex cursor-pointer items-start gap-3 py-1 text-sm leading-5">
           <input

@@ -58,6 +58,7 @@ class Entitlements:
                 .join(Plan, Plan.id == Subscription.plan_id)
                 .where(
                     Subscription.user_id == user.id,
+                    Subscription.current_period_start <= moment,
                     Subscription.status.in_(
                         [
                             SubscriptionStatus.active,

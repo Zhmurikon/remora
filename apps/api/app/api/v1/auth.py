@@ -255,6 +255,7 @@ async def register(
         password=body.password,
         username=body.username,
         birth_date=body.birth_date,
+        referral_code=body.referral_code,
     )
     return TokenResponse(access_token="", user=to_user_public(user))
 

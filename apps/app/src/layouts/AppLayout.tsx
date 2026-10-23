@@ -15,6 +15,7 @@ const navigation = [
   { to: '/practice', label: 'Практика', icon: 'practice' },
   { to: '/classes', label: 'Классы', icon: 'classes' },
   { to: '/achievements', label: 'Достижения', icon: 'achievement' },
+  { to: '/billing', label: 'Тариф', icon: 'billing' },
   { to: '/settings', label: 'Настройки', icon: 'settings' },
 ];
 
@@ -237,6 +238,14 @@ function NavigationIcon({ name }: { name: string }) {
           strokeLinecap="round"
           strokeLinejoin="round"
         />
+      </svg>
+    );
+  }
+  if (name === 'billing') {
+    return (
+      <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="3" y="5" width="18" height="14" rx="3" stroke="currentColor" strokeWidth="1.7" />
+        <path d="M3 10h18M7 15h4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
       </svg>
     );
   }

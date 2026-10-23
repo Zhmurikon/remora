@@ -1,10 +1,18 @@
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.deps import current_user
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.billing import EntitlementsPublic, PlanPublic
+from app.schemas.payments import (
+    BillingOverview,
+    CheckoutRequest,
+    CheckoutResponse,
+    SubscriptionPublic,
+    YooKassaNotification,
+)
+from app.services.billing import BillingService
 from app.services.entitlements import Entitlements
 from app.services.plans import public_plans
 
@@ -25,3 +33,34 @@ async def my_entitlements(
     response.headers["Cache-Control"] = "no-store"
     resolved = await Entitlements(db).resolve(user)
     return EntitlementsPublic(**resolved.__dict__)
+
+
+@router.get("/overview", response_model=BillingOverview, summary="Подписка и платежи")
+async def billing_overview(
+    response: Response,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+) -> BillingOverview:
+    response.headers["Cache-Control"] = "no-store"
+    return await BillingService(db).overview(user)
+
+
+@router.post("/checkout", response_model=CheckoutResponse, status_code=status.HTTP_201_CREATED)
+async def create_checkout(
+    body: CheckoutRequest,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+) -> CheckoutResponse:
+    return await BillingService(db).checkout(user, body)
+
+
+@router.post("/cancel", response_model=SubscriptionPublic, summary="Отменить продление")
+async def cancel_subscription(
+    user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+) -> SubscriptionPublic:
+    return await BillingService(db).cancel(user)
+
+
+@router.post("/webhooks/yookassa", status_code=status.HTTP_200_OK, include_in_schema=False)
+async def yookassa_webhook(body: YooKassaNotification, db: AsyncSession = Depends(get_db)) -> None:
+    await BillingService(db).webhook(body)

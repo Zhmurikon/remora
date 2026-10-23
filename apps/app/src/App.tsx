@@ -22,6 +22,7 @@ import { WritePage } from './pages/WritePage';
 import { AchievementsPage } from './pages/AchievementsPage';
 import { BattlePage } from './pages/BattlePage';
 import { ClassPage, ClassesPage, JoinClassPage, StudentReportPage } from './pages/ClassesPage';
+import { BillingPage } from './pages/BillingPage';
 
 export function App() {
   return (
@@ -74,6 +75,7 @@ export function App() {
                 element={<StudentReportPage />}
               />
               <Route path="classes/:classId" element={<ClassPage />} />
+              <Route path="billing" element={<BillingPage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
           </Route>

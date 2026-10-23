@@ -108,6 +108,13 @@ class Settings(BaseSettings):
     smtp_password: SecretStr | None = None
     smtp_start_tls: bool = False
 
+    # ЮKassa. Пустые реквизиты оставляют оплату выключенной.
+    yookassa_shop_id: str | None = None
+    yookassa_secret_key: SecretStr | None = None
+    yookassa_api_url: str = "https://api.yookassa.ru/v3"
+    yookassa_send_receipt: bool = False
+    yookassa_vat_code: int = Field(default=1, ge=1, le=12)
+
     # Синтез речи. Без ключа провайдер выключен: интерфейс продолжает работать,
     # просто не предлагает озвучку — обучение от TTS зависеть не должно.
     tts_provider: Literal["yandex", "disabled"] = "disabled"
