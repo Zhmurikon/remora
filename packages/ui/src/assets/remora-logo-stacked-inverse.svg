@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1180" role="img" aria-label="Remora">
-  <g transform="translate(112 0) scale(0.63795853)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1450" role="img" aria-label="Запоминальня">
+  <g transform="translate(298 0) scale(0.8)">
 <g transform="translate(0.000000,1254.000000) scale(0.100000,-0.100000)"
 fill="#0D8285" stroke="none">
 <path d="M3938 11240 c-258 -24 -444 -103 -478 -206 -17 -49 4 -85 122 -209
@@ -233,5 +233,5 @@ l-50 -3 -76 -325 c-71 -296 -423 -1772 -437 -1829 -6 -23 -4 -23 33 -17 124
 -16 88 -30 47 -14 80 -21 75 -17 -5 5 -41 19 -80 30 -70 21 -92 25 -83 17z"/>
 </g>
   </g>
-  <text x="512" y="1060" fill="#FFFFFF" text-anchor="middle" font-family="Inter, 'Segoe UI', sans-serif" font-size="230" font-weight="700">Remora</text>
+  <text x="800" y="1320" fill="#FFFFFF" text-anchor="middle" font-family="Inter, 'Segoe UI', sans-serif" font-size="190" font-weight="700">Запоминальня</text>
 </svg>

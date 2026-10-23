@@ -10,6 +10,18 @@
     ".": "./src/index.ts",
     "./base": "./src/base.ts",
     "./assets/remora-mascot-source.png": "./src/assets/remora-mascot-source.png",
+    "./assets/remora-mark.svg": "./src/assets/remora-mark.svg",
+    "./assets/remora-mark.png": "./src/assets/remora-mark.png",
+    "./assets/remora-mark-compact.svg": "./src/assets/remora-mark-compact.svg",
+    "./assets/remora-mark-compact.png": "./src/assets/remora-mark-compact.png",
+    "./assets/zapominalnya-logo-horizontal.svg": "./src/assets/zapominalnya-logo-horizontal.svg",
+    "./assets/zapominalnya-logo-horizontal.png": "./src/assets/zapominalnya-logo-horizontal.png",
+    "./assets/zapominalnya-logo-horizontal-inverse.svg": "./src/assets/zapominalnya-logo-horizontal-inverse.svg",
+    "./assets/zapominalnya-logo-horizontal-inverse.png": "./src/assets/zapominalnya-logo-horizontal-inverse.png",
+    "./assets/zapominalnya-logo-stacked.svg": "./src/assets/zapominalnya-logo-stacked.svg",
+    "./assets/zapominalnya-logo-stacked.png": "./src/assets/zapominalnya-logo-stacked.png",
+    "./assets/zapominalnya-logo-stacked-inverse.svg": "./src/assets/zapominalnya-logo-stacked-inverse.svg",
+    "./assets/zapominalnya-logo-stacked-inverse.png": "./src/assets/zapominalnya-logo-stacked-inverse.png",
     "./styles/tokens.css": "./src/styles/tokens.css"
   },
   "scripts": {

@@ -4,6 +4,7 @@ set -euo pipefail
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 source_png="$repo_root/packages/ui/src/assets/remora-mascot-source.png"
 assets_dir="$repo_root/packages/ui/src/assets"
+brand_name='Запоминальня'
 work_dir=$(mktemp -d)
 trap 'rm -rf "$work_dir"' EXIT
 
@@ -20,7 +21,7 @@ if [[ ! -f "$source_png" ]]; then
 fi
 
 convert xc:none xc:'#0D8285' xc:white xc:'#EA8D2F' +append "$work_dir/palette.png"
-convert "$source_png" +dither -remap "$work_dir/palette.png" "$assets_dir/remora-mark.png"
+convert "$source_png" +dither -remap "$work_dir/palette.png" -strip "$assets_dir/remora-mark.png"
 
 trace_layer() {
   local name=$1
@@ -40,9 +41,9 @@ trace_layer white 1 1 1
 trace_layer orange 0.91765 0.55294 0.18431
 
 {
-  printf '%s\n' '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1254 1254" role="img" aria-labelledby="remora-mark-title remora-mark-description">'
-  printf '%s\n' '  <title id="remora-mark-title">Remora</title>'
-  printf '%s\n' '  <desc id="remora-mark-description">Серьёзная рыба-ремора в очках читает книгу</desc>'
+  printf '%s\n' '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1254 1254" role="img" aria-labelledby="zapominalnya-mark-title zapominalnya-mark-description">'
+  printf '%s\n' "  <title id=\"zapominalnya-mark-title\">$brand_name</title>"
+  printf '%s\n' '  <desc id="zapominalnya-mark-description">Серьёзная рыба-ремора в очках читает книгу</desc>'
   for layer in teal white orange; do
     case "$layer" in
       teal) color='#0D8285' ;;
@@ -54,7 +55,7 @@ trace_layer orange 0.91765 0.55294 0.18431
   printf '%s\n' '</svg>'
 } > "$assets_dir/remora-mark.svg"
 
-convert "$assets_dir/remora-mark.png" -crop 620x620+500+180 +repage \
+convert "$assets_dir/remora-mark.png" -crop 620x620+500+180 +repage -strip \
   "$assets_dir/remora-mark-compact.png"
 sed \
   -e 's/viewBox="0 0 1254 1254"/viewBox="500 180 620 620"/' \
@@ -65,11 +66,11 @@ write_horizontal_logo() {
   local output=$1
   local text_color=$2
   {
-    printf '%s\n' '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 512" role="img" aria-label="Remora">'
+    printf '%s\n' "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 2200 512\" role=\"img\" aria-label=\"$brand_name\">"
     printf '%s\n' '  <g transform="scale(0.40829346)">'
     sed -n '/<g /,/<\/g>/p' "$assets_dir/remora-mark.svg"
     printf '%s\n' '  </g>'
-    printf '%s\n' "  <text x=\"560\" y=\"336\" fill=\"$text_color\" font-family=\"Inter, 'Segoe UI', sans-serif\" font-size=\"230\" font-weight=\"700\">Remora</text>"
+    printf '%s\n' "  <text x=\"560\" y=\"330\" fill=\"$text_color\" font-family=\"Inter, 'Segoe UI', sans-serif\" font-size=\"210\" font-weight=\"700\">$brand_name</text>"
     printf '%s\n' '</svg>'
   } > "$output"
 }
@@ -78,24 +79,33 @@ write_stacked_logo() {
   local output=$1
   local text_color=$2
   {
-    printf '%s\n' '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1180" role="img" aria-label="Remora">'
-    printf '%s\n' '  <g transform="translate(112 0) scale(0.63795853)">'
+    printf '%s\n' "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1600 1450\" role=\"img\" aria-label=\"$brand_name\">"
+    printf '%s\n' '  <g transform="translate(298 0) scale(0.8)">'
     sed -n '/<g /,/<\/g>/p' "$assets_dir/remora-mark.svg"
     printf '%s\n' '  </g>'
-    printf '%s\n' "  <text x=\"512\" y=\"1060\" fill=\"$text_color\" text-anchor=\"middle\" font-family=\"Inter, 'Segoe UI', sans-serif\" font-size=\"230\" font-weight=\"700\">Remora</text>"
+    printf '%s\n' "  <text x=\"800\" y=\"1320\" fill=\"$text_color\" text-anchor=\"middle\" font-family=\"Inter, 'Segoe UI', sans-serif\" font-size=\"190\" font-weight=\"700\">$brand_name</text>"
     printf '%s\n' '</svg>'
   } > "$output"
 }
 
-write_horizontal_logo "$assets_dir/remora-logo-horizontal.svg" '#1C2424'
-write_horizontal_logo "$assets_dir/remora-logo-horizontal-inverse.svg" '#FFFFFF'
-write_stacked_logo "$assets_dir/remora-logo-stacked.svg" '#1C2424'
-write_stacked_logo "$assets_dir/remora-logo-stacked-inverse.svg" '#FFFFFF'
+write_horizontal_logo "$assets_dir/zapominalnya-logo-horizontal.svg" '#1C2424'
+write_horizontal_logo "$assets_dir/zapominalnya-logo-horizontal-inverse.svg" '#FFFFFF'
+write_stacked_logo "$assets_dir/zapominalnya-logo-stacked.svg" '#1C2424'
+write_stacked_logo "$assets_dir/zapominalnya-logo-stacked-inverse.svg" '#FFFFFF'
 
-convert -background none "$assets_dir/remora-logo-horizontal.svg" "$assets_dir/remora-logo-horizontal.png"
-convert -background none "$assets_dir/remora-logo-horizontal-inverse.svg" "$assets_dir/remora-logo-horizontal-inverse.png"
-convert -background none "$assets_dir/remora-logo-stacked.svg" "$assets_dir/remora-logo-stacked.png"
-convert -background none "$assets_dir/remora-logo-stacked-inverse.svg" "$assets_dir/remora-logo-stacked-inverse.png"
+for layout in horizontal stacked; do
+  for variant in '' '-inverse'; do
+    convert -background none \
+      "$assets_dir/zapominalnya-logo-$layout$variant.svg" \
+      -strip \
+      "$assets_dir/zapominalnya-logo-$layout$variant.png"
+    # Старые пути временно сохраняются для клиентов, которые ещё не прошли свой этап ребрендинга.
+    cp "$assets_dir/zapominalnya-logo-$layout$variant.svg" \
+      "$assets_dir/remora-logo-$layout$variant.svg"
+    cp "$assets_dir/zapominalnya-logo-$layout$variant.png" \
+      "$assets_dir/remora-logo-$layout$variant.png"
+  done
+done
 
 for app_dir in \
   "$repo_root/apps/web/public" \
@@ -103,14 +113,14 @@ for app_dir in \
   "$repo_root/apps/admin/public"; do
   mkdir -p "$app_dir/icons"
   for size in 16 32 48 192 512; do
-    convert "$assets_dir/remora-mark-compact.png" -resize "${size}x${size}" \
+    convert "$assets_dir/remora-mark-compact.png" -resize "${size}x${size}" -strip \
       "$app_dir/icons/icon-$size.png"
   done
   for size in 192 512; do
     inner_size=$((size * 72 / 100))
     convert -size "${size}x${size}" xc:'#FAFAF9' \
       \( "$assets_dir/remora-mark-compact.png" -resize "${inner_size}x${inner_size}" \) \
-      -gravity center -compose over -composite "$app_dir/icons/icon-maskable-$size.png"
+      -gravity center -compose over -composite -strip "$app_dir/icons/icon-maskable-$size.png"
   done
 done
 
@@ -120,7 +130,7 @@ for apple_icon in \
   "$repo_root/apps/admin/public/apple-touch-icon.png"; do
   convert -size 180x180 xc:'#FAFAF9' \
     \( "$assets_dir/remora-mark-compact.png" -resize 162x162 \) \
-    -gravity center -compose over -composite "$apple_icon"
+    -gravity center -compose over -composite -strip "$apple_icon"
 done
 
 cp "$assets_dir/remora-mark-compact.svg" "$repo_root/apps/web/src/app/icon.svg"
@@ -131,12 +141,16 @@ cp "$assets_dir/remora-logo-horizontal.svg" \
   "$repo_root/apps/mobile/assets/remora-logo-horizontal.svg"
 cp "$assets_dir/remora-logo-horizontal-inverse.svg" \
   "$repo_root/apps/mobile/assets/remora-logo-horizontal-inverse.svg"
+cp "$assets_dir/zapominalnya-logo-horizontal.svg" \
+  "$repo_root/apps/mobile/assets/zapominalnya-logo-horizontal.svg"
+cp "$assets_dir/zapominalnya-logo-horizontal-inverse.svg" \
+  "$repo_root/apps/mobile/assets/zapominalnya-logo-horizontal-inverse.svg"
 
 for density_and_size in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
   density=${density_and_size%%:*}
   size=${density_and_size##*:}
   convert "$repo_root/apps/app/public/icons/icon-maskable-512.png" \
-    -resize "${size}x${size}" \
+    -resize "${size}x${size}" -strip \
     "$repo_root/apps/mobile/android/app/src/main/res/mipmap-$density/ic_launcher.png"
 done
 
@@ -155,8 +169,10 @@ cp "$assets_dir/remora-mark.svg" "$assets_dir/remora-mark.png" \
   "$assets_dir/remora-mark-compact.svg" "$assets_dir/remora-mark-compact.png" \
   "$brand_dir/mark/"
 convert "$assets_dir/remora-mark-compact.png" -resize 120x120 \
-  "$brand_dir/mark/remora-google-oauth.png"
-cp "$assets_dir"/remora-logo-horizontal*.svg "$assets_dir"/remora-logo-horizontal*.png \
+  -strip "$brand_dir/mark/remora-google-oauth.png"
+cp "$assets_dir"/zapominalnya-logo-horizontal*.svg "$assets_dir"/zapominalnya-logo-horizontal*.png \
+  "$assets_dir"/zapominalnya-logo-stacked*.svg "$assets_dir"/zapominalnya-logo-stacked*.png \
+  "$assets_dir"/remora-logo-horizontal*.svg "$assets_dir"/remora-logo-horizontal*.png \
   "$assets_dir"/remora-logo-stacked*.svg "$assets_dir"/remora-logo-stacked*.png \
   "$brand_dir/lockups/"
 cp "$repo_root/apps/app/public/favicon.svg" "$repo_root/apps/app/public/favicon.ico" \
