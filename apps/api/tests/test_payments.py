@@ -72,6 +72,7 @@ async def test_checkout_and_webhook_are_idempotent(client: AsyncClient) -> None:
         assert checkout.confirmation_url == "https://yookassa.test/pay"
         assert fake.created is not None
         assert fake.created["confirmation"]["type"] == "redirect"
+        assert fake.created["description"] == "Запоминальня Plus, month"
         assert "payment_method_data" not in fake.created
 
         fake.remote = {

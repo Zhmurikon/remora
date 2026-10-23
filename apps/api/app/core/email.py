@@ -57,7 +57,7 @@ async def send_email(
 async def send_verification_email(to: str, token: str) -> None:
     settings = get_settings()
     link = f"{settings.web_url}/verify-email?token={token}"
-    subject = "Подтверждение регистрации — Remora"
+    subject = "Подтверждение регистрации — Запоминальня"
     body = (
         f"Здравствуйте!\n\n"
         f"Подтвердите ваш email, перейдя по ссылке:\n{link}\n\n"
@@ -70,7 +70,7 @@ async def send_verification_email(to: str, token: str) -> None:
 async def send_password_reset_email(to: str, token: str) -> None:
     settings = get_settings()
     link = f"{settings.web_url}/reset-password?token={token}"
-    subject = "Восстановление пароля — Remora"
+    subject = "Восстановление пароля — Запоминальня"
     body = (
         f"Здравствуйте!\n\n"
         f"Для сброса пароля перейдите по ссылке:\n{link}\n\n"
@@ -81,7 +81,7 @@ async def send_password_reset_email(to: str, token: str) -> None:
 
 
 async def send_account_export_email(to: str, download_url: str, ttl_hours: int) -> None:
-    subject = "Архив ваших данных готов — Remora"
+    subject = "Архив ваших данных готов — Запоминальня"
     body = (
         "Здравствуйте!\n\n"
         "Архив с данными вашего аккаунта готов:\n"

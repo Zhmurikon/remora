@@ -157,7 +157,9 @@ class BotService:
                 )
             )
             if code is None:
-                return BotReply("Код недействителен. Получите новый код в настройках Remora.")
+                return BotReply(
+                    "Код недействителен. Получите новый код в настройках Запоминальни."
+                )
             await repo.lock(self.db, str(code.user_id))
             await self.db.refresh(code)
             user = await self.db.get(User, code.user_id)
@@ -167,17 +169,20 @@ class BotService:
                 or user.deleted_at
                 or user.status != UserStatus.active
             ):
-                return BotReply("Код истёк или аккаунт недоступен. Получите новый код в Remora.")
+                return BotReply(
+                    "Код истёк или аккаунт недоступен. Получите новый код в Запоминальне."
+                )
             if link or any(
                 item.platform == event.platform for item in await repo.links(self.db, user.id)
             ):
                 return BotReply(
-                    "Аккаунт уже привязан. Сначала отключите прежнюю привязку в настройках Remora."
+                    "Аккаунт уже привязан. Сначала отключите прежнюю привязку "
+                    "в настройках Запоминальни."
                 )
             self.db.add(BotLink(user_id=user.id, platform=event.platform, actor_id=event.actor_id))
             await self.db.delete(code)
             return BotReply(
-                "Аккаунт Remora привязан. Можно открыть наборы или курсы.",
+                "Аккаунт Запоминальни привязан. Можно открыть наборы или курсы.",
                 [[_button("Учить карточки", "sets"), _button("Читать курсы", "courses")]],
             )
         if link:
@@ -186,11 +191,13 @@ class BotService:
             await self.db.refresh(link)
             user = await self.db.get(User, link.user_id)
             if user is None or user.deleted_at or user.status != UserStatus.active:
-                return BotReply("Аккаунт Remora недоступен.")
+                return BotReply("Аккаунт Запоминальни недоступен.")
             if event.command == "unlink":
                 await repo.clear_codes(self.db, user.id, event.platform)
                 await self.db.delete(link)
-                return BotReply("Привязка отключена. Материалы и прогресс в Remora сохранены.")
+                return BotReply(
+                    "Привязка отключена. Материалы и прогресс в Запоминальне сохранены."
+                )
             try:
                 return await self._linked_reply(user, event)
             except (ValueError, KeyError):
@@ -199,7 +206,7 @@ class BotService:
                     [[_button("Наборы", "sets"), _button("Курсы", "courses")]],
                 )
         return BotReply(
-            "Сначала свяжите существующий аккаунт Remora. Откройте настройки, "
+            "Сначала свяжите существующий аккаунт Запоминальни. Откройте настройки, "
             "получите код для этого мессенджера и отправьте сюда: /link КОД\n" + settings_url
         )
 
@@ -288,7 +295,8 @@ class BotService:
             ]
         )
         return BotReply(
-            "Remora подключена. Прогресс синхронизируется с кабинетом.\n\nЧто будем делать?",
+            "Запоминальня подключена. Прогресс синхронизируется с кабинетом."
+            "\n\nЧто будем делать?",
             keyboard,
         )
 
@@ -319,7 +327,7 @@ class BotService:
             if page:
                 return await self._sets(user, 0)
             return BotReply(
-                "У вас пока нет наборов. Создайте первый набор в кабинете Remora.",
+                "У вас пока нет наборов. Создайте первый набор в кабинете Запоминальни.",
                 [[_button("В главное меню", "home")]],
             )
         has_next = len(sets) > SETS_PAGE_SIZE

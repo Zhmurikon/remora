@@ -360,9 +360,13 @@ async def test_teacher_reports_real_progress_and_exports_xlsx(
     assert exported.headers["content-type"].startswith(
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+    assert "zapominalnya-class-report.xlsx" in exported.headers["content-disposition"]
     with ZipFile(BytesIO(exported.content)) as workbook:
         assert "xl/worksheets/sheet1.xml" in workbook.namelist()
         sheet = workbook.read("xl/worksheets/sheet1.xml").decode()
         assert "8А — биология" in sheet
         assert "Повторить две карточки" in sheet
         assert "1 из 2 · В работе" in sheet
+        core = workbook.read("docProps/core.xml").decode()
+        assert "Отчёт класса Запоминальни" in core
+        assert ">Запоминальня<" in core

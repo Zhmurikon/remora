@@ -256,5 +256,5 @@ async def export_class_report(
     return Response(
         content=content,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": 'attachment; filename="remora-class-report.xlsx"'},
+        headers={"Content-Disposition": 'attachment; filename="zapominalnya-class-report.xlsx"'},
     )
