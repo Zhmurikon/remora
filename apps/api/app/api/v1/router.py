@@ -14,6 +14,7 @@ from app.api.v1 import (
     auth,
     authors,
     battles,
+    billing,
     bots,
     classes,
     courses,
@@ -44,6 +45,7 @@ api_router.include_router(health.router)
 api_router.include_router(auth.router)
 api_router.include_router(authors.router)
 api_router.include_router(battles.router)
+api_router.include_router(billing.router)
 api_router.include_router(classes.router)
 api_router.include_router(courses.router)
 api_router.include_router(library.router)

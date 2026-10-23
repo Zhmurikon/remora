@@ -11,7 +11,8 @@ from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import RequestIdMiddleware, configure_logging
-from app.db.session import dispose_engine
+from app.db.session import dispose_engine, get_session_factory
+from app.services.plans import sync_plan_catalog
 
 log = structlog.get_logger()
 
@@ -20,6 +21,9 @@ log = structlog.get_logger()
 async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
     settings = get_settings()
     log.info("api.startup", environment=settings.environment)
+    async with get_session_factory()() as db:
+        await sync_plan_catalog(db)
+        await db.commit()
     yield
     await dispose_engine()
     log.info("api.shutdown")

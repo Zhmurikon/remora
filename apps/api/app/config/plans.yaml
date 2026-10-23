@@ -1,0 +1,65 @@
+version: 1
+plans:
+  free:
+    name: Free
+    price_month: null
+    price_year: null
+    limits:
+      courses.total: 10
+      sets.library_total: 20
+      agent.writes_per_week: 500
+      study.reviews_soft_per_day: 500
+      classes.max: 1
+      classes.students_max: 30
+      assignments.active_max: 3
+      ai.transcription_minutes_per_week: 0
+      ai.generation_tokens_per_week: 0
+    features:
+      ai.transcription: false
+      ai.generation: false
+      classes.dashboard: true
+      classes.student_report: true
+      classes.card_report: false
+      classes.xlsx_export: false
+  plus:
+    name: Plus
+    price_month: 29900
+    price_year: 249900
+    limits:
+      courses.total: null
+      sets.library_total: null
+      agent.writes_per_week: null
+      study.reviews_soft_per_day: 500
+      classes.max: null
+      classes.students_max: 200
+      assignments.active_max: null
+      ai.transcription_minutes_per_week: 300
+      ai.generation_tokens_per_week: 500000
+    features:
+      ai.transcription: true
+      ai.generation: true
+      classes.dashboard: true
+      classes.student_report: true
+      classes.card_report: true
+      classes.xlsx_export: true
+  pro:
+    name: Pro
+    price_month: 99900
+    price_year: 999900
+    limits:
+      courses.total: null
+      sets.library_total: null
+      agent.writes_per_week: null
+      study.reviews_soft_per_day: 500
+      classes.max: null
+      classes.students_max: 500
+      assignments.active_max: null
+      ai.transcription_minutes_per_week: 1500
+      ai.generation_tokens_per_week: 2500000
+    features:
+      ai.transcription: true
+      ai.generation: true
+      classes.dashboard: true
+      classes.student_report: true
+      classes.card_report: true
+      classes.xlsx_export: true

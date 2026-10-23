@@ -662,6 +662,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/billing/entitlements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Мой тариф и квоты */
+        get: operations["my_entitlements_api_v1_billing_entitlements_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/billing/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Тарифы */
+        get: operations["list_plans_api_v1_billing_plans_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/classes": {
         parameters: {
             query?: never;
@@ -4177,6 +4211,25 @@ export interface components {
          * @enum {string}
          */
         DirectionMode: "term_to_def" | "def_to_term" | "both";
+        /** EntitlementsPublic */
+        EntitlementsPublic: {
+            /** Cancel At Period End */
+            cancel_at_period_end: boolean;
+            /** Current Period End */
+            current_period_end: string | null;
+            /** Features */
+            features: {
+                [key: string]: boolean;
+            };
+            /** Limits */
+            limits: {
+                [key: string]: number | null;
+            };
+            /** Plan Code */
+            plan_code: string;
+            /** Plan Name */
+            plan_name: string;
+        };
         /** FolderCreate */
         FolderCreate: {
             /**
@@ -4516,6 +4569,25 @@ export interface components {
              * Format: email
              */
             email: string;
+        };
+        /** PlanPublic */
+        PlanPublic: {
+            /** Code */
+            code: string;
+            /** Features */
+            features: {
+                [key: string]: boolean;
+            };
+            /** Limits */
+            limits: {
+                [key: string]: number | null;
+            };
+            /** Name */
+            name: string;
+            /** Price Month */
+            price_month: number | null;
+            /** Price Year */
+            price_year: number | null;
         };
         /**
          * PracticeStatus
@@ -7178,6 +7250,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_entitlements_api_v1_billing_entitlements_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntitlementsPublic"];
+                };
+            };
+        };
+    };
+    list_plans_api_v1_billing_plans_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanPublic"][];
                 };
             };
         };

@@ -37,7 +37,7 @@ export type UserRole = 'user' | 'teacher' | 'moderator' | 'admin';
 export type ClassRole = 'teacher' | 'assistant' | 'student';
 
 /** Тарифы. */
-export const PLAN_CODES = ['free', 'plus', 'teach', 'school'] as const;
+export const PLAN_CODES = ['free', 'plus', 'pro'] as const;
 export type PlanCode = (typeof PLAN_CODES)[number];
 
 /**
@@ -47,6 +47,8 @@ export type PlanCode = (typeof PLAN_CODES)[number];
  */
 export const LIMIT_KEYS = [
   'sets.max',
+  'sets.library_total',
+  'courses.total',
   'cards.per_set',
   'cards.total',
   'folders.max',
@@ -62,6 +64,9 @@ export const LIMIT_KEYS = [
   'assignments.active_max',
   'test.questions_max',
   'exam_plans.active_max',
+  'agent.writes_per_week',
+  'ai.transcription_minutes_per_week',
+  'ai.generation_tokens_per_week',
 ] as const;
 export type LimitKey = (typeof LIMIT_KEYS)[number];
 

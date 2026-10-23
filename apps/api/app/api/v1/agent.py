@@ -41,6 +41,7 @@ from app.services.api_tokens import ApiTokenService
 from app.services.content import ContentService
 from app.services.course_editor import CourseEditorService
 from app.services.courses import CourseService
+from app.services.entitlements import Entitlements, week_period
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 bearer = HTTPBearer(auto_error=False, scheme_name="PersonalApiToken")
@@ -59,6 +60,15 @@ def require_scope(scope: AgentScope) -> Callable[..., Awaitable[User]]:
         if creds is None:
             raise UnauthorizedError("Нужен персональный API-токен")
         user = await ApiTokenService(db).authenticate(creds.credentials, scope)
+        if scope != "materials:read":
+            period_key, resets_at = week_period()
+            await Entitlements(db).consume(
+                user,
+                "agent.writes_per_week",
+                amount=1,
+                period_key=period_key,
+                resets_at=resets_at,
+            )
         await enforce_rate_limit(
             scope="agent-api", ip="", identity=str(user.id), limit=120, window_seconds=60
         )
