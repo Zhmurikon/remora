@@ -21,6 +21,7 @@ import { TestPage } from './pages/TestPage';
 import { WritePage } from './pages/WritePage';
 import { AchievementsPage } from './pages/AchievementsPage';
 import { BattlePage } from './pages/BattlePage';
+import { ClassPage, ClassesPage, JoinClassPage, StudentReportPage } from './pages/ClassesPage';
 
 export function App() {
   return (
@@ -66,6 +67,13 @@ export function App() {
               <Route path="practice/python" element={<PythonPracticePage />} />
               <Route path="practice/python/:taskSlug" element={<PythonTaskPage />} />
               <Route path="achievements" element={<AchievementsPage />} />
+              <Route path="classes" element={<ClassesPage />} />
+              <Route path="classes/join" element={<JoinClassPage />} />
+              <Route
+                path="classes/:classId/reports/students/:studentId"
+                element={<StudentReportPage />}
+              />
+              <Route path="classes/:classId" element={<ClassPage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
           </Route>

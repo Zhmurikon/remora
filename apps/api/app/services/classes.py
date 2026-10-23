@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import secrets
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -12,6 +13,8 @@ from app.core.config import get_settings
 from app.core.errors import ConflictError, ForbiddenError, NotFoundError, ValidationError
 from app.models.classes import (
     Assignment,
+    AssignmentGoalType,
+    AssignmentProgressStatus,
     ClassMember,
     ClassMemberRole,
     ClassMemberStatus,
@@ -24,6 +27,12 @@ from app.repositories import classes as repo
 from app.schemas.classes import (
     AssignmentCreate,
     AssignmentOut,
+    AssignmentProgressOut,
+    CardErrorOut,
+    ClassCardReportOut,
+    ClassReportAssignmentOut,
+    ClassReportOut,
+    ClassReportStudentOut,
     ClassroomCreate,
     ClassroomDetailOut,
     ClassroomInviteOut,
@@ -35,6 +44,7 @@ from app.schemas.classes import (
     ClassroomUpdate,
     ClassSetAdd,
     ClassSetOut,
+    StudentReportOut,
 )
 from app.services.class_permissions import ClassAction, allows
 from app.services.content import ContentService
@@ -207,9 +217,14 @@ class ClassroomService:
         await self.db.flush()
 
     async def list_assignments(self, user: User, class_id: UUID) -> list[AssignmentOut]:
-        await self._authorized(user, class_id, ClassAction.view)
+        _, member = await self._authorized(user, class_id, ClassAction.view)
+        assignments = await repo.list_assignments(self.db, class_id)
+        if member.role is not ClassMemberRole.student:
+            return [self._assignment_out(item) for item in assignments]
+        progress = await self._progress_for(class_id, assignments, {user.id})
         return [
-            self._assignment_out(item) for item in await repo.list_assignments(self.db, class_id)
+            self._assignment_out(item, progress=progress[(item.id, user.id)])
+            for item in assignments
         ]
 
     async def create_assignment(
@@ -231,6 +246,150 @@ class ClassroomService:
             await repo.add_assignment_progress(self.db, assignment.id, student.user_id)
         await self.db.flush()
         return self._assignment_out(assignment)
+
+    async def class_report(self, user: User, class_id: UUID) -> ClassReportOut:
+        await self._authorized(user, class_id, ClassAction.view_reports)
+        assignments = await repo.list_assignments(self.db, class_id)
+        member_rows = await repo.list_members(self.db, class_id)
+        students = [
+            (member, account)
+            for member, account in member_rows
+            if member.role is ClassMemberRole.student
+            and member.status is ClassMemberStatus.active
+        ]
+        progress = await self._progress_for(
+            class_id, assignments, {member.user_id for member, _ in students}
+        )
+        set_titles = {
+            item.set_id: study_set.title
+            for item, study_set in await repo.list_sets(self.db, class_id)
+        }
+        generated_at = datetime.now(tz=UTC)
+        return ClassReportOut(
+            class_id=class_id,
+            generated_at=generated_at,
+            assignments=[
+                ClassReportAssignmentOut(
+                    **self._assignment_out(item).model_dump(),
+                    set_title=set_titles.get(item.set_id, "Удалённый набор"),
+                )
+                for item in assignments
+            ],
+            students=[
+                ClassReportStudentOut(
+                    user_id=account.id,
+                    username=account.username,
+                    display_name=account.display_name,
+                    assignments={
+                        assignment.id: progress[(assignment.id, account.id)]
+                        for assignment in assignments
+                    },
+                )
+                for _member, account in students
+            ],
+        )
+
+    async def student_report(
+        self, user: User, class_id: UUID, student_id: UUID
+    ) -> StudentReportOut:
+        report = await self.class_report(user, class_id)
+        student = next((item for item in report.students if item.user_id == student_id), None)
+        if student is None:
+            raise NotFoundError("Ученик не найден в этом классе")
+        return StudentReportOut(
+            class_id=class_id,
+            user_id=student.user_id,
+            username=student.username,
+            display_name=student.display_name,
+            generated_at=report.generated_at,
+            assignments=[
+                assignment.model_copy(update={"progress": student.assignments[assignment.id]})
+                for assignment in report.assignments
+            ],
+        )
+
+    async def card_report(self, user: User, class_id: UUID) -> ClassCardReportOut:
+        await self._authorized(user, class_id, ClassAction.view_reports)
+        cards = []
+        for card, study_set, answers, errors, students in await repo.card_error_rows(
+            self.db, class_id
+        ):
+            cards.append(
+                CardErrorOut(
+                    card_id=card.id,
+                    set_id=study_set.id,
+                    set_title=study_set.title,
+                    term=card.term,
+                    definition=card.definition,
+                    answers_count=answers,
+                    errors_count=errors,
+                    students_with_errors=students,
+                    error_percent=round(errors / answers * 100, 1) if answers else 0,
+                )
+            )
+        return ClassCardReportOut(
+            class_id=class_id,
+            generated_at=datetime.now(tz=UTC),
+            cards=cards,
+        )
+
+    async def _progress_for(
+        self, class_id: UUID, assignments: list[Assignment], user_ids: set[UUID]
+    ) -> dict[tuple[UUID, UUID], AssignmentProgressOut]:
+        del class_id  # Авторизация выполняется до расчёта; данные ограничены списком заданий.
+        set_ids = {item.set_id for item in assignments}
+        stored = await repo.progress_rows(self.db, {item.id for item in assignments}, user_ids)
+        mastery = await repo.set_progress_values(self.db, user_ids, set_ids)
+        reviewed = await repo.reviewed_card_values(self.db, user_ids, set_ids)
+        tests = await repo.best_test_values(self.db, user_ids, set_ids)
+        now = datetime.now(tz=UTC)
+        result: dict[tuple[UUID, UUID], AssignmentProgressOut] = {}
+        for assignment in assignments:
+            for user_id in user_ids:
+                last_activity: datetime | None = None
+                if assignment.goal_type is AssignmentGoalType.mastery_percent:
+                    raw_value, last_activity = mastery.get((user_id, assignment.set_id), (0, None))
+                    value = round(raw_value)
+                elif assignment.goal_type is AssignmentGoalType.test_score:
+                    raw_value, last_activity = tests.get((user_id, assignment.set_id), (0, None))
+                    value = round(raw_value)
+                else:
+                    value, last_activity = reviewed.get(
+                        (user_id, assignment.set_id, assignment.mode_required), (0, None)
+                    )
+                previous = stored.get((assignment.id, user_id))
+                done = value >= assignment.goal_value
+                if done:
+                    status = AssignmentProgressStatus.done
+                elif assignment.due_at is not None and assignment.due_at < now:
+                    status = AssignmentProgressStatus.late
+                elif value > 0:
+                    status = AssignmentProgressStatus.in_progress
+                else:
+                    status = AssignmentProgressStatus.not_started
+                completed_at = (
+                    previous.completed_at
+                    if done and previous is not None and previous.completed_at is not None
+                    else (now if done else None)
+                )
+                progress = AssignmentProgressOut(
+                    progress_value=value,
+                    status=status,
+                    completed_at=completed_at,
+                    last_activity_at=last_activity,
+                )
+                result[(assignment.id, user_id)] = progress
+                await repo.upsert_progress(
+                    self.db,
+                    assignment.id,
+                    user_id,
+                    value=value,
+                    status=status,
+                    completed_at=completed_at,
+                    last_activity_at=last_activity,
+                )
+        await self.db.flush()
+        return result
 
     async def _authorized(
         self, user: User, class_id: UUID, action: ClassAction
@@ -275,7 +434,9 @@ class ClassroomService:
         )
 
     @staticmethod
-    def _assignment_out(assignment: Assignment) -> AssignmentOut:
+    def _assignment_out(
+        assignment: Assignment, *, progress: AssignmentProgressOut | None = None
+    ) -> AssignmentOut:
         return AssignmentOut(
             id=assignment.id,
             set_id=assignment.set_id,
@@ -286,6 +447,7 @@ class ClassroomService:
             open_at=assignment.open_at,
             due_at=assignment.due_at,
             created_at=assignment.created_at,
+            progress=progress,
         )
 
     @staticmethod

@@ -13,6 +13,7 @@ const navigation = [
     matches: ['/materials', '/sets', '/courses', '/library'],
   },
   { to: '/practice', label: 'Практика', icon: 'practice' },
+  { to: '/classes', label: 'Классы', icon: 'classes' },
   { to: '/achievements', label: 'Достижения', icon: 'achievement' },
   { to: '/settings', label: 'Настройки', icon: 'settings' },
 ];
@@ -221,6 +222,19 @@ function NavigationIcon({ name }: { name: string }) {
           d="m12 3 2.4 4.8 5.3.8-3.8 3.7.9 5.3-4.8-2.5-4.8 2.5.9-5.3L4.3 8.6l5.3-.8L12 3Z"
           stroke="currentColor"
           strokeWidth="1.7"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+  if (name === 'classes') {
+    return (
+      <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M4 19v-8.5L12 5l8 5.5V19M8 19v-5h8v5M9 8.5V5h6v3.5"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
           strokeLinejoin="round"
         />
       </svg>

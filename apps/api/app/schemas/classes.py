@@ -5,7 +5,12 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.models.classes import AssignmentGoalType, ClassMemberRole, ClassMemberStatus
+from app.models.classes import (
+    AssignmentGoalType,
+    AssignmentProgressStatus,
+    ClassMemberRole,
+    ClassMemberStatus,
+)
 from app.models.study import StudyMode
 
 
@@ -98,3 +103,56 @@ class AssignmentOut(BaseModel):
     open_at: datetime | None
     due_at: datetime | None
     created_at: datetime
+    progress: "AssignmentProgressOut | None" = None
+
+
+class AssignmentProgressOut(BaseModel):
+    progress_value: int
+    status: AssignmentProgressStatus
+    completed_at: datetime | None
+    last_activity_at: datetime | None
+
+
+class ClassReportAssignmentOut(AssignmentOut):
+    set_title: str
+
+
+class ClassReportStudentOut(BaseModel):
+    user_id: UUID
+    username: str
+    display_name: str | None
+    assignments: dict[UUID, AssignmentProgressOut]
+
+
+class ClassReportOut(BaseModel):
+    class_id: UUID
+    generated_at: datetime
+    assignments: list[ClassReportAssignmentOut]
+    students: list[ClassReportStudentOut]
+
+
+class StudentReportOut(BaseModel):
+    class_id: UUID
+    user_id: UUID
+    username: str
+    display_name: str | None
+    generated_at: datetime
+    assignments: list[ClassReportAssignmentOut]
+
+
+class CardErrorOut(BaseModel):
+    card_id: UUID
+    set_id: UUID
+    set_title: str
+    term: str
+    definition: str
+    answers_count: int
+    errors_count: int
+    students_with_errors: int
+    error_percent: float
+
+
+class ClassCardReportOut(BaseModel):
+    class_id: UUID
+    generated_at: datetime
+    cards: list[CardErrorOut]

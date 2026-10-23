@@ -1,7 +1,10 @@
 """Классы: роли не дают обойти изоляцию или повысить привилегии."""
 
 from datetime import UTC, datetime, timedelta
+from io import BytesIO
 from unittest.mock import AsyncMock, patch
+from uuid import uuid4
+from zipfile import ZipFile
 
 import pytest
 
@@ -19,6 +22,19 @@ async def _auth(client: pytest.fixture, suffix: str) -> dict[str, str]:
         "/api/v1/auth/login", json={"email": email, "password": "Str0ngP@ss!"}
     )
     return {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+
+def _review(card_id: str, *, correct: bool = True) -> dict[str, object]:
+    return {
+        "client_review_id": str(uuid4()),
+        "card_id": card_id,
+        "direction": "term_to_def",
+        "mode": "learn",
+        "rating": 3 if correct else 1,
+        "answer_correct": correct,
+        "duration_ms": 1500,
+        "reviewed_at": datetime.now(tz=UTC).isoformat(),
+    }
 
 
 def test_class_permission_matrix() -> None:
@@ -236,3 +252,117 @@ async def test_join_share_private_set_and_assignment(
             "/api/v1/classes/join", headers=second_student, json={"join_code": original_code}
         )
     ).status_code == 404
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_teacher_reports_real_progress_and_exports_xlsx(
+    _mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    owner = await _auth(client, "reportowner")
+    student = await _auth(client, "reportstudent")
+    stranger = await _auth(client, "reportstranger")
+    material = await client.post(
+        "/api/v1/sets", headers=owner, json={"title": "Термины отчёта", "visibility": "private"}
+    )
+    set_id = material.json()["id"]
+    saved = await client.put(
+        f"/api/v1/sets/{set_id}/cards",
+        headers=owner,
+        json={
+            "cards": [
+                {"term": "Клетка", "definition": "Единица живого"},
+                {"term": "Ткань", "definition": "Группа клеток"},
+            ]
+        },
+    )
+    cards = saved.json()["cards"]
+    classroom = await client.post(
+        "/api/v1/classes", headers=owner, json={"title": "8А — биология"}
+    )
+    class_id = classroom.json()["id"]
+    assert (
+        await client.post(
+            f"/api/v1/classes/{class_id}/members",
+            headers=owner,
+            json={"username": "classreportstudent", "role": "student"},
+        )
+    ).status_code == 201
+    assert (
+        await client.post(
+            f"/api/v1/classes/{class_id}/sets", headers=owner, json={"set_id": set_id}
+        )
+    ).status_code == 201
+    assignment = await client.post(
+        f"/api/v1/classes/{class_id}/assignments",
+        headers=owner,
+        json={
+            "set_id": set_id,
+            "title": "Повторить две карточки",
+            "mode_required": "learn",
+            "goal_type": "cards_count",
+            "goal_value": 2,
+        },
+    )
+    assert assignment.status_code == 201
+
+    reviewed = await client.post(
+        "/api/v1/study/reviews",
+        headers=student,
+        json={"reviews": [_review(cards[0]["id"], correct=False)]},
+    )
+    assert reviewed.status_code == 200, reviewed.text
+
+    student_assignments = await client.get(
+        f"/api/v1/classes/{class_id}/assignments", headers=student
+    )
+    progress = student_assignments.json()[0]["progress"]
+    assert progress["progress_value"] == 1
+    assert progress["status"] == "in_progress"
+
+    report = await client.get(f"/api/v1/classes/{class_id}/reports", headers=owner)
+    assert report.status_code == 200, report.text
+    assert report.json()["assignments"][0]["set_title"] == "Термины отчёта"
+    assert report.json()["students"][0]["assignments"][assignment.json()["id"]] == progress
+    assert (
+        await client.get(f"/api/v1/classes/{class_id}/reports", headers=student)
+    ).status_code == 403
+    assert (
+        await client.get(f"/api/v1/classes/{class_id}/reports", headers=stranger)
+    ).status_code == 403
+
+    student_id = report.json()["students"][0]["user_id"]
+    assert (
+        await client.get(
+            f"/api/v1/classes/{class_id}/reports/students/{student_id}", headers=student
+        )
+    ).status_code == 403
+    assert (
+        await client.get(f"/api/v1/classes/{class_id}/reports/cards", headers=student)
+    ).status_code == 403
+    assert (
+        await client.get(f"/api/v1/classes/{class_id}/reports.xlsx", headers=student)
+    ).status_code == 403
+    student_report = await client.get(
+        f"/api/v1/classes/{class_id}/reports/students/{student_id}", headers=owner
+    )
+    assert student_report.status_code == 200
+    assert student_report.json()["assignments"][0]["progress"]["progress_value"] == 1
+
+    cards_report = await client.get(
+        f"/api/v1/classes/{class_id}/reports/cards", headers=owner
+    )
+    assert cards_report.status_code == 200
+    assert cards_report.json()["cards"][0]["errors_count"] == 1
+    assert cards_report.json()["cards"][0]["error_percent"] == 100.0
+
+    exported = await client.get(f"/api/v1/classes/{class_id}/reports.xlsx", headers=owner)
+    assert exported.status_code == 200
+    assert exported.headers["content-type"].startswith(
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    with ZipFile(BytesIO(exported.content)) as workbook:
+        assert "xl/worksheets/sheet1.xml" in workbook.namelist()
+        sheet = workbook.read("xl/worksheets/sheet1.xml").decode()
+        assert "8А — биология" in sheet
+        assert "Повторить две карточки" in sheet
+        assert "1 из 2 · В работе" in sheet

@@ -801,6 +801,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/classes/{class_id}/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Сводный отчёт класса */
+        get: operations["get_class_report_api_v1_classes__class_id__reports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/classes/{class_id}/reports.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Выгрузить отчёт класса в XLSX */
+        get: operations["export_class_report_api_v1_classes__class_id__reports_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/classes/{class_id}/reports/cards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ошибки по карточкам класса */
+        get: operations["get_class_card_report_api_v1_classes__class_id__reports_cards_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/classes/{class_id}/reports/students/{student_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Отчёт по ученику */
+        get: operations["get_class_student_report_api_v1_classes__class_id__reports_students__student_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/classes/{class_id}/sets": {
         parameters: {
             query?: never;
@@ -2976,6 +3044,7 @@ export interface components {
             mode_required: components["schemas"]["StudyMode"] | null;
             /** Open At */
             open_at: string | null;
+            progress?: components["schemas"]["AssignmentProgressOut"] | null;
             /**
              * Set Id
              * Format: uuid
@@ -2984,6 +3053,21 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** AssignmentProgressOut */
+        AssignmentProgressOut: {
+            /** Completed At */
+            completed_at: string | null;
+            /** Last Activity At */
+            last_activity_at: string | null;
+            /** Progress Value */
+            progress_value: number;
+            status: components["schemas"]["AssignmentProgressStatus"];
+        };
+        /**
+         * AssignmentProgressStatus
+         * @enum {string}
+         */
+        AssignmentProgressStatus: "not_started" | "in_progress" | "done" | "late";
         /** AttachmentDownload */
         AttachmentDownload: {
             /** Expires In */
@@ -3361,6 +3445,33 @@ export interface components {
             /** Cards */
             cards: components["schemas"]["CardWrite"][];
         };
+        /** CardErrorOut */
+        CardErrorOut: {
+            /** Answers Count */
+            answers_count: number;
+            /**
+             * Card Id
+             * Format: uuid
+             */
+            card_id: string;
+            /** Definition */
+            definition: string;
+            /** Error Percent */
+            error_percent: number;
+            /** Errors Count */
+            errors_count: number;
+            /**
+             * Set Id
+             * Format: uuid
+             */
+            set_id: string;
+            /** Set Title */
+            set_title: string;
+            /** Students With Errors */
+            students_with_errors: number;
+            /** Term */
+            term: string;
+        };
         /** CardPublic */
         CardPublic: {
             /** Alt Answers */
@@ -3467,6 +3578,21 @@ export interface components {
             /** Wrong Term Answers */
             wrong_term_answers?: string[];
         };
+        /** ClassCardReportOut */
+        ClassCardReportOut: {
+            /** Cards */
+            cards: components["schemas"]["CardErrorOut"][];
+            /**
+             * Class Id
+             * Format: uuid
+             */
+            class_id: string;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+        };
         /**
          * ClassMemberRole
          * @enum {string}
@@ -3477,6 +3603,70 @@ export interface components {
          * @enum {string}
          */
         ClassMemberStatus: "active" | "pending" | "left";
+        /** ClassReportAssignmentOut */
+        ClassReportAssignmentOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Due At */
+            due_at: string | null;
+            goal_type: components["schemas"]["AssignmentGoalType"];
+            /** Goal Value */
+            goal_value: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            mode_required: components["schemas"]["StudyMode"] | null;
+            /** Open At */
+            open_at: string | null;
+            progress?: components["schemas"]["AssignmentProgressOut"] | null;
+            /**
+             * Set Id
+             * Format: uuid
+             */
+            set_id: string;
+            /** Set Title */
+            set_title: string;
+            /** Title */
+            title: string;
+        };
+        /** ClassReportOut */
+        ClassReportOut: {
+            /** Assignments */
+            assignments: components["schemas"]["ClassReportAssignmentOut"][];
+            /**
+             * Class Id
+             * Format: uuid
+             */
+            class_id: string;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Students */
+            students: components["schemas"]["ClassReportStudentOut"][];
+        };
+        /** ClassReportStudentOut */
+        ClassReportStudentOut: {
+            /** Assignments */
+            assignments: {
+                [key: string]: components["schemas"]["AssignmentProgressOut"];
+            };
+            /** Display Name */
+            display_name: string | null;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Username */
+            username: string;
+        };
         /** ClassSetAdd */
         ClassSetAdd: {
             /**
@@ -5177,6 +5367,30 @@ export interface components {
          * @enum {string}
          */
         Strictness: "strict" | "moderate" | "lenient";
+        /** StudentReportOut */
+        StudentReportOut: {
+            /** Assignments */
+            assignments: components["schemas"]["ClassReportAssignmentOut"][];
+            /**
+             * Class Id
+             * Format: uuid
+             */
+            class_id: string;
+            /** Display Name */
+            display_name: string | null;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Username */
+            username: string;
+        };
         /**
          * StudyDirection
          * @description Направление изучения. Состояния FSRS по направлениям раздельные.
@@ -7302,6 +7516,131 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClassroomMemberOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_class_report_api_v1_classes__class_id__reports_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassReportOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_class_report_api_v1_classes__class_id__reports_xlsx_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Отчёт класса в XLSX */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_class_card_report_api_v1_classes__class_id__reports_cards_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassCardReportOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_class_student_report_api_v1_classes__class_id__reports_students__student_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_id: string;
+                student_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentReportOut"];
                 };
             };
             /** @description Validation Error */
