@@ -1,7 +1,6 @@
 """Оркестрация импорта файлов в принадлежащий пользователю набор."""
 
 from collections.abc import Awaitable, Callable
-from pathlib import Path
 from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -85,8 +84,7 @@ class ImportService:
     ) -> ImportJob:
         await self.content.get_owned_set(user, set_id)
         job_id = uuid4()
-        suffix = Path(filename).suffix.lower()
-        storage_key = f"users/{user.id}/imports/{job_id}{suffix}"
+        storage_key = f"users/{user.id}/imports/{job_id}.bin"
         await get_object_storage().put(storage_key, payload, "application/octet-stream")
         job = ImportJob(
             id=job_id,

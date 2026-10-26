@@ -61,11 +61,13 @@ async def test_upload_image_and_attach_to_card(
             json={"filename": "term.png", "mime": "image/png", "size_bytes": len(storage.payload)},
         )
         assert ticket.status_code == 201
+        assert "term.png" not in ticket.json()["upload_url"]
         asset_id = ticket.json()["id"]
         completed = await client.post(f"/api/v1/media/{asset_id}/complete", headers=headers)
         assert completed.status_code == 200
         assert completed.json()["width"] == 32
         assert completed.json()["height"] == 24
+        assert completed.json()["mime"] == "image/webp"
         assert completed.json()["download_url"].startswith("http://storage.test/")
 
         study_set = await client.post("/api/v1/sets", headers=headers, json={"title": "Фото"})
@@ -109,11 +111,7 @@ async def test_user_cannot_read_or_attach_another_users_image(
         attached = await client.put(
             f"/api/v1/sets/{study_set.json()['id']}/cards",
             headers=stranger,
-            json={
-                "cards": [
-                    {"term": "Нет", "definition": "Доступа", "term_image_id": asset_id}
-                ]
-            },
+            json={"cards": [{"term": "Нет", "definition": "Доступа", "term_image_id": asset_id}]},
         )
         assert attached.status_code == 409
 
@@ -191,3 +189,35 @@ async def test_svg_with_entity_is_rejected(mock_send: AsyncMock, client: pytest.
 
     assert completed.status_code == 409
     assert storage.deleted
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_raster_is_reencoded_without_exif(
+    mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    buffer = BytesIO()
+    image = Image.new("RGB", (20, 10), "red")
+    exif = image.getexif()
+    exif[0x010E] = "private note"
+    image.save(buffer, format="JPEG", exif=exif)
+    storage = FakeStorage(buffer.getvalue())
+    headers = await _auth(client, "exif")
+    with patch("app.services.media.get_object_storage", return_value=storage):
+        ticket = await client.post(
+            "/api/v1/media/upload-url",
+            headers=headers,
+            json={
+                "filename": "photo.jpg",
+                "mime": "image/jpeg",
+                "size_bytes": len(storage.payload),
+            },
+        )
+        completed = await client.post(
+            f"/api/v1/media/{ticket.json()['id']}/complete", headers=headers
+        )
+
+    assert completed.status_code == 200
+    assert completed.json()["mime"] == "image/webp"
+    with Image.open(BytesIO(storage.puts[0][1])) as cleaned:
+        assert cleaned.format == "WEBP"
+        assert not cleaned.getexif()

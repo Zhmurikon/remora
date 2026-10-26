@@ -2,11 +2,10 @@
 
 import hashlib
 from io import BytesIO
-from pathlib import Path
 from uuid import UUID, uuid4
 
 from botocore.exceptions import BotoCoreError, ClientError
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageOps, UnidentifiedImageError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -37,8 +36,9 @@ class MediaService:
                 details={"max_size_bytes": self.settings.media_image_max_size_bytes},
             )
         asset_id = uuid4()
-        suffix = Path(body.filename).suffix.lower()[:10]
-        key = f"users/{user.id}/images/{asset_id}{suffix}"
+        # Имя пользователя не попадает в ключ хранилища: расширение не является
+        # доказательством типа и не должно влиять на путь объекта.
+        key = f"users/{user.id}/images/{asset_id}.upload"
         asset = MediaAsset(
             id=asset_id,
             owner_id=user.id,
@@ -115,14 +115,13 @@ class MediaService:
                 svg=(
                     declared_mime == SVG_MIME
                     if declared_mime is not None
-                    else Path(filename).suffix.lower() == ".svg"
+                    else filename.lower().endswith(".svg")
                 ),
             )
         except (UnidentifiedImageError, OSError, ValueError) as exc:
             raise ConflictError("В архиве найдено недопустимое изображение") from exc
         asset_id = uuid4()
-        suffix = Path(filename).suffix.lower()[:10]
-        key = f"users/{user.id}/images/{asset_id}{suffix}"
+        key = f"users/{user.id}/images/{asset_id}.upload"
         checksum = hashlib.sha256(processed).hexdigest()
         asset = MediaAsset(
             id=asset_id,
@@ -182,21 +181,26 @@ class MediaService:
         )
 
 
-def _inspect_image(payload: bytes, max_pixels: int) -> tuple[int, int, str]:
+def _prepare_raster(payload: bytes, max_pixels: int) -> tuple[bytes, int, int, str]:
     with Image.open(BytesIO(payload)) as image:
         if image.width * image.height > max_pixels:
             raise ValueError("image dimensions exceed allowed size")
         image.verify()
     with Image.open(BytesIO(payload)) as image:
-        mime = FORMAT_MIMES.get(image.format or "")
-        if mime is None:
+        if FORMAT_MIMES.get(image.format or "") is None:
             raise ValueError("unsupported image format")
-        return image.width, image.height, mime
+        image.seek(0)
+        cleaned = ImageOps.exif_transpose(image)
+        if cleaned.mode not in {"RGB", "RGBA"}:
+            cleaned = cleaned.convert("RGBA" if "transparency" in cleaned.info else "RGB")
+        output = BytesIO()
+        # Повторное кодирование удаляет EXIF, ICC-комментарии и дополнительные кадры.
+        cleaned.save(output, format="WEBP", quality=90, method=6)
+        return output.getvalue(), cleaned.width, cleaned.height, "image/webp"
 
 
 def _prepare_image(payload: bytes, max_pixels: int, *, svg: bool) -> tuple[bytes, int, int, str]:
     if svg:
         cleaned, width, height = sanitize_svg(payload, max_pixels)
         return cleaned, width, height, SVG_MIME
-    width, height, mime = _inspect_image(payload, max_pixels)
-    return payload, width, height, mime
+    return _prepare_raster(payload, max_pixels)

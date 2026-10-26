@@ -2,7 +2,7 @@
   "extends": "@remora/config/tsconfig.react.json",
   "compilerOptions": {
     "noEmit": true,
-    "types": ["react", "react-dom"]
+    "types": ["node", "react", "react-dom"]
   },
   "include": ["src/**/*"]
 }
