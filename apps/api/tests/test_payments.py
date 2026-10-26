@@ -7,12 +7,14 @@ from sqlalchemy import func, select
 
 from app.db.session import get_session_factory
 from app.models.billing import (
+    Payment,
     PaymentEvent,
     PromoCode,
     PromoKind,
     PromoRedemption,
     Referral,
     Subscription,
+    SubscriptionStatus,
 )
 from app.models.user import User
 from app.schemas.payments import CheckoutRequest, YooKassaNotification
@@ -23,6 +25,7 @@ class FakeYooKassa:
     def __init__(self) -> None:
         self.created: dict[str, Any] | None = None
         self.remote: dict[str, Any] = {}
+        self.refund: dict[str, Any] = {}
 
     async def create_payment(self, payload: dict[str, Any], idempotency_key: str) -> dict[str, Any]:
         self.created = payload
@@ -37,6 +40,10 @@ class FakeYooKassa:
     async def get_payment(self, payment_id: str) -> dict[str, Any]:
         assert payment_id == "yk-test-payment"
         return self.remote
+
+    async def get_refund(self, refund_id: str) -> dict[str, Any]:
+        assert refund_id == "yk-test-refund"
+        return self.refund
 
 
 async def register(client: AsyncClient, suffix: str) -> tuple[dict[str, str], str]:
@@ -140,6 +147,66 @@ async def test_cancel_keeps_access_until_period_end(client: AsyncClient) -> None
     entitlements = await client.get("/api/v1/billing/entitlements", headers=headers)
     assert entitlements.json()["plan_code"] == "pro"
     assert entitlements.json()["cancel_at_period_end"] is True
+
+
+async def test_full_refund_is_idempotent_and_ends_single_paid_period(
+    client: AsyncClient,
+) -> None:
+    _, email = await register(client, "refund")
+    fake = FakeYooKassa()
+    async with get_session_factory()() as db:
+        user = await db.scalar(select(User).where(User.email == email))
+        assert user is not None
+        service = BillingService(db, provider=fake)  # type: ignore[arg-type]
+        await service.checkout(
+            user,
+            CheckoutRequest(
+                plan_code="plus",
+                interval="year",
+                request_key="00000000-0000-4000-8000-000000000004",
+            ),
+        )
+        await db.commit()
+        assert fake.created is not None
+        paid_at = datetime.now(UTC)
+        fake.remote = {
+            "id": "yk-test-payment",
+            "status": "succeeded",
+            "captured_at": paid_at.isoformat(),
+            "amount": {"value": "2499.00", "currency": "RUB"},
+            "metadata": fake.created["metadata"],
+        }
+        await service.webhook(
+            YooKassaNotification(
+                type="notification",
+                event="payment.succeeded",
+                object={"id": "yk-test-payment"},
+            )
+        )
+        await db.commit()
+
+        fake.refund = {
+            "id": "yk-test-refund",
+            "status": "succeeded",
+            "payment_id": "yk-test-payment",
+            "created_at": datetime.now(UTC).isoformat(),
+            "amount": {"value": "2499.00", "currency": "RUB"},
+        }
+        notification = YooKassaNotification(
+            type="notification",
+            event="refund.succeeded",
+            object={"id": "yk-test-refund"},
+        )
+        await service.webhook(notification)
+        await db.commit()
+        await service.webhook(notification)
+        await db.commit()
+
+        payment = await db.scalar(select(Payment).where(Payment.user_id == user.id))
+        subscription = await db.scalar(select(Subscription).where(Subscription.user_id == user.id))
+        assert payment is not None and payment.status.value == "refunded"
+        assert subscription is not None and subscription.status is SubscriptionStatus.expired
+        assert await db.scalar(select(func.count(PaymentEvent.id))) == 2
 
 
 async def test_billing_overview_requires_current_user(client: AsyncClient) -> None:

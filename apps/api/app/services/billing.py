@@ -278,28 +278,47 @@ class BillingService:
         referral.rewarded_at = datetime.now(UTC)
 
     async def webhook(self, notification: YooKassaNotification) -> None:
-        provider_id = str(notification.object.get("id", ""))
-        if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", provider_id):
-            raise ValidationError("В уведомлении нет платежа")
-        remote = await self.provider.get_payment(provider_id)
         event = notification.event
-        expected_status = event.removeprefix("payment.")
+        object_id = str(notification.object.get("id", ""))
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", object_id):
+            raise ValidationError("В уведомлении нет объекта ЮKassa")
+        is_refund = event == "refund.succeeded"
+        if is_refund:
+            remote = await self.provider.get_refund(object_id)
+            provider_id = str(remote.get("payment_id", ""))
+            expected_status = "succeeded"
+        else:
+            provider_id = object_id
+            remote = await self.provider.get_payment(provider_id)
+            expected_status = event.removeprefix("payment.")
         if remote.get("status") != expected_status:
-            raise ValidationError("Статус платежа не подтверждён")
+            raise ValidationError("Статус операции не подтверждён")
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", provider_id):
+            raise ValidationError("В операции нет платежа")
         payment = await self.db.scalar(
             select(Payment).where(Payment.provider_payment_id == provider_id)
         )
         if payment is None:
             raise NotFoundError("Платёж не найден")
-        metadata = remote.get("metadata", {})
         amount = remote.get("amount", {})
-        if (
-            metadata.get("payment_id") != str(payment.id)
-            or amount.get("currency") != payment.currency
-            or amount.get("value") != f"{Decimal(payment.amount) / 100:.2f}"
-        ):
+        expected_amount = f"{Decimal(payment.amount) / 100:.2f}"
+        if amount.get("currency") != payment.currency:
             raise ValidationError("Параметры платежа не совпадают")
-        fingerprint = hashlib.sha256(f"{event}:{provider_id}".encode()).hexdigest()
+        if is_refund:
+            try:
+                refund_amount = Decimal(str(amount.get("value", "")))
+            except Exception as exc:
+                raise ValidationError("Сумма возврата не указана") from exc
+            if refund_amount <= 0 or refund_amount > Decimal(expected_amount):
+                raise ValidationError("Сумма возврата не совпадает")
+        else:
+            metadata = remote.get("metadata", {})
+            if (
+                metadata.get("payment_id") != str(payment.id)
+                or amount.get("value") != expected_amount
+            ):
+                raise ValidationError("Параметры платежа не совпадают")
+        fingerprint = hashlib.sha256(f"{event}:{object_id}".encode()).hexdigest()
         event_id = uuid4()
         inserted = await self.db.scalar(
             insert(PaymentEvent)
@@ -316,7 +335,12 @@ class BillingService:
         )
         if inserted is None:
             return
-        if event == "payment.succeeded" and payment.status is not PaymentStatus.succeeded:
+        if is_refund:
+            payment.provider_payload = {**payment.provider_payload, "refund": remote}
+            if refund_amount == Decimal(expected_amount):
+                payment.status = PaymentStatus.refunded
+                await self._expire_single_refunded_subscription(payment, remote)
+        elif event == "payment.succeeded" and payment.status is not PaymentStatus.succeeded:
             paid_at = datetime.fromisoformat(str(remote["captured_at"]).replace("Z", "+00:00"))
             payment.status = PaymentStatus.succeeded
             payment.paid_at = paid_at
@@ -330,6 +354,30 @@ class BillingService:
             .where(PaymentEvent.id == event_id)
             .values(processed_at=datetime.now(UTC))
         )
+
+    async def _expire_single_refunded_subscription(
+        self, payment: Payment, remote_refund: dict[str, Any]
+    ) -> None:
+        successful_count = await self.db.scalar(
+            select(func.count(Payment.id)).where(
+                Payment.user_id == payment.user_id,
+                Payment.plan_id == payment.plan_id,
+                Payment.status == PaymentStatus.succeeded,
+                Payment.id != payment.id,
+            )
+        )
+        if int(successful_count or 0) > 0:
+            return
+        current = await self._current_subscription(payment.user_id)
+        if current is None or current[0].plan_id != payment.plan_id:
+            return
+        refunded_at = datetime.fromisoformat(
+            str(remote_refund["created_at"]).replace("Z", "+00:00")
+        )
+        subscription = current[0]
+        subscription.status = SubscriptionStatus.expired
+        subscription.current_period_end = min(subscription.current_period_end, refunded_at)
+        subscription.ended_at = refunded_at
 
     async def overview(self, user: User) -> BillingOverview:
         current = await self._current_subscription(user.id)

@@ -53,5 +53,5 @@ class BillingOverview(BaseModel):
 class YooKassaNotification(BaseModel):
     model_config = ConfigDict(extra="allow")
     type: Literal["notification"]
-    event: Literal["payment.succeeded", "payment.canceled"]
+    event: Literal["payment.succeeded", "payment.canceled", "refund.succeeded"]
     object: dict[str, Any]
