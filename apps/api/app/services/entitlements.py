@@ -28,6 +28,8 @@ from app.models.courses import Course, LibrarySave
 from app.models.tts import UsageCounter
 from app.models.user import User
 
+PLAN_CATALOG_PATH = Path(__file__).parents[1] / "config" / "plans.yaml"
+
 
 @dataclass(frozen=True)
 class ResolvedEntitlements:
@@ -41,8 +43,7 @@ class ResolvedEntitlements:
 
 @lru_cache(maxsize=1)
 def load_plan_catalog() -> dict[str, Any]:
-    path = Path(__file__).parents[1] / "config" / "plans.yaml"
-    payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+    payload = yaml.safe_load(PLAN_CATALOG_PATH.read_text(encoding="utf-8"))
     if not isinstance(payload, dict) or not isinstance(payload.get("plans"), dict):
         raise RuntimeError("Некорректный каталог тарифов")
     return cast(dict[str, Any], payload)
@@ -181,9 +182,7 @@ class Entitlements:
 
     async def check_course_creation(self, user: User, *, requested: int = 1) -> None:
         current = await self.course_count(user)
-        await self.check(
-            user, "courses.total", current=current, requested=requested
-        )
+        await self.check(user, "courses.total", current=current, requested=requested)
 
     async def course_count(self, user: User) -> int:
         current = await self.db.scalar(
@@ -208,9 +207,7 @@ class Entitlements:
 
     async def check_set_creation(self, user: User, *, requested: int = 1) -> None:
         current = len(await self.active_library_set_ids(user))
-        await self.check(
-            user, "sets.library_total", current=current, requested=requested
-        )
+        await self.check(user, "sets.library_total", current=current, requested=requested)
 
     async def class_count(self, user: User) -> int:
         current = await self.db.scalar(
@@ -221,18 +218,14 @@ class Entitlements:
         return int(current or 0)
 
     async def check_class_creation(self, user: User) -> None:
-        await self.check(
-            user, "classes.max", current=await self.class_count(user), requested=1
-        )
+        await self.check(user, "classes.max", current=await self.class_count(user), requested=1)
 
     async def check_class_student_creation(self, user: User, class_id: UUID) -> None:
         current = await self.db.scalar(
             select(func.count(ClassMember.id)).where(
                 ClassMember.class_id == class_id,
                 ClassMember.role == ClassMemberRole.student,
-                ClassMember.status.in_(
-                    [ClassMemberStatus.active, ClassMemberStatus.pending]
-                ),
+                ClassMember.status.in_([ClassMemberStatus.active, ClassMemberStatus.pending]),
             )
         )
         await self.check(

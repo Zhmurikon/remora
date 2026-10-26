@@ -1,6 +1,8 @@
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
+import yaml
 from httpx import AsyncClient
 from sqlalchemy import select
 
@@ -16,8 +18,8 @@ from app.models.billing import (
 )
 from app.models.tts import UsageCounter
 from app.models.user import User
-from app.services.entitlements import Entitlements, week_period
-from app.services.plans import sync_plan_catalog
+from app.services.entitlements import Entitlements, load_plan_catalog, week_period
+from app.services.plans import public_plans, sync_plan_catalog
 
 
 async def register(client: AsyncClient, suffix: str) -> tuple[dict[str, str], str]:
@@ -47,6 +49,25 @@ async def test_public_plan_catalog_has_launch_prices(client: AsyncClient) -> Non
     assert plans["free"]["limits"]["export.account_per_day"] == 1
     assert plans["plus"]["limits"]["tts.chars_per_month"] == 150_000
     assert plans["plus"]["limits"]["export.account_per_day"] is None
+
+
+def test_catalog_numbers_change_from_yaml_without_code_changes(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    source = Path(__file__).parents[1] / "app" / "config" / "plans.yaml"
+    catalog = yaml.safe_load(source.read_text(encoding="utf-8"))
+    catalog["version"] += 1
+    catalog["plans"]["free"]["limits"]["courses.total"] = 7
+    changed = tmp_path / "plans.yaml"
+    changed.write_text(yaml.safe_dump(catalog, allow_unicode=True), encoding="utf-8")
+
+    monkeypatch.setattr("app.services.entitlements.PLAN_CATALOG_PATH", changed)
+    load_plan_catalog.cache_clear()
+    try:
+        free = next(plan for plan in public_plans() if plan.code == "free")
+        assert free.limits["courses.total"] == 7
+    finally:
+        load_plan_catalog.cache_clear()
 
 
 async def test_free_entitlements_are_private_to_current_user(client: AsyncClient) -> None:
