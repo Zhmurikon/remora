@@ -6,11 +6,13 @@ from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 from zipfile import ZipFile
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
 from app.db.session import get_session_factory
 from app.models.content import MediaAsset, MediaKind, MediaSource, MediaStatus
+from app.models.exports import AccountExportJob, AccountExportStatus
 from app.models.user import User
 from app.worker import process_account_export
 
@@ -167,3 +169,33 @@ async def test_account_export_job_is_private_and_not_duplicated(
     assert forbidden.status_code == 403
     assert forbidden.json()["code"] == "FORBIDDEN"
     assert (await client.get(f"/api/v1/users/me/export/{uuid4()}")).status_code == 401
+
+    async with get_session_factory()() as db:
+        job = await db.get(AccountExportJob, created.json()["id"])
+        assert job is not None
+        job.status = AccountExportStatus.completed
+        await db.commit()
+    with patch("app.api.v1.users.enqueue_account_export", new_callable=AsyncMock):
+        daily_limit = await client.post("/api/v1/users/me/export", headers=owner)
+    assert daily_limit.status_code == 402
+    assert daily_limit.json()["details"]["limit_key"] == "export.account_per_day"
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_queue_failure_releases_daily_export_quota(
+    _verification: AsyncMock, client: AsyncClient
+) -> None:
+    owner = await _auth(client, "queue-failure")
+    with (
+        patch(
+            "app.api.v1.users.enqueue_account_export",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("queue unavailable"),
+        ),
+        pytest.raises(RuntimeError, match="queue unavailable"),
+    ):
+        await client.post("/api/v1/users/me/export", headers=owner)
+
+    with patch("app.api.v1.users.enqueue_account_export", new_callable=AsyncMock):
+        retried = await client.post("/api/v1/users/me/export", headers=owner)
+    assert retried.status_code == 202

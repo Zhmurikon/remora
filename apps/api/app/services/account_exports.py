@@ -16,9 +16,12 @@ from app.core.config import get_settings
 from app.core.errors import ConflictError, ForbiddenError, NotFoundError
 from app.core.storage import get_object_storage
 from app.models.exports import AccountExportJob, AccountExportStatus
+from app.models.tts import UsageMetric
 from app.models.user import User
 from app.repositories import exports as export_repo
+from app.repositories.api_tokens import lock_request
 from app.schemas.exports import AccountExportPublic
+from app.services.entitlements import Entitlements, day_period
 
 
 class AccountExportService:
@@ -26,16 +29,36 @@ class AccountExportService:
         self.db = db
 
     async def create_job(self, user: User) -> AccountExportJob:
+        await lock_request(self.db, user.id)
         latest = await export_repo.latest_job(self.db, user.id)
         if latest is not None and latest.status in {
             AccountExportStatus.queued,
             AccountExportStatus.processing,
         }:
             raise ConflictError("Экспорт аккаунта уже готовится")
+        period_key, resets_at = day_period()
+        await Entitlements(self.db).consume(
+            user,
+            "export.account_per_day",
+            amount=1,
+            period_key=period_key,
+            resets_at=resets_at,
+            counter_metric=UsageMetric.account_exports.value,
+        )
         job = AccountExportJob(user_id=user.id)
         self.db.add(job)
         await self.db.flush()
         return job
+
+    async def release_quota(self, user: User) -> None:
+        period_key, _ = day_period()
+        await Entitlements(self.db).release(
+            user,
+            "export.account_per_day",
+            amount=1,
+            period_key=period_key,
+            counter_metric=UsageMetric.account_exports.value,
+        )
 
     async def get_job(self, user: User, job_id: UUID) -> AccountExportJob:
         job = await export_repo.get_job(self.db, job_id)

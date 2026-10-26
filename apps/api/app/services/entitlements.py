@@ -10,7 +10,7 @@ from typing import Any, cast
 from uuid import UUID
 
 import yaml
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -47,6 +47,12 @@ def week_period(moment: datetime | None = None) -> tuple[str, datetime]:
     reset = datetime.combine(start + timedelta(days=7), datetime.min.time(), tzinfo=UTC)
     iso_year, iso_week, _ = start.isocalendar()
     return f"{iso_year}-W{iso_week:02d}", reset
+
+
+def day_period(moment: datetime | None = None) -> tuple[str, datetime]:
+    now = moment or datetime.now(UTC)
+    reset = datetime.combine(now.date() + timedelta(days=1), datetime.min.time(), tzinfo=UTC)
+    return now.date().isoformat(), reset
 
 
 class Entitlements:
@@ -284,3 +290,25 @@ class Entitlements:
             user, metric, current=int(current or 0), requested=amount, resets_at=resets_at
         )
         raise RuntimeError("Счётчик квоты не обновлён")
+
+    async def release(
+        self,
+        user: User,
+        metric: str,
+        *,
+        amount: int,
+        period_key: str,
+        counter_metric: str | None = None,
+    ) -> None:
+        if amount < 1:
+            raise ValueError("amount должен быть положительным")
+        stored_metric = counter_metric or metric
+        await self.db.execute(
+            update(UsageCounter)
+            .where(
+                UsageCounter.user_id == user.id,
+                UsageCounter.metric == stored_metric,
+                UsageCounter.period_key == period_key,
+            )
+            .values(value=func.greatest(UsageCounter.value - amount, 0))
+        )

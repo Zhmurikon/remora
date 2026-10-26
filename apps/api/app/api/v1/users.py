@@ -33,6 +33,7 @@ async def create_account_export(
     except Exception:
         job.status = AccountExportStatus.failed
         job.error_message = "Не удалось поставить экспорт в очередь"
+        await service.release_quota(user)
         await db.commit()
         raise
     return service.public(job)

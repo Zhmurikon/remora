@@ -44,7 +44,9 @@ async def test_public_plan_catalog_has_launch_prices(client: AsyncClient) -> Non
     assert plans["pro"]["price_year"] == 999_900
     assert plans["free"]["features"]["ai.transcription"] is False
     assert plans["free"]["limits"]["tts.chars_per_month"] == 5_000
+    assert plans["free"]["limits"]["export.account_per_day"] == 1
     assert plans["plus"]["limits"]["tts.chars_per_month"] == 150_000
+    assert plans["plus"]["limits"]["export.account_per_day"] is None
 
 
 async def test_free_entitlements_are_private_to_current_user(client: AsyncClient) -> None:
