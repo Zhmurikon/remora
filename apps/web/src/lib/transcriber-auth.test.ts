@@ -7,14 +7,14 @@ import {
 } from './transcriber-auth';
 
 const original = {
-  secret: process.env.SECRET_KEY,
+  secret: process.env.TRANSCRIBER_ACCESS_SECRET,
   code: process.env.TRANSCRIBER_ACCESS_CODE,
   apiKey: process.env.FASTER_WHISPER_API_KEY,
 };
 
 afterEach(() => {
   for (const [key, value] of Object.entries({
-    SECRET_KEY: original.secret,
+    TRANSCRIBER_ACCESS_SECRET: original.secret,
     TRANSCRIBER_ACCESS_CODE: original.code,
     FASTER_WHISPER_API_KEY: original.apiKey,
   })) {
@@ -31,7 +31,7 @@ describe('доступ к расшифровке', () => {
   });
 
   it('принимает только верный код и подписанную cookie', () => {
-    process.env.SECRET_KEY = 'test-secret-key-with-at-least-32-characters';
+    process.env.TRANSCRIBER_ACCESS_SECRET = 'test-secret-key-with-at-least-32-characters';
     process.env.TRANSCRIBER_ACCESS_CODE = '1448';
     process.env.FASTER_WHISPER_API_KEY = 'test-api-key';
 

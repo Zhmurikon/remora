@@ -4,14 +4,14 @@ export const TRANSCRIBER_COOKIE = 'remora_transcriber_access';
 export const TRANSCRIBER_COOKIE_MAX_AGE = 60 * 60 * 24 * 180;
 
 function digest(value: string) {
-  return createHmac('sha256', process.env.SECRET_KEY ?? '')
+  return createHmac('sha256', process.env.TRANSCRIBER_ACCESS_SECRET ?? '')
     .update(value)
     .digest();
 }
 
 export function transcriberIsConfigured() {
   return Boolean(
-    process.env.SECRET_KEY &&
+    process.env.TRANSCRIBER_ACCESS_SECRET &&
     process.env.TRANSCRIBER_ACCESS_CODE &&
     process.env.FASTER_WHISPER_API_KEY,
   );

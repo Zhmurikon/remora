@@ -1,10 +1,12 @@
 """Настройки приложения. Единственное место, где читается окружение."""
 
+from __future__ import annotations
+
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, PostgresDsn, RedisDsn, SecretStr
+from pydantic import Field, PostgresDsn, RedisDsn, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT_DIR = Path(__file__).resolve().parents[4]
@@ -29,7 +31,10 @@ class Settings(BaseSettings):
     project_name: str = "Remora API"
 
     # Секреты
-    secret_key: str = Field(min_length=32)
+    secret_key: SecretStr = Field(min_length=32)
+    jwt_previous_secret_keys: list[SecretStr] = Field(default_factory=list)
+    data_encryption_keys: list[SecretStr] = Field(default_factory=list)
+    transcriber_service_token: SecretStr = SecretStr("")
 
     # Инфраструктура
     database_url: PostgresDsn
@@ -116,6 +121,30 @@ class Settings(BaseSettings):
     @property
     def is_local(self) -> bool:
         return self.environment == "local"
+
+    @model_validator(mode="after")
+    def reject_development_secrets_outside_local(self) -> Settings:
+        if self.is_local:
+            return self
+        insecure = {
+            "secret_key": self.secret_key.get_secret_value().startswith(
+                ("local-", "test-", "replace-")
+            ),
+            "s3_secret_key": self.s3_secret_key.get_secret_value()
+            in {"remora-dev-secret", "replace-with-random-secret"},
+            "meili_master_key": self.meili_master_key.get_secret_value()
+            in {"remora-dev-master-key", "replace-with-random-secret"},
+        }
+        bad = sorted(name for name, invalid in insecure.items() if invalid)
+        if bad:
+            raise ValueError(f"Небезопасные секреты вне local: {', '.join(bad)}")
+        if not self.data_encryption_keys:
+            raise ValueError("DATA_ENCRYPTION_KEYS обязателен вне local")
+        if not self.transcriber_service_token.get_secret_value():
+            raise ValueError("TRANSCRIBER_SERVICE_TOKEN обязателен вне local")
+        if not self.cookie_secure:
+            raise ValueError("COOKIE_SECURE обязан быть true вне local")
+        return self
 
 
 @lru_cache

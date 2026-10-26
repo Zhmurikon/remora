@@ -20,7 +20,8 @@ def internal_access(
     token: Annotated[str | None, Header(alias="X-Transcriber-Token")] = None,
     settings: Settings = Depends(get_settings),
 ) -> None:
-    if token is None or not secrets.compare_digest(token, settings.secret_key):
+    expected = settings.transcriber_service_token.get_secret_value()
+    if not expected or token is None or not secrets.compare_digest(token, expected):
         raise ForbiddenError("Нет доступа к инструменту расшифровки")
 
 
@@ -79,4 +80,3 @@ async def get_job(
     db: AsyncSession = Depends(get_db),
 ) -> TranscriptionPublic:
     return TranscriptionPublic.model_validate(await TranscriptionService(db).get(job_id))
-

@@ -12,7 +12,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path?: s
       { status: 401 },
     );
   }
-  const token = process.env.SECRET_KEY;
+  const token = process.env.TRANSCRIBER_SERVICE_TOKEN;
   if (!token) {
     return Response.json(
       { code: 'NOT_CONFIGURED', message: 'Инструмент пока не настроен' },

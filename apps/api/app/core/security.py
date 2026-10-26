@@ -53,6 +53,7 @@ def create_jwt(
     extra: dict[str, str] | None = None,
 ) -> str:
     settings = get_settings()
+    primary_key = settings.secret_key.get_secret_value()
 
     if token_type == "access":
         ttl = timedelta(minutes=settings.access_token_ttl_minutes)
@@ -70,20 +71,37 @@ def create_jwt(
         "exp": int((now + ttl).timestamp()),
     }
 
-    return jwt.encode(payload, settings.secret_key, algorithm="HS256")
+    key_id = hashlib.sha256(primary_key.encode()).hexdigest()[:12]
+    return jwt.encode(payload, primary_key, algorithm="HS256", headers={"kid": key_id})
 
 
 def decode_jwt(token: str, expected_type: TokenType) -> dict[str, Any] | None:
     """Декодирует JWT и проверяет тип. None — если токен невалиден."""
     settings = get_settings()
+    keys = [
+        settings.secret_key.get_secret_value(),
+        *(key.get_secret_value() for key in settings.jwt_previous_secret_keys),
+    ]
     try:
-        payload = jwt.decode(
-            token,
-            settings.secret_key,
-            algorithms=["HS256"],
-            options={"require": ["sub", "type", "iat", "exp"]},
-        )
+        header = jwt.get_unverified_header(token)
     except jwt.PyJWTError:
+        return None
+    key_id = header.get("kid")
+    if isinstance(key_id, str):
+        keys = [key for key in keys if hashlib.sha256(key.encode()).hexdigest()[:12] == key_id]
+    payload = None
+    for key in keys:
+        try:
+            payload = jwt.decode(
+                token,
+                key,
+                algorithms=["HS256"],
+                options={"require": ["sub", "type", "iat", "exp"]},
+            )
+            break
+        except jwt.PyJWTError:
+            continue
+    if payload is None:
         return None
 
     if payload.get("type") != expected_type:

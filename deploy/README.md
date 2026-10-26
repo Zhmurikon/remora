@@ -34,6 +34,9 @@ docker build -t remora-dev-api:local -f deploy/Dockerfile.api deploy
 включена реальная отправка через SMTP Timeweb (587, STARTTLS). Реквизиты хранятся
 в `deploy/.env`. MailHog остаётся в compose для тестов, приложение его не использует.
 Его интерфейс не публикуется в интернете.
+Ротация ключей и разделение production-ролей PostgreSQL/S3 описаны в
+[`docs/12-security-operations.md`](../docs/12-security-operations.md). Runtime-контейнеры
+не должны получать пароль мигратора или root-ключ MinIO.
 
 ## Обновление
 

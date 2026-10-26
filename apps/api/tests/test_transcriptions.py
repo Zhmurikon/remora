@@ -28,7 +28,7 @@ async def test_transcription_upload_is_chunked_and_queued(
     monkeypatch.setattr("app.services.transcriptions.get_object_storage", lambda: storage)
     enqueue = AsyncMock()
     monkeypatch.setattr("app.api.v1.transcriptions.enqueue_transcription", enqueue)
-    headers = {"X-Transcriber-Token": get_settings().secret_key}
+    headers = {"X-Transcriber-Token": get_settings().transcriber_service_token.get_secret_value()}
 
     created = await client.post(
         "/api/v1/internal/transcriptions",
@@ -59,4 +59,3 @@ async def test_transcription_upload_is_chunked_and_queued(
     assert completed.status_code == 200
     assert completed.json()["status"] == "queued"
     enqueue.assert_awaited_once_with(job_id)
-

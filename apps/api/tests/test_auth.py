@@ -402,7 +402,7 @@ async def test_me_rejects_invalid_jwt_claims(mock_send: AsyncMock, client: pytes
     valid_access = login.json()["access_token"]
     valid_payload = jwt.decode(
         valid_access,
-        get_settings().secret_key,
+        get_settings().secret_key.get_secret_value(),
         algorithms=["HS256"],
     )
     user_id = valid_payload["sub"]
@@ -411,7 +411,7 @@ async def test_me_rejects_invalid_jwt_claims(mock_send: AsyncMock, client: pytes
         "not-a-jwt",
         jwt.encode(
             {"type": "access", "iat": now, "exp": now + timedelta(minutes=5)},
-            get_settings().secret_key,
+            get_settings().secret_key.get_secret_value(),
             algorithm="HS256",
         ),
         jwt.encode(
@@ -421,7 +421,7 @@ async def test_me_rejects_invalid_jwt_claims(mock_send: AsyncMock, client: pytes
                 "iat": now,
                 "exp": now + timedelta(minutes=5),
             },
-            get_settings().secret_key,
+            get_settings().secret_key.get_secret_value(),
             algorithm="HS256",
         ),
         jwt.encode(
@@ -431,7 +431,7 @@ async def test_me_rejects_invalid_jwt_claims(mock_send: AsyncMock, client: pytes
                 "iat": now - timedelta(minutes=10),
                 "exp": now - timedelta(minutes=5),
             },
-            get_settings().secret_key,
+            get_settings().secret_key.get_secret_value(),
             algorithm="HS256",
         ),
         create_jwt(user_id, "email_verification", extra={"email": "claims@example.com"}),
@@ -737,9 +737,7 @@ async def test_mobile_login_returns_refresh_in_body(
 
 
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
-async def test_web_login_no_refresh_in_body(
-    mock_send: AsyncMock, client: pytest.fixture
-) -> None:
+async def test_web_login_no_refresh_in_body(mock_send: AsyncMock, client: pytest.fixture) -> None:
     """Веб-клиент НЕ получает refresh-токен в теле — только через cookie."""
     resp = await client.post(
         "/api/v1/auth/register",
@@ -764,9 +762,7 @@ async def test_web_login_no_refresh_in_body(
 
 
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
-async def test_mobile_refresh_via_body(
-    mock_send: AsyncMock, client: pytest.fixture
-) -> None:
+async def test_mobile_refresh_via_body(mock_send: AsyncMock, client: pytest.fixture) -> None:
     """Мобильный refresh через тело (без cookie) — возвращает новый refresh."""
     resp = await client.post(
         "/api/v1/auth/register",
@@ -800,9 +796,7 @@ async def test_mobile_refresh_via_body(
 
 
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
-async def test_mobile_refresh_via_header(
-    mock_send: AsyncMock, client: pytest.fixture
-) -> None:
+async def test_mobile_refresh_via_header(mock_send: AsyncMock, client: pytest.fixture) -> None:
     """Refresh через заголовок X-Refresh-Token тоже работает."""
     await client.post(
         "/api/v1/auth/register",
@@ -829,9 +823,7 @@ async def test_mobile_refresh_via_header(
 
 
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
-async def test_mobile_logout_via_body(
-    mock_send: AsyncMock, client: pytest.fixture
-) -> None:
+async def test_mobile_logout_via_body(mock_send: AsyncMock, client: pytest.fixture) -> None:
     """Мобильный logout через тело (без cookie) отзывает токен."""
     await client.post(
         "/api/v1/auth/register",

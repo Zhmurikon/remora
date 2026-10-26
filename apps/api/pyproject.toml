@@ -24,6 +24,7 @@ dependencies = [
     "reportlab>=5.0.1",
     "arq>=0.26.3",
     "defusedxml>=0.7.1",
+    "cryptography>=46.0.3",
 ]
 
 [dependency-groups]

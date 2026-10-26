@@ -59,7 +59,7 @@
 | Категория | Результат |
 | --- | --- |
 | A01 Broken Access Control | Закрыто серверными проверками и матрицей чужих UUID |
-| A02 Cryptographic Failures | Пароли Argon2id, токены хешируются; ротация секретов — отдельный срез E10 |
+| A02 Cryptographic Failures | Пароли Argon2id, токены хешируются, JWT и AES-GCM keyring поддерживают ротацию |
 | A03 Injection | ORM-параметры, закрытые схемы, безопасный Markdown/SVG/экспорт |
 | A04 Insecure Design | Сервисные роли, идемпотентность, постмодерация и аудит выделены явно |
 | A05 Security Misconfiguration | CSP с одноразовым nonce без `unsafe-inline`, HSTS и защитные заголовки добавлены на всех слоях |
