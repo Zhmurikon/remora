@@ -1,15 +1,16 @@
-# Дев-версия Remora
+# Серверная версия «Запоминальни»
 
-Сервер `home-server`, каталог `/opt/remora-dev`. Всё приложение и сборка работают в Docker.
-Существующий Nginx Proxy Manager завершает TLS и проксирует сеть `proxy` на
-`http://remora-dev-gateway:80`. Канонический домен — `remora.com.ru`, кабинет —
-`https://remora.com.ru/app`, административная панель — `https://admin.remora.com.ru`.
-Для административного домена нужен отдельный Proxy Host на тот же gateway с собственным TLS;
-gateway выбирает статическую сборку по заголовку Host. `www.remora.com.ru` перенаправляется
-на домен без `www`.
-`edu-remora.ru` и `test.edu-remora.ru` остаются рабочими алиасами на время перехода. Страницы двух прежних
-доменов отдают `301` на `remora.com.ru` с тем же путём и query-параметрами. Без редиректа
-остаются `/api/`, callback Telegram/VK, `/remora-media/`, `/remora-audio/`,
+Основной сервер — `servtech`, каталог `/opt/remora-dev`. Всё приложение и сборка работают
+в Docker. Host nginx завершает TLS и проксирует `zapominalnya.ru` на gateway через
+`127.0.0.1:8280`; порт gateway публикуется только на loopback. Канонический домен —
+`zapominalnya.ru`, кабинет — `https://zapominalnya.ru/app`, административная панель —
+`https://admin.zapominalnya.ru`. Gateway выбирает административную сборку по заголовку Host.
+`www.zapominalnya.ru` перенаправляется на домен без `www`.
+
+Старые `remora.com.ru`, `www.remora.com.ru`, `edu-remora.ru` и `test.edu-remora.ru`
+сохраняются на переходный период и должны отдавать `301` на `zapominalnya.ru` с тем же путём
+и query-параметрами. Без редиректа до переноса клиентов остаются `/api/`, callback
+Telegram/VK, `/remora-media/`, `/remora-audio/`,
 `/rasshifrovka/api/` и `/rasshifrovka-yandex/api/`; MCP использует сохранённый
 `/api/v1/agent/`.
 В серверном `deploy/.env` значение `CORS_ORIGINS` должно включать публичный домен, `www`,
@@ -24,7 +25,7 @@ docker compose --env-file deploy/.env -f deploy/compose.yml exec -T api \
 ```
 
 Публичного API для выдачи роли нет. После смены роли нужно заново войти на
-`https://admin.remora.com.ru`.
+`https://admin.zapominalnya.ru`.
 
 ## Первая установка
 
@@ -56,7 +57,7 @@ docker build -t remora-dev-api:local -f deploy/Dockerfile.api deploy
 разрешённый redirect URI:
 
 ```text
-https://remora.com.ru/api/v1/auth/oauth/google/callback
+https://zapominalnya.ru/api/v1/auth/oauth/google/callback
 ```
 
 В `deploy/.env` задать `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` и
@@ -64,7 +65,7 @@ https://remora.com.ru/api/v1/auth/oauth/google/callback
 контейнер `api`. Для локальной проверки используется callback
 `http://localhost:8000/api/v1/auth/oauth/google/callback`; Google допускает HTTP только для
 localhost. Google-профиль с подтверждённым Gmail или адресом Google Workspace автоматически
-связывается с уже существующим аккаунтом Remora. Сторонний адрес Google-аккаунта не сращивается
+связывается с уже существующим аккаунтом «Запоминальни». Сторонний адрес Google-аккаунта не сращивается
 без дополнительного подтверждения владения почтой.
 
 ### Закрытая расшифровка через SpeechKit
@@ -85,16 +86,16 @@ localhost. Google-профиль с подтверждённым Gmail или а
 Для раздела `Google Auth Platform → Branding` использовать:
 
 ```text
-App home page:       https://remora.com.ru
-Privacy policy:      https://remora.com.ru/privacy
-Terms of service:    https://remora.com.ru/terms
-Authorized domain:   remora.com.ru
+App home page:       https://zapominalnya.ru
+Privacy policy:      https://zapominalnya.ru/privacy
+Terms of service:    https://zapominalnya.ru/terms
+Authorized domain:   zapominalnya.ru
 ```
 
 Загрузить `assets/brand/mark/remora-google-oauth.png`: это PNG 120 × 120 px, собранный
-из утверждённого знака Remora. Русские страницы доступны по адресам выше, английские —
+из утверждённого знака «Запоминальни». Русские страницы доступны по адресам выше, английские —
 по `/en/privacy` и `/en/terms`. Перед отправкой Branding на проверку убедиться, что адрес
-`support@remora.com.ru`, указанный на юридических страницах, принимает письма, а сами страницы
+`support@zapominalnya.ru`, указанный на юридических страницах, принимает письма, а сами страницы
 опубликованы и открываются без авторизации.
 
 ### Логи API

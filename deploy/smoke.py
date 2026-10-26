@@ -10,7 +10,7 @@ from uuid import uuid4
 import httpx
 from PIL import Image
 
-BASE = os.environ.get("WEB_URL", "https://remora.com.ru").rstrip("/")
+BASE = os.environ.get("WEB_URL", "https://zapominalnya.ru").rstrip("/")
 
 
 def main() -> None:
