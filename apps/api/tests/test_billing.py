@@ -53,6 +53,11 @@ async def test_free_entitlements_are_private_to_current_user(client: AsyncClient
     assert response.json()["limits"]["sets.library_total"] == 20
     assert response.json()["limits"]["courses.total"] == 10
     assert response.json()["limits"]["study.reviews_soft_per_day"] == 500
+    assert response.json()["usage"] == {"courses.total": 0, "sets.library_total": 0}
+    assert response.json()["remaining"] == {
+        "courses.total": 10,
+        "sets.library_total": 20,
+    }
     assert (await client.get("/api/v1/billing/entitlements")).status_code == 401
 
 

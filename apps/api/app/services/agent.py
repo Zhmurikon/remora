@@ -42,6 +42,7 @@ from app.schemas.content import (
 from app.schemas.courses import CourseSummary
 from app.services.content import ContentService
 from app.services.courses import CourseService
+from app.services.entitlements import Entitlements
 
 
 def digest(value: object) -> str:
@@ -190,6 +191,7 @@ class AgentService:
         return AgentCourseDetail(**data, revision=digest(data))
 
     async def create_course(self, user: User, body: AgentCourseWrite) -> AgentCourseDetail:
+        await Entitlements(self.db).check_course_creation(user)
         course_id = uuid4()
         course = Course(
             id=course_id,

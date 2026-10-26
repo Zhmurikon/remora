@@ -33,6 +33,7 @@ from app.schemas.courses import (
 from app.schemas.search import CourseSearchItem
 from app.services.attachments import AttachmentService
 from app.services.content import ContentService
+from app.services.entitlements import Entitlements
 from app.services.search_sync import queue_course
 
 
@@ -238,6 +239,7 @@ class CourseService:
 
     async def create(self, user: User, body: CourseCreate) -> CourseDetail:
         await lock_request(self.db, user.id)
+        await Entitlements(self.db).check_course_creation(user)
         content = ContentService(self.db)
         study_set = (
             await content.get_owned_set(user, body.set_id)

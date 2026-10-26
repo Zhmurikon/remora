@@ -17,5 +17,7 @@ class EntitlementsPublic(BaseModel):
     plan_name: str
     features: dict[str, bool]
     limits: dict[str, int | None]
+    usage: dict[str, int]
+    remaining: dict[str, int | None]
     current_period_end: datetime | None
     cancel_at_period_end: bool

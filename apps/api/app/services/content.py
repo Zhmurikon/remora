@@ -33,6 +33,7 @@ from app.schemas.content import (
     SetCreate,
     SetUpdate,
 )
+from app.services.entitlements import Entitlements
 from app.services.search_sync import queue_course
 
 _HTML_TAG = re.compile(r"<\s*/?\s*[a-zA-Z][^>]*>")
@@ -179,6 +180,8 @@ class ContentService:
         return study_set
 
     async def create_set(self, user: User, body: SetCreate) -> StudySet:
+        await lock_request(self.db, user.id)
+        await Entitlements(self.db).check_set_creation(user)
         if body.folder_id is not None:
             await self.get_owned_folder(user, body.folder_id)
         study_set = StudySet(id=uuid4(), owner_id=user.id, slug="pending", **body.model_dump())
@@ -208,6 +211,7 @@ class ContentService:
     async def restore_set(self, user: User, set_id: UUID) -> StudySet:
         await lock_request(self.db, user.id)
         study_set = await self.get_owned_archived_set(user, set_id)
+        await Entitlements(self.db).check_set_creation(user)
         await content_repo.restore_set(self.db, study_set)
         await self.db.refresh(study_set)
         await self._queue_set_course(study_set.id)

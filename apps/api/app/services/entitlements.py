@@ -7,14 +7,17 @@ from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, cast
+from uuid import UUID
 
 import yaml
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import LimitExceededError
 from app.models.billing import Entitlement, Plan, Subscription, SubscriptionStatus
+from app.models.content import StudySet
+from app.models.courses import Course, LibrarySave
 from app.models.tts import UsageCounter
 from app.models.user import User
 
@@ -133,6 +136,8 @@ class Entitlements:
         requested: int = 1,
         resets_at: datetime | None = None,
     ) -> None:
+        if requested <= 0:
+            return
         limit = await self.limit(user, key)
         if limit is None or current + requested <= limit:
             return
@@ -146,6 +151,76 @@ class Entitlements:
                 "upgrade_to": "plus",
             }
         )
+
+    async def check_course_creation(self, user: User, *, requested: int = 1) -> None:
+        current = await self.course_count(user)
+        await self.check(
+            user, "courses.total", current=current, requested=requested
+        )
+
+    async def course_count(self, user: User) -> int:
+        current = await self.db.scalar(
+            select(func.count(Course.id)).where(Course.owner_id == user.id)
+        )
+        return int(current or 0)
+
+    async def active_library_set_ids(self, user: User) -> set[UUID]:
+        owned = set(
+            await self.db.scalars(
+                select(StudySet.id).where(
+                    StudySet.owner_id == user.id, StudySet.deleted_at.is_(None)
+                )
+            )
+        )
+        snapshots = await self.db.scalars(
+            select(LibrarySave.accepted_snapshot).where(LibrarySave.user_id == user.id)
+        )
+        for snapshot in snapshots:
+            owned.update(self.snapshot_set_ids(snapshot))
+        return owned
+
+    async def check_set_creation(self, user: User, *, requested: int = 1) -> None:
+        current = len(await self.active_library_set_ids(user))
+        await self.check(
+            user, "sets.library_total", current=current, requested=requested
+        )
+
+    async def check_library_snapshot(self, user: User, snapshot: dict[str, Any]) -> None:
+        current_ids = await self.active_library_set_ids(user)
+        requested_ids = self.snapshot_set_ids(snapshot) - current_ids
+        await self.check(
+            user,
+            "sets.library_total",
+            current=len(current_ids),
+            requested=len(requested_ids),
+        )
+
+    async def creation_quota_usage(self, user: User) -> dict[str, int]:
+        return {
+            "courses.total": await self.course_count(user),
+            "sets.library_total": len(await self.active_library_set_ids(user)),
+        }
+
+    @staticmethod
+    def quota_remaining(
+        limits: dict[str, int | None], usage: dict[str, int]
+    ) -> dict[str, int | None]:
+        remaining: dict[str, int | None] = {}
+        for key, current in usage.items():
+            limit = limits.get(key)
+            remaining[key] = None if limit is None else max(limit - current, 0)
+        return remaining
+
+    @staticmethod
+    def snapshot_set_ids(snapshot: dict[str, Any]) -> set[UUID]:
+        result: set[UUID] = set()
+        for article in snapshot.get("articles", []):
+            raw_id = article.get("set", {}).get("id") if isinstance(article, dict) else None
+            try:
+                result.add(UUID(str(raw_id)))
+            except (TypeError, ValueError):
+                continue
+        return result
 
     async def consume(
         self,

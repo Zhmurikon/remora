@@ -31,8 +31,11 @@ async def my_entitlements(
     db: AsyncSession = Depends(get_db),
 ) -> EntitlementsPublic:
     response.headers["Cache-Control"] = "no-store"
-    resolved = await Entitlements(db).resolve(user)
-    return EntitlementsPublic(**resolved.__dict__)
+    entitlements = Entitlements(db)
+    resolved = await entitlements.resolve(user)
+    usage = await entitlements.creation_quota_usage(user)
+    remaining = entitlements.quota_remaining(resolved.limits, usage)
+    return EntitlementsPublic(**resolved.__dict__, usage=usage, remaining=remaining)
 
 
 @router.get("/overview", response_model=BillingOverview, summary="Подписка и платежи")

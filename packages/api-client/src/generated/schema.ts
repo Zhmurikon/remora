@@ -4322,6 +4322,14 @@ export interface components {
             plan_code: string;
             /** Plan Name */
             plan_name: string;
+            /** Remaining */
+            remaining: {
+                [key: string]: number | null;
+            };
+            /** Usage */
+            usage: {
+                [key: string]: number;
+            };
         };
         /** FolderCreate */
         FolderCreate: {

@@ -26,6 +26,7 @@ from app.services.agent import AgentService, digest
 from app.services.attachments import AttachmentService
 from app.services.content import ContentService
 from app.services.courses import CourseService
+from app.services.entitlements import Entitlements
 from app.services.search_sync import queue_course
 
 
@@ -305,6 +306,7 @@ class CourseEditorService:
         # Единый порядок блокировок предотвращает взаимную блокировку встречных копирований.
         for owner_id in sorted({user.id, source.owner_id}, key=str):
             await lock_request(self.db, owner_id)
+        await Entitlements(self.db).check_course_creation(user)
         await self.db.refresh(source)
         if source.owner_id != user.id and await repo.public_course(self.db, source.slug) is None:
             raise NotFoundError("Курс недоступен")

@@ -25,6 +25,7 @@ from app.schemas.library import (
     SavedCourseItem,
     SavedSetItem,
 )
+from app.services.entitlements import Entitlements
 from app.services.search_sync import queue_course
 
 
@@ -40,11 +41,13 @@ class LibraryService:
         course, article, study_set = await self._resolve(body.target_type, body.target_id)
         if course.owner_id == user.id:
             raise ConflictError("Собственный материал уже доступен в библиотеке")
+        snapshot = await self._snapshot(body.target_type, course, article, study_set)
+        await Entitlements(self.db).check_library_snapshot(user, snapshot)
         saved = LibrarySave(user_id=user.id)
         setattr(saved, f"{body.target_type}_id", body.target_id)
         if body.target_type == "course":
             saved.folder_id = await self._create_course_folder(user, course)
-        saved.accepted_snapshot = await self._snapshot(body.target_type, course, article, study_set)
+        saved.accepted_snapshot = snapshot
         self.db.add(saved)
         await self.db.flush()
         await queue_course(self.db, course.id)
@@ -235,7 +238,9 @@ class LibraryService:
         saved = await repo.get_save(self.db, user.id, save_id)
         if saved is None:
             raise NotFoundError("Сохранение не найдено")
-        saved.accepted_snapshot = await self._current_snapshot(saved)
+        snapshot = await self._current_snapshot(saved)
+        await Entitlements(self.db).check_library_snapshot(user, snapshot)
+        saved.accepted_snapshot = snapshot
         saved.accepted_at = datetime.now(UTC)
         await self.db.flush()
         await self.db.refresh(saved, attribute_names=["updated_at"])
