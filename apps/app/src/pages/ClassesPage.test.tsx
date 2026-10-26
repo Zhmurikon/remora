@@ -22,6 +22,8 @@ const teacherClass = {
   my_role: 'teacher',
   created_at: '2026-10-01T00:00:00Z',
   updated_at: '2026-10-01T00:00:00Z',
+  is_read_only: false,
+  can_create_assignments: true,
 };
 const studentClass = { ...teacherClass, id: 'class-2', title: 'Биология', my_role: 'student' };
 const assignment = {
@@ -137,6 +139,29 @@ it('показывает преподавателю матрицу прогре�
   expect(screen.getByText('12 из 20')).toBeTruthy();
   expect(await screen.findByText('Франция')).toBeTruthy();
   expect(screen.getByLabelText('40 процентов ответов с ошибкой')).toBeTruthy();
+});
+
+it('объясняет режим просмотра и скрывает создание задания', async () => {
+  vi.mocked(api.GET).mockImplementation(async (path) => {
+    if (path === '/api/v1/classes/{class_id}') {
+      return {
+        data: {
+          ...teacherClass,
+          is_read_only: true,
+          can_create_assignments: false,
+          members: [],
+        },
+      } as never;
+    }
+    return { data: [] } as never;
+  });
+  mount('/classes/class-1');
+
+  expect(await screen.findByRole('heading', { name: 'Класс доступен для просмотра' })).toBeTruthy();
+  expect(
+    screen.getByText('Материалы, ученики и прежние задания остаются на месте.', { exact: false }),
+  ).toBeTruthy();
+  expect(screen.queryByRole('heading', { name: 'Новое задание' })).toBeNull();
 });
 
 it('открывает подробный отчёт ученика', async () => {

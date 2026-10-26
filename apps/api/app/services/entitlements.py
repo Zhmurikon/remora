@@ -16,6 +16,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import LimitExceededError
 from app.models.billing import Entitlement, Plan, Subscription, SubscriptionStatus
+from app.models.classes import (
+    Assignment,
+    ClassMember,
+    ClassMemberRole,
+    ClassMemberStatus,
+    Classroom,
+)
 from app.models.content import StudySet
 from app.models.courses import Course, LibrarySave
 from app.models.tts import UsageCounter
@@ -203,6 +210,94 @@ class Entitlements:
         current = len(await self.active_library_set_ids(user))
         await self.check(
             user, "sets.library_total", current=current, requested=requested
+        )
+
+    async def class_count(self, user: User) -> int:
+        current = await self.db.scalar(
+            select(func.count(Classroom.id)).where(
+                Classroom.owner_id == user.id, Classroom.archived_at.is_(None)
+            )
+        )
+        return int(current or 0)
+
+    async def check_class_creation(self, user: User) -> None:
+        await self.check(
+            user, "classes.max", current=await self.class_count(user), requested=1
+        )
+
+    async def check_class_student_creation(self, user: User, class_id: UUID) -> None:
+        current = await self.db.scalar(
+            select(func.count(ClassMember.id)).where(
+                ClassMember.class_id == class_id,
+                ClassMember.role == ClassMemberRole.student,
+                ClassMember.status.in_(
+                    [ClassMemberStatus.active, ClassMemberStatus.pending]
+                ),
+            )
+        )
+        await self.check(
+            user,
+            "classes.students_max",
+            current=int(current or 0),
+            requested=1,
+        )
+
+    async def can_create_assignment(
+        self, user: User, class_id: UUID, *, now: datetime | None = None
+    ) -> bool:
+        try:
+            await self.check_assignment_creation(user, class_id, now=now)
+        except LimitExceededError:
+            return False
+        return True
+
+    async def can_write_class(self, user: User, class_id: UUID) -> bool:
+        try:
+            await self.check_class_write_access(user, class_id)
+        except LimitExceededError:
+            return False
+        return True
+
+    async def check_class_write_access(self, user: User, class_id: UUID) -> None:
+        class_limit = await self.limit(user, "classes.max")
+        if class_limit is None:
+            return
+        writable_ids = set(
+            await self.db.scalars(
+                select(Classroom.id)
+                .where(
+                    Classroom.owner_id == user.id,
+                    Classroom.archived_at.is_(None),
+                )
+                .order_by(Classroom.created_at, Classroom.id)
+                .limit(class_limit)
+            )
+        )
+        if class_id not in writable_ids:
+            await self.check(
+                user,
+                "classes.max",
+                current=await self.class_count(user),
+                requested=1,
+            )
+
+    async def check_assignment_creation(
+        self, user: User, class_id: UUID, *, now: datetime | None = None
+    ) -> None:
+        moment = now or datetime.now(UTC)
+        await self.check_class_write_access(user, class_id)
+
+        current = await self.db.scalar(
+            select(func.count(Assignment.id)).where(
+                Assignment.class_id == class_id,
+                or_(Assignment.due_at.is_(None), Assignment.due_at >= moment),
+            )
+        )
+        await self.check(
+            user,
+            "assignments.active_max",
+            current=int(current or 0),
+            requested=1,
         )
 
     async def check_library_snapshot(self, user: User, snapshot: dict[str, Any]) -> None:

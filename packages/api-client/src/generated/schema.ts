@@ -3838,6 +3838,8 @@ export interface components {
         ClassroomDetailOut: {
             /** Archived At */
             archived_at: string | null;
+            /** Can Create Assignments */
+            can_create_assignments: boolean;
             /**
              * Created At
              * Format: date-time
@@ -3850,6 +3852,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Is Read Only */
+            is_read_only: boolean;
             /** Join Code */
             join_code: string;
             /** Members */

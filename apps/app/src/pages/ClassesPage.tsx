@@ -457,9 +457,11 @@ function TeacherClass({ classroom }: { classroom: components['schemas']['Classro
         classroom={classroom}
         actions={
           <>
-            <Button className="min-h-11" variant="secondary" onClick={() => void copyInvite()}>
-              Скопировать приглашение
-            </Button>
+            {!classroom.is_read_only && (
+              <Button className="min-h-11" variant="secondary" onClick={() => void copyInvite()}>
+                Скопировать приглашение
+              </Button>
+            )}
             <Button
               className="min-h-11"
               variant="secondary"
@@ -481,6 +483,21 @@ function TeacherClass({ classroom }: { classroom: components['schemas']['Classro
         </p>
       )}
 
+      {classroom.is_read_only && (
+        <section
+          className="bg-warning-subtle mt-6 rounded-2xl p-5"
+          aria-labelledby="class-read-only-title"
+        >
+          <h2 id="class-read-only-title" className="font-semibold">
+            Класс доступен для просмотра
+          </h2>
+          <p className="text-fg-muted mt-1 text-sm">
+            Новые задания сейчас недоступны по лимиту тарифа. Материалы, ученики и прежние задания
+            остаются на месте.
+          </p>
+        </section>
+      )}
+
       {pending.length > 0 && (
         <section className="bg-warning-subtle mt-6 rounded-2xl p-5" aria-labelledby="pending-title">
           <h2 id="pending-title" className="font-semibold">
@@ -490,9 +507,11 @@ function TeacherClass({ classroom }: { classroom: components['schemas']['Classro
             {pending.map((member) => (
               <div key={member.id} className="flex flex-wrap items-center justify-between gap-3">
                 <span>{member.display_name || member.username}</span>
-                <Button className="min-h-11" size="sm" onClick={() => void approve(member.id)}>
-                  Принять
-                </Button>
+                {!classroom.is_read_only && (
+                  <Button className="min-h-11" size="sm" onClick={() => void approve(member.id)}>
+                    Принять
+                  </Button>
+                )}
               </div>
             ))}
           </div>
@@ -525,85 +544,91 @@ function TeacherClass({ classroom }: { classroom: components['schemas']['Classro
       </section>
 
       <div className="mt-10 grid gap-8 xl:grid-cols-2">
-        <section aria-labelledby="assignment-title">
-          <h2 id="assignment-title" className="text-2xl font-semibold">
-            Новое задание
-          </h2>
-          <form className="mt-5 space-y-4" onSubmit={(event) => void createAssignment(event)}>
-            <Input
-              label="Название задания"
-              value={assignmentTitle}
-              maxLength={160}
-              onChange={(event) => setAssignmentTitle(event.target.value)}
-            />
-            <SelectField
-              label="Набор"
-              value={assignmentSet}
-              onChange={setAssignmentSet}
-              options={(sets.data ?? []).map((item) => [
-                item.set_id,
-                `${item.title} · ${item.cards_count} карточек`,
-              ])}
-              placeholder="Выберите набор класса"
-            />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <SelectField
-                label="Цель"
-                value={goalType}
-                onChange={(value) => setGoalType(value as typeof goalType)}
-                options={[
-                  ['mastery_percent', 'Освоение, %'],
-                  ['cards_count', 'Пройдено карточек'],
-                  ['test_score', 'Результат теста, %'],
-                ]}
-              />
+        {classroom.can_create_assignments && (
+          <section aria-labelledby="assignment-title">
+            <h2 id="assignment-title" className="text-2xl font-semibold">
+              Новое задание
+            </h2>
+            <form className="mt-5 space-y-4" onSubmit={(event) => void createAssignment(event)}>
               <Input
-                label="Значение"
-                type="number"
-                min={1}
-                max={goalType === 'cards_count' ? 100000 : 100}
-                value={goalValue}
-                onChange={(event) => setGoalValue(Number(event.target.value))}
+                label="Название задания"
+                value={assignmentTitle}
+                maxLength={160}
+                onChange={(event) => setAssignmentTitle(event.target.value)}
               />
-            </div>
-            <Input
-              label="Дедлайн"
-              type="datetime-local"
-              value={dueAt}
-              onChange={(event) => setDueAt(event.target.value)}
-            />
-            <Button
-              type="submit"
-              className="min-h-11"
-              loading={busy}
-              disabled={!assignmentSet || !assignmentTitle.trim()}
-            >
-              Опубликовать задание
-            </Button>
-          </form>
-        </section>
+              <SelectField
+                label="Набор"
+                value={assignmentSet}
+                onChange={setAssignmentSet}
+                options={(sets.data ?? []).map((item) => [
+                  item.set_id,
+                  `${item.title} · ${item.cards_count} карточек`,
+                ])}
+                placeholder="Выберите набор класса"
+              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <SelectField
+                  label="Цель"
+                  value={goalType}
+                  onChange={(value) => setGoalType(value as typeof goalType)}
+                  options={[
+                    ['mastery_percent', 'Освоение, %'],
+                    ['cards_count', 'Пройдено карточек'],
+                    ['test_score', 'Результат теста, %'],
+                  ]}
+                />
+                <Input
+                  label="Значение"
+                  type="number"
+                  min={1}
+                  max={goalType === 'cards_count' ? 100000 : 100}
+                  value={goalValue}
+                  onChange={(event) => setGoalValue(Number(event.target.value))}
+                />
+              </div>
+              <Input
+                label="Дедлайн"
+                type="datetime-local"
+                value={dueAt}
+                onChange={(event) => setDueAt(event.target.value)}
+              />
+              <Button
+                type="submit"
+                className="min-h-11"
+                loading={busy}
+                disabled={!assignmentSet || !assignmentTitle.trim()}
+              >
+                Опубликовать задание
+              </Button>
+            </form>
+          </section>
+        )}
 
         <section aria-labelledby="materials-title">
           <h2 id="materials-title" className="text-2xl font-semibold">
             Материалы класса
           </h2>
           <div className="mt-5 space-y-4">
-            <SelectField
-              label="Добавить мой набор"
-              value={shareSet}
-              onChange={setShareSet}
-              options={availableSets.map((item) => [item.id, item.title])}
-              placeholder="Выберите набор"
-            />
-            <Button
-              className="min-h-11"
-              variant="secondary"
-              loading={busy}
-              disabled={!shareSet}
-              onClick={() => void addSharedSet()}
-            >
-              Добавить в класс
-            </Button>
+            {!classroom.is_read_only && (
+              <>
+                <SelectField
+                  label="Добавить мой набор"
+                  value={shareSet}
+                  onChange={setShareSet}
+                  options={availableSets.map((item) => [item.id, item.title])}
+                  placeholder="Выберите набор"
+                />
+                <Button
+                  className="min-h-11"
+                  variant="secondary"
+                  loading={busy}
+                  disabled={!shareSet}
+                  onClick={() => void addSharedSet()}
+                >
+                  Добавить в класс
+                </Button>
+              </>
+            )}
             <div className="divide-border divide-y pt-2">
               {(sets.data ?? []).map((item) => (
                 <div

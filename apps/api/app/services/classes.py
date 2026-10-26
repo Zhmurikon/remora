@@ -58,6 +58,7 @@ class ClassroomService:
         self.db = db
 
     async def create(self, user: User, body: ClassroomCreate) -> ClassroomOut:
+        await Entitlements(self.db).check_class_creation(user)
         classroom = Classroom(
             owner_id=user.id,
             title=body.title,
@@ -93,10 +94,21 @@ class ClassroomService:
             if allows(member.role, ClassAction.manage_members)
             else []
         )
-        return ClassroomDetailOut(**self._out(classroom, member.role).model_dump(), members=members)
+        owner = await self._class_owner(classroom)
+        is_read_only = not await Entitlements(self.db).can_write_class(owner, classroom.id)
+        can_create_assignments = allows(member.role, ClassAction.manage_assignments) and (
+            await Entitlements(self.db).can_create_assignment(owner, classroom.id)
+        )
+        return ClassroomDetailOut(
+            **self._out(classroom, member.role).model_dump(),
+            members=members,
+            is_read_only=is_read_only,
+            can_create_assignments=can_create_assignments,
+        )
 
     async def update(self, user: User, class_id: UUID, body: ClassroomUpdate) -> ClassroomOut:
         classroom, member = await self._authorized(user, class_id, ClassAction.edit_class)
+        await self._require_writable_class(classroom)
         values = body.model_dump(exclude_unset=True)
         requires_approval = values.pop("requires_approval", None)
         for field, value in values.items():
@@ -110,13 +122,19 @@ class ClassroomService:
     async def add_member(
         self, user: User, class_id: UUID, body: ClassroomMemberAdd
     ) -> ClassroomMemberOut:
-        _, actor = await self._authorized(user, class_id, ClassAction.manage_members)
+        classroom, actor = await self._authorized(user, class_id, ClassAction.manage_members)
+        owner = await self._require_writable_class(classroom)
         account = await repo.user_by_username(self.db, body.username)
         if account is None:
             raise NotFoundError("Пользователь не найден")
         existing = await repo.member(self.db, class_id, account.id)
         if existing is not None and existing.status is ClassMemberStatus.active:
             raise ConflictError("Пользователь уже состоит в классе")
+        adds_student = body.role is ClassMemberRole.student and (
+            existing is None
+            or existing.role is not ClassMemberRole.student
+            or existing.status not in {ClassMemberStatus.active, ClassMemberStatus.pending}
+        )
         if existing is None:
             existing = ClassMember(
                 class_id=class_id,
@@ -132,6 +150,10 @@ class ClassroomService:
             raise ForbiddenError("Владелец класса остаётся преподавателем")
         if actor.role is not ClassMemberRole.teacher:
             raise ForbiddenError("Недостаточно прав")
+        if adds_student:
+            await Entitlements(self.db).check_class_student_creation(
+                owner, class_id
+            )
         await self.db.flush()
         await self._seed_assignment_progress(class_id, existing)
         return self._member_out(existing, account)
@@ -140,9 +162,18 @@ class ClassroomService:
         classroom = await repo.classroom_by_join_code(self.db, body.join_code.upper().strip())
         if classroom is None:
             raise NotFoundError("Класс по этому коду не найден")
+        owner = await self._require_writable_class(classroom)
         member = await repo.member(self.db, classroom.id, user.id)
         if member is not None and member.status is ClassMemberStatus.active:
             return self._join_out(classroom, member)
+        adds_student = member is None or (
+            member.role is not ClassMemberRole.student
+            or member.status not in {ClassMemberStatus.active, ClassMemberStatus.pending}
+        )
+        if adds_student:
+            await Entitlements(self.db).check_class_student_creation(
+                owner, classroom.id
+            )
         status = (
             ClassMemberStatus.pending
             if bool(classroom.settings.get("requires_approval", False))
@@ -170,6 +201,7 @@ class ClassroomService:
 
     async def rotate_join_code(self, user: User, class_id: UUID) -> ClassroomInviteOut:
         classroom, _ = await self._authorized(user, class_id, ClassAction.manage_members)
+        await self._require_writable_class(classroom)
         classroom.join_code = await self._join_code()
         await self.db.flush()
         return self._invite_out(classroom)
@@ -177,7 +209,8 @@ class ClassroomService:
     async def approve_member(
         self, user: User, class_id: UUID, member_id: UUID
     ) -> ClassroomMemberOut:
-        _, _actor = await self._authorized(user, class_id, ClassAction.manage_members)
+        classroom, _actor = await self._authorized(user, class_id, ClassAction.manage_members)
+        await self._require_writable_class(classroom)
         member = await repo.member_by_id(self.db, class_id, member_id)
         if member is None:
             raise NotFoundError("Заявка на вступление не найдена")
@@ -199,7 +232,8 @@ class ClassroomService:
         ]
 
     async def share_set(self, user: User, class_id: UUID, body: ClassSetAdd) -> ClassSetOut:
-        await self._authorized(user, class_id, ClassAction.manage_materials)
+        classroom, _ = await self._authorized(user, class_id, ClassAction.manage_materials)
+        await self._require_writable_class(classroom)
         study_set = await ContentService(self.db).get_owned_set(user, body.set_id)
         existing = await repo.class_set(self.db, class_id, study_set.id)
         if existing is not None:
@@ -210,7 +244,8 @@ class ClassroomService:
         return self._class_set_out(item, study_set)
 
     async def unshare_set(self, user: User, class_id: UUID, set_id: UUID) -> None:
-        await self._authorized(user, class_id, ClassAction.manage_materials)
+        classroom, _ = await self._authorized(user, class_id, ClassAction.manage_materials)
+        await self._require_writable_class(classroom)
         item = await repo.class_set(self.db, class_id, set_id)
         if item is None:
             raise NotFoundError("Набор не расшарен в классе")
@@ -231,7 +266,10 @@ class ClassroomService:
     async def create_assignment(
         self, user: User, class_id: UUID, body: AssignmentCreate
     ) -> AssignmentOut:
-        await self._authorized(user, class_id, ClassAction.manage_assignments)
+        classroom, _ = await self._authorized(user, class_id, ClassAction.manage_assignments)
+        await Entitlements(self.db).check_assignment_creation(
+            await self._class_owner(classroom), class_id
+        )
         if body.mode_required is not None and body.mode_required.value == "battle":
             raise ValidationError("Битва не может быть обязательным режимом задания")
         if body.goal_type.value in {"mastery_percent", "test_score"} and body.goal_value > 100:
@@ -417,6 +455,17 @@ class ClassroomService:
             if existing is None:
                 return code
         raise ConflictError("Не удалось создать код вступления")
+
+    async def _class_owner(self, classroom: Classroom) -> User:
+        owner = await repo.user_by_id(self.db, classroom.owner_id)
+        if owner is None:
+            raise NotFoundError("Владелец класса не найден")
+        return owner
+
+    async def _require_writable_class(self, classroom: Classroom) -> User:
+        owner = await self._class_owner(classroom)
+        await Entitlements(self.db).check_class_write_access(owner, classroom.id)
+        return owner
 
     async def _seed_assignment_progress(self, class_id: UUID, member: ClassMember) -> None:
         if member.role is not ClassMemberRole.student:

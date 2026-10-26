@@ -70,6 +70,8 @@ class ClassroomOut(BaseModel):
 
 class ClassroomDetailOut(ClassroomOut):
     members: list[ClassroomMemberOut]
+    is_read_only: bool
+    can_create_assignments: bool
 
 
 class ClassSetAdd(BaseModel):
