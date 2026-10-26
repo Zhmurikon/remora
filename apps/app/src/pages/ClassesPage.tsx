@@ -399,7 +399,7 @@ function TeacherClass({ classroom }: { classroom: components['schemas']['Classro
       params: { path: { class_id: classId } },
     });
     if (error) return setMessage(errorText(error));
-    const text = `Присоединяйтесь к классу «${classroom.title}» в Remora: ${data.join_url}\nКод: ${data.join_code}`;
+    const text = `Присоединяйтесь к классу «${classroom.title}» в «Запоминальне»: ${data.join_url}\nКод: ${data.join_code}`;
     await navigator.clipboard.writeText(text);
     setMessage('Приглашение скопировано.');
   }

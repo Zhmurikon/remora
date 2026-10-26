@@ -24,7 +24,7 @@ export function LoginPage() {
       }
       if (data.user.role !== 'admin') {
         await api.POST('/api/v1/auth/logout');
-        setError('Этот аккаунт не имеет доступа к управлению Remora.');
+        setError('Этот аккаунт не имеет доступа к управлению «Запоминальней».');
         return;
       }
       authenticate(data.user, data.access_token);
@@ -41,7 +41,7 @@ export function LoginPage() {
         <div className="mb-8 flex items-center gap-3">
           <FishMark className="h-12 w-12" />
           <div>
-            <p className="text-xl font-semibold">Remora</p>
+            <p className="text-xl font-semibold">Запоминальня</p>
             <p className="text-fg-muted text-sm">Служебная панель</p>
           </div>
         </div>

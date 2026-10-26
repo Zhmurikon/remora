@@ -86,7 +86,8 @@ export function LearnSettingsControls({
       <fieldset className="border-border rounded-lg border p-4">
         <legend className="px-1 text-sm font-semibold">Упражнения</legend>
         <p className="text-fg-subtle mb-3 text-sm">
-          Remora подбирает подходящий тип из включённых по тому, насколько хорошо знакома карточка.
+          «Запоминальня» подбирает подходящий тип из включённых по тому, насколько хорошо знакома
+          карточка.
         </p>
         <div className="grid gap-2 sm:grid-cols-3">
           {[

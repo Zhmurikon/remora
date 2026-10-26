@@ -112,7 +112,7 @@ export function BillingPage() {
       ) : (
         <section
           className="border-border bg-surface mt-8 grid overflow-hidden rounded-2xl border lg:grid-cols-3"
-          aria-label="Тарифы Remora"
+          aria-label="Тарифы Запоминальни"
         >
           {orderedPlans.map((plan, index) => (
             <PlanColumn

@@ -24,7 +24,7 @@ export function OverviewPage() {
           Сводка
         </h1>
         <p className="text-fg-muted mt-2 max-w-2xl">
-          Основные показатели Remora без сложной аналитики.
+          Основные показатели «Запоминальни» без сложной аналитики.
         </p>
       </div>
 

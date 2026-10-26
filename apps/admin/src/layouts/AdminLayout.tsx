@@ -31,7 +31,7 @@ export function AdminLayout() {
           <div className="flex items-center gap-2.5 px-1">
             <FishMark className="h-9 w-9 shrink-0" />
             <div>
-              <p className="font-semibold leading-tight">Remora</p>
+              <p className="font-semibold leading-tight">Запоминальня</p>
               <p className="text-fg-subtle text-xs">Управление</p>
             </div>
           </div>
