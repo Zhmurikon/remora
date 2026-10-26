@@ -9,6 +9,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./base": "./src/base.ts",
+    "./assets/remora-mascot-source.png": "./src/assets/remora-mascot-source.png",
     "./styles/tokens.css": "./src/styles/tokens.css"
   },
   "scripts": {

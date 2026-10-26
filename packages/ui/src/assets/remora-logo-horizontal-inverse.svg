@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 512" role="img" aria-label="Remora">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2200 512" role="img" aria-label="Запоминальня">
   <g transform="scale(0.40829346)">
 <g transform="translate(0.000000,1254.000000) scale(0.100000,-0.100000)"
 fill="#0D8285" stroke="none">
@@ -233,5 +233,5 @@ l-50 -3 -76 -325 c-71 -296 -423 -1772 -437 -1829 -6 -23 -4 -23 33 -17 124
 -16 88 -30 47 -14 80 -21 75 -17 -5 5 -41 19 -80 30 -70 21 -92 25 -83 17z"/>
 </g>
   </g>
-  <text x="560" y="336" fill="#FFFFFF" font-family="Inter, 'Segoe UI', sans-serif" font-size="230" font-weight="700">Remora</text>
+  <text x="560" y="326" fill="#FFFFFF" font-family="Inter, 'Segoe UI', sans-serif" font-size="190" font-weight="700">Запоминальня</text>
 </svg>
