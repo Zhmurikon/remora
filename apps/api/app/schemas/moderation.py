@@ -1,7 +1,7 @@
 """Контракт жалоб и решений постмодерации."""
 
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, StringConstraints
@@ -47,3 +47,51 @@ class ReportItem(BaseModel):
     course_moderation_status: str
     course_is_published: bool
     reporter_username: str
+
+
+class ModerationCourseItem(BaseModel):
+    id: UUID
+    slug: str
+    title: str
+    description: str
+    is_published: bool
+    moderation_status: str
+    owner_id: UUID
+    owner_username: str
+    owner_status: str
+    open_reports: int
+    priority: int
+    automatic_signals: list[str]
+    created_at: datetime
+
+
+class ModerationActionRequest(BaseModel):
+    action: Literal["warn", "unpublish", "block", "restore", "ban_author"]
+    reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=2000)]
+
+
+class ModerationActionItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    actor_id: UUID | None
+    action: str
+    target_type: str
+    target_id: UUID
+    reason: str
+    details: dict[str, Any]
+    created_at: datetime
+
+
+class AuditLogItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    actor_id: UUID | None
+    event: str
+    target_type: str
+    target_id: UUID | None
+    details: dict[str, Any]
+    ip: str | None
+    request_id: str | None
+    created_at: datetime

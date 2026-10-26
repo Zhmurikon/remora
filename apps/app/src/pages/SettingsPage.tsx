@@ -22,11 +22,39 @@ export function SettingsPage() {
         <StudySettingsForm />
         <AccountExport />
       </div>
+      <ModerationWarnings />
       <ApiTokens />
       <BotConnections />
       <Sessions />
       <AccountDeletion />
     </div>
+  );
+}
+
+function ModerationWarnings() {
+  const warnings = useQuery({
+    queryKey: ['moderation-warnings'],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/users/me/moderation-warnings');
+      if (error) throw new Error(errorMessage(error));
+      return data;
+    },
+  });
+  if (!warnings.data?.length) return null;
+  return (
+    <Card className="border-warning/40 mt-6 p-6">
+      <h2 className="text-xl font-semibold">Предупреждения модерации</h2>
+      <div className="divide-border mt-4 divide-y">
+        {warnings.data.map((warning) => (
+          <div key={warning.id} className="py-4">
+            <p>{warning.reason}</p>
+            <p className="text-fg-muted mt-1 text-sm">
+              {new Date(warning.created_at).toLocaleString('ru-RU')}
+            </p>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 

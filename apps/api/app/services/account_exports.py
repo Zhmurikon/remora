@@ -147,6 +147,8 @@ class AccountExportService:
                         "library_saves": [_row(item) for item in rows["library_saves"]],
                         "reports": [_row(item) for item in rows["reports"]],
                         "moderated_reports": [_row(item) for item in rows["moderated_reports"]],
+                        "moderation_actions": [_row(item) for item in rows["moderation_actions"]],
+                        "audit_log": [_row(item) for item in rows["audit_log"]],
                         "usage_counters": [_row(item) for item in rows["usage_counters"]],
                         "import_jobs": [
                             _row(item, exclude={"storage_key", "error_message"})

@@ -16,7 +16,13 @@ from app.models.content import (
 from app.models.courses import Course, CourseArticle, CourseLike, CourseSection, LibrarySave
 from app.models.exports import AccountExportJob, AccountExportStatus
 from app.models.imports import ImportJob, ImportJobStatus
-from app.models.moderation import CourseReport, ReportReason, ReportStatus
+from app.models.moderation import (
+    AuditLog,
+    CourseReport,
+    ModerationAction,
+    ReportReason,
+    ReportStatus,
+)
 from app.models.practice import PythonPracticeProgress
 from app.models.retention import DailyActivity, Streak
 from app.models.study import (
@@ -53,6 +59,7 @@ __all__ = [
     "ActionToken",
     "AgentRequest",
     "ApiToken",
+    "AuditLog",
     "BotEvent",
     "BotLink",
     "BotLinkCode",
@@ -76,6 +83,7 @@ __all__ = [
     "MediaKind",
     "MediaSource",
     "MediaStatus",
+    "ModerationAction",
     "OauthAccount",
     "PythonPracticeProgress",
     "RefreshToken",

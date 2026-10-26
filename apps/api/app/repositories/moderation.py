@@ -2,11 +2,11 @@
 
 from uuid import UUID
 
-from sqlalchemy import Row, select
+from sqlalchemy import Row, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.courses import Course
-from app.models.moderation import CourseReport, ReportStatus
+from app.models.moderation import AuditLog, CourseReport, ModerationAction, ReportStatus
 from app.models.user import User
 
 
@@ -54,3 +54,67 @@ async def queue(
     if status is not None:
         query = query.where(CourseReport.status == status.value)
     return list((await db.execute(query)).all())
+
+
+async def course_queue(
+    db: AsyncSession, *, offset: int, limit: int
+) -> list[Row[tuple[Course, User, int]]]:
+    open_reports = func.count(CourseReport.id).filter(
+        CourseReport.status == ReportStatus.open.value
+    )
+    query = (
+        select(Course, User, open_reports.label("open_reports"))
+        .join(User, User.id == Course.owner_id)
+        .outerjoin(CourseReport, CourseReport.course_id == Course.id)
+        .where(Course.is_published.is_(True))
+        .group_by(Course.id, User.id)
+        .order_by(open_reports.desc(), Course.created_at, Course.id)
+        .offset(offset)
+        .limit(limit)
+    )
+    return list((await db.execute(query)).all())
+
+
+async def moderation_history(
+    db: AsyncSession, *, offset: int, limit: int
+) -> list[ModerationAction]:
+    return list(
+        (
+            await db.scalars(
+                select(ModerationAction)
+                .order_by(ModerationAction.created_at.desc(), ModerationAction.id.desc())
+                .offset(offset)
+                .limit(limit)
+            )
+        ).all()
+    )
+
+
+async def audit_history(db: AsyncSession, *, offset: int, limit: int) -> list[AuditLog]:
+    return list(
+        (
+            await db.scalars(
+                select(AuditLog)
+                .order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
+                .offset(offset)
+                .limit(limit)
+            )
+        ).all()
+    )
+
+
+async def warnings_for_owner(db: AsyncSession, user_id: UUID) -> list[ModerationAction]:
+    return list(
+        (
+            await db.scalars(
+                select(ModerationAction)
+                .join(
+                    Course,
+                    (ModerationAction.target_type == "course")
+                    & (Course.id == ModerationAction.target_id),
+                )
+                .where(Course.owner_id == user_id, ModerationAction.action == "warn")
+                .order_by(ModerationAction.created_at.desc())
+            )
+        ).all()
+    )

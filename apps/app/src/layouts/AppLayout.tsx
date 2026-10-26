@@ -30,6 +30,10 @@ export function AppLayout() {
   }
 
   const name = user?.display_name || user?.username || 'Пользователь';
+  const visibleNavigation =
+    user?.role === 'moderator' || user?.role === 'admin'
+      ? [...navigation, { to: '/moderation', label: 'Модерация', icon: '⚑' }]
+      : navigation;
 
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[260px_1fr]">
@@ -53,7 +57,7 @@ export function AppLayout() {
           <Brand />
         </div>
         <nav className="mt-5 space-y-1" aria-label="Основная навигация">
-          {navigation.map(({ to, label, icon, end }) => (
+          {visibleNavigation.map(({ to, label, icon, end }) => (
             <NavLink
               key={to}
               to={to}

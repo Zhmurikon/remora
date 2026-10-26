@@ -12,9 +12,7 @@ async def promote(client: AsyncClient, suffix: str, role: UserRole) -> dict[str,
     """Роль выдаётся напрямую в БД: ручной выдачи прав в API пока нет, это задача E10."""
     headers = await auth(client, suffix)
     async with get_engine().begin() as conn:
-        await conn.execute(
-            update(User).where(User.username == f"course{suffix}").values(role=role)
-        )
+        await conn.execute(update(User).where(User.username == f"course{suffix}").values(role=role))
     return headers
 
 
@@ -30,9 +28,7 @@ async def publish_course(client: AsyncClient, owner: dict[str, str], title: str)
             "/api/v1/courses", headers=owner, json={"title": title, "set_id": study_set["id"]}
         )
     ).json()
-    published = await client.post(
-        f"/api/v1/courses/{course['id']}/publish", headers=owner, json={}
-    )
+    published = await client.post(f"/api/v1/courses/{course['id']}/publish", headers=owner, json={})
     assert published.status_code == 200, published.text
     return {"id": course["id"], "slug": course["slug"], "set_slug": study_set["slug"]}
 
@@ -204,3 +200,56 @@ async def test_rejected_report_does_not_unblock_course(client: AsyncClient) -> N
     assert rejected.json()["status"] == "rejected"
     assert rejected.json()["course_moderation_status"] == "blocked"
     assert (await client.get(f"/api/v1/courses/public/{course['slug']}")).status_code == 404
+
+
+async def test_moderation_tools_are_audited_and_role_bound(client: AsyncClient) -> None:
+    owner = await auth(client, "tools-owner")
+    regular = await auth(client, "tools-regular")
+    moderator = await promote(client, "tools-moderator", UserRole.moderator)
+    admin = await promote(client, "tools-admin", UserRole.admin)
+    course = await publish_course(client, owner, "Казино https://one.test https://two.test")
+
+    assert (await client.get("/api/v1/moderation/courses", headers=regular)).status_code == 403
+    queue = await client.get("/api/v1/moderation/courses", headers=moderator)
+    assert queue.status_code == 200
+    queued = next(item for item in queue.json() if item["id"] == course["id"])
+    assert queued["priority"] >= 20
+    assert "Подозрительные слова или ссылки" in queued["automatic_signals"]
+
+    action_url = f"/api/v1/moderation/courses/{course['id']}/actions"
+    denied = await client.post(
+        action_url,
+        headers=moderator,
+        json={"action": "ban_author", "reason": "Повторные нарушения"},
+    )
+    assert denied.status_code == 403
+    warned = await client.post(
+        action_url,
+        headers=moderator,
+        json={"action": "warn", "reason": "Уберите рекламные ссылки"},
+    )
+    assert warned.status_code == 200
+    assert warned.json()["action"] == "warn"
+    owner_warnings = await client.get("/api/v1/users/me/moderation-warnings", headers=owner)
+    assert owner_warnings.status_code == 200
+    assert owner_warnings.json()[0]["reason"] == "Уберите рекламные ссылки"
+    assert (await client.get("/api/v1/users/me/moderation-warnings", headers=regular)).json() == []
+    blocked = await client.post(
+        action_url,
+        headers=admin,
+        json={"action": "ban_author", "reason": "Систематический спам"},
+    )
+    assert blocked.status_code == 200
+    assert (await client.get(f"/api/v1/courses/public/{course['slug']}")).status_code == 404
+    assert (await client.get(f"/api/v1/courses/{course['id']}", headers=owner)).status_code == 401
+
+    history = await client.get("/api/v1/moderation/actions", headers=moderator)
+    assert [item["action"] for item in history.json()[:2]] == ["ban_author", "warn"]
+    assert (await client.get("/api/v1/moderation/audit", headers=moderator)).status_code == 403
+    audit = await client.get("/api/v1/moderation/audit", headers=admin)
+    assert audit.status_code == 200
+    assert [item["event"] for item in audit.json()[:2]] == [
+        "moderation.ban_author",
+        "moderation.warn",
+    ]
+    assert all("password" not in str(item["details"]) for item in audit.json())

@@ -19,7 +19,7 @@ from app.models.courses import (
 )
 from app.models.exports import AccountExportJob
 from app.models.imports import ImportJob
-from app.models.moderation import CourseReport
+from app.models.moderation import AuditLog, CourseReport, ModerationAction
 from app.models.practice import PythonPracticeProgress
 from app.models.retention import DailyActivity, Streak
 from app.models.study import (
@@ -78,6 +78,10 @@ async def account_rows(db: AsyncSession, user_id: UUID) -> dict[str, list[Any]]:
         "moderated_reports": await _all(
             db, select(CourseReport).where(CourseReport.resolved_by_id == user_id)
         ),
+        "moderation_actions": await _all(
+            db, select(ModerationAction).where(ModerationAction.actor_id == user_id)
+        ),
+        "audit_log": await _all(db, select(AuditLog).where(AuditLog.actor_id == user_id)),
         "folders": await _all(db, select(Folder).where(Folder.owner_id == user_id)),
         "sets": list(sets),
         "cards": await _all(db, select(Card).where(Card.set_id.in_(set_ids))) if set_ids else [],

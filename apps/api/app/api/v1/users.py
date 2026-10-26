@@ -11,9 +11,22 @@ from app.db.session import get_db
 from app.models.exports import AccountExportStatus
 from app.models.user import User
 from app.schemas.exports import AccountExportPublic
+from app.schemas.moderation import ModerationActionItem
 from app.services.account_exports import AccountExportService
+from app.services.moderation import ModerationService
 
 router = APIRouter(prefix="/users/me", tags=["users"])
+
+
+@router.get(
+    "/moderation-warnings",
+    response_model=list[ModerationActionItem],
+    summary="Предупреждения модерации",
+)
+async def moderation_warnings(
+    user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+) -> list[ModerationActionItem]:
+    return await ModerationService(db).warnings_for(user)
 
 
 @router.post(
