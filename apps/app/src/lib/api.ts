@@ -5,6 +5,7 @@ import { createApiClient } from '@remora/api-client';
  * Refresh-токен — в httpOnly cookie, его выставляет и читает сервер.
  */
 let accessToken: string | null = null;
+let adminSession: string | null = null;
 
 export function setAccessToken(token: string | null): void {
   accessToken = token;
@@ -12,6 +13,11 @@ export function setAccessToken(token: string | null): void {
 
 export function clearAccessToken(): void {
   setAccessToken(null);
+  setAdminSession(null);
+}
+
+export function setAdminSession(token: string | null): void {
+  adminSession = token;
 }
 
 /**
@@ -50,6 +56,8 @@ export const API_BASE_URL = import.meta.env.VITE_API_URL ?? '';
 export const api = createApiClient({
   baseUrl: API_BASE_URL,
   getAccessToken: () => accessToken,
+  getHeaders: (): Record<string, string> =>
+    adminSession ? { 'X-Admin-Session': adminSession } : {},
   onUnauthorized: refreshAccessToken,
 });
 

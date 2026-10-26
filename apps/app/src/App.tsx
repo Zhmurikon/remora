@@ -5,6 +5,7 @@ import { AppLayout } from './layouts/AppLayout';
 import { DashboardPage } from './pages/DashboardPage';
 import { CoursePage, CoursesPage, NewCoursePage } from './pages/CoursesPage';
 import { CourseEditorPage } from './pages/CourseEditorPage';
+import { AdminPage } from './pages/AdminPage';
 import { CourseCopyPage, CourseReaderPage } from './pages/CourseReaderPage';
 import { FlashcardsPage } from './pages/FlashcardsPage';
 import { LearnPage } from './pages/LearnPage';
@@ -52,6 +53,7 @@ export function App() {
               <Route path="practice/python/:taskSlug" element={<PythonTaskPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="moderation" element={<ModerationPage />} />
+              <Route path="admin" element={<AdminPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

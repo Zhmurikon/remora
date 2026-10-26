@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.base import Executable
 
+from app.models.admin import AdminSecondFactor
 from app.models.api_tokens import ApiToken
 from app.models.bots import BotLink
 from app.models.content import Card, Folder, MediaAsset, StudySet
@@ -69,6 +70,9 @@ async def account_rows(db: AsyncSession, user_id: UUID) -> dict[str, list[Any]]:
         ),
         "consents": await _all(db, select(Consent).where(Consent.user_id == user_id)),
         "api_tokens": await _all(db, select(ApiToken).where(ApiToken.user_id == user_id)),
+        "admin_second_factor": await _all(
+            db, select(AdminSecondFactor).where(AdminSecondFactor.user_id == user_id)
+        ),
         "bot_links": await _all(db, select(BotLink).where(BotLink.user_id == user_id)),
         "import_jobs": await _all(db, select(ImportJob).where(ImportJob.user_id == user_id)),
         "export_jobs": await _all(

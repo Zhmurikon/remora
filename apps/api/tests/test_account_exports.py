@@ -149,7 +149,11 @@ async def test_account_export_archive_and_email(
         assert sets["course_articles"][0]["set_id"] == set_id
         assert len(sets["course_sections"]) == 1
         assert len(learning["study_sessions"]) == 1
-        assert connections == {"api_tokens": [], "bot_links": []}
+        assert connections == {
+            "api_tokens": [],
+            "bot_links": [],
+            "admin_second_factor": [],
+        }
         assert archive.read(f"media/{media_id}.png") == b"picture"
 
 

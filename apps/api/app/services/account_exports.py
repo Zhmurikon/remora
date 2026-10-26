@@ -136,6 +136,13 @@ class AccountExportService:
                             _row(item, exclude={"token_hash"}) for item in rows["api_tokens"]
                         ],
                         "bot_links": [_row(item) for item in rows["bot_links"]],
+                        "admin_second_factor": [
+                            _row(
+                                item,
+                                exclude={"secret_encrypted", "recovery_hashes", "last_totp_step"},
+                            )
+                            for item in rows["admin_second_factor"]
+                        ],
                     }
                 ),
             )

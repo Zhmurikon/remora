@@ -1,5 +1,6 @@
 """Модели SQLAlchemy. Импортируются Alembic при автогенерации миграций."""
 
+from app.models.admin import AdminSecondFactor
 from app.models.api_tokens import AgentRequest, ApiToken
 from app.models.bots import BotEvent, BotLink, BotLinkCode
 from app.models.content import (
@@ -57,6 +58,7 @@ __all__ = [
     "AccountExportJob",
     "AccountExportStatus",
     "ActionToken",
+    "AdminSecondFactor",
     "AgentRequest",
     "ApiToken",
     "AuditLog",

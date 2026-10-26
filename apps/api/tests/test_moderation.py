@@ -3,6 +3,7 @@
 from httpx import AsyncClient
 from sqlalchemy import update
 
+from app.core.totp import totp_code, totp_step
 from app.db.session import get_engine
 from app.models.user import User, UserRole
 from tests.test_courses import auth
@@ -13,6 +14,18 @@ async def promote(client: AsyncClient, suffix: str, role: UserRole) -> dict[str,
     headers = await auth(client, suffix)
     async with get_engine().begin() as conn:
         await conn.execute(update(User).where(User.username == f"course{suffix}").values(role=role))
+    if role is UserRole.admin:
+        setup = await client.post(
+            "/api/v1/admin/2fa/setup", headers=headers, json={"password": "Str0ngP@ss!"}
+        )
+        assert setup.status_code == 200, setup.text
+        enabled = await client.post(
+            "/api/v1/admin/2fa/enable",
+            headers=headers,
+            json={"code": totp_code(setup.json()["secret"], totp_step())},
+        )
+        assert enabled.status_code == 200, enabled.text
+        headers = {**headers, "X-Admin-Session": enabled.json()["admin_token"]}
     return headers
 
 

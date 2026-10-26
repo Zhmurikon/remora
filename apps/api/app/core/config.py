@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     jwt_previous_secret_keys: list[SecretStr] = Field(default_factory=list)
     data_encryption_keys: list[SecretStr] = Field(default_factory=list)
     transcriber_service_token: SecretStr = SecretStr("")
+    admin_host: str = ""
+    admin_ip_allowlist: list[str] = Field(default_factory=list)
 
     # Инфраструктура
     database_url: PostgresDsn
@@ -88,6 +90,7 @@ class Settings(BaseSettings):
 
     # Токены
     access_token_ttl_minutes: int = 15
+    admin_token_ttl_minutes: int = 5
     refresh_token_ttl_days: int = 30
     email_verification_ttl_hours: int = 24
     password_reset_ttl_minutes: int = 30
@@ -142,6 +145,8 @@ class Settings(BaseSettings):
             raise ValueError("DATA_ENCRYPTION_KEYS обязателен вне local")
         if not self.transcriber_service_token.get_secret_value():
             raise ValueError("TRANSCRIBER_SERVICE_TOKEN обязателен вне local")
+        if not self.admin_host or not self.admin_ip_allowlist:
+            raise ValueError("ADMIN_HOST и ADMIN_IP_ALLOWLIST обязательны вне local")
         if not self.cookie_secure:
             raise ValueError("COOKIE_SECURE обязан быть true вне local")
         return self

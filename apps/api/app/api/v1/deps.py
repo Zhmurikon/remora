@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from ipaddress import ip_address
+from ipaddress import ip_address, ip_network
 from uuid import UUID
 
 from fastapi import Depends, Request
@@ -55,16 +55,51 @@ async def optional_user(
     return await current_user(request, db, creds)
 
 
-async def moderator_user(user: User = Depends(current_user)) -> User:
-    """Служебные операции постмодерации; полная панель модератора — задача E10."""
-    if user.role not in (UserRole.moderator, UserRole.admin):
-        raise ForbiddenError("Требуются права модератора")
+def _enforce_admin_perimeter(request: Request) -> None:
+    settings = get_settings()
+    if settings.is_local:
+        return
+    host = request.headers.get("host", "").split(":", 1)[0].lower()
+    if host != settings.admin_host.lower():
+        raise ForbiddenError("Административный домен недоступен")
+    client_ip = request.client.host if request.client else ""
+    try:
+        address = ip_address(client_ip)
+        allowed = any(
+            address in ip_network(item, strict=False) for item in settings.admin_ip_allowlist
+        )
+    except ValueError:
+        allowed = False
+    if not allowed:
+        raise ForbiddenError("Адрес не входит в список административного доступа")
+
+
+async def admin_identity(request: Request, user: User = Depends(current_user)) -> User:
+    if user.role is not UserRole.admin:
+        raise ForbiddenError("Требуются права администратора")
+    _enforce_admin_perimeter(request)
     return user
 
 
-async def admin_user(user: User = Depends(current_user)) -> User:
-    if user.role is not UserRole.admin:
-        raise ForbiddenError("Требуются права администратора")
+async def _require_admin_session(request: Request, user: User) -> None:
+    token = request.headers.get("x-admin-session")
+    payload = decode_jwt(token or "", "admin")
+    if payload is None or payload.get("sub") != str(user.id):
+        raise ForbiddenError("Требуется подтверждение второго фактора")
+
+
+async def moderator_user(request: Request, user: User = Depends(current_user)) -> User:
+    """Служебные операции постмодерации; полная панель модератора — задача E10."""
+    if user.role not in (UserRole.moderator, UserRole.admin):
+        raise ForbiddenError("Требуются права модератора")
+    if user.role is UserRole.admin:
+        _enforce_admin_perimeter(request)
+        await _require_admin_session(request, user)
+    return user
+
+
+async def admin_user(request: Request, user: User = Depends(admin_identity)) -> User:
+    await _require_admin_session(request, user)
     return user
 
 

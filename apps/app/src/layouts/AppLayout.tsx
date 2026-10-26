@@ -30,10 +30,14 @@ export function AppLayout() {
   }
 
   const name = user?.display_name || user?.username || 'Пользователь';
-  const visibleNavigation =
+  const roleNavigation =
     user?.role === 'moderator' || user?.role === 'admin'
       ? [...navigation, { to: '/moderation', label: 'Модерация', icon: '⚑' }]
       : navigation;
+  const visibleNavigation =
+    user?.role === 'admin'
+      ? [...roleNavigation, { to: '/admin', label: 'Администрирование', icon: '⌘' }]
+      : roleNavigation;
 
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[260px_1fr]">

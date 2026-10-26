@@ -10,6 +10,7 @@ os.environ.setdefault(
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/1")
 os.environ.setdefault("ENVIRONMENT", "local")
 os.environ.setdefault("TRANSCRIBER_SERVICE_TOKEN", "test-transcriber-service-token")
+os.environ.setdefault("DATA_ENCRYPTION_KEYS", '["a2tra2tra2tra2tra2tra2tra2tra2tra2tra2tra2s="]')
 # Тесты не должны отправлять письма через рабочие реквизиты из .env.
 os.environ["SMTP_HOST"] = "localhost"
 os.environ["SMTP_PORT"] = "1025"

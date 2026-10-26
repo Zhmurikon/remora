@@ -21,7 +21,7 @@ from app.core.config import get_settings
 _hasher = PasswordHasher()
 
 # Тип субъекта токена
-TokenType = Literal["access", "email_verification", "password_reset"]
+TokenType = Literal["access", "admin", "email_verification", "password_reset"]
 
 
 def hash_password(password: str) -> str:
@@ -57,6 +57,8 @@ def create_jwt(
 
     if token_type == "access":
         ttl = timedelta(minutes=settings.access_token_ttl_minutes)
+    elif token_type == "admin":
+        ttl = timedelta(minutes=settings.admin_token_ttl_minutes)
     elif token_type == "email_verification":
         ttl = timedelta(hours=settings.email_verification_ttl_hours)
     elif token_type == "password_reset":

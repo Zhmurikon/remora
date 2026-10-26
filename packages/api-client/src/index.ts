@@ -8,6 +8,8 @@ export interface CreateClientOptions {
   baseUrl: string;
   /** Возвращает текущий access-токен. Вызывается перед каждым запросом. */
   getAccessToken?: () => string | null | undefined;
+  /** Дополнительные короткоживущие заголовки, например сессия административного 2FA. */
+  getHeaders?: () => Record<string, string>;
   /**
    * Вызывается при 401. Должен обновить токен и вернуть true, если запрос
    * можно повторить. Реализация single-flight — на стороне приложения.
@@ -28,7 +30,12 @@ export function isLimitExceeded(error: unknown): error is ApiError {
   );
 }
 
-export function createApiClient({ baseUrl, getAccessToken, onUnauthorized }: CreateClientOptions) {
+export function createApiClient({
+  baseUrl,
+  getAccessToken,
+  getHeaders,
+  onUnauthorized,
+}: CreateClientOptions) {
   const client = createOpenApiClient<paths>({
     baseUrl,
     credentials: 'include',
@@ -41,6 +48,9 @@ export function createApiClient({ baseUrl, getAccessToken, onUnauthorized }: Cre
     async onRequest({ request }) {
       const token = getAccessToken?.();
       if (token) request.headers.set('Authorization', `Bearer ${token}`);
+      for (const [name, value] of Object.entries(getHeaders?.() ?? {})) {
+        request.headers.set(name, value);
+      }
       if (onUnauthorized) retryRequests.set(request, request.clone());
       return request;
     },
@@ -54,6 +64,9 @@ export function createApiClient({ baseUrl, getAccessToken, onUnauthorized }: Cre
       const retry = new Request(original);
       const token = getAccessToken?.();
       if (token) retry.headers.set('Authorization', `Bearer ${token}`);
+      for (const [name, value] of Object.entries(getHeaders?.() ?? {})) {
+        retry.headers.set(name, value);
+      }
       return fetch(retry);
     },
   };
