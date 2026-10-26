@@ -34,7 +34,7 @@ async def test_agent_uploads_base64_once_and_receives_markdown(
 
     assert first.status_code == second.status_code == 201
     assert first.json() == second.json()
-    assert first.json()["mime"] == "image/png"
+    assert first.json()["mime"] == "image/webp"
     assert first.json()["width"] == 32
     assert first.json()["markdown_reference"] == (
         f"![Схема \\[урока\\]](media:{first.json()['id']})"

@@ -49,4 +49,31 @@
       radial-gradient(circle at 8% 0%, rgb(var(--rm-primary) / 0.09), transparent 30rem),
       radial-gradient(circle at 94% 30%, rgb(var(--rm-accent) / 0.06), transparent 28rem);
   }
+
+  .legal-page {
+    background-image:
+      radial-gradient(circle at 8% 0%, rgb(var(--rm-primary) / 0.08), transparent 30rem),
+      radial-gradient(circle at 92% 100%, rgb(var(--rm-accent) / 0.06), transparent 28rem);
+  }
+
+  .legal-copy {
+    @apply text-fg-muted max-w-3xl leading-7;
+  }
+
+  .legal-copy h2 {
+    @apply text-fg mt-8 text-xl font-semibold;
+  }
+
+  .legal-copy p,
+  .legal-copy ul {
+    @apply mt-3;
+  }
+
+  .legal-copy ul {
+    @apply list-disc space-y-2 pl-6;
+  }
+
+  .legal-page a {
+    @apply text-primary hover:text-primary-hover focus-visible:outline-primary rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4;
+  }
 }

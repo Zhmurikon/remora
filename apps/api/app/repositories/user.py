@@ -83,10 +83,13 @@ async def update_profile(
     display_name: str | None,
     locale: str,
     timezone: str,
+    birth_date: date | None,
 ) -> User:
     user.username = username
     user.display_name = display_name
     user.locale = locale
     user.timezone = timezone
+    if user.birth_date is None and birth_date is not None:
+        user.birth_date = birth_date
     await db.flush()
     return user

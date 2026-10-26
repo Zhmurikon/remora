@@ -32,7 +32,7 @@ from app.models.study import (
     UserSetProgress,
 )
 from app.models.tts import UsageCounter
-from app.models.user import Consent, OauthAccount, UserSettings
+from app.models.user import Consent, GuardianConsentRequest, OauthAccount, UserSettings
 
 
 async def get_job(db: AsyncSession, job_id: UUID) -> AccountExportJob | None:
@@ -69,6 +69,9 @@ async def account_rows(db: AsyncSession, user_id: UUID) -> dict[str, list[Any]]:
             db, select(OauthAccount).where(OauthAccount.user_id == user_id)
         ),
         "consents": await _all(db, select(Consent).where(Consent.user_id == user_id)),
+        "guardian_consent_requests": await _all(
+            db, select(GuardianConsentRequest).where(GuardianConsentRequest.user_id == user_id)
+        ),
         "api_tokens": await _all(db, select(ApiToken).where(ApiToken.user_id == user_id)),
         "admin_second_factor": await _all(
             db, select(AdminSecondFactor).where(AdminSecondFactor.user_id == user_id)

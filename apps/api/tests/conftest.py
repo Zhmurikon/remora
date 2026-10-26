@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 import pytest
 
@@ -29,11 +30,24 @@ from app.db.session import dispose_engine, get_engine
 from app.main import create_app
 
 
+class LegalTestClient(AsyncClient):
+    """Старые сценарии регистрации используют действующие версии документов."""
+
+    async def request(self, method: str, url: Any, **kwargs: Any) -> Any:
+        if method.upper() == "POST" and str(url).endswith("/api/v1/auth/register"):
+            payload = dict(kwargs.get("json") or {})
+            payload.setdefault("birth_date", "2000-01-01")
+            payload.setdefault("pdn_version", "2026-10-26")
+            payload.setdefault("offer_version", "2026-10-26")
+            kwargs["json"] = payload
+        return await super().request(method, url, **kwargs)
+
+
 @pytest.fixture
 async def client() -> AsyncClient:
     app = create_app()
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    async with LegalTestClient(transport=transport, base_url="http://test") as ac:
         yield ac
     # Очистка таблиц в том же event loop, до закрытия
     engine = get_engine()

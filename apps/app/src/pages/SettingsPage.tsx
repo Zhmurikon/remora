@@ -9,6 +9,20 @@ import { api, clearAccessToken } from '../lib/api';
 import { ApiTokens } from './ApiTokens';
 import { BotConnections } from './BotConnections';
 
+function isUnder14(value: string): boolean {
+  if (!value) return false;
+  const birth = new Date(`${value}T00:00:00`);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  if (
+    today.getMonth() < birth.getMonth() ||
+    (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())
+  ) {
+    age -= 1;
+  }
+  return age < 14;
+}
+
 type Session = components['schemas']['SessionPublic'];
 
 export function SettingsPage() {
@@ -165,6 +179,9 @@ function ProfileForm() {
   const authenticate = useAuthStore((state) => state.authenticate);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [birthDate, setBirthDate] = useState(user?.birth_date ?? '');
+  const needsGuardian = !user?.birth_date && isUnder14(birthDate);
+  const showGuardian = isUnder14(birthDate);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
@@ -176,6 +193,8 @@ function ProfileForm() {
         display_name: String(data.get('display_name')) || null,
         locale: String(data.get('locale')),
         timezone: String(data.get('timezone')),
+        birth_date: user?.birth_date ?? (birthDate || null),
+        guardian_email: showGuardian ? String(data.get('guardian_email')) || null : null,
       },
     });
     if (updated) {
@@ -205,6 +224,30 @@ function ProfileForm() {
           defaultValue={user?.display_name ?? ''}
           maxLength={64}
         />
+        <Input
+          label="Дата рождения"
+          name="birth_date"
+          type="date"
+          autoComplete="bday"
+          value={birthDate}
+          onChange={(event) => setBirthDate(event.target.value)}
+          disabled={Boolean(user?.birth_date)}
+          required
+          hint={user?.birth_date ? 'Изменение доступно только через поддержку' : undefined}
+        />
+        {showGuardian && (
+          <Input
+            label="Email законного представителя"
+            name="guardian_email"
+            type="email"
+            required={needsGuardian}
+            hint={
+              needsGuardian
+                ? 'Отправим ссылку для разрешения публичных функций'
+                : 'Оставьте пустым, если согласие уже подтверждено'
+            }
+          />
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
           <Input label="Язык" name="locale" defaultValue={user?.locale ?? 'ru'} required />
           <Input

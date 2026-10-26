@@ -6,6 +6,7 @@ import { useState, type FormEvent } from 'react';
 import { authApi, getErrorMessage } from '../../lib/auth-api';
 import { FormError, PasswordField } from './AuthFields';
 import { TurnstileChallenge } from './TurnstileChallenge';
+import { isUnder14, OFFER_VERSION, PDN_CONSENT_VERSION } from '../../lib/legal';
 
 export function RegisterForm() {
   const [loading, setLoading] = useState(false);
@@ -13,6 +14,8 @@ export function RegisterForm() {
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [captchaRequired, setCaptchaRequired] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [birthDate, setBirthDate] = useState('');
+  const needsGuardian = isUnder14(birthDate);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -28,6 +31,9 @@ export function RegisterForm() {
           username: String(data.get('username')),
           password: String(data.get('password')),
           birth_date: String(data.get('birth_date')),
+          pdn_version: PDN_CONSENT_VERSION,
+          offer_version: OFFER_VERSION,
+          guardian_email: needsGuardian ? String(data.get('guardian_email')) : null,
           captcha_token: captchaToken,
         },
       });
@@ -99,10 +105,23 @@ export function RegisterForm() {
           name="birth_date"
           type="date"
           autoComplete="bday"
+          value={birthDate}
+          onChange={(event) => setBirthDate(event.target.value)}
           required
           className="h-12 rounded-xl"
           hint="Нужна для возрастных настроек аккаунта"
         />
+        {needsGuardian && (
+          <Input
+            label="Email законного представителя"
+            name="guardian_email"
+            type="email"
+            autoComplete="email"
+            required
+            className="h-12 rounded-xl"
+            hint="Отправим одноразовую ссылку для согласия на публичные функции"
+          />
+        )}
         <label className="text-fg-muted flex cursor-pointer items-start gap-3 py-1 text-sm leading-5">
           <input
             type="checkbox"
@@ -110,7 +129,15 @@ export function RegisterForm() {
             className="border-border accent-primary mt-0.5 h-5 w-5 shrink-0 rounded"
           />
           <span>
-            Я принимаю условия использования и даю согласие на обработку персональных данных.
+            Я принимаю{' '}
+            <Link className="text-primary underline underline-offset-4" href="/legal/terms">
+              пользовательское соглашение
+            </Link>{' '}
+            версии {OFFER_VERSION} и даю{' '}
+            <Link className="text-primary underline underline-offset-4" href="/legal/privacy">
+              согласие на обработку персональных данных
+            </Link>{' '}
+            версии {PDN_CONSENT_VERSION}.
           </span>
         </label>
         {captchaRequired && <TurnstileChallenge onToken={setCaptchaToken} />}

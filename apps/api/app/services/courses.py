@@ -32,6 +32,7 @@ from app.schemas.courses import (
 )
 from app.schemas.search import CourseSearchItem
 from app.services.content import ContentService
+from app.services.legal import LegalService
 
 
 class CourseService:
@@ -194,6 +195,7 @@ class CourseService:
 
     async def publish(self, user: User, course_id: UUID, body: CoursePublication) -> CourseDetail:
         await lock_request(self.db, user.id)
+        await LegalService(self.db).ensure_publication_allowed(user)
         course = await self.owned(user, course_id)
         if course.moderation_status == "blocked":
             raise ForbiddenError("Курс заблокирован модератором")

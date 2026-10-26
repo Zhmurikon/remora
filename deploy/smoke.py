@@ -26,6 +26,7 @@ def main() -> None:
             assert response.is_success, (method, path, response.status_code)
             return response.json() if response.content else None
 
+        legal_versions = request("GET", "/auth/legal-versions")
         auth = request(
             "POST",
             "/auth/register",
@@ -33,13 +34,20 @@ def main() -> None:
                 "username": username,
                 "email": username + "@example.com",
                 "password": password,
+                "birth_date": "2000-01-01",
+                "pdn_version": legal_versions["pdn"],
+                "offer_version": legal_versions["offer"],
             },
         )
         auth = request(
-            "POST", "/auth/login", json={"email": username + "@example.com", "password": password}
+            "POST",
+            "/auth/login",
+            json={"email": username + "@example.com", "password": password},
         )
         client.headers["Authorization"] = "Bearer " + auth["access_token"]
-        token = request("POST", "/users/me/api-tokens", json={"name": "Deployment smoke"})
+        token = request(
+            "POST", "/users/me/api-tokens", json={"name": "Deployment smoke"}
+        )
         agent_headers = {
             "Authorization": "Bearer " + token["token"],
             "Idempotency-Key": str(uuid4()),
@@ -86,7 +94,11 @@ def main() -> None:
         ticket = request(
             "POST",
             "/media/upload-url",
-            json={"filename": "smoke.png", "mime": "image/png", "size_bytes": len(payload)},
+            json={
+                "filename": "smoke.png",
+                "mime": "image/png",
+                "size_bytes": len(payload),
+            },
         )
         # Не передаём токен пользователя в S3 и не печатаем подписанные ссылки.
         with httpx.Client(timeout=45) as storage:
@@ -106,14 +118,18 @@ def main() -> None:
             if result["status"] == "completed":
                 with httpx.Client(timeout=45) as storage:
                     archive = storage.get(result["download_url"])
-                    assert archive.status_code == 200 and archive.content.startswith(b"PK")
+                    assert archive.status_code == 200 and archive.content.startswith(
+                        b"PK"
+                    )
                 break
             assert result["status"] != "failed", "Export failed"
             time.sleep(1)
         else:
             raise AssertionError("Export timeout")
         request("DELETE", f"/users/me/api-tokens/{token['id']}")
-        print("OK: register, PAT, 10 cards, idempotency, FSRS, test, PDF, private S3, worker ZIP")
+        print(
+            "OK: register, PAT, 10 cards, idempotency, FSRS, test, PDF, private S3, worker ZIP"
+        )
         print("Technical account:", username, "set:", set_id)
 
 

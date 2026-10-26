@@ -39,6 +39,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl('/'), changeFrequency: 'weekly', priority: 1 },
     { url: absoluteUrl('/kursy'), changeFrequency: 'daily', priority: 0.9 },
     { url: absoluteUrl('/blog'), changeFrequency: 'weekly', priority: 0.7 },
+    { url: absoluteUrl('/legal/privacy'), changeFrequency: 'monthly', priority: 0.3 },
+    { url: absoluteUrl('/legal/terms'), changeFrequency: 'monthly', priority: 0.3 },
+    { url: absoluteUrl('/legal/cookies'), changeFrequency: 'monthly', priority: 0.2 },
+    { url: absoluteUrl('/legal/copyright'), changeFrequency: 'monthly', priority: 0.2 },
     ...publishedPosts().map((post) => ({
       url: absoluteUrl(`/blog/${post.slug}`),
       lastModified: new Date(post.updatedAt),

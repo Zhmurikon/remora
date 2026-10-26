@@ -33,6 +33,7 @@ from app.schemas.content import (
     SetCreate,
     SetUpdate,
 )
+from app.services.legal import LegalService
 
 _HTML_TAG = re.compile(r"<\s*/?\s*[a-zA-Z][^>]*>")
 
@@ -162,6 +163,8 @@ class ContentService:
         return study_set
 
     async def create_set(self, user: User, body: SetCreate) -> StudySet:
+        if body.visibility is SetVisibility.public:
+            await LegalService(self.db).ensure_publication_allowed(user)
         if body.folder_id is not None:
             await self.get_owned_folder(user, body.folder_id)
         study_set = StudySet(id=uuid4(), owner_id=user.id, slug="pending", **body.model_dump())
@@ -170,6 +173,8 @@ class ContentService:
 
     async def update_set(self, user: User, set_id: UUID, body: SetUpdate) -> StudySet:
         await lock_request(self.db, user.id)
+        if body.visibility is SetVisibility.public:
+            await LegalService(self.db).ensure_publication_allowed(user)
         if body.folder_id is not None:
             await self.get_owned_folder(user, body.folder_id)
         study_set = await self.get_owned_set(user, set_id, with_cards=True)

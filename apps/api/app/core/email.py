@@ -90,3 +90,19 @@ async def send_account_export_email(to: str, download_url: str, ttl_hours: int) 
         "Если вы не запрашивали экспорт, смените пароль и завершите незнакомые сессии."
     )
     await send_email(to, subject, body)
+
+
+async def send_guardian_consent_email(to: str, token: str, username: str) -> None:
+    settings = get_settings()
+    link = f"{settings.web_url}/guardian-consent?token={token}"
+    subject = "Согласие законного представителя — Remora"
+    body = (
+        "Здравствуйте!\n\n"
+        f"Пользователь @{username} указал ваш email как контакт законного представителя. "
+        "Чтобы разрешить ему публиковать материалы и использовать другие публичные функции "
+        "Remora, прочитайте условия и подтвердите согласие по ссылке:\n"
+        f"{link}\n\n"
+        "Ссылка действует 7 дней и используется один раз. Если вы не являетесь законным "
+        "представителем этого пользователя, не переходите по ссылке."
+    )
+    await send_email(to, subject, body)

@@ -33,6 +33,8 @@ from app.models.user import AccountContentPolicy, User
 from app.schemas.auth import (
     AccountDeletionRequest,
     AccountDeletionResponse,
+    GuardianConsentConfirmRequest,
+    LegalVersions,
     LoginRequest,
     PasswordChangeRequest,
     PasswordResetConfirmRequest,
@@ -47,6 +49,7 @@ from app.schemas.auth import (
     VerifyEmailRequest,
 )
 from app.services.auth import AuthService, to_user_public
+from app.services.legal import LegalService, legal_versions
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -123,8 +126,33 @@ async def register(
         password=body.password,
         username=body.username,
         birth_date=body.birth_date,
+        pdn_version=body.pdn_version,
+        offer_version=body.offer_version,
+        ip=ip,
+        guardian_email=body.guardian_email,
     )
     return TokenResponse(access_token="", user=to_user_public(user))
+
+
+@router.get("/legal-versions", response_model=LegalVersions, summary="Версии правовых документов")
+async def get_legal_versions() -> LegalVersions:
+    return LegalVersions(**legal_versions())
+
+
+@router.post(
+    "/guardian-consent/confirm",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Согласие законного представителя",
+)
+async def confirm_guardian_consent(
+    request: Request,
+    body: GuardianConsentConfirmRequest,
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    await LegalService(db).confirm_guardian(
+        body.token, request.client.host if request.client else None
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post(

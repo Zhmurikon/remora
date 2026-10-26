@@ -423,6 +423,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/guardian-consent/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Согласие законного представителя */
+        post: operations["confirm_guardian_consent_api_v1_auth_guardian_consent_confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/legal-versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Версии правовых документов */
+        get: operations["get_legal_versions_api_v1_auth_legal_versions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -3170,6 +3204,11 @@ export interface components {
             /** Date */
             date: string;
         };
+        /** GuardianConsentConfirmRequest */
+        GuardianConsentConfirmRequest: {
+            /** Token */
+            token: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -3275,6 +3314,19 @@ export interface components {
          * @enum {string}
          */
         LearnTypingCheck: "automatic" | "self_check";
+        /** LegalVersions */
+        LegalVersions: {
+            /**
+             * Offer
+             * @default 2026-10-26
+             */
+            offer: string;
+            /**
+             * Pdn
+             * @default 2026-10-26
+             */
+            pdn: string;
+        };
         /** LibraryDiff */
         LibraryDiff: {
             /**
@@ -3557,8 +3609,12 @@ export interface components {
         };
         /** ProfileUpdateRequest */
         ProfileUpdateRequest: {
+            /** Birth Date */
+            birth_date?: string | null;
             /** Display Name */
             display_name?: string | null;
+            /** Guardian Email */
+            guardian_email?: string | null;
             /** Locale */
             locale: string;
             /** Timezone */
@@ -3783,8 +3839,11 @@ export interface components {
         };
         /** RegisterRequest */
         RegisterRequest: {
-            /** Birth Date */
-            birth_date?: string | null;
+            /**
+             * Birth Date
+             * Format: date
+             */
+            birth_date: string;
             /** Captcha Token */
             captcha_token?: string | null;
             /**
@@ -3792,8 +3851,14 @@ export interface components {
              * Format: email
              */
             email: string;
+            /** Guardian Email */
+            guardian_email?: string | null;
+            /** Offer Version */
+            offer_version: string;
             /** Password */
             password: string;
+            /** Pdn Version */
+            pdn_version: string;
             /** Username */
             username: string;
         };
@@ -5582,6 +5647,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_guardian_consent_api_v1_auth_guardian_consent_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GuardianConsentConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_legal_versions_api_v1_auth_legal_versions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalVersions"];
                 };
             };
         };

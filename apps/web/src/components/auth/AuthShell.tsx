@@ -89,11 +89,17 @@ export function AuthShell({
           </div>
           <p className="text-fg-subtle mt-10 text-center text-xs leading-5">
             Продолжая, вы принимаете{' '}
-            <a href="#" className="decoration-border hover:text-fg underline underline-offset-4">
+            <a
+              href="/legal/terms"
+              className="decoration-border hover:text-fg underline underline-offset-4"
+            >
               условия использования
             </a>{' '}
             и{' '}
-            <a href="#" className="decoration-border hover:text-fg underline underline-offset-4">
+            <a
+              href="/legal/privacy"
+              className="decoration-border hover:text-fg underline underline-offset-4"
+            >
               политику конфиденциальности
             </a>
           </p>

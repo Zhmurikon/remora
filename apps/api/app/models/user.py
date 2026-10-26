@@ -78,15 +78,9 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         """Младше 14 лет — нужно согласие законного представителя."""
         if self.birth_date is None:
             return False
-        from datetime import date as _date
+        from app.core.legal import requires_guardian_consent
 
-        today = _date.today()
-        age = (
-            today.year
-            - self.birth_date.year
-            - (1 if (today.month, today.day) < (self.birth_date.month, self.birth_date.day) else 0)
-        )
-        return age < 14
+        return requires_guardian_consent(self.birth_date)
 
 
 class UserSettings(UUIDPrimaryKeyMixin, Base):
@@ -185,3 +179,19 @@ class Consent(UUIDPrimaryKeyMixin, Base):
         DateTime(timezone=True), server_default=func.now(), default=lambda: datetime.now(tz=UTC)
     )
     ip: Mapped[str | None] = mapped_column(String(45))
+
+
+class GuardianConsentRequest(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """Одноразовое подтверждение законного представителя без хранения исходного токена."""
+
+    __tablename__ = "guardian_consent_requests"
+
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True
+    )
+    guardian_email: Mapped[str] = mapped_column(String(320))
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    document_version: Mapped[str] = mapped_column(String(16))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    confirmation_ip: Mapped[str | None] = mapped_column(String(45))

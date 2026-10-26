@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.email import send_password_reset_email, send_verification_email
 from app.core.errors import ConflictError, NotFoundError, UnauthorizedError
+from app.core.legal import requires_guardian_consent
 from app.core.passwords import validate_password
 from app.core.security import (
     create_jwt,
@@ -30,6 +31,7 @@ from app.repositories import action_token as action_token_repo
 from app.repositories import token as token_repo
 from app.repositories import user as user_repo
 from app.schemas.auth import SessionPublic, UserPublic
+from app.services.legal import LegalService
 
 log = structlog.get_logger()
 
@@ -49,7 +51,11 @@ class AuthService:
         email: str,
         password: str,
         username: str,
-        birth_date: date | None = None,
+        birth_date: date,
+        pdn_version: str,
+        offer_version: str,
+        ip: str | None,
+        guardian_email: str | None,
     ) -> tuple[User, str]:
         """Создаёт пользователя, возвращает (user, verification_token)."""
         # Проверка пароля по словарю и политике
@@ -86,6 +92,13 @@ class AuthService:
             purpose=EMAIL_VERIFICATION,
             expires_at=datetime.now(tz=UTC)
             + timedelta(hours=settings.email_verification_ttl_hours),
+        )
+        await LegalService(self.db).record_registration(
+            user,
+            pdn_version=pdn_version,
+            offer_version=offer_version,
+            ip=ip,
+            guardian_email=guardian_email,
         )
         await send_verification_email(email, token)
         log.info("auth.register", user_id=str(user.id), email=email)
@@ -246,19 +259,40 @@ class AuthService:
             log.info("auth.logout", user_id=str(stored.user_id))
 
     async def update_profile(
-        self, user: User, *, username: str, display_name: str | None, locale: str, timezone: str
+        self,
+        user: User,
+        *,
+        username: str,
+        display_name: str | None,
+        locale: str,
+        timezone: str,
+        birth_date: date | None,
+        guardian_email: str | None,
     ) -> User:
         existing = await user_repo.get_user_by_username(self.db, username)
         if existing is not None and existing.id != user.id:
             raise ConflictError("Это имя пользователя занято")
-        return await user_repo.update_profile(
+        if user.birth_date is not None and birth_date is not None and birth_date != user.birth_date:
+            raise ConflictError("Дату рождения можно указать только один раз")
+        if (
+            user.birth_date is None
+            and birth_date is not None
+            and requires_guardian_consent(birth_date)
+            and guardian_email is None
+        ):
+            raise ConflictError("Для пользователя младше 14 лет нужен email представителя")
+        updated = await user_repo.update_profile(
             self.db,
             user,
             username=username,
             display_name=display_name,
             locale=locale,
             timezone=timezone,
+            birth_date=birth_date,
         )
+        if birth_date is not None and updated.requires_guardian_consent and guardian_email:
+            await LegalService(self.db).request_guardian(updated, guardian_email)
+        return updated
 
     async def change_password(
         self, user: User, current_password: str, new_password: str, current_refresh: str | None

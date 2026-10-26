@@ -123,8 +123,13 @@ class AccountExportService:
                 "preferences.json",
                 _json(
                     {
-                        key: [_row(item) for item in rows[key]]
-                        for key in ("settings", "oauth_accounts", "consents")
+                        "settings": [_row(item) for item in rows["settings"]],
+                        "oauth_accounts": [_row(item) for item in rows["oauth_accounts"]],
+                        "consents": [_row(item) for item in rows["consents"]],
+                        "guardian_consent_requests": [
+                            _row(item, exclude={"token_hash"})
+                            for item in rows["guardian_consent_requests"]
+                        ],
                     }
                 ),
             )
