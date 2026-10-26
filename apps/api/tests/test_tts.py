@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import pytest
 
+from app.services.entitlements import Entitlements
 from app.services.tts import DisabledProvider, TtsService, cache_key
 
 
@@ -34,7 +35,9 @@ async def _auth(client: pytest.fixture, suffix: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {login.json()['access_token']}"}
 
 
-async def _set_with_card(client: pytest.fixture, headers: dict[str, str]) -> dict[str, str]:
+async def _set_with_card(
+    client: pytest.fixture, headers: dict[str, str], *, term: str = "кошка"
+) -> dict[str, str]:
     created = await client.post(
         "/api/v1/sets",
         headers=headers,
@@ -44,7 +47,7 @@ async def _set_with_card(client: pytest.fixture, headers: dict[str, str]) -> dic
     saved = await client.put(
         f"/api/v1/sets/{set_id}/cards",
         headers=headers,
-        json={"cards": [{"term": "кошка", "definition": "cat"}]},
+        json={"cards": [{"term": term, "definition": "cat"}]},
     )
     return {"set_id": set_id, "card_id": saved.json()["cards"][0]["id"]}
 
@@ -136,6 +139,27 @@ async def test_cache_is_shared_between_users(
     assert len(provider.calls) == 1
     usage = await client.get("/api/v1/tts/status", headers=second_user)
     assert usage.json()["chars_used_this_month"] == 0
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_tts_limit_is_checked_before_provider_call(
+    _mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    provider = FakeProvider()
+    headers = await _auth(client, "limit")
+    card = await _set_with_card(client, headers, term="уникальная квота")
+
+    with (
+        patch("app.services.tts.build_provider", return_value=provider),
+        patch.object(Entitlements, "limit", new_callable=AsyncMock, return_value=4),
+    ):
+        response = await client.post(
+            "/api/v1/tts/speak", headers=headers, json={"card_id": card["card_id"]}
+        )
+
+    assert response.status_code == 402
+    assert response.json()["details"]["limit_key"] == "tts.chars_per_month"
+    assert provider.calls == []
 
 
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)

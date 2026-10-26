@@ -30,6 +30,7 @@ from app.core.storage import get_audio_storage
 from app.models.content import MediaAsset, MediaKind, MediaSource, MediaStatus
 from app.models.tts import TtsCache, UsageCounter, UsageMetric
 from app.models.user import User
+from app.services.entitlements import Entitlements
 
 log = structlog.get_logger()
 
@@ -163,6 +164,8 @@ class TtsService:
         if not self.available:
             raise TtsUnavailableError()
 
+        # Резервируем квоту до внешнего вызова. При ошибке провайдера транзакция откатит счётчик.
+        await self.consume(user, UsageMetric.tts_chars, len(clean))
         payload = await self.provider.synthesize(
             clean, lang=lang, voice=resolved_voice, speed=speed
         )
@@ -170,8 +173,6 @@ class TtsService:
         await self._remember(
             digest, asset, lang=lang, voice=resolved_voice, speed=speed, chars=len(clean)
         )
-        # Квота тратится только на реальный синтез — попадание в кэш бесплатно.
-        await self.consume(user, UsageMetric.tts_chars, len(clean))
         return asset, False
 
     def download_url(self, asset: MediaAsset) -> str:
@@ -247,25 +248,22 @@ class TtsService:
         )
 
     async def consume(self, user: User, metric: UsageMetric, amount: int) -> int:
-        """Атомарный инкремент счётчика. Проверку лимита добавит Entitlements в E9."""
+        """Атомарно резервирует тарифную квоту реального синтеза."""
         period = _period_key(metric)
-        statement = (
-            insert(UsageCounter)
-            .values(
-                id=uuid4(),
-                user_id=user.id,
-                metric=metric.value,
-                period_key=period,
-                value=amount,
-            )
-            .on_conflict_do_update(
-                constraint="uq_usage_counters_user_id_metric_period_key",
-                set_={"value": UsageCounter.value + amount},
-            )
-            .returning(UsageCounter.value)
+        now = datetime.now(tz=UTC)
+        reset = (
+            datetime(now.year + 1, 1, 1, tzinfo=UTC)
+            if now.month == 12
+            else datetime(now.year, now.month + 1, 1, tzinfo=UTC)
         )
-        result = await self.db.execute(statement)
-        return int(result.scalar_one())
+        return await Entitlements(self.db).consume(
+            user,
+            "tts.chars_per_month",
+            amount=amount,
+            period_key=period,
+            resets_at=reset,
+            counter_metric=metric.value,
+        )
 
     async def usage(self, user_id: UUID, metric: UsageMetric) -> int:
         value = await self.db.scalar(

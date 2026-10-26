@@ -28,6 +28,7 @@ from app.schemas.classes import (
 )
 from app.services.class_report_xlsx import build_class_report_xlsx
 from app.services.classes import ClassroomService
+from app.services.entitlements import Entitlements
 
 router = APIRouter(prefix="/classes", tags=["classes"])
 
@@ -251,6 +252,8 @@ async def export_class_report(
 ) -> Response:
     service = ClassroomService(db)
     classroom = await service.get(user, class_id)
+    await service.authorize_reports(user, class_id)
+    await Entitlements(db).require_feature(user, "classes.xlsx_export")
     report = await service.class_report(user, class_id)
     content = build_class_report_xlsx(report, classroom.title)
     return Response(

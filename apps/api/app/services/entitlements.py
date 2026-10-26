@@ -124,6 +124,20 @@ class Entitlements:
     async def feature(self, user: User, key: str) -> bool:
         return (await self.resolve(user)).features.get(key, False)
 
+    async def require_feature(self, user: User, key: str) -> None:
+        if await self.feature(user, key):
+            return
+        raise LimitExceededError(
+            details={
+                "limit_key": key,
+                "limit": 0,
+                "current": 0,
+                "requested": 1,
+                "resets_at": None,
+                "upgrade_to": "plus",
+            }
+        )
+
     async def limit(self, user: User, key: str) -> int | None:
         return (await self.resolve(user)).limits.get(key)
 
@@ -230,6 +244,7 @@ class Entitlements:
         amount: int,
         period_key: str,
         resets_at: datetime,
+        counter_metric: str | None = None,
     ) -> int:
         if amount < 1:
             raise ValueError("amount должен быть положительным")
@@ -237,8 +252,9 @@ class Entitlements:
         if limit is not None and amount > limit:
             await self.check(user, metric, current=0, requested=amount, resets_at=resets_at)
 
+        stored_metric = counter_metric or metric
         statement = insert(UsageCounter).values(
-            user_id=user.id, metric=metric, period_key=period_key, value=amount
+            user_id=user.id, metric=stored_metric, period_key=period_key, value=amount
         )
         if limit is None:
             statement = statement.on_conflict_do_update(
@@ -259,7 +275,7 @@ class Entitlements:
             select(UsageCounter.value).where(
                 and_(
                     UsageCounter.user_id == user.id,
-                    UsageCounter.metric == metric,
+                    UsageCounter.metric == stored_metric,
                     UsageCounter.period_key == period_key,
                 )
             )

@@ -7,8 +7,12 @@ from uuid import uuid4
 from zipfile import ZipFile
 
 import pytest
+from sqlalchemy import select
 
+from app.db.session import get_session_factory
+from app.models.billing import Entitlement, EntitlementSource
 from app.models.classes import ClassMemberRole
+from app.models.user import User
 from app.services.class_permissions import ClassAction, allows
 
 
@@ -22,6 +26,23 @@ async def _auth(client: pytest.fixture, suffix: str) -> dict[str, str]:
         "/api/v1/auth/login", json={"email": email, "password": "Str0ngP@ss!"}
     )
     return {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+
+async def _grant_feature(email: str, key: str) -> None:
+    async with get_session_factory()() as db:
+        user = await db.scalar(select(User).where(User.email == email))
+        assert user is not None
+        db.add(
+            Entitlement(
+                user_id=user.id,
+                key=f"feature.{key}",
+                value=True,
+                source=EntitlementSource.admin,
+                reason="Проверка платного отчёта",
+                starts_at=datetime.now(UTC) - timedelta(minutes=1),
+            )
+        )
+        await db.commit()
 
 
 def _review(card_id: str, *, correct: bool = True) -> dict[str, object]:
@@ -348,6 +369,17 @@ async def test_teacher_reports_real_progress_and_exports_xlsx(
     assert student_report.status_code == 200
     assert student_report.json()["assignments"][0]["progress"]["progress_value"] == 1
 
+    cards_report = await client.get(
+        f"/api/v1/classes/{class_id}/reports/cards", headers=owner
+    )
+    assert cards_report.status_code == 402
+    assert cards_report.json()["details"]["limit_key"] == "classes.card_report"
+    exported = await client.get(f"/api/v1/classes/{class_id}/reports.xlsx", headers=owner)
+    assert exported.status_code == 402
+    assert exported.json()["details"]["limit_key"] == "classes.xlsx_export"
+
+    await _grant_feature("class-reportowner@example.com", "classes.card_report")
+    await _grant_feature("class-reportowner@example.com", "classes.xlsx_export")
     cards_report = await client.get(
         f"/api/v1/classes/{class_id}/reports/cards", headers=owner
     )

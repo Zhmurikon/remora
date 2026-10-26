@@ -12,6 +12,7 @@ plans:
       classes.max: 1
       classes.students_max: 30
       assignments.active_max: 3
+      tts.chars_per_month: 5000
       ai.transcription_minutes_per_week: 0
       ai.generation_tokens_per_week: 0
     features:
@@ -33,6 +34,7 @@ plans:
       classes.max: null
       classes.students_max: 200
       assignments.active_max: null
+      tts.chars_per_month: 150000
       ai.transcription_minutes_per_week: 300
       ai.generation_tokens_per_week: 500000
     features:
@@ -54,6 +56,7 @@ plans:
       classes.max: null
       classes.students_max: 500
       assignments.active_max: null
+      tts.chars_per_month: 150000
       ai.transcription_minutes_per_week: 1500
       ai.generation_tokens_per_week: 2500000
     features:

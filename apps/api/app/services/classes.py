@@ -48,6 +48,7 @@ from app.schemas.classes import (
 )
 from app.services.class_permissions import ClassAction, allows
 from app.services.content import ContentService
+from app.services.entitlements import Entitlements
 
 _JOIN_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
 
@@ -247,8 +248,12 @@ class ClassroomService:
         await self.db.flush()
         return self._assignment_out(assignment)
 
-    async def class_report(self, user: User, class_id: UUID) -> ClassReportOut:
+    async def authorize_reports(self, user: User, class_id: UUID) -> None:
         await self._authorized(user, class_id, ClassAction.view_reports)
+
+    async def class_report(self, user: User, class_id: UUID) -> ClassReportOut:
+        await self.authorize_reports(user, class_id)
+        await Entitlements(self.db).require_feature(user, "classes.dashboard")
         assignments = await repo.list_assignments(self.db, class_id)
         member_rows = await repo.list_members(self.db, class_id)
         students = [
@@ -292,6 +297,8 @@ class ClassroomService:
     async def student_report(
         self, user: User, class_id: UUID, student_id: UUID
     ) -> StudentReportOut:
+        await self.authorize_reports(user, class_id)
+        await Entitlements(self.db).require_feature(user, "classes.student_report")
         report = await self.class_report(user, class_id)
         student = next((item for item in report.students if item.user_id == student_id), None)
         if student is None:
@@ -309,7 +316,8 @@ class ClassroomService:
         )
 
     async def card_report(self, user: User, class_id: UUID) -> ClassCardReportOut:
-        await self._authorized(user, class_id, ClassAction.view_reports)
+        await self.authorize_reports(user, class_id)
+        await Entitlements(self.db).require_feature(user, "classes.card_report")
         cards = []
         for card, study_set, answers, errors, students in await repo.card_error_rows(
             self.db, class_id
