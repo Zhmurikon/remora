@@ -28,15 +28,16 @@ export function HomeNav() {
         Запоминальня
       </a>
       <nav className="home-desktop-nav" aria-label="Основная навигация">
-        <a href="#features">Возможности</a>
+        <a href="/#features">Возможности</a>
         <a href="/kursy">Каталог</a>
         <a href="/podborki">Подборки</a>
         <a href="/blog">Блог</a>
-        <a href="#questions">Вопросы</a>
+        <a href="/tarify">Тарифы</a>
+        <a href="/#questions">Вопросы</a>
       </nav>
       <div className="home-nav-actions">
         <PublicAuthLink />
-        <a className="home-button home-button-small" href="#demo">
+        <a className="home-button home-button-small" href="/#demo">
           Попробовать
         </a>
       </div>
@@ -67,17 +68,18 @@ export function HomeNav() {
         aria-label="Мобильная навигация"
         hidden={!open}
       >
-        <a href="#features" onClick={() => setOpen(false)}>
+        <a href="/#features" onClick={() => setOpen(false)}>
           Возможности
         </a>
         <a href="/kursy">Каталог курсов</a>
         <a href="/podborki">Подборки</a>
         <a href="/blog">Блог</a>
-        <a href="#questions" onClick={() => setOpen(false)}>
+        <a href="/tarify">Тарифы</a>
+        <a href="/#questions" onClick={() => setOpen(false)}>
           Вопросы и ответы
         </a>
         <PublicAuthLink />
-        <a href="#demo" onClick={() => setOpen(false)}>
+        <a href="/#demo" onClick={() => setOpen(false)}>
           Попробовать без регистрации
         </a>
       </nav>

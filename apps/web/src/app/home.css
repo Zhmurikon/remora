@@ -2016,6 +2016,214 @@
   border-radius: 16px;
   background: rgb(var(--rm-home-mint));
 }
+
+/* Компактное продолжение публичной страницы: обещание обучения остаётся главным. */
+.home-pricing {
+  position: relative;
+  isolation: isolate;
+  margin-block: 110px;
+  padding: clamp(38px, 5vw, 72px);
+  overflow: hidden;
+  border-radius: 16px;
+  background: rgb(var(--rm-home-mint));
+}
+.home-pricing::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: -100px;
+  right: -110px;
+  width: 390px;
+  height: 230px;
+  border: 1px solid rgb(var(--rm-primary) / 0.18);
+  border-radius: 52% 48% 38% 62%;
+  transform: rotate(-12deg);
+}
+.home-pricing-head {
+  display: grid;
+  grid-template-columns: minmax(250px, 0.78fr) minmax(0, 1.5fr);
+  gap: clamp(32px, 6vw, 92px);
+  align-items: end;
+}
+.home-pricing-head h2 {
+  margin: 0;
+  font-size: clamp(32px, 3.5vw, 54px);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+.home-pricing-head p {
+  max-width: 64ch;
+  margin: 0;
+  color: rgb(var(--rm-fg-muted));
+  font-size: 15px;
+  line-height: 1.7;
+}
+.home-pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 42px;
+  border-block: 1px solid rgb(var(--rm-border));
+}
+.home-pricing-plan {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 28px;
+}
+.home-pricing-plan + .home-pricing-plan {
+  border-left: 1px solid rgb(var(--rm-border));
+}
+.home-pricing-plan.is-recommended {
+  background: rgb(var(--rm-surface) / 0.72);
+}
+.home-pricing-name {
+  display: flex;
+  min-height: 30px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.home-pricing-name h3 {
+  margin: 0;
+  font-size: 21px;
+}
+.home-pricing-name span {
+  color: rgb(var(--rm-primary));
+  font-size: 12px;
+  font-weight: 750;
+  text-align: right;
+}
+.home-pricing-price {
+  display: flex;
+  min-height: 40px;
+  align-items: baseline;
+  gap: 7px;
+  margin: 10px 0 0;
+}
+.home-pricing-price strong {
+  font-size: clamp(28px, 2.4vw, 38px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.home-pricing-price del,
+.home-pricing-price span,
+.home-pricing-total {
+  color: rgb(var(--rm-fg-muted));
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.home-pricing-price del {
+  text-decoration-thickness: 1px;
+}
+.home-pricing-total {
+  min-height: 19px;
+  margin: 6px 0 0;
+}
+.home-pricing-description {
+  min-height: 66px;
+  margin: 18px 0 0;
+  color: rgb(var(--rm-fg-muted));
+  font-size: 13px;
+  line-height: 1.65;
+}
+.home-pricing-button {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 22px;
+  padding: 10px 16px;
+  border: 1px solid rgb(var(--rm-border));
+  border-radius: 11px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.home-pricing-button:hover {
+  background: rgb(var(--rm-surface-muted));
+}
+.home-pricing-button.is-primary {
+  border-color: transparent;
+  background: rgb(var(--rm-primary));
+  color: rgb(var(--rm-primary-fg));
+}
+.home-pricing-button.is-primary:hover {
+  background: rgb(var(--rm-primary-hover));
+}
+.home-pricing-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding-top: 24px;
+}
+.home-pricing-foot p {
+  display: flex;
+  max-width: 72ch;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  font-size: 13px;
+}
+.home-pricing-foot p svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  color: rgb(var(--rm-success));
+}
+.home-pricing-foot > a {
+  min-height: 44px;
+  color: rgb(var(--rm-primary));
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 44px;
+  white-space: nowrap;
+}
+.home-pricing-foot > a:hover {
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+
+@media (max-width: 900px) {
+  .home-pricing-head {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .home-pricing-grid {
+    grid-template-columns: 1fr;
+  }
+  .home-pricing-plan + .home-pricing-plan {
+    border-top: 1px solid rgb(var(--rm-border));
+    border-left: 0;
+  }
+  .home-pricing-description {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 540px) {
+  .home-pricing {
+    margin-block: 72px;
+    padding: 30px 22px;
+  }
+  .home-pricing-head h2 {
+    font-size: 32px;
+  }
+  .home-pricing-head p {
+    font-size: 14px;
+  }
+  .home-pricing-plan {
+    padding: 25px 4px;
+  }
+  .home-pricing-plan.is-recommended {
+    margin-inline: -22px;
+    padding-inline: 26px;
+  }
+  .home-pricing-foot {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
 .home-final > :not(.home-final-memory) {
   position: relative;
   z-index: 1;

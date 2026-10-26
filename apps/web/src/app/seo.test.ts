@@ -48,6 +48,7 @@ it('сохраняет статические URL при недоступном 
   expect((await sitemap()).map((entry) => entry.url)).toEqual([
     'https://zapominalnya.ru/',
     'https://zapominalnya.ru/kursy',
+    'https://zapominalnya.ru/tarify',
     'https://zapominalnya.ru/blog',
     'https://zapominalnya.ru/privacy',
     'https://zapominalnya.ru/terms',

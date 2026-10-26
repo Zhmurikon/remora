@@ -12,6 +12,7 @@ import { HomeMotion } from '../components/home/HomeMotion';
 import { HomeCatalog } from '../components/home/HomeCatalog';
 import { HomeFaq } from '../components/home/HomeFaq';
 import { HomeFinal } from '../components/home/HomeFinal';
+import { HomePricing } from '../components/home/HomePricing';
 import {
   AiIllustration,
   ChatIllustration,
@@ -280,6 +281,8 @@ export default function HomePage() {
 
         <HomeCatalog />
 
+        <HomePricing />
+
         <HomeFaq />
 
         <HomeFinal />
@@ -295,6 +298,7 @@ export default function HomePage() {
           <a href="/kursy">Каталог</a>
           <a href="/blog">Блог</a>
           <a href="/podborki">Подборки</a>
+          <a href="/tarify">Тарифы</a>
           <a href="#questions">Вопросы и ответы</a>
           <a href="/privacy">Конфиденциальность</a>
           <a href="/terms">Условия использования</a>
