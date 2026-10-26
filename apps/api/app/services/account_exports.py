@@ -111,6 +111,10 @@ class AccountExportService:
                             "study_sessions",
                             "test_attempts",
                             "set_progress",
+                            "set_learn_settings",
+                            "daily_activity",
+                            "streaks",
+                            "practice_progress",
                         )
                     }
                 ),
@@ -121,6 +125,37 @@ class AccountExportService:
                     {
                         key: [_row(item) for item in rows[key]]
                         for key in ("settings", "oauth_accounts", "consents")
+                    }
+                ),
+            )
+            archive.writestr(
+                "connections.json",
+                _json(
+                    {
+                        "api_tokens": [
+                            _row(item, exclude={"token_hash"}) for item in rows["api_tokens"]
+                        ],
+                        "bot_links": [_row(item) for item in rows["bot_links"]],
+                    }
+                ),
+            )
+            archive.writestr(
+                "activity.json",
+                _json(
+                    {
+                        "course_likes": [_row(item) for item in rows["course_likes"]],
+                        "library_saves": [_row(item) for item in rows["library_saves"]],
+                        "reports": [_row(item) for item in rows["reports"]],
+                        "moderated_reports": [_row(item) for item in rows["moderated_reports"]],
+                        "usage_counters": [_row(item) for item in rows["usage_counters"]],
+                        "import_jobs": [
+                            _row(item, exclude={"storage_key", "error_message"})
+                            for item in rows["import_jobs"]
+                        ],
+                        "export_jobs": [
+                            _row(item, exclude={"storage_key", "error_message"})
+                            for item in rows["export_jobs"]
+                        ],
                     }
                 ),
             )
@@ -143,9 +178,14 @@ class AccountExportService:
         job.expires_at = datetime.now(UTC) + timedelta(hours=settings.account_export_ttl_hours)
 
 
-def _row(value: Any) -> dict[str, object]:
+def _row(value: Any, *, exclude: set[str] | None = None) -> dict[str, object]:
     mapper = inspect(value).mapper
-    return {column.key: getattr(value, column.key) for column in mapper.column_attrs}
+    excluded = exclude or set()
+    return {
+        column.key: getattr(value, column.key)
+        for column in mapper.column_attrs
+        if column.key not in excluded
+    }
 
 
 def _json(value: object) -> str:

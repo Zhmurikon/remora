@@ -34,6 +34,7 @@ from app.models.study import (
 from app.models.transcriptions import TranscriptionJob, TranscriptionStatus
 from app.models.tts import TtsCache, UsageCounter, UsageMetric
 from app.models.user import (
+    AccountContentPolicy,
     ActionToken,
     Consent,
     ConsentKind,
@@ -46,6 +47,7 @@ from app.models.user import (
 )
 
 __all__ = [
+    "AccountContentPolicy",
     "AccountExportJob",
     "AccountExportStatus",
     "ActionToken",

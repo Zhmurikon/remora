@@ -28,8 +28,10 @@ from app.core.config import get_settings
 from app.core.errors import UnauthorizedError
 from app.core.rate_limit import enforce_rate_limit
 from app.db.session import get_db
-from app.models.user import User
+from app.models.user import AccountContentPolicy, User
 from app.schemas.auth import (
+    AccountDeletionRequest,
+    AccountDeletionResponse,
     LoginRequest,
     PasswordChangeRequest,
     PasswordResetConfirmRequest,
@@ -326,3 +328,23 @@ async def revoke_session(
     session_id: UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
 ) -> None:
     await AuthService(db).revoke_session(user, session_id)
+
+
+@router.post(
+    "/delete-account",
+    response_model=AccountDeletionResponse,
+    summary="Запланировать удаление аккаунта",
+)
+async def delete_account(
+    body: AccountDeletionRequest,
+    response: Response,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+) -> AccountDeletionResponse:
+    scheduled_for = await AuthService(db).schedule_account_deletion(
+        user,
+        password=body.password,
+        public_content=AccountContentPolicy(body.public_content),
+    )
+    _clear_refresh_cookie(response)
+    return AccountDeletionResponse(scheduled_for=scheduled_for)

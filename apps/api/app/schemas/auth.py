@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
@@ -60,6 +61,16 @@ class ProfileUpdateRequest(BaseModel):
 class PasswordChangeRequest(BaseModel):
     current_password: str
     new_password: str = Field(min_length=8, max_length=128)
+
+
+class AccountDeletionRequest(BaseModel):
+    password: str = Field(min_length=1, max_length=128)
+    confirmation: Literal["УДАЛИТЬ"]
+    public_content: Literal["delete", "archive_public"] = "delete"
+
+
+class AccountDeletionResponse(BaseModel):
+    scheduled_for: datetime
 
 
 class SessionPublic(BaseModel):

@@ -21,6 +21,7 @@ from app.models.exports import AccountExportJob, AccountExportStatus
 from app.models.imports import ImportJob, ImportJobStatus
 from app.models.transcriptions import TranscriptionJob, TranscriptionStatus
 from app.models.user import User
+from app.services.account_deletion import purge_due_accounts
 from app.services.account_exports import AccountExportService
 from app.services.imports import ImportService
 from app.services.search_sync import synchronize_courses
@@ -277,6 +278,11 @@ async def cleanup_transcriptions(_context: dict[str, Any]) -> None:
             await db.commit()
 
 
+async def cleanup_deleted_accounts(_context: dict[str, Any]) -> None:
+    async with get_session_factory()() as db:
+        await purge_due_accounts(db)
+
+
 class WorkerSettings:
     functions: ClassVar[list[object]] = [
         process_anki_import,
@@ -286,6 +292,7 @@ class WorkerSettings:
     cron_jobs: ClassVar[list[object]] = [
         cron("app.worker.sync_course_search", minute=None, second=0, run_at_startup=True),
         cron("app.worker.cleanup_transcriptions", minute=17, second=0),
+        cron("app.worker.cleanup_deleted_accounts", hour=3, minute=37, second=0),
     ]
     redis_settings = RedisSettings.from_dsn(str(get_settings().redis_url))
     on_shutdown = shutdown

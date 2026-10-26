@@ -25,6 +25,7 @@ export function SettingsPage() {
       <ApiTokens />
       <BotConnections />
       <Sessions />
+      <AccountDeletion />
     </div>
   );
 }
@@ -308,6 +309,72 @@ function Sessions() {
           </div>
         ))}
       </div>
+    </Card>
+  );
+}
+
+export function AccountDeletion() {
+  const becomeGuest = useAuthStore((state) => state.becomeGuest);
+  const [message, setMessage] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setMessage(null);
+    const data = new FormData(event.currentTarget);
+    const { error } = await api.POST('/api/v1/auth/delete-account', {
+      body: {
+        password: String(data.get('password')),
+        confirmation: 'УДАЛИТЬ',
+        public_content:
+          data.get('public_content') === 'archive_public' ? 'archive_public' : 'delete',
+      },
+    });
+    if (error) {
+      setMessage(errorMessage(error));
+      setSaving(false);
+      return;
+    }
+    clearAccessToken();
+    becomeGuest();
+  }
+
+  return (
+    <Card className="border-danger/40 mt-6 p-6">
+      <h2 className="text-xl font-semibold">Удаление аккаунта</h2>
+      <p className="text-fg-muted mt-1 max-w-3xl text-sm leading-relaxed">
+        Доступ закроется сразу. Через 30 дней аккаунт и личные данные будут удалены без возможности
+        восстановления. До истечения срока восстановление можно запросить через поддержку.
+      </p>
+      <form className="mt-6 max-w-xl space-y-4" onSubmit={(event) => void submit(event)}>
+        <fieldset>
+          <legend className="text-sm font-medium">Что сделать с опубликованными курсами</legend>
+          <label className="mt-3 flex min-h-11 items-start gap-3 text-sm">
+            <input type="radio" name="public_content" value="delete" defaultChecked />
+            <span>Удалить вместе с аккаунтом</span>
+          </label>
+          <label className="flex min-h-11 items-start gap-3 text-sm">
+            <input type="radio" name="public_content" value="archive_public" />
+            <span>Анонимно передать в «Архив сообщества»</span>
+          </label>
+        </fieldset>
+        <Input
+          label="Текущий пароль"
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+        />
+        <label className="flex items-start gap-3 text-sm">
+          <input className="mt-1" type="checkbox" required />
+          <span>Я понимаю, что через 30 дней данные нельзя будет восстановить.</span>
+        </label>
+        <Status text={message} />
+        <Button type="submit" variant="danger" loading={saving}>
+          Удалить аккаунт
+        </Button>
+      </form>
     </Card>
   );
 }

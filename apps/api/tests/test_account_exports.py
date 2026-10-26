@@ -128,6 +128,8 @@ async def test_account_export_archive_and_email(
     with ZipFile(BytesIO(archive_payload)) as archive:
         assert set(archive.namelist()) == {
             "account.json",
+            "activity.json",
+            "connections.json",
             "sets.json",
             "learning.json",
             "preferences.json",
@@ -137,6 +139,7 @@ async def test_account_export_archive_and_email(
         account = json.loads(archive.read("account.json"))
         sets = json.loads(archive.read("sets.json"))
         learning = json.loads(archive.read("learning.json"))
+        connections = json.loads(archive.read("connections.json"))
         assert "password_hash" not in account
         assert sets["sets"][0]["id"] == set_id
         assert sets["cards"][0]["term"] == "memory"
@@ -146,6 +149,7 @@ async def test_account_export_archive_and_email(
         assert sets["course_articles"][0]["set_id"] == set_id
         assert len(sets["course_sections"]) == 1
         assert len(learning["study_sessions"]) == 1
+        assert connections == {"api_tokens": [], "bot_links": []}
         assert archive.read(f"media/{media_id}.png") == b"picture"
 
 

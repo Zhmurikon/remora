@@ -25,7 +25,7 @@ from app.core.security import (
     hash_token,
     verify_password,
 )
-from app.models.user import User, UserStatus
+from app.models.user import AccountContentPolicy, User, UserStatus
 from app.repositories import action_token as action_token_repo
 from app.repositories import token as token_repo
 from app.repositories import user as user_repo
@@ -130,9 +130,7 @@ class AuthService:
             access_token = create_jwt(str(user.id), "access")
             raw_token, token_hash = generate_refresh_token()
             settings = get_settings()
-            expires_at = datetime.now(tz=UTC) + timedelta(
-                days=settings.refresh_token_ttl_days
-            )
+            expires_at = datetime.now(tz=UTC) + timedelta(days=settings.refresh_token_ttl_days)
             await token_repo.create_token(
                 self.db,
                 user_id=user.id,
@@ -292,6 +290,25 @@ class AuthService:
     async def revoke_session(self, user: User, session_id: UUID) -> None:
         if not await token_repo.revoke_user_token(self.db, user.id, session_id):
             raise NotFoundError("Сессия не найдена")
+
+    async def schedule_account_deletion(
+        self, user: User, *, password: str, public_content: AccountContentPolicy
+    ) -> datetime:
+        """Немедленно закрывает аккаунт; физическая очистка выполняется через 30 дней."""
+        if user.password_hash is None or not verify_password(password, user.password_hash):
+            raise UnauthorizedError("Пароль указан неверно")
+        now = datetime.now(UTC)
+        user.status = UserStatus.deleted
+        user.deleted_at = now
+        user.deletion_content_policy = public_content.value
+        await token_repo.revoke_all_user_tokens(self.db, user.id)
+        await self.db.flush()
+        log.info(
+            "auth.account_deletion_scheduled",
+            user_id=str(user.id),
+            public_content=public_content.value,
+        )
+        return now + timedelta(days=30)
 
     async def request_password_reset(self, email: str) -> None:
         """Отправляет письмо сброса, если email существует.
