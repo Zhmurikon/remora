@@ -15,6 +15,45 @@ server {
 }
 
 server {
+    listen 80;
+    listen [::]:80;
+    server_name admin.zapominalnya.ru;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt;
+        default_type text/plain;
+    }
+
+    location / {
+        return 301 https://admin.zapominalnya.ru$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name admin.zapominalnya.ru;
+
+    ssl_certificate /etc/letsencrypt/live/admin.zapominalnya.ru/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/admin.zapominalnya.ru/privkey.pem;
+
+    access_log /var/log/nginx/zapominalnya_admin_access.log;
+    error_log /var/log/nginx/zapominalnya_admin_error.log warn;
+
+    location ~* /(\.env|\.git|\.aws|\.ssh|wp-admin|wp-login\.php|xmlrpc\.php|phpmyadmin|\.docker|\.vscode|config\.php|id_rsa|\.htpasswd|\.DS_Store)(/|$) {
+        return 404;
+    }
+
+    location / {
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_pass http://127.0.0.1:8280;
+    }
+}
+
+server {
     listen 443 ssl;
     listen [::]:443 ssl;
     server_name zapominalnya.ru;

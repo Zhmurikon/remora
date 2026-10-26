@@ -4,7 +4,7 @@
 Host nginx завершает TLS и проксирует `zapominalnya.ru` на локальный порт gateway
 `127.0.0.1:8280`. Канонический домен — `zapominalnya.ru`, кабинет —
 `https://zapominalnya.ru/app`, административная панель — `https://admin.zapominalnya.ru`.
-Для административного домена нужен отдельный server block на тот же gateway с собственным TLS;
+Административный домен использует отдельный server block на тот же gateway и собственный TLS;
 gateway выбирает статическую сборку по заголовку Host. `www.zapominalnya.ru` перенаправляется
 на домен без `www`.
 Пример host-конфигурации с переходным старым доменом —
