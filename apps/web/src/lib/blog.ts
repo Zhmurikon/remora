@@ -4,8 +4,8 @@ import { absoluteUrl, DEFAULT_OG_IMAGE } from './seo';
 
 export const BLOG_TITLE = 'Блог об учёбе и запоминании';
 export const BLOG_DESCRIPTION =
-  'Как учить конспекты, готовиться к экзаменам и составлять карточки. Практические материалы редакции Remora.';
-export const BLOG_AUTHOR = 'Редакция Remora';
+  'Как учить конспекты, готовиться к экзаменам и составлять карточки. Практические материалы редакции «Запоминальни».';
+export const BLOG_AUTHOR = 'Редакция «Запоминальни»';
 
 export function publishedPosts(
   posts: readonly BlogPost[] = blogPosts,
@@ -58,13 +58,18 @@ export function blogMetadata(post?: BlogPost): Metadata {
     description,
     alternates: { canonical: path },
     openGraph: {
-      title: `${title} — Remora`,
+      title: `${title} — Запоминальня`,
       description,
       url: path,
-      siteName: 'Remora',
+      siteName: 'Запоминальня',
       locale: 'ru_RU',
       images: [
-        { url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: 'Remora — учёба и запоминание' },
+        {
+          url: DEFAULT_OG_IMAGE,
+          width: 1200,
+          height: 630,
+          alt: 'Запоминальня — учёба и запоминание',
+        },
       ],
       ...(post
         ? {
@@ -78,7 +83,7 @@ export function blogMetadata(post?: BlogPost): Metadata {
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${title} — Remora`,
+      title: `${title} — Запоминальня`,
       description,
       images: [DEFAULT_OG_IMAGE],
     },
@@ -90,7 +95,7 @@ export function blogStructuredData(post?: BlogPost) {
   const organization = {
     '@type': 'Organization',
     '@id': `${absoluteUrl('/')}#organization`,
-    name: 'Remora',
+    name: 'Запоминальня',
     url: absoluteUrl('/'),
   };
   return {

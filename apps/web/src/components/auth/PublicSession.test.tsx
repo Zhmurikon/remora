@@ -46,7 +46,7 @@ it.each([false, 'offline'])('оставляет гостю форму входа
       <PublicAuthLink />
     </PublicSessionProvider>,
   );
-  expect(await screen.findByRole('heading', { name: 'Войдите в Remora' })).toBeTruthy();
+  expect(await screen.findByRole('heading', { name: 'Войдите в Запоминальню' })).toBeTruthy();
   expect(screen.getByRole('link', { name: 'Войти' }).getAttribute('href')).toBe('/login');
 });
 

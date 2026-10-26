@@ -1,4 +1,4 @@
-export const LEGAL_CONTACT_EMAIL = 'support@remora.com.ru';
+export const LEGAL_CONTACT_EMAIL = 'support@zapominalnya.ru';
 export const LEGAL_UPDATED_AT = '2026-10-02';
 
 export type LegalLanguage = 'ru' | 'en';
@@ -22,16 +22,16 @@ export interface LegalDocument {
 
 const privacyRu: LegalDocument = {
   title: 'Политика конфиденциальности',
-  description: 'Как Remora получает, использует, хранит и защищает данные пользователей.',
+  description: 'Как «Запоминальня» получает, использует, хранит и защищает данные пользователей.',
   eyebrow: 'Конфиденциальность',
   updated: 'Обновлено 2 октября 2026 года',
   intro:
-    'Эта политика объясняет, какие данные обрабатывает Remora, зачем они нужны и как вы можете управлять ими. Она действует для сайта remora.com.ru и связанных приложений Remora.',
+    'Эта политика объясняет, какие данные обрабатывает «Запоминальня», зачем они нужны и как вы можете управлять ими. Она действует для сайта zapominalnya.ru и связанных приложений «Запоминальни».',
   sections: [
     {
       title: '1. Кто обрабатывает данные',
       paragraphs: [
-        'Данные обрабатывает администратор сервиса Remora. По вопросам конфиденциальности, доступа к данным или их удаления напишите нам.',
+        'Данные обрабатывает администратор сервиса «Запоминальня». По вопросам конфиденциальности, доступа к данным или их удаления напишите нам.',
       ],
       contact: true,
     },
@@ -47,8 +47,8 @@ const privacyRu: LegalDocument = {
     {
       title: '3. Вход через Google',
       paragraphs: [
-        'Если вы выбираете вход через Google, Remora получает уникальный идентификатор Google-аккаунта, подтверждённый адрес электронной почты и, если они доступны, имя и изображение профиля. Эти данные нужны только для создания аккаунта Remora, входа и безопасного связывания с существующим аккаунтом по тому же адресу.',
-        'Remora запрашивает только разрешения openid, email и profile. Мы не получаем доступ к Gmail, Google Drive, контактам или другим данным Google и не сохраняем токен доступа Google после завершения авторизации.',
+        'Если вы выбираете вход через Google, «Запоминальня» получает уникальный идентификатор Google-аккаунта, подтверждённый адрес электронной почты и, если они доступны, имя и изображение профиля. Эти данные нужны только для создания аккаунта «Запоминальни», входа и безопасного связывания с существующим аккаунтом по тому же адресу.',
+        '«Запоминальня» запрашивает только разрешения openid, email и profile. Мы не получаем доступ к Gmail, Google Drive, контактам или другим данным Google и не сохраняем токен доступа Google после завершения авторизации.',
         'Данные Google не продаются, не передаются рекламным платформам и не используются для персонализированной рекламы.',
       ],
     },
@@ -78,7 +78,7 @@ const privacyRu: LegalDocument = {
     {
       title: '7. Cookie и сеансы',
       paragraphs: [
-        'Remora использует необходимые cookie для входа, защиты сеанса и сохранения базовых настроек. Без них авторизация и часть функций не работают. Сейчас мы не используем рекламные cookie.',
+        '«Запоминальня» использует необходимые cookie для входа, защиты сеанса и сохранения базовых настроек. Без них авторизация и часть функций не работают. Сейчас мы не используем рекламные cookie.',
       ],
     },
     {
@@ -92,7 +92,7 @@ const privacyRu: LegalDocument = {
       title: '9. Ваши права',
       paragraphs: [
         'Вы можете запросить сведения о своих данных, исправить их, получить доступную копию, отозвать согласие или попросить удалить аккаунт и данные. Мы можем попросить подтвердить личность перед выполнением запроса.',
-        'Пользователям младше 14 лет следует использовать Remora только с согласия законного представителя.',
+        'Пользователям младше 14 лет следует использовать «Запоминальню» только с согласия законного представителя.',
       ],
       contact: true,
     },
@@ -107,16 +107,16 @@ const privacyRu: LegalDocument = {
 
 const privacyEn: LegalDocument = {
   title: 'Privacy Policy',
-  description: 'How Remora collects, uses, stores, and protects user data.',
+  description: 'How Zapominalnya collects, uses, stores, and protects user data.',
   eyebrow: 'Privacy',
   updated: 'Updated October 2, 2026',
   intro:
-    'This policy explains what data Remora processes, why it is needed, and how you can manage it. It applies to remora.com.ru and related Remora applications.',
+    'This policy explains what data Zapominalnya processes, why it is needed, and how you can manage it. It applies to zapominalnya.ru and related Zapominalnya applications.',
   sections: [
     {
       title: '1. Who processes your data',
       paragraphs: [
-        'Your data is processed by the administrator of the Remora service. Contact us with questions about privacy, access to your data, or deletion requests.',
+        'Your data is processed by the administrator of the Zapominalnya service. Contact us with questions about privacy, access to your data, or deletion requests.',
       ],
       contact: true,
     },
@@ -132,8 +132,8 @@ const privacyEn: LegalDocument = {
     {
       title: '3. Sign in with Google',
       paragraphs: [
-        'When you choose Sign in with Google, Remora receives your unique Google Account identifier, verified email address and, when available, your name and profile picture. We use this data only to create your Remora account, sign you in, and securely link it to an existing account with the same email address.',
-        'Remora requests only the openid, email, and profile permissions. We do not access Gmail, Google Drive, contacts, or other Google data, and we do not retain the Google access token after authentication is complete.',
+        'When you choose Sign in with Google, Zapominalnya receives your unique Google Account identifier, verified email address and, when available, your name and profile picture. We use this data only to create your Zapominalnya account, sign you in, and securely link it to an existing account with the same email address.',
+        'Zapominalnya requests only the openid, email, and profile permissions. We do not access Gmail, Google Drive, contacts, or other Google data, and we do not retain the Google access token after authentication is complete.',
         'Google user data is not sold, shared with advertising platforms, or used for personalized advertising.',
       ],
     },
@@ -163,7 +163,7 @@ const privacyEn: LegalDocument = {
     {
       title: '7. Cookies and sessions',
       paragraphs: [
-        'Remora uses essential cookies to sign you in, protect your session, and remember basic settings. Authentication and some features cannot work without them. We currently do not use advertising cookies.',
+        'Zapominalnya uses essential cookies to sign you in, protect your session, and remember basic settings. Authentication and some features cannot work without them. We currently do not use advertising cookies.',
       ],
     },
     {
@@ -177,7 +177,7 @@ const privacyEn: LegalDocument = {
       title: '9. Your rights',
       paragraphs: [
         'You may ask what data we hold about you, correct it, receive an available copy, withdraw consent, or request deletion of your account and data. We may ask you to verify your identity before completing a request.',
-        'Users under 14 should use Remora only with the consent of a parent or legal guardian.',
+        'Users under 14 should use Zapominalnya only with the consent of a parent or legal guardian.',
       ],
       contact: true,
     },
@@ -192,30 +192,30 @@ const privacyEn: LegalDocument = {
 
 const termsRu: LegalDocument = {
   title: 'Условия использования',
-  description: 'Основные правила использования сайта и приложений Remora.',
+  description: 'Основные правила использования сайта и приложений «Запоминальни».',
   eyebrow: 'Правила сервиса',
   updated: 'Обновлено 2 октября 2026 года',
   intro:
-    'Эти условия регулируют использование сайта remora.com.ru и связанных приложений Remora. Создавая аккаунт или продолжая пользоваться сервисом, вы соглашаетесь с ними.',
+    'Эти условия регулируют использование сайта zapominalnya.ru и связанных приложений «Запоминальни». Создавая аккаунт или продолжая пользоваться сервисом, вы соглашаетесь с ними.',
   sections: [
     {
       title: '1. О сервисе',
       paragraphs: [
-        'Remora помогает создавать и изучать карточки, курсы и другие учебные материалы. Сервис предоставляет инструменты для самостоятельного обучения, но не гарантирует конкретный учебный результат и не заменяет профессиональную консультацию.',
+        '«Запоминальня» помогает создавать и изучать карточки, курсы и другие учебные материалы. Сервис предоставляет инструменты для самостоятельного обучения, но не гарантирует конкретный учебный результат и не заменяет профессиональную консультацию.',
       ],
     },
     {
       title: '2. Аккаунт',
       paragraphs: [
         'Указывайте актуальные данные и защищайте доступ к аккаунту. Вы отвечаете за действия, совершённые через ваш аккаунт, пока не сообщите нам о несанкционированном доступе.',
-        'Один Google-аккаунт может быть связан с существующим аккаунтом Remora с тем же подтверждённым адресом электронной почты. Если безопасно подтвердить совпадение нельзя, Remora может запросить дополнительное подтверждение.',
+        'Один Google-аккаунт может быть связан с существующим аккаунтом «Запоминальни» с тем же подтверждённым адресом электронной почты. Если безопасно подтвердить совпадение нельзя, «Запоминальня» может запросить дополнительное подтверждение.',
         'Пользователи младше 14 лет могут пользоваться сервисом только с согласия законного представителя.',
       ],
     },
     {
       title: '3. Материалы пользователя',
       paragraphs: [
-        'Вы сохраняете права на материалы, которые добавляете в Remora. Вы предоставляете нам ограниченное право хранить, обрабатывать, преобразовывать и показывать их только в объёме, необходимом для работы выбранных функций и настроек доступа.',
+        'Вы сохраняете права на материалы, которые добавляете в «Запоминальню». Вы предоставляете нам ограниченное право хранить, обрабатывать, преобразовывать и показывать их только в объёме, необходимом для работы выбранных функций и настроек доступа.',
         'Вы отвечаете за законность материалов и наличие прав на их использование. Не публикуйте персональные данные других людей без законного основания.',
       ],
     },
@@ -238,7 +238,7 @@ const termsRu: LegalDocument = {
     {
       title: '6. Работа и изменение сервиса',
       paragraphs: [
-        'Мы стараемся поддерживать Remora доступной и сохранять данные, но не обещаем непрерывную работу без ошибок. Функции могут меняться, временно отключаться или прекращаться. О существенных изменениях мы постараемся сообщить заранее, когда это возможно.',
+        'Мы стараемся поддерживать «Запоминальню» доступной и сохранять данные, но не обещаем непрерывную работу без ошибок. Функции могут меняться, временно отключаться или прекращаться. О существенных изменениях мы постараемся сообщить заранее, когда это возможно.',
         'Сохраняйте копии особенно важных материалов. Доступные средства экспорта могут зависеть от текущих возможностей сервиса.',
       ],
     },
@@ -251,7 +251,7 @@ const termsRu: LegalDocument = {
     {
       title: '8. Ответственность',
       paragraphs: [
-        'Каждая сторона отвечает в пределах, установленных применимым законодательством. Remora не отвечает за содержание пользовательских материалов, решения, принятые на их основе, и сбои внешних сервисов, которыми мы не управляем.',
+        'Каждая сторона отвечает в пределах, установленных применимым законодательством. «Запоминальня» не отвечает за содержание пользовательских материалов, решения, принятые на их основе, и сбои внешних сервисов, которыми мы не управляем.',
       ],
     },
     {
@@ -273,30 +273,30 @@ const termsRu: LegalDocument = {
 
 const termsEn: LegalDocument = {
   title: 'Terms of Use',
-  description: 'The basic rules for using the Remora website and applications.',
+  description: 'The basic rules for using the Zapominalnya website and applications.',
   eyebrow: 'Service rules',
   updated: 'Updated October 2, 2026',
   intro:
-    'These terms govern your use of remora.com.ru and related Remora applications. By creating an account or continuing to use the service, you agree to them.',
+    'These terms govern your use of zapominalnya.ru and related Zapominalnya applications. By creating an account or continuing to use the service, you agree to them.',
   sections: [
     {
       title: '1. About the service',
       paragraphs: [
-        'Remora helps you create and study flashcards, courses, and other learning materials. It provides tools for independent learning but does not guarantee a specific learning outcome or replace professional advice.',
+        'Zapominalnya helps you create and study flashcards, courses, and other learning materials. It provides tools for independent learning but does not guarantee a specific learning outcome or replace professional advice.',
       ],
     },
     {
       title: '2. Your account',
       paragraphs: [
         'Keep your information current and protect access to your account. You are responsible for activity through your account until you notify us of unauthorized access.',
-        'A Google Account may be linked to an existing Remora account with the same verified email address. When a secure match cannot be established, Remora may require additional confirmation.',
+        'A Google Account may be linked to an existing Zapominalnya account with the same verified email address. When a secure match cannot be established, Zapominalnya may require additional confirmation.',
         'Users under 14 may use the service only with the consent of a parent or legal guardian.',
       ],
     },
     {
       title: '3. Your content',
       paragraphs: [
-        'You retain the rights to materials you add to Remora. You grant us a limited right to store, process, transform, and display them only as needed to provide the features and sharing settings you select.',
+        'You retain the rights to materials you add to Zapominalnya. You grant us a limited right to store, process, transform, and display them only as needed to provide the features and sharing settings you select.',
         'You are responsible for the legality of your materials and for having the rights needed to use them. Do not publish another person’s personal data without a lawful basis.',
       ],
     },
@@ -319,7 +319,7 @@ const termsEn: LegalDocument = {
     {
       title: '6. Availability and changes',
       paragraphs: [
-        'We work to keep Remora available and preserve data, but we do not promise uninterrupted or error-free operation. Features may change, be suspended, or be discontinued. We will try to provide advance notice of material changes where reasonably possible.',
+        'We work to keep Zapominalnya available and preserve data, but we do not promise uninterrupted or error-free operation. Features may change, be suspended, or be discontinued. We will try to provide advance notice of material changes where reasonably possible.',
         'Keep copies of especially important materials. Available export options may depend on the service’s current capabilities.',
       ],
     },
@@ -332,7 +332,7 @@ const termsEn: LegalDocument = {
     {
       title: '8. Liability',
       paragraphs: [
-        'Each party is responsible to the extent required by applicable law. Remora is not responsible for user content, decisions made based on it, or failures of third-party services outside our control.',
+        'Each party is responsible to the extent required by applicable law. Zapominalnya is not responsible for user content, decisions made based on it, or failures of third-party services outside our control.',
       ],
     },
     {

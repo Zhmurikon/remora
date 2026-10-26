@@ -12,9 +12,9 @@ export default function CollectionsLayout({ children }: { children: ReactNode })
         Перейти к содержимому
       </a>
       <header className="blog-header home-shell">
-        <a className="home-brand" href="/" aria-label="Remora — главная">
+        <a className="home-brand" href="/" aria-label="Запоминальня — главная">
           <FishMark />
-          Remora
+          Запоминальня
         </a>
         <nav aria-label="Основная навигация">
           <a href="/kursy">Каталог</a>
@@ -31,9 +31,9 @@ export default function CollectionsLayout({ children }: { children: ReactNode })
         {children}
       </main>
       <footer className="home-footer home-shell">
-        <a className="home-brand" href="/" aria-label="Remora — главная">
+        <a className="home-brand" href="/" aria-label="Запоминальня — главная">
           <FishMark />
-          Remora
+          Запоминальня
         </a>
         <span>Учиться в своём темпе.</span>
         <HomeTheme />

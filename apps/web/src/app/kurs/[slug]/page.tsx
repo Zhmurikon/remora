@@ -67,7 +67,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const course = await loadCourse((await params).slug);
-  const description = course.description || `Учебный курс «${course.title}» на Remora.`;
+  const description = course.description || `Учебный курс «${course.title}» в «Запоминальне».`;
   return {
     title: course.title,
     description,
@@ -106,11 +106,11 @@ export default async function PublicCoursePage({ params }: { params: Promise<{ s
         '@id': `${courseUrl}#course`,
         url: courseUrl,
         name: course.title,
-        description: course.description || `Учебный курс «${course.title}» на Remora.`,
+        description: course.description || `Учебный курс «${course.title}» в «Запоминальне».`,
         datePublished: course.published_at,
         dateModified: course.updated_at,
         keywords: course.tags,
-        provider: { '@type': 'Organization', name: 'Remora', url: absoluteUrl('/') },
+        provider: { '@type': 'Organization', name: 'Запоминальня', url: absoluteUrl('/') },
         author: {
           '@type': 'Person',
           name: authorName,
@@ -143,10 +143,10 @@ export default async function PublicCoursePage({ params }: { params: Promise<{ s
       >
         <Link
           href={APP_URL}
-          aria-label="Remora — приложение"
+          aria-label="Запоминальня — приложение"
           className="text-primary inline-flex min-h-11 items-center text-xl font-semibold"
         >
-          Remora
+          Запоминальня
         </Link>
         <Link href="/" className="text-primary inline-flex min-h-11 items-center underline">
           Главная

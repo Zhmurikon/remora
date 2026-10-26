@@ -43,7 +43,7 @@ export default async function CollectionPage({ params }: Props) {
           <h1>{collection.title}</h1>
           <p>{collection.description}</p>
           <p className="blog-meta">
-            Редакция Remora · Обновлено{' '}
+            Редакция «Запоминальни» · Обновлено{' '}
             <time dateTime={collection.updatedAt}>{formatBlogDate(collection.updatedAt)}</time>
           </p>
         </div>

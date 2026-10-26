@@ -57,7 +57,7 @@ it('показывает список и полный текст без клие
     const article = renderToStaticMarkup(
       await BlogPostPage({ params: Promise.resolve({ slug: post.slug }) }),
     );
-    expect(article).toContain('Редакция Remora');
+    expect(article).toContain('Редакция «Запоминальни»');
     expect(article).toContain('Что почитать дальше');
     expect(article).toContain('href="/#demo"');
     for (const section of post.sections) {
@@ -107,7 +107,7 @@ it('формирует canonical, article Open Graph, Twitter и согласо�
     type: 'article',
     publishedTime: post.publishedAt,
     modifiedTime: post.updatedAt,
-    authors: ['Редакция Remora'],
+    authors: ['Редакция «Запоминальни»'],
   });
   expect(metadata.twitter).toMatchObject({ card: 'summary_large_image' });
   const graph = blogStructuredData(post)['@graph'];

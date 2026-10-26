@@ -33,19 +33,19 @@ export function LegalPage({ kind, language }: LegalPageProps) {
       </a>
 
       <header className="border-border border-b">
-        <div className="mx-auto flex min-h-20 max-w-5xl items-center justify-between gap-4 px-5 sm:px-8">
+        <div className="mx-auto flex min-h-20 max-w-5xl items-center justify-between gap-2 px-5 sm:gap-4 sm:px-8">
           <Link
             href="/"
-            className="focus-visible:ring-primary flex min-h-11 items-center gap-2 rounded-lg text-xl font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-            aria-label={isRu ? 'Remora, на главную' : 'Remora, home'}
+            className="focus-visible:ring-primary flex min-h-11 min-w-0 items-center gap-1 rounded-lg text-lg font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:gap-2 sm:text-xl"
+            aria-label={isRu ? 'Запоминальня, на главную' : 'Zapominalnya, home'}
           >
-            <FishMark className="h-11 w-11" />
-            <span>Remora</span>
+            <FishMark className="h-10 w-10 shrink-0 sm:h-11 sm:w-11" />
+            <span>{isRu ? 'Запоминальня' : 'Zapominalnya'}</span>
           </Link>
           <Link
             href={paths[otherLanguage][kind]}
             hrefLang={otherLanguage}
-            className="border-border text-fg-muted hover:border-primary hover:text-primary focus-visible:ring-primary inline-flex min-h-11 items-center rounded-full border px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+            className="border-border text-fg-muted hover:border-primary hover:text-primary focus-visible:ring-primary inline-flex min-h-11 shrink-0 items-center rounded-full border px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:px-4"
           >
             {isRu ? 'English' : 'Русский'}
           </Link>
@@ -56,7 +56,9 @@ export function LegalPage({ kind, language }: LegalPageProps) {
         <p className="text-primary text-sm font-bold uppercase tracking-[0.14em]">
           {document.eyebrow}
         </p>
-        <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">{document.title}</h1>
+        <h1 className="mt-3 break-words text-4xl font-bold tracking-tight sm:text-5xl">
+          {document.title}
+        </h1>
         <time dateTime={LEGAL_UPDATED_AT} className="text-fg-subtle mt-5 block text-sm">
           {document.updated}
         </time>

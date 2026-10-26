@@ -74,7 +74,7 @@ export function AuthShell({ children }: AuthShellProps) {
       </header>
 
       <div className="auth-stage">
-        <section className="auth-statement" aria-label="О Remora">
+        <section className="auth-statement" aria-label="О Запоминальне">
           <h2>
             <span className="auth-title-word auth-title-word-one">Знания</span>
             <em className="auth-title-word auth-title-word-two">остаются</em>

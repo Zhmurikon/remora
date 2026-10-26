@@ -14,7 +14,7 @@ describe('LegalPage', () => {
     );
     expect(screen.getByRole('link', { name: 'English' }).getAttribute('href')).toBe('/en/privacy');
     expect(screen.getByText('3. Вход через Google')).toBeTruthy();
-    expect(screen.getAllByRole('link', { name: 'support@remora.com.ru' })).toHaveLength(2);
+    expect(screen.getAllByRole('link', { name: 'support@zapominalnya.ru' })).toHaveLength(2);
   });
 
   it('показывает английские условия и ссылку на русскую версию', () => {

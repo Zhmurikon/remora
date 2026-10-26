@@ -3,7 +3,7 @@ import { LegalPage } from '../../components/legal/LegalPage';
 
 export const metadata: Metadata = {
   title: 'Политика конфиденциальности',
-  description: 'Как Remora получает, использует, хранит и защищает данные пользователей.',
+  description: 'Как Запоминальня получает, использует, хранит и защищает данные пользователей.',
   alternates: {
     canonical: '/privacy',
     languages: { ru: '/privacy', en: '/en/privacy' },

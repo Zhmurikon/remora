@@ -23,27 +23,32 @@ import './home.css';
 
 const title = 'Карточки для запоминания и учёбы онлайн';
 const description =
-  'Создавайте флеш-карточки, проверяйте себя и повторяйте материал к экзаменам. Бесплатные режимы обучения. Попробуйте Remora без регистрации.';
+  'Создавайте флеш-карточки, проверяйте себя и повторяйте материал к экзаменам. Бесплатные режимы обучения. Попробуйте «Запоминальню» без регистрации.';
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:5173').replace(/\/$/, '');
 
 export const metadata: Metadata = {
-  title: { absolute: `${title} | Remora` },
+  title: { absolute: `${title} | Запоминальня` },
   description,
   alternates: { canonical: '/' },
   openGraph: {
     type: 'website',
-    title: `${title} | Remora`,
+    title: `${title} | Запоминальня`,
     description,
     url: '/',
     locale: 'ru_RU',
-    siteName: 'Remora',
+    siteName: 'Запоминальня',
     images: [
-      { url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: 'Remora, карточки для запоминания' },
+      {
+        url: DEFAULT_OG_IMAGE,
+        width: 1200,
+        height: 630,
+        alt: 'Запоминальня, карточки для запоминания',
+      },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: `${title} | Remora`,
+    title: `${title} | Запоминальня`,
     description,
     images: [DEFAULT_OG_IMAGE],
   },
@@ -64,12 +69,12 @@ export default function HomePage() {
             {
               '@type': 'Organization',
               '@id': `${absoluteUrl('/')}#organization`,
-              name: 'Remora',
+              name: 'Запоминальня',
               url: absoluteUrl('/'),
             },
             {
               '@type': 'WebSite',
-              name: 'Remora',
+              name: 'Запоминальня',
               url: absoluteUrl('/'),
               inLanguage: 'ru',
               description,
@@ -201,8 +206,8 @@ export default function HomePage() {
                 <br />в нужный момент
               </h2>
               <p>
-                Remora планирует интервальные повторения по вашим ответам. Сложное возвращается
-                чаще, знакомое реже.
+                Запоминальня планирует интервальные повторения по вашим ответам. Сложное
+                возвращается чаще, знакомое реже.
               </p>
               <p className="home-feature-detail">
                 В основе алгоритм FSRS. Просто начните занятие, а расписание возьмём на себя.
@@ -257,8 +262,8 @@ export default function HomePage() {
                 Ваши карточки.
               </h2>
               <p>
-                Подключите своего ИИ-помощника к Remora. Попросите его подготовить курс по
-                конспекту, проверьте результат и начните учиться.
+                Подключите своего ИИ-помощника к сервису «Запоминальня». Попросите его подготовить
+                курс по конспекту, проверьте результат и начните учиться.
               </p>
               <p className="home-feature-detail">
                 Для помощников с поддержкой MCP или API. Подключение находится в настройках
@@ -280,9 +285,9 @@ export default function HomePage() {
         <HomeFinal />
       </main>
       <footer className="home-footer home-shell">
-        <a className="home-brand" href="/" aria-label="Remora, главная">
+        <a className="home-brand" href="/" aria-label="Запоминальня, главная">
           <FishMark />
-          Remora
+          Запоминальня
         </a>
         <span>Учиться в своём темпе.</span>
         <HomeTheme />

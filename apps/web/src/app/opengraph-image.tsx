@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ImageResponse } from 'next/og';
 
-export const alt = 'Remora — карточки для заучивания';
+export const alt = 'Запоминальня — карточки для заучивания';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -32,7 +32,7 @@ export default async function OpenGraphImage() {
       }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 960 }}>
-        <div style={{ color: '#2764d8', fontSize: 38, fontWeight: 700 }}>Remora</div>
+        <div style={{ color: '#2764d8', fontSize: 38, fontWeight: 700 }}>Запоминальня</div>
         <div style={{ fontSize: 72, fontWeight: 700, lineHeight: 1.08 }}>
           Учитесь по карточкам и запоминайте надолго
         </div>

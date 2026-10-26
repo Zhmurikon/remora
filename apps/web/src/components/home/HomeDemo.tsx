@@ -113,7 +113,7 @@ export function HomeDemo() {
         <aside className="home-demo-sidebar" aria-label="Темы демо">
           <span className="home-brand">
             <FishMark />
-            Remora
+            Запоминальня
           </span>
           <p className="home-mini-label">Пять вопросов обо всём</p>
           {questions.map((item, index) => (

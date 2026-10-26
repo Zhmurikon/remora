@@ -1,4 +1,4 @@
-import { Badge, Card } from '@remora/ui';
+import { Badge, Card, FishMark } from '@remora/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
@@ -87,10 +87,8 @@ export default async function PublicSetPage({ params }: { params: Promise<{ slug
       <div className="mx-auto max-w-6xl">
         <nav className="flex items-center justify-between py-2" aria-label="Основная навигация">
           <Link href="/" className="flex items-center gap-3 text-lg font-semibold tracking-tight">
-            <span className="bg-primary text-primary-fg grid h-9 w-9 place-items-center rounded-xl">
-              R
-            </span>
-            Remora
+            <FishMark className="h-9 w-9 shrink-0" />
+            Запоминальня
           </Link>
           <PublicAuthLink className="border-border bg-surface hover:bg-surface-muted inline-flex h-11 items-center rounded-full border px-5 text-sm font-medium transition-colors" />
         </nav>

@@ -7,7 +7,7 @@ import { absoluteUrl, DEFAULT_OG_IMAGE } from './seo';
 export type CollectionCourse = components['schemas']['CourseSearchItem'];
 export const COLLECTIONS_TITLE = 'Подборки курсов для учёбы';
 export const COLLECTIONS_DESCRIPTION =
-  'Редакционные подборки учебных курсов и карточек Remora: выберите тему и материалы для самостоятельных занятий.';
+  'Редакционные подборки учебных курсов и карточек «Запоминальни»: выберите тему и материалы для самостоятельных занятий.';
 
 export function publishedCollections(
   collections: readonly EditorialCollection[] = editorialCollections,
@@ -63,16 +63,18 @@ export function collectionMetadata(collection?: EditorialCollection, index = tru
     robots: { index, follow: true },
     openGraph: {
       type: 'website',
-      title: `${title} — Remora`,
+      title: `${title} — Запоминальня`,
       description,
       url: path,
-      siteName: 'Remora',
+      siteName: 'Запоминальня',
       locale: 'ru_RU',
-      images: [{ url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: 'Подборки курсов Remora' }],
+      images: [
+        { url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: 'Подборки курсов Запоминальни' },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${title} — Remora`,
+      title: `${title} — Запоминальня`,
       description,
       images: [DEFAULT_OG_IMAGE],
     },
@@ -119,7 +121,7 @@ export function collectionsStructuredData(
         ...(collection
           ? { datePublished: collection.publishedAt, dateModified: collection.updatedAt }
           : {}),
-        publisher: { '@type': 'Organization', name: 'Remora', url: absoluteUrl('/') },
+        publisher: { '@type': 'Organization', name: 'Запоминальня', url: absoluteUrl('/') },
         mainEntity: {
           '@type': 'ItemList',
           numberOfItems: items.length,

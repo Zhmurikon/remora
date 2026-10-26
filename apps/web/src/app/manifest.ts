@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Remora',
-    short_name: 'Remora',
+    name: 'Запоминальня',
+    short_name: 'Запоминальня',
     description: 'Карточки для заучивания и интервальных повторений.',
     start_url: '/',
     display: 'standalone',

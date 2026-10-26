@@ -9,7 +9,7 @@ export default function BlogPage() {
     <>
       <JsonLd data={blogStructuredData()} />
       <header className="blog-intro">
-        <span className="home-kicker">Журнал Remora</span>
+        <span className="home-kicker">Журнал «Запоминальни»</span>
         <h1>
           Учиться с пониманием.
           <br />

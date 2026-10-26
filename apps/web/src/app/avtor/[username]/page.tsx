@@ -34,7 +34,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const profile = await loadProfile((await params).username);
   const name = profile.display_name || `@${profile.username}`;
-  const description = `Публичные курсы автора ${name} на Remora.`;
+  const description = `Публичные курсы автора ${name} в «Запоминальне».`;
   return {
     title: `${name} — автор курсов`,
     description,
@@ -84,7 +84,7 @@ export default async function AuthorPage({ params }: { params: Promise<{ usernam
           href="/"
           className="text-primary inline-flex min-h-11 items-center text-xl font-semibold"
         >
-          Remora
+          Запоминальня
         </Link>
         <Link href="/kursy" className="text-primary inline-flex min-h-11 items-center underline">
           Каталог курсов
@@ -97,7 +97,8 @@ export default async function AuthorPage({ params }: { params: Promise<{ usernam
         </h1>
         {profile.display_name && <p className="text-fg-muted mt-2">@{profile.username}</p>}
         <p className="text-fg-muted mt-3 text-sm">
-          На Remora с {new Date(profile.joined_at).toLocaleDateString('ru-RU', { timeZone: 'UTC' })}
+          В Запоминальне с{' '}
+          {new Date(profile.joined_at).toLocaleDateString('ru-RU', { timeZone: 'UTC' })}
         </p>
       </header>
       <section aria-labelledby="author-stats" className="pb-10">

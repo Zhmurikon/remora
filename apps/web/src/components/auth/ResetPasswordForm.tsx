@@ -56,7 +56,7 @@ export function ResetPasswordForm() {
           href="/login"
           className="bg-primary text-primary-fg hover:bg-primary-hover mt-8 inline-flex h-12 items-center justify-center rounded-xl px-6 font-medium"
         >
-          Войти в Remora
+          Войти в Запоминальню
         </Link>
       </div>
     );

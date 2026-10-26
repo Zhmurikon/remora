@@ -17,8 +17,8 @@ export default async function TranscriberPage() {
   return (
     <main className="transcriber-page">
       <header className="transcriber-topbar">
-        <a href="/" className="transcriber-brand" aria-label="Remora, на главную">
-          <FishMark /> <span>Remora</span>
+        <a href="/" className="transcriber-brand" aria-label="Запоминальня, на главную">
+          <FishMark /> <span>Запоминальня</span>
         </a>
         <span className="transcriber-private">Личный инструмент</span>
       </header>
