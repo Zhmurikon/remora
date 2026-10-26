@@ -84,11 +84,11 @@ def _worksheet(rows: list[list[str | int]], *, freeze_row: int) -> str:
         '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
         f'<sheetViews><sheetView workbookViewId="0"><pane ySplit="{freeze_row}" '
         f'topLeftCell="A{freeze_row + 1}" activePane="bottomLeft" state="frozen"/>'
-        '</sheetView></sheetViews>'
+        "</sheetView></sheetViews>"
         f"<cols>{column_xml}</cols><sheetData>{''.join(row_xml)}</sheetData>"
         '<autoFilter ref="A4:'
         f'{_column_name(max_columns)}{max(4, len(rows))}"/>'
-        '</worksheet>'
+        "</worksheet>"
     )
 
 
@@ -140,7 +140,7 @@ _STYLES = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 </styleSheet>"""
 
 _CORE_PROPERTIES = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>Отчёт класса Remora</dc:title><dc:creator>Remora</dc:creator></cp:coreProperties>"""
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>Отчёт класса Запоминальни</dc:title><dc:creator>Запоминальня</dc:creator></cp:coreProperties>"""
 
 _APP_PROPERTIES = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>Remora</Application></Properties>"""
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>Запоминальня</Application></Properties>"""

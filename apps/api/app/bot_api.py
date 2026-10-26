@@ -21,7 +21,12 @@ configure_logging(
     max_bytes=settings.log_max_bytes,
     backup_count=settings.log_backup_count,
 )
-app = FastAPI(title="Remora internal bot API", docs_url=None, redoc_url=None, openapi_url=None)
+app = FastAPI(
+    title="Запоминальня: внутренний API ботов",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
+)
 app.add_middleware(RequestIdMiddleware)
 register_exception_handlers(app)
 

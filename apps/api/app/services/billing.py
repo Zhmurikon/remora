@@ -153,7 +153,7 @@ class BillingService:
                 "type": "redirect",
                 "return_url": f"{settings.app_url.rstrip('/')}/billing?payment=return",
             },
-            "description": f"Remora {plan.name}, {body.interval}",
+            "description": f"Запоминальня {plan.name}, {body.interval}",
             "metadata": {
                 "payment_id": str(payment.id),
                 "user_id": str(user.id),
@@ -166,7 +166,7 @@ class BillingService:
                 "customer": {"email": user.email},
                 "items": [
                     {
-                        "description": f"Подписка Remora {plan.name}",
+                        "description": f"Подписка «Запоминальни» {plan.name}",
                         "quantity": "1.00",
                         "amount": payload["amount"],
                         "vat_code": settings.yookassa_vat_code,

@@ -236,9 +236,7 @@ async def get_class_card_report(
     response_class=Response,
     responses={
         200: {
-            "content": {
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}
-            },
+            "content": {"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}},
             "description": "Отчёт класса в XLSX",
         }
     },
@@ -256,5 +254,5 @@ async def export_class_report(
     return Response(
         content=content,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": 'attachment; filename="remora-class-report.xlsx"'},
+        headers={"Content-Disposition": 'attachment; filename="zapominalnya-class-report.xlsx"'},
     )

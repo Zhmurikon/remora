@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     bot_tg_service_token: SecretStr = SecretStr("")
     bot_vk_service_token: SecretStr = SecretStr("")
     api_v1_prefix: str = "/api/v1"
-    project_name: str = "Remora API"
+    project_name: str = "API Запоминальни"
 
     # Секреты
     secret_key: str = Field(min_length=32)
