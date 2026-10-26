@@ -1,13 +1,11 @@
 import type { components } from '@remora/api-client';
 import { Button, Card, CardContent } from '@remora/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
 
 type Room = components['schemas']['BattleRoomOut'];
-type Result = components['schemas']['BattleResultOut'];
-
 export function BattlePage() {
   const { setId, battleId } = useParams();
   return battleId ? <BattleRoom battleId={battleId} /> : <BattleCreate setId={setId ?? ''} />;
