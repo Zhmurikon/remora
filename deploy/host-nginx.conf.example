@@ -49,6 +49,17 @@ server {
     return 301 https://zapominalnya.ru$request_uri;
 }
 
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name xn--80aatfqdicdj3mnb.xn--p1ai;
+
+    ssl_certificate /etc/letsencrypt/live/zapominalnya.ru/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/zapominalnya.ru/privkey.pem;
+
+    return 301 https://zapominalnya.ru$request_uri;
+}
+
 # Старый домен сохраняет API, callbacks и S3-ссылки, а страницы переводит на новый host.
 server {
     listen 80;
