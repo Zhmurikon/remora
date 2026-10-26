@@ -62,7 +62,7 @@
 | A02 Cryptographic Failures | Пароли Argon2id, токены хешируются; ротация секретов — отдельный срез E10 |
 | A03 Injection | ORM-параметры, закрытые схемы, безопасный Markdown/SVG/экспорт |
 | A04 Insecure Design | Сервисные роли, идемпотентность, постмодерация и аудит выделены явно |
-| A05 Security Misconfiguration | Защитные заголовки и CSP — следующий срез E10 |
+| A05 Security Misconfiguration | CSP с одноразовым nonce без `unsafe-inline`, HSTS и защитные заголовки добавлены на всех слоях |
 | A06 Vulnerable Components | Известных уязвимостей после обновления не найдено |
 | A07 Identification and Authentication Failures | Короткий access JWT, ротация refresh, отзыв семей; 2FA — отдельный срез E10 |
 | A08 Software and Data Integrity Failures | Фиксированный lockfile, проверка содержимого загрузок, схема API коммитится |

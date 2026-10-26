@@ -2,10 +2,16 @@
 
 from datetime import UTC, datetime, time, timedelta
 from unittest.mock import AsyncMock, patch
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 import pytest
+from sqlalchemy import select
 
+from app.core.config import get_settings
+from app.db.session import get_session_factory
+from app.models.moderation import AuditLog
+from app.models.retention import DailyActivity
 from tests.test_study import _auth, _review, _set_with_cards
 
 
@@ -152,3 +158,43 @@ async def test_activity_uses_user_timezone_and_xp_diminishes(
     assert summary["reviews_today"] == 55
     # 20 × 10 XP, следующие 30 × 5, затем по 1 XP.
     assert summary["xp_today"] == 355
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_xp_anomaly_is_audited_once(_mock_send: AsyncMock, client: pytest.fixture) -> None:
+    headers = await _auth(client, "retention-anomaly")
+    study_set = await _set_with_cards(client, headers, count=2)
+    cards = study_set["cards"]
+    user_id = UUID((await client.get("/api/v1/auth/me", headers=headers)).json()["id"])
+    today = datetime.now(UTC).date()
+    threshold = get_settings().xp_anomaly_reviews_per_day
+    async with get_session_factory()() as db:
+        db.add(
+            DailyActivity(
+                user_id=user_id,
+                activity_date=today,
+                reviews_count=threshold,
+                correct_count=threshold,
+                xp_earned=threshold,
+            )
+        )
+        await db.commit()
+
+    response = await client.post(
+        "/api/v1/study/reviews",
+        headers=headers,
+        json={"reviews": [_review(cards[0]["id"]), _review(cards[1]["id"])]},
+    )
+    assert response.status_code == 200
+    async with get_session_factory()() as db:
+        events = list(
+            (
+                await db.scalars(
+                    select(AuditLog).where(
+                        AuditLog.actor_id == user_id,
+                        AuditLog.event == "retention.xp_anomaly",
+                    )
+                )
+            ).all()
+        )
+    assert len(events) == 1

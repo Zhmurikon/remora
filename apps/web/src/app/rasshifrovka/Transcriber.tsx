@@ -347,13 +347,11 @@ export function Transcriber({ initialAccess }: { initialAccess: boolean }) {
           {busy ? (
             <>
               <div className="transcriber-progress">
-                <span
-                  style={
-                    stage === 'uploading'
-                      ? { width: `${uploadProgress}%`, transform: 'none', animation: 'none' }
-                      : undefined
-                  }
-                />
+                {stage === 'uploading' ? (
+                  <progress max={100} value={uploadProgress} aria-label="Прогресс загрузки" />
+                ) : (
+                  <span />
+                )}
               </div>
               <p className="transcriber-hint">
                 {stage === 'uploading'

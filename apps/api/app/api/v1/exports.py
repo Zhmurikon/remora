@@ -3,10 +3,10 @@
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.deps import current_user
+from app.api.v1.deps import current_user, mass_operation_limit
 from app.db.session import get_db
 from app.models.user import User
 from app.services.content import ContentService
@@ -19,6 +19,7 @@ router = APIRouter(prefix="/sets", tags=["exports"])
 @router.get("/{set_id}/export", summary="Экспортировать набор")
 async def export_set(
     set_id: UUID,
+    request: Request,
     format: Literal["txt", "csv", "anki", "pdf"] = Query(),
     side_separator: str = Query(default="\t", max_length=10),
     card_separator: str = Query(default="\n", max_length=10),
@@ -26,6 +27,7 @@ async def export_set(
     user: User = Depends(current_user),
     db: AsyncSession = Depends(get_db),
 ) -> Response:
+    await mass_operation_limit(request, user, "set-export")
     study_set = await ContentService(db).get_owned_set(user, set_id, with_cards=True)
     filename = f"set-{set_id}"
     if format == "pdf":

@@ -877,19 +877,15 @@ function BulkImport({
                   </span>
                   <span className="font-medium">{ankiJob.progress}%</span>
                 </div>
-                <div
-                  role="progressbar"
+                <progress
                   aria-label="Прогресс импорта Anki"
+                  className="remora-progress mt-2"
+                  max={100}
+                  value={ankiJob.progress}
                   aria-valuemin={0}
                   aria-valuemax={100}
                   aria-valuenow={ankiJob.progress}
-                  className="bg-surface mt-2 h-2 overflow-hidden rounded-full"
-                >
-                  <div
-                    className="bg-primary h-full rounded-full transition-[width]"
-                    style={{ width: `${ankiJob.progress}%` }}
-                  />
-                </div>
+                />
                 <p className="text-fg-muted mt-2 text-xs">
                   Окно импорта можно закрыть — задача продолжится в фоне.
                 </p>

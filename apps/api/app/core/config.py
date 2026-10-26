@@ -63,6 +63,16 @@ class Settings(BaseSettings):
     # Публичное чтение: применяется только к прямым обращениям с внешнего адреса
     rate_limit_public_read: int = 120
     rate_limit_public_read_window_seconds: int = 60
+    rate_limit_mass_operation: int = 20
+    rate_limit_mass_operation_window_seconds: int = 3600
+
+    # CAPTCHA включается не для всех, а после нескольких регистраций с одного адреса.
+    captcha_anomaly_threshold: int = 3
+    turnstile_secret_key: SecretStr | None = None
+    turnstile_verify_url: str = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+
+    # После порога XP продолжает честно считаться, но событие попадает в аудит.
+    xp_anomaly_reviews_per_day: int = 250
 
     # CORS: адреса обоих фронтендов
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]

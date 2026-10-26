@@ -90,9 +90,13 @@ async def test_register_rate_limit(mock_send: AsyncMock, client: pytest.fixture)
         "username": "limitedregister",
     }
     assert (await client.post("/api/v1/auth/register", json=payload)).status_code == 201
-    for _ in range(4):
+    for _ in range(2):
         resp = await client.post("/api/v1/auth/register", json=payload)
         assert resp.status_code == 409
+    for _ in range(2):
+        resp = await client.post("/api/v1/auth/register", json=payload)
+        assert resp.status_code == 403
+        assert resp.json()["code"] == "CAPTCHA_REQUIRED"
 
     blocked = await client.post("/api/v1/auth/register", json=payload)
     assert blocked.status_code == 429

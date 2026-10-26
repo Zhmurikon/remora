@@ -4,6 +4,25 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .remora-progress {
+    @apply bg-surface-muted block h-2 w-full overflow-hidden rounded-full border-0;
+    appearance: none;
+  }
+
+  .remora-progress::-webkit-progress-bar {
+    @apply bg-surface-muted;
+  }
+
+  .remora-progress::-webkit-progress-value {
+    @apply bg-primary rounded-full;
+  }
+
+  .remora-progress::-moz-progress-bar {
+    @apply bg-primary rounded-full;
+  }
+}
+
 @layer base {
   body {
     @apply bg-bg text-fg antialiased;

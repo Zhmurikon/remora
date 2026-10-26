@@ -9,6 +9,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
+from app.models.moderation import AuditLog
 from app.models.retention import DailyActivity, Streak
 from app.models.user import User
 from app.repositories import retention as repo
@@ -32,12 +34,16 @@ class RetentionService:
         settings = await user_repo.get_or_create_settings(self.db, user.id)
         streak = await repo.streak_for_update(self.db, user.id)
         zone = _zone(user.timezone)
+        anomaly_date: date | None = None
+        threshold = get_settings().xp_anomaly_reviews_per_day
         for review in reviews:
             moment = _utc(review.reviewed_at)
             local_date = moment.astimezone(zone).date()
             activity = await repo.activity_for_update(self.db, user.id, local_date)
             activity.is_frozen = False
             activity.reviews_count += 1
+            if activity.reviews_count == threshold + 1:
+                anomaly_date = local_date
             if review.answer_correct is True or (
                 review.answer_correct is None and review.rating >= 3
             ):
@@ -50,6 +56,16 @@ class RetentionService:
                 and activity.reviews_count >= settings.daily_goal_cards
             ):
                 activity.goal_reached_at = moment
+        if anomaly_date is not None:
+            self.db.add(
+                AuditLog(
+                    actor_id=user.id,
+                    event="retention.xp_anomaly",
+                    target_type="user",
+                    target_id=user.id,
+                    details={"date": anomaly_date.isoformat(), "review_threshold": threshold},
+                )
+            )
         await self._rebuild_streak(user, streak)
         await self.db.flush()
 

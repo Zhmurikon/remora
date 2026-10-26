@@ -28,6 +28,370 @@
   position: absolute;
   color: rgb(var(--rm-home-primary) / 0.18);
 }
+.home-background-motif-1 {
+  top: 3%;
+  left: 2%;
+  width: 50px;
+  height: 50px;
+  transform: rotate(-17deg);
+}
+.home-background-motif-2 {
+  top: 7%;
+  right: 7%;
+  width: 30px;
+  height: 30px;
+  transform: rotate(12deg);
+}
+.home-background-motif-3 {
+  top: 14%;
+  left: 6%;
+  width: 24px;
+  height: 24px;
+  transform: rotate(9deg);
+}
+.home-background-motif-4 {
+  top: 20%;
+  right: 2%;
+  width: 55px;
+  height: 55px;
+  transform: rotate(-24deg);
+}
+.home-background-motif-5 {
+  top: 29%;
+  left: 3%;
+  width: 42px;
+  height: 42px;
+  transform: rotate(28deg);
+}
+.home-background-motif-6 {
+  top: 36%;
+  right: 5%;
+  width: 28px;
+  height: 28px;
+  transform: rotate(-8deg);
+}
+.home-background-motif-7 {
+  top: 44%;
+  left: 1%;
+  width: 44px;
+  height: 44px;
+  transform: rotate(15deg);
+}
+.home-background-motif-8 {
+  top: 51%;
+  right: 3%;
+  width: 26px;
+  height: 26px;
+  transform: rotate(-12deg);
+}
+.home-background-motif-9 {
+  top: 60%;
+  left: 5%;
+  width: 30px;
+  height: 30px;
+  transform: rotate(17deg);
+}
+.home-background-motif-10 {
+  top: 67%;
+  right: 2%;
+  width: 44px;
+  height: 44px;
+  transform: rotate(-19deg);
+}
+.home-background-motif-11 {
+  top: 75%;
+  left: 2%;
+  width: 52px;
+  height: 52px;
+  transform: rotate(16deg);
+}
+.home-background-motif-12 {
+  top: 82%;
+  right: 7%;
+  width: 23px;
+  height: 23px;
+  transform: rotate(11deg);
+}
+.home-background-motif-13 {
+  top: 89%;
+  right: 2%;
+  width: 43px;
+  height: 43px;
+  transform: rotate(-14deg);
+}
+.home-background-motif-14 {
+  top: 96%;
+  left: 4%;
+  width: 28px;
+  height: 28px;
+  transform: rotate(-13deg);
+}
+.home-background-motif-15 {
+  top: 2%;
+  right: 3%;
+  width: 20px;
+  height: 20px;
+  transform: rotate(23deg);
+}
+.home-background-motif-16 {
+  top: 5%;
+  left: 12%;
+  width: 32px;
+  height: 32px;
+  transform: rotate(-11deg);
+}
+.home-background-motif-17 {
+  top: 9%;
+  left: 3%;
+  width: 24px;
+  height: 24px;
+  transform: rotate(21deg);
+}
+.home-background-motif-18 {
+  top: 11%;
+  right: 1%;
+  width: 34px;
+  height: 34px;
+  transform: rotate(18deg);
+}
+.home-background-motif-19 {
+  top: 16%;
+  right: 5%;
+  width: 30px;
+  height: 30px;
+  transform: rotate(-8deg);
+}
+.home-background-motif-20 {
+  top: 18%;
+  left: 2%;
+  width: 21px;
+  height: 21px;
+  transform: rotate(-19deg);
+}
+.home-background-motif-21 {
+  top: 23%;
+  left: 5%;
+  width: 26px;
+  height: 26px;
+  transform: rotate(7deg);
+}
+.home-background-motif-22 {
+  top: 25%;
+  right: 4%;
+  width: 36px;
+  height: 36px;
+  transform: rotate(-21deg);
+}
+.home-background-motif-23 {
+  top: 27%;
+  right: 1%;
+  width: 20px;
+  height: 20px;
+  transform: rotate(16deg);
+}
+.home-background-motif-24 {
+  top: 32%;
+  right: 6%;
+  width: 31px;
+  height: 31px;
+  transform: rotate(14deg);
+}
+.home-background-motif-25 {
+  top: 34%;
+  left: 2%;
+  width: 23px;
+  height: 23px;
+  transform: rotate(-17deg);
+}
+.home-background-motif-26 {
+  top: 38%;
+  left: 6%;
+  width: 33px;
+  height: 33px;
+  transform: rotate(-9deg);
+}
+.home-background-motif-27 {
+  top: 41%;
+  right: 2%;
+  width: 34px;
+  height: 34px;
+  transform: rotate(25deg);
+}
+.home-background-motif-28 {
+  top: 46%;
+  right: 5%;
+  width: 22px;
+  height: 22px;
+  transform: rotate(-26deg);
+}
+.home-background-motif-29 {
+  top: 48%;
+  left: 4%;
+  width: 25px;
+  height: 25px;
+  transform: rotate(18deg);
+}
+.home-background-motif-30 {
+  top: 54%;
+  right: 1%;
+  width: 32px;
+  height: 32px;
+  transform: rotate(12deg);
+}
+.home-background-motif-31 {
+  top: 56%;
+  left: 2%;
+  width: 20px;
+  height: 20px;
+  transform: rotate(27deg);
+}
+.home-background-motif-32 {
+  top: 58%;
+  right: 5%;
+  width: 33px;
+  height: 33px;
+  transform: rotate(-16deg);
+}
+.home-background-motif-33 {
+  top: 63%;
+  right: 3%;
+  width: 24px;
+  height: 24px;
+  transform: rotate(-23deg);
+}
+.home-background-motif-34 {
+  top: 65%;
+  left: 1%;
+  width: 35px;
+  height: 35px;
+  transform: rotate(-18deg);
+}
+.home-background-motif-35 {
+  top: 70%;
+  left: 5%;
+  width: 21px;
+  height: 21px;
+  transform: rotate(14deg);
+}
+.home-background-motif-36 {
+  top: 72%;
+  right: 4%;
+  width: 30px;
+  height: 30px;
+  transform: rotate(22deg);
+}
+.home-background-motif-37 {
+  top: 78%;
+  right: 2%;
+  width: 34px;
+  height: 34px;
+  transform: rotate(-12deg);
+}
+.home-background-motif-38 {
+  top: 80%;
+  left: 6%;
+  width: 25px;
+  height: 25px;
+  transform: rotate(11deg);
+}
+.home-background-motif-39 {
+  top: 85%;
+  left: 2%;
+  width: 32px;
+  height: 32px;
+  transform: rotate(-24deg);
+}
+.home-background-motif-40 {
+  top: 91%;
+  left: 5%;
+  width: 20px;
+  height: 20px;
+  transform: rotate(19deg);
+}
+.home-background-motif-41 {
+  top: 94%;
+  right: 6%;
+  width: 33px;
+  height: 33px;
+  transform: rotate(23deg);
+}
+.home-background-motif-42 {
+  top: 98%;
+  right: 2%;
+  width: 24px;
+  height: 24px;
+  transform: rotate(-9deg);
+}
+.home-background-motif-43 {
+  top: 150px;
+  left: 17%;
+  width: 23px;
+  height: 23px;
+  transform: rotate(-12deg);
+}
+.home-background-motif-44 {
+  top: 245px;
+  right: 13%;
+  width: 31px;
+  height: 31px;
+  transform: rotate(16deg);
+}
+.home-background-motif-45 {
+  top: 390px;
+  left: 7%;
+  width: 21px;
+  height: 21px;
+  transform: rotate(24deg);
+}
+.home-background-motif-46 {
+  top: 525px;
+  right: 15%;
+  width: 30px;
+  height: 30px;
+  transform: rotate(-18deg);
+}
+.home-background-motif-47 {
+  top: 730px;
+  left: 4%;
+  width: 25px;
+  height: 25px;
+  transform: rotate(11deg);
+}
+.home-background-motif-48 {
+  top: 860px;
+  right: 3%;
+  width: 20px;
+  height: 20px;
+  transform: rotate(-16deg);
+}
+.home-background-motif-49 {
+  top: 1080px;
+  left: 9%;
+  width: 32px;
+  height: 32px;
+  transform: rotate(-23deg);
+}
+.home-background-motif-50 {
+  top: 1240px;
+  right: 5%;
+  width: 24px;
+  height: 24px;
+  transform: rotate(18deg);
+}
+.home-background-motif-51 {
+  top: 1480px;
+  left: 3%;
+  width: 31px;
+  height: 31px;
+  transform: rotate(14deg);
+}
+.home-background-motif-52 {
+  top: 1730px;
+  right: 2%;
+  width: 22px;
+  height: 22px;
+  transform: rotate(-21deg);
+}
 @media (max-width: 800px) {
   .home-background-motif {
     color: rgb(var(--rm-home-primary) / 0.12);

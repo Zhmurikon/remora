@@ -7,17 +7,12 @@ import {
   blogStructuredData,
   formatBlogDate,
   getPost,
-  publishedPosts,
   readingMinutes,
   relatedPosts,
 } from '../../../lib/blog';
 
 type Props = { params: Promise<{ slug: string }> };
-export const dynamicParams = false;
-
-export function generateStaticParams() {
-  return publishedPosts().map(({ slug }) => ({ slug }));
-}
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: Props) {
   const post = getPost((await params).slug);

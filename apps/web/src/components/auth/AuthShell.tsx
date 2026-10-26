@@ -58,12 +58,16 @@ export function AuthShell({
                   </div>
                 </div>
                 <div className="mt-5 flex h-20 items-end gap-2">
-                  {[38, 56, 42, 72, 62, 90, 78].map((height, index) => (
-                    <span
-                      key={index}
-                      className="bg-primary/80 flex-1 rounded-t-md"
-                      style={{ height: `${height}%`, opacity: 0.4 + index * 0.08 }}
-                    />
+                  {[
+                    'h-[38%] opacity-40',
+                    'h-[56%] opacity-50',
+                    'h-[42%] opacity-60',
+                    'h-[72%] opacity-70',
+                    'h-[62%] opacity-75',
+                    'h-[90%] opacity-80',
+                    'h-[78%] opacity-90',
+                  ].map((barClass, index) => (
+                    <span key={index} className={`bg-primary/80 flex-1 rounded-t-md ${barClass}`} />
                   ))}
                 </div>
               </div>

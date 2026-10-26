@@ -27,7 +27,6 @@ export function StudyShell({
   children,
   footer,
 }: StudyShellProps) {
-  const percent = total > 0 ? Math.round((done / total) * 100) : 0;
   return (
     <div className="flex min-h-[70vh] flex-col">
       <header className="flex flex-wrap items-center justify-between gap-4">
@@ -43,19 +42,15 @@ export function StudyShell({
         </div>
       </header>
 
-      <div
-        className="bg-surface-muted mt-5 h-2 overflow-hidden rounded-full"
-        role="progressbar"
+      <progress
+        className="remora-progress mt-5"
+        max={total}
+        value={done}
+        aria-label={`Пройдено ${done} из ${total}`}
         aria-valuemin={0}
         aria-valuemax={total}
         aria-valuenow={done}
-        aria-label={`Пройдено ${done} из ${total}`}
-      >
-        <div
-          className="bg-primary duration-normal h-full rounded-full transition-all"
-          style={{ width: `${percent}%` }}
-        />
-      </div>
+      />
       <p className="text-fg-subtle mt-2 text-sm">
         {done} из {total}
       </p>

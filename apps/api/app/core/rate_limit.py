@@ -26,11 +26,11 @@ redis.call('ZREMRANGEBYSCORE', key, '-inf', cutoff)
 local count = redis.call('ZCARD', key)
 if count >= limit then
   local oldest = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
-  return {0, oldest[2] or now}
+  return {0, oldest[2] or now, count}
 end
 redis.call('ZADD', key, now, member)
 redis.call('EXPIRE', key, ttl)
-return {1, now}
+return {1, now, count + 1}
 """
 
 
@@ -46,7 +46,7 @@ async def enforce_rate_limit(
     identity: str,
     limit: int,
     window_seconds: int,
-) -> None:
+) -> int:
     """Учитывает попытку и бросает RATE_LIMITED при заполненном окне."""
     settings = get_settings()
     client = redis.from_url(  # type: ignore[no-untyped-call]
@@ -67,10 +67,11 @@ async def enforce_rate_limit(
     except redis.RedisError as exc:
         # Сбой Redis не должен полностью блокировать вход пользователей.
         log.warning("rate_limit.unavailable", scope=scope, error=type(exc).__name__)
-        return
+        return 1
     finally:
         await client.aclose()
 
     if int(result[0]) == 0:
         retry_after = max(1, int(float(result[1]) + window_seconds - now))
         raise RateLimitError(details={"retry_after_seconds": retry_after, "scope": scope})
+    return int(result[2])

@@ -5,11 +5,14 @@ import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { authApi, getErrorMessage } from '../../lib/auth-api';
 import { FormError, PasswordField } from './AuthFields';
+import { TurnstileChallenge } from './TurnstileChallenge';
 
 export function RegisterForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const [captchaRequired, setCaptchaRequired] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -25,9 +28,15 @@ export function RegisterForm() {
           username: String(data.get('username')),
           password: String(data.get('password')),
           birth_date: String(data.get('birth_date')),
+          captcha_token: captchaToken,
         },
       });
       if (response.error) {
+        if ((response.error as { code?: string }).code === 'CAPTCHA_REQUIRED') {
+          setCaptchaRequired(true);
+          setError('Подтвердите, что регистрацию выполняет человек.');
+          return;
+        }
         setError(getErrorMessage(response.error));
         return;
       }
@@ -104,11 +113,13 @@ export function RegisterForm() {
             Я принимаю условия использования и даю согласие на обработку персональных данных.
           </span>
         </label>
+        {captchaRequired && <TurnstileChallenge onToken={setCaptchaToken} />}
         {error && <FormError>{error}</FormError>}
         <Button
           type="submit"
           size="lg"
           loading={loading}
+          disabled={captchaRequired && !captchaToken}
           fullWidth
           className="h-12 rounded-xl text-base"
         >

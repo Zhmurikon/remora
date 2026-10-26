@@ -121,11 +121,11 @@ export function SetStudyPanel({ setId, cardsCount }: { setId: string; cardsCount
   );
 }
 
-const stateLabels: Record<string, { label: string; className: string }> = {
-  new: { label: 'Не начато', className: 'bg-surface-muted' },
-  learning: { label: 'Изучается', className: 'bg-warning' },
-  relearning: { label: 'Повторно', className: 'bg-danger' },
-  review: { label: 'На повторении', className: 'bg-primary' },
+const stateLabels: Record<string, { label: string; className: string; fillClassName: string }> = {
+  new: { label: 'Не начато', className: 'bg-surface-muted', fillClassName: 'fill-surface-muted' },
+  learning: { label: 'Изучается', className: 'bg-warning', fillClassName: 'fill-warning' },
+  relearning: { label: 'Повторно', className: 'bg-danger', fillClassName: 'fill-danger' },
+  review: { label: 'На повторении', className: 'bg-primary', fillClassName: 'fill-primary' },
 };
 
 function StateBar({
@@ -139,20 +139,28 @@ function StateBar({
   const order = ['review', 'learning', 'relearning', 'new'];
   return (
     <div>
-      <div className="bg-surface-muted flex h-2 overflow-hidden rounded-full">
-        {order.map((key) => {
+      <svg
+        className="bg-surface-muted h-2 w-full rounded-full"
+        viewBox="0 0 100 8"
+        aria-hidden="true"
+      >
+        {order.map((key, index) => {
           const value = distribution[key] ?? 0;
           if (value === 0) return null;
+          const previous = order
+            .slice(0, index)
+            .reduce((sum, previousKey) => sum + (distribution[previousKey] ?? 0), 0);
           return (
-            <div
+            <rect
               key={key}
-              className={stateLabels[key]?.className}
-              style={{ width: `${(value / total) * 100}%` }}
-              title={`${stateLabels[key]?.label}: ${value}`}
+              className={stateLabels[key]?.fillClassName}
+              x={(previous / total) * 100}
+              width={(value / total) * 100}
+              height="8"
             />
           );
         })}
-      </div>
+      </svg>
       <ul className="text-fg-muted mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm">
         {order.map((key) => (
           <li key={key} className="flex items-center gap-2">
@@ -175,16 +183,26 @@ function Forecast({ days }: { days: { date: string; count: number }[] }) {
   return (
     <section className="mt-6">
       <h3 className="text-sm font-semibold">Нагрузка на 14 дней</h3>
-      <div className="mt-3 flex h-20 items-end gap-1">
-        {days.map((day) => (
-          <div
-            key={day.date}
-            className="bg-primary-subtle flex-1 rounded-sm"
-            style={{ height: `${Math.max(4, (day.count / peak) * 100)}%` }}
-            title={`${new Date(day.date).toLocaleDateString('ru-RU')}: ${day.count}`}
-          />
-        ))}
-      </div>
+      <svg
+        className="mt-3 h-20 w-full"
+        viewBox={`0 0 ${days.length * 2 - 1} 100`}
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        {days.map((day, index) => {
+          const height = Math.max(4, (day.count / peak) * 100);
+          return (
+            <rect
+              key={day.date}
+              className="fill-primary-subtle"
+              x={index * 2}
+              y={100 - height}
+              width="1"
+              height={height}
+            />
+          );
+        })}
+      </svg>
     </section>
   );
 }

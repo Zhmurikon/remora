@@ -2,10 +2,10 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.deps import current_user
+from app.api.v1.deps import current_user, mass_operation_limit
 from app.core.queue import enqueue_account_export
 from app.db.session import get_db
 from app.models.exports import AccountExportStatus
@@ -36,8 +36,9 @@ async def moderation_warnings(
     summary="Запросить полный экспорт аккаунта",
 )
 async def create_account_export(
-    user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+    request: Request, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
 ) -> AccountExportPublic:
+    await mass_operation_limit(request, user, "account-export")
     service = AccountExportService(db)
     job = await service.create_job(user)
     await db.commit()

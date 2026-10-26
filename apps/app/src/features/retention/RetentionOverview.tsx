@@ -182,21 +182,16 @@ function GoalRing({ summary }: { summary: RetentionSummary }) {
 }
 
 function Progress({ value, max, label }: { value: number; max: number; label: string }) {
-  const percent = Math.min(100, Math.round((value / Math.max(1, max)) * 100));
   return (
-    <div
-      className="bg-surface-muted mt-2 h-2 overflow-hidden rounded-full"
-      role="progressbar"
+    <progress
+      className="remora-progress mt-2"
       aria-label={label}
+      max={max}
+      value={value}
       aria-valuemin={0}
       aria-valuemax={max}
       aria-valuenow={value}
-    >
-      <div
-        className="bg-primary h-full rounded-full transition-all"
-        style={{ width: `${percent}%` }}
-      />
-    </div>
+    />
   );
 }
 

@@ -68,7 +68,7 @@ export function HomeBackground() {
       {motifs.map((motif, index) => (
         <svg
           key={index}
-          className={`home-background-motif home-background-${motif.shape}`}
+          className={`home-background-motif home-background-${motif.shape} home-background-motif-${index + 1}`}
           viewBox="0 0 48 48"
           fill="none"
           stroke="currentColor"
@@ -76,13 +76,6 @@ export function HomeBackground() {
           strokeLinecap="round"
           strokeLinejoin="round"
           focusable="false"
-          style={{
-            top: motif.top,
-            [motif.side]: motif.offset,
-            width: motif.size,
-            height: motif.size,
-            transform: `rotate(${motif.turn})`,
-          }}
         >
           <path d={paths[motif.shape]} />
         </svg>

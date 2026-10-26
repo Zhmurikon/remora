@@ -2,10 +2,10 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.deps import current_user
+from app.api.v1.deps import current_user, mass_operation_limit
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.media import ImageUploadRequest, ImageUploadTicket, MediaAssetPublic
@@ -21,19 +21,23 @@ router = APIRouter(prefix="/media", tags=["media"])
     summary="Получить ссылку для загрузки изображения",
 )
 async def create_upload_url(
+    request: Request,
     body: ImageUploadRequest,
     user: User = Depends(current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ImageUploadTicket:
+    await mass_operation_limit(request, user, "media-upload")
     return await MediaService(db).create_image_upload(user, body)
 
 
 @router.post("/{asset_id}/complete", response_model=MediaAssetPublic, summary="Завершить загрузку")
 async def complete_upload(
     asset_id: UUID,
+    request: Request,
     user: User = Depends(current_user),
     db: AsyncSession = Depends(get_db),
 ) -> MediaAssetPublic:
+    await mass_operation_limit(request, user, "media-complete")
     return await MediaService(db).complete_image_upload(user, asset_id)
 
 

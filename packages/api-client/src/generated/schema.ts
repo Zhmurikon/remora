@@ -3537,6 +3537,8 @@ export interface components {
         RegisterRequest: {
             /** Birth Date */
             birth_date?: string | null;
+            /** Captcha Token */
+            captcha_token?: string | null;
             /**
              * Email
              * Format: email

@@ -70,6 +70,12 @@ class RateLimitError(AppError):
     message = "Слишком много запросов"
 
 
+class CaptchaRequiredError(AppError):
+    code = "CAPTCHA_REQUIRED"
+    status_code = status.HTTP_403_FORBIDDEN
+    message = "Требуется проверка CAPTCHA"
+
+
 class LimitExceededError(AppError):
     """Превышен лимит тарифа. См. docs/04-limits.md."""
 

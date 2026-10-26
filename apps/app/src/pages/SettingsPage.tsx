@@ -107,15 +107,15 @@ function AccountExport() {
             </span>
             <span className="text-fg-muted">{job.progress}%</span>
           </div>
-          <div
-            className="bg-border mt-3 h-2 overflow-hidden rounded-full"
-            role="progressbar"
+          <progress
+            className="remora-progress mt-3"
+            aria-label="Прогресс экспорта аккаунта"
+            max={100}
+            value={job.progress}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={job.progress}
-          >
-            <div className="bg-primary h-full rounded-full" style={{ width: `${job.progress}%` }} />
-          </div>
+          />
         </div>
       )}
 

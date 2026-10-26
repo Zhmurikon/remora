@@ -98,3 +98,16 @@ async def public_read_limit(request: Request) -> None:
         limit=settings.rate_limit_public_read,
         window_seconds=settings.rate_limit_public_read_window_seconds,
     )
+
+
+async def mass_operation_limit(request: Request, user: User, scope: str) -> None:
+    """Общий лимит для ресурсоёмких загрузок, импортов и экспортов."""
+    settings = get_settings()
+    host = request.client.host if request.client else "unknown"
+    await enforce_rate_limit(
+        scope=f"mass:{scope}",
+        ip=host,
+        identity=str(user.id),
+        limit=settings.rate_limit_mass_operation,
+        window_seconds=settings.rate_limit_mass_operation_window_seconds,
+    )

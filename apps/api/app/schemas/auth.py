@@ -14,6 +14,7 @@ class RegisterRequest(BaseModel):
     password: str = Field(min_length=8, max_length=128)
     username: str = Field(min_length=3, max_length=32, pattern=r"^[a-zA-Z0-9_-]+$")
     birth_date: date | None = None
+    captcha_token: str | None = Field(default=None, max_length=4096)
 
 
 class LoginRequest(BaseModel):

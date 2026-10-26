@@ -126,8 +126,8 @@ export function PythonPracticePage() {
             <p className="text-primary text-sm font-medium">Практика</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Python</h1>
             <p className="text-fg-muted mt-3 max-w-2xl">
-              Пройдите путь от переменных и условий до NumPy, pandas, статистики SciPy и
-              графиков matplotlib. Задачи расположены от простого к сложному.
+              Пройдите путь от переменных и условий до NumPy, pandas, статистики SciPy и графиков
+              matplotlib. Задачи расположены от простого к сложному.
             </p>
           </div>
           <Badge tone="primary" className="mt-1 px-3 py-1">
@@ -164,19 +164,15 @@ export function PythonPracticePage() {
               </span>
             </div>
           </div>
-          <div
-            className="bg-surface-muted mt-4 h-2 overflow-hidden rounded-full"
-            role="progressbar"
+          <progress
+            className="remora-progress mt-4"
             aria-label="Прогресс по задачам Python"
+            max={pythonTasks.length}
+            value={summary.solved}
             aria-valuemin={0}
             aria-valuemax={pythonTasks.length}
             aria-valuenow={summary.solved}
-          >
-            <div
-              className="bg-primary h-full rounded-full"
-              style={{ width: `${solvedPercent}%` }}
-            />
-          </div>
+          />
         </Card>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2" aria-label="Фильтры задач">

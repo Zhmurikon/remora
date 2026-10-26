@@ -11,7 +11,7 @@ import {
   relatedPosts,
 } from '../../lib/blog';
 import BlogPage from './page';
-import BlogPostPage, { generateMetadata, generateStaticParams } from './[slug]/page';
+import BlogPostPage, { generateMetadata } from './[slug]/page';
 import sitemap from '../sitemap';
 
 vi.mock('next/navigation', () => ({
@@ -75,7 +75,7 @@ it.each(['missing', 'private-draft', 'future-post', '../../content/blog'])(
     const props = { params: Promise.resolve({ slug }) };
     await expect(BlogPostPage(props)).rejects.toThrow('NOT_FOUND');
     await expect(generateMetadata(props)).rejects.toThrow('NOT_FOUND');
-    expect(generateStaticParams()).not.toContainEqual({ slug });
+    expect(publishedPosts().some((post) => post.slug === slug)).toBe(false);
   },
 );
 

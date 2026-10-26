@@ -1,7 +1,10 @@
 import type { Metadata, Viewport } from 'next';
+import { headers } from 'next/headers';
 import './globals.css';
 import { DEFAULT_OG_IMAGE } from '../lib/seo';
 import { PublicSessionProvider } from '../components/auth/PublicSession';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: {
@@ -37,10 +40,12 @@ export const viewport: Viewport = {
   themeColor: '#0D8285',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Чтение nonce отключает статическую оптимизацию: nonce обязан быть новым для каждого ответа.
+  const nonce = (await headers()).get('x-nonce');
   return (
     <html lang="ru">
-      <body>
+      <body data-csp-nonce={nonce ?? undefined}>
         <PublicSessionProvider>{children}</PublicSessionProvider>
       </body>
     </html>

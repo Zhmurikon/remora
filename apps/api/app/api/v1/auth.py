@@ -24,6 +24,7 @@ from fastapi import APIRouter, Depends, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.deps import current_user
+from app.core.captcha import verify_registration_captcha
 from app.core.config import get_settings
 from app.core.errors import UnauthorizedError
 from app.core.rate_limit import enforce_rate_limit
@@ -106,13 +107,16 @@ async def register(
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
     settings = get_settings()
-    await enforce_rate_limit(
+    ip = request.client.host if request.client else "unknown"
+    attempt = await enforce_rate_limit(
         scope="register",
-        ip=request.client.host if request.client else "unknown",
+        ip=ip,
         identity=body.email,
         limit=settings.rate_limit_register,
         window_seconds=settings.rate_limit_window_seconds,
     )
+    if attempt > settings.captcha_anomaly_threshold:
+        await verify_registration_captcha(body.captcha_token, ip)
     service = AuthService(db)
     user, _ = await service.register(
         email=body.email,

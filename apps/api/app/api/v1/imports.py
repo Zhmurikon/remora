@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.deps import current_user
+from app.api.v1.deps import current_user, mass_operation_limit
 from app.core.errors import ConflictError
 from app.core.queue import enqueue_import
 from app.db.session import get_db
@@ -42,6 +42,7 @@ async def import_anki(
     user: User = Depends(current_user),
     db: AsyncSession = Depends(get_db),
 ) -> AnkiImportResult:
+    await mass_operation_limit(request, user, "import")
     payload = await _read_upload(request)
     return await ImportService(db).import_anki(user, set_id, filename, payload)
 
@@ -59,6 +60,7 @@ async def create_anki_job(
     user: User = Depends(current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ImportJobPublic:
+    await mass_operation_limit(request, user, "import-job")
     job = await ImportService(db).create_job(user, set_id, filename, await _read_upload(request))
     await db.commit()
     try:
