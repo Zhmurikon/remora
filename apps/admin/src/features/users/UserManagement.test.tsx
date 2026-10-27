@@ -33,11 +33,11 @@ test('меняет роль только после повторного под�
   expect(screen.getByText('Изменить роль на «Преподаватель»?')).toBeInTheDocument();
 
   await user.type(screen.getByLabelText('Причина изменения'), 'Назначение преподавателем');
-  await user.type(screen.getByLabelText('Код подтверждения'), '123456');
+  await user.type(screen.getByLabelText('Пароль администратора или код 2FA'), 'Strong-password-1');
   await user.click(screen.getByRole('button', { name: 'Изменить роль' }));
 
   expect(post).toHaveBeenCalledWith('/api/v1/admin/security/confirm', {
-    body: { code: '123456' },
+    body: { credential: 'Strong-password-1' },
   });
   expect(patch).toHaveBeenCalledWith(
     '/api/v1/admin/users/{user_id}/role',
@@ -69,7 +69,7 @@ test('выдаёт квоту из каталога через защищённ�
   await user.type(screen.getByLabelText('Значение квоты'), '25');
   await user.click(screen.getByRole('button', { name: 'Выдать право' }));
   await user.type(screen.getByLabelText('Причина изменения'), 'Индивидуальная квота курсов');
-  await user.type(screen.getByLabelText('Код подтверждения'), '123456');
+  await user.type(screen.getByLabelText('Пароль администратора или код 2FA'), 'Strong-password-1');
   await user.click(screen.getByRole('button', { name: 'Выдать право' }));
 
   expect(api.POST).toHaveBeenCalledWith(

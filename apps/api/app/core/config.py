@@ -70,6 +70,7 @@ class Settings(BaseSettings):
     rate_limit_public_read_window_seconds: int = 60
     rate_limit_admin_2fa: int = 5
     rate_limit_admin_2fa_window_seconds: int = 300
+    admin_2fa_required: bool = False
     admin_allowed_ips: list[str] = []
 
     # CORS: адреса обоих фронтендов

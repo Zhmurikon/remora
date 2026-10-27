@@ -43,7 +43,7 @@ export function SecurityPage() {
         Безопасность
       </h1>
       <p className="text-fg-muted mt-2 max-w-2xl">
-        Второй фактор и журнал входов в административную панель.
+        Настройки дополнительной защиты и журнал административных действий.
       </p>
 
       {status.isError ? (
@@ -54,11 +54,17 @@ export function SecurityPage() {
             <div>
               <h2 className="text-xl font-semibold">Двухфакторный вход</h2>
               <p className="text-fg-muted mt-1 text-sm">
-                Для доступа к панели требуется пароль и одноразовый код.
+                {status.data?.required
+                  ? 'Для доступа к панели требуется пароль и одноразовый код.'
+                  : 'Сейчас вход выполняется по паролю администратора.'}
               </p>
             </div>
             <span className="bg-success-subtle text-success rounded-full px-3 py-1 text-sm font-medium">
-              {status.isPending ? 'Проверяем…' : status.data.enabled ? 'Включён' : 'Не настроен'}
+              {status.isPending
+                ? 'Проверяем…'
+                : status.data.required
+                  ? 'Обязателен'
+                  : 'Не обязателен'}
             </span>
           </div>
           {status.data && (

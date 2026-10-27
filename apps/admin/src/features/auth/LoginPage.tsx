@@ -33,6 +33,10 @@ export function LoginPage() {
         setError(getErrorMessage(result.error, 'Не удалось войти. Проверьте данные.'));
         return;
       }
+      if ('access_token' in result.data) {
+        authenticate(result.data.user, result.data.access_token);
+        return;
+      }
       setStep(result.data);
       if (result.data.step === 'setup_required') {
         const setupResult = await api.POST('/api/v1/admin/auth/2fa/setup', {
@@ -155,7 +159,7 @@ function Credentials(props: {
   return (
     <>
       <h1 className="text-2xl font-semibold tracking-tight">Вход для администратора</h1>
-      <p className="text-fg-muted mt-2 text-sm">После пароля потребуется одноразовый код.</p>
+      <p className="text-fg-muted mt-2 text-sm">Используйте отдельную учётную запись администратора.</p>
       <form className="mt-7 space-y-5" onSubmit={props.onSubmit}>
         <Input
           label="Электронная почта"
@@ -175,7 +179,7 @@ function Credentials(props: {
         />
         <ErrorMessage message={props.error} />
         <Button type="submit" fullWidth loading={props.loading} className="min-h-11">
-          Продолжить
+          Войти
         </Button>
       </form>
     </>

@@ -1,14 +1,48 @@
 """Отдельный административный вход, 2FA и аудит."""
 
 from httpx import AsyncClient
+from pytest import MonkeyPatch
 
+from app.core.config import get_settings
 from app.core.totp import totp_code
 from app.models.user import UserRole
 from tests.test_admin import promote
 from tests.test_courses import auth
 
 
-async def test_admin_requires_and_completes_two_factor_login(client: AsyncClient) -> None:
+async def test_admin_login_uses_password_when_two_factor_is_disabled(
+    client: AsyncClient,
+) -> None:
+    suffix = "security-password"
+    ordinary_headers = await auth(client, suffix)
+    await promote(f"course{suffix}", UserRole.admin)
+
+    assert (await client.get("/api/v1/admin/overview", headers=ordinary_headers)).status_code == 403
+    credentials = {
+        "email": f"course-{suffix}@example.com",
+        "password": "Str0ngP@ss!",
+    }
+    login = await client.post("/api/v1/admin/auth/login", json=credentials)
+    assert login.status_code == 200, login.text
+    assert login.json()["access_token"]
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    assert (await client.get("/api/v1/admin/overview", headers=headers)).status_code == 200
+    status = await client.get("/api/v1/admin/security/status", headers=headers)
+    assert status.json()["required"] is False
+    confirmation = await client.post(
+        "/api/v1/admin/security/confirm",
+        headers=headers,
+        json={"credential": credentials["password"]},
+    )
+    assert confirmation.status_code == 200, confirmation.text
+    assert confirmation.json()["confirmation_token"]
+
+
+async def test_admin_requires_and_completes_two_factor_login(
+    client: AsyncClient, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setattr(get_settings(), "admin_2fa_required", True)
     suffix = "security-owner"
     ordinary_headers = await auth(client, suffix)
     await promote(f"course{suffix}", UserRole.admin)
@@ -49,7 +83,7 @@ async def test_admin_requires_and_completes_two_factor_login(client: AsyncClient
     confirmation = await client.post(
         "/api/v1/admin/security/confirm",
         headers=headers,
-        json={"code": totp_code(secret)},
+        json={"credential": totp_code(secret)},
     )
     assert confirmation.status_code == 200, confirmation.text
     assert confirmation.json()["confirmation_token"]
@@ -74,7 +108,10 @@ async def test_admin_requires_and_completes_two_factor_login(client: AsyncClient
     assert verified.json()["recovery_codes"] == []
 
 
-async def test_admin_recovery_code_is_one_time(client: AsyncClient) -> None:
+async def test_admin_recovery_code_is_one_time(
+    client: AsyncClient, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setattr(get_settings(), "admin_2fa_required", True)
     suffix = "security-recovery"
     await auth(client, suffix)
     await promote(f"course{suffix}", UserRole.admin)

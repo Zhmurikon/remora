@@ -69,7 +69,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Начать вход администратора */
+        /** Войти в административную панель */
         post: operations["admin_login_api_v1_admin_auth_login_post"];
         delete?: never;
         options?: never;
@@ -2953,8 +2953,8 @@ export interface components {
         };
         /** AdminConfirmationRequest */
         AdminConfirmationRequest: {
-            /** Code */
-            code: string;
+            /** Credential */
+            credential: string;
         };
         /** AdminConfirmationResponse */
         AdminConfirmationResponse: {
@@ -3020,6 +3020,8 @@ export interface components {
             last_used_at: string | null;
             /** Recovery Codes Remaining */
             recovery_codes_remaining: number;
+            /** Required */
+            required: boolean;
         };
         /** AdminSessionResponse */
         AdminSessionResponse: {
@@ -7106,7 +7108,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AdminLoginStep"];
+                    "application/json": components["schemas"]["AdminLoginStep"] | components["schemas"]["AdminSessionResponse"];
                 };
             };
             /** @description Validation Error */

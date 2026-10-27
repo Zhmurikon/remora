@@ -41,6 +41,7 @@ class AdminSessionResponse(BaseModel):
 
 
 class AdminSecurityStatus(BaseModel):
+    required: bool
     enabled: bool
     enabled_at: datetime | None
     last_used_at: datetime | None
@@ -48,7 +49,7 @@ class AdminSecurityStatus(BaseModel):
 
 
 class AdminConfirmationRequest(BaseModel):
-    code: str = Field(min_length=6, max_length=32)
+    credential: str = Field(min_length=6, max_length=128)
 
 
 class AdminConfirmationResponse(BaseModel):

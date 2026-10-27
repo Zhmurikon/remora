@@ -72,13 +72,17 @@ async def _limit_code(request: Request, identity: str) -> None:
     )
 
 
-@router.post("/auth/login", response_model=AdminLoginStep, summary="Начать вход администратора")
+@router.post(
+    "/auth/login",
+    response_model=AdminLoginStep | AdminSessionResponse,
+    summary="Войти в административную панель",
+)
 async def admin_login(
     request: Request,
     response: Response,
     body: AdminLoginRequest,
     db: AsyncSession = Depends(get_db),
-) -> AdminLoginStep:
+) -> AdminLoginStep | AdminSessionResponse:
     settings = get_settings()
     await enforce_rate_limit(
         scope="admin-login",
@@ -94,6 +98,8 @@ async def admin_login(
         ip=ip,
         user_agent=user_agent,
     )
+    if isinstance(result, AdminSession):
+        return _session_response(response, result)
     response.headers["Cache-Control"] = "no-store"
     return result
 
@@ -185,7 +191,7 @@ async def admin_security_confirm(
     await _limit_code(request, str(user.id))
     ip, user_agent = _request_context(request)
     result = await AdminSecurityService(db).confirm(
-        user, body.code, ip=ip, user_agent=user_agent
+        user, body.credential, ip=ip, user_agent=user_agent
     )
     response.headers["Cache-Control"] = "no-store"
     return result

@@ -19,7 +19,7 @@ export function AdminActionConfirmation({
   onCancel,
 }: AdminActionConfirmationProps) {
   const [reason, setReason] = useState('');
-  const [code, setCode] = useState('');
+  const [credential, setCredential] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -29,7 +29,7 @@ export function AdminActionConfirmation({
     setLoading(true);
     try {
       const { data, error: apiError } = await api.POST('/api/v1/admin/security/confirm', {
-        body: { code },
+        body: { credential },
       });
       if (!data) {
         setError(getErrorMessage(apiError, 'Не удалось подтвердить действие.'));
@@ -67,12 +67,13 @@ export function AdminActionConfirmation({
           onChange={(event) => setReason(event.target.value)}
         />
         <Input
-          label="Код подтверждения"
-          autoComplete="one-time-code"
+          label="Пароль администратора или код 2FA"
+          type="password"
+          autoComplete="current-password"
           required
           minLength={6}
-          value={code}
-          onChange={(event) => setCode(event.target.value)}
+          value={credential}
+          onChange={(event) => setCredential(event.target.value)}
         />
         {error && (
           <p className="text-danger text-sm" role="alert">

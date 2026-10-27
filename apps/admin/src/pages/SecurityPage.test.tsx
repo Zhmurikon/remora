@@ -9,6 +9,7 @@ test('показывает состояние 2FA и журнал админис
     if (path === '/api/v1/admin/security/status') {
       return {
         data: {
+          required: false,
           enabled: true,
           enabled_at: '2026-10-27T07:00:00Z',
           last_used_at: '2026-10-27T07:05:00Z',
@@ -48,7 +49,7 @@ test('показывает состояние 2FA и журнал админис
     </QueryClientProvider>,
   );
 
-  expect(await screen.findAllByText('Включён')).toHaveLength(2);
+  expect(await screen.findByText('Не обязателен')).toBeInTheDocument();
   expect(screen.getByText('7')).toBeInTheDocument();
   expect(await screen.findByText('Проверка второго фактора')).toBeInTheDocument();
   expect(screen.getByText('owner')).toBeInTheDocument();

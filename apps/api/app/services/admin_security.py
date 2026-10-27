@@ -60,7 +60,7 @@ class AdminSecurityService:
         password: str,
         ip: str | None,
         user_agent: str | None,
-    ) -> AdminLoginStep:
+    ) -> AdminLoginStep | AdminSession:
         user = await user_repo.get_user_by_email(self.db, email)
         valid = (
             user is not None
@@ -81,6 +81,19 @@ class AdminSecurityService:
             await self.db.commit()
             raise UnauthorizedError("Неверные данные администратора")
         assert user is not None
+
+        if not get_settings().admin_2fa_required:
+            session = await self._create_session(user, ip=ip, user_agent=user_agent)
+            await repo.add_audit(
+                self.db,
+                actor_user_id=user.id,
+                action="admin.login.password",
+                outcome="success",
+                ip=ip,
+                user_agent=user_agent,
+                details={"next_step": "session"},
+            )
+            return session
 
         totp = await repo.get_totp(self.db, user.id)
         if totp is not None and totp.enabled_at is not None:
@@ -201,6 +214,7 @@ class AdminSecurityService:
     async def status(self, user: User) -> AdminSecurityStatus:
         record = await repo.get_totp(self.db, user.id)
         return AdminSecurityStatus(
+            required=get_settings().admin_2fa_required,
             enabled=record is not None and record.enabled_at is not None,
             enabled_at=record.enabled_at if record else None,
             last_used_at=record.last_used_at if record else None,
@@ -210,15 +224,25 @@ class AdminSecurityService:
     async def confirm(
         self,
         user: User,
-        code: str,
+        credential: str,
         *,
         ip: str | None,
         user_agent: str | None,
     ) -> AdminConfirmationResponse:
-        record = await repo.get_totp(self.db, user.id, for_update=True)
-        if record is None or record.enabled_at is None or not await self._verify_code(record, code):
-            await self._failed_code(user.id, "admin.confirmation", ip, user_agent)
         settings = get_settings()
+        if settings.admin_2fa_required:
+            record = await repo.get_totp(self.db, user.id, for_update=True)
+            valid = (
+                record is not None
+                and record.enabled_at is not None
+                and await self._verify_code(record, credential)
+            )
+        else:
+            valid = user.password_hash is not None and verify_password(
+                credential, user.password_hash
+            )
+        if not valid:
+            await self._failed_code(user.id, "admin.confirmation", ip, user_agent)
         expires_at = datetime.now(UTC) + timedelta(minutes=settings.admin_confirmation_ttl_minutes)
         token = create_jwt(str(user.id), "admin_confirmation")
         await repo.add_audit(
