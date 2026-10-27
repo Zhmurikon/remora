@@ -43,6 +43,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Карточка пользователя */
+        get: operations["get_user_api_v1_admin_users__user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/agent/blog/media": {
         parameters: {
             query?: never;
@@ -2718,6 +2735,112 @@ export interface components {
             /** Users Total */
             users_total: number;
         };
+        /** AdminUserAccess */
+        AdminUserAccess: {
+            /** Cancel At Period End */
+            cancel_at_period_end: boolean;
+            /** Current Period End */
+            current_period_end: string | null;
+            /** Features */
+            features: {
+                [key: string]: boolean;
+            };
+            /** Limits */
+            limits: {
+                [key: string]: number | null;
+            };
+            /** Overrides */
+            overrides: components["schemas"]["AdminUserEntitlementOverride"][];
+            /** Plan Code */
+            plan_code: string;
+            /** Plan Name */
+            plan_name: string;
+            /** Remaining */
+            remaining: {
+                [key: string]: number | null;
+            };
+            /** Usage */
+            usage: {
+                [key: string]: number;
+            };
+        };
+        /** AdminUserActivity */
+        AdminUserActivity: {
+            /** Active Days 30D */
+            active_days_30d: number;
+            /** Last Active At */
+            last_active_at: string | null;
+            /** Reviews 30D */
+            reviews_30d: number;
+            /** Reviews 7D */
+            reviews_7d: number;
+            /** Reviews Total */
+            reviews_total: number;
+        };
+        /** AdminUserDetail */
+        AdminUserDetail: {
+            access: components["schemas"]["AdminUserAccess"];
+            activity: components["schemas"]["AdminUserActivity"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Deleted At */
+            deleted_at: string | null;
+            /** Display Name */
+            display_name: string | null;
+            /** Email */
+            email: string | null;
+            /** Email Verified */
+            email_verified: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Locale */
+            locale: string;
+            materials: components["schemas"]["AdminUserMaterials"];
+            /** Oauth Providers */
+            oauth_providers: string[];
+            /** Payments */
+            payments: components["schemas"]["AdminUserPayment"][];
+            /** Promo Redemptions */
+            promo_redemptions: components["schemas"]["AdminUserPromoRedemption"][];
+            referral: components["schemas"]["AdminUserReferral"];
+            /** Role */
+            role: string;
+            /** Status */
+            status: string;
+            /** Timezone */
+            timezone: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Username */
+            username: string;
+        };
+        /** AdminUserEntitlementOverride */
+        AdminUserEntitlementOverride: {
+            /** Key */
+            key: string;
+            /** Reason */
+            reason: string;
+            /** Source */
+            source: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /** Valid Until */
+            valid_until: string | null;
+            /** Value */
+            value: boolean | number | string;
+        };
         /** AdminUserItem */
         AdminUserItem: {
             /** Courses Count */
@@ -2761,6 +2884,98 @@ export interface components {
             offset: number;
             /** Total */
             total: number;
+        };
+        /** AdminUserMaterialItem */
+        AdminUserMaterialItem: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Items Count */
+            items_count: number | null;
+            /** Kind */
+            kind: string;
+            /** Status */
+            status: string;
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** AdminUserMaterials */
+        AdminUserMaterials: {
+            /** Cards Total */
+            cards_total: number;
+            /** Courses Published */
+            courses_published: number;
+            /** Courses Total */
+            courses_total: number;
+            /** Recent */
+            recent: components["schemas"]["AdminUserMaterialItem"][];
+            /** Sets Archived */
+            sets_archived: number;
+            /** Sets Total */
+            sets_total: number;
+        };
+        /** AdminUserPayment */
+        AdminUserPayment: {
+            /** Amount */
+            amount: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /** Discount Amount */
+            discount_amount: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Interval */
+            interval: string;
+            /** Paid At */
+            paid_at: string | null;
+            /** Plan Code */
+            plan_code: string;
+            /** Plan Name */
+            plan_name: string;
+            /** Promo Code */
+            promo_code: string | null;
+            /** Status */
+            status: string;
+        };
+        /** AdminUserPromoRedemption */
+        AdminUserPromoRedemption: {
+            /** Code */
+            code: string;
+            /** Kind */
+            kind: string;
+            /**
+             * Redeemed At
+             * Format: date-time
+             */
+            redeemed_at: string;
+            /** Value */
+            value: number;
+        };
+        /** AdminUserReferral */
+        AdminUserReferral: {
+            /** Code */
+            code: string | null;
+            /** Invited By Username */
+            invited_by_username: string | null;
+            /** Invited Total */
+            invited_total: number;
+            /** Rewarded Total */
+            rewarded_total: number;
         };
         /** AgentArticleDetail */
         AgentArticleDetail: {
@@ -6438,6 +6653,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminUserList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_api_v1_admin_users__user_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserDetail"];
                 };
             };
             /** @description Validation Error */

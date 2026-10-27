@@ -2,6 +2,7 @@ import type { components } from '@remora/api-client';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Input } from '@remora/ui/base';
 import { useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { api, getErrorMessage } from '../lib/api';
 
 type UserItem = components['schemas']['AdminUserItem'];
@@ -143,7 +144,12 @@ function UserTable({ items }: { items: UserItem[] }) {
             {items.map((user) => (
               <tr key={user.id} className="border-border border-t align-top">
                 <td className="px-4 py-4">
-                  <p className="font-medium">{user.display_name || user.username}</p>
+                  <Link
+                    to={`/users/${user.id}`}
+                    className="text-primary inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline"
+                  >
+                    {user.display_name || user.username}
+                  </Link>
                   <p className="text-fg-muted mt-0.5">{user.email || 'Почта не указана'}</p>
                   <p className="text-fg-subtle mt-1 font-mono text-xs">{user.username}</p>
                 </td>

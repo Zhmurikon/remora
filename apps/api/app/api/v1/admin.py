@@ -1,14 +1,15 @@
 """Минимальная административная панель только для чтения."""
 
 from typing import Annotated
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.deps import admin_user
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.admin import AdminOverview, AdminUserList
+from app.schemas.admin import AdminOverview, AdminUserDetail, AdminUserList
 from app.services.admin import AdminService
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -36,3 +37,14 @@ async def list_users(
         offset=offset,
         limit=limit,
     )
+
+
+@router.get("/users/{user_id}", response_model=AdminUserDetail, summary="Карточка пользователя")
+async def get_user(
+    user_id: UUID,
+    response: Response,
+    _: User = Depends(admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminUserDetail:
+    response.headers["Cache-Control"] = "no-store"
+    return await AdminService(db).user(user_id)

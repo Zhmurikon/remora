@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { expect, test, vi } from 'vitest';
 import { api } from '../lib/api';
 import { UsersPage } from './UsersPage';
@@ -11,7 +12,9 @@ function renderPage() {
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <UsersPage />
+      <MemoryRouter>
+        <UsersPage />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
