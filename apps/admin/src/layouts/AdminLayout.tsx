@@ -8,6 +8,7 @@ const navigation = [
   { to: '/users', label: 'Пользователи', end: false },
   { to: '/moderation', label: 'Модерация', end: false },
   { to: '/blog', label: 'Блог', end: false },
+  { to: '/payments', label: 'Платежи', end: false },
   { to: '/security', label: 'Безопасность', end: false },
 ];
 

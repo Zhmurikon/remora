@@ -278,6 +278,44 @@ class BillingService:
         referral.rewarded_at = datetime.now(UTC)
 
     async def webhook(self, notification: YooKassaNotification) -> None:
+        payment, remote, object_id, refund_amount = await self._verified_notification(notification)
+        fingerprint = hashlib.sha256(f"{notification.event}:{object_id}".encode()).hexdigest()
+        event_id = uuid4()
+        inserted = await self.db.scalar(
+            insert(PaymentEvent)
+            .values(
+                id=event_id,
+                fingerprint=fingerprint,
+                event=notification.event,
+                provider_payment_id=payment.provider_payment_id,
+                payment_id=payment.id,
+                payload=notification.model_dump(mode="json"),
+            )
+            .on_conflict_do_nothing(index_elements=[PaymentEvent.fingerprint])
+            .returning(PaymentEvent.id)
+        )
+        if inserted is None:
+            return
+        await self._apply_notification(payment, notification.event, remote, refund_amount)
+        await self.db.execute(
+            update(PaymentEvent)
+            .where(PaymentEvent.id == event_id)
+            .values(processed_at=datetime.now(UTC))
+        )
+
+    async def retry_event(self, stored: PaymentEvent) -> Payment:
+        notification = YooKassaNotification.model_validate(stored.payload)
+        payment, remote, object_id, refund_amount = await self._verified_notification(notification)
+        fingerprint = hashlib.sha256(f"{notification.event}:{object_id}".encode()).hexdigest()
+        if payment.id != stored.payment_id or fingerprint != stored.fingerprint:
+            raise ConflictError("Сохранённое событие не соответствует платежу")
+        await self._apply_notification(payment, notification.event, remote, refund_amount)
+        stored.processed_at = datetime.now(UTC)
+        return payment
+
+    async def _verified_notification(
+        self, notification: YooKassaNotification
+    ) -> tuple[Payment, dict[str, Any], str, Decimal | None]:
         event = notification.event
         object_id = str(notification.object.get("id", ""))
         if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", object_id):
@@ -304,6 +342,7 @@ class BillingService:
         expected_amount = f"{Decimal(payment.amount) / 100:.2f}"
         if amount.get("currency") != payment.currency:
             raise ValidationError("Параметры платежа не совпадают")
+        refund_amount: Decimal | None = None
         if is_refund:
             try:
                 refund_amount = Decimal(str(amount.get("value", "")))
@@ -318,29 +357,25 @@ class BillingService:
                 or amount.get("value") != expected_amount
             ):
                 raise ValidationError("Параметры платежа не совпадают")
-        fingerprint = hashlib.sha256(f"{event}:{object_id}".encode()).hexdigest()
-        event_id = uuid4()
-        inserted = await self.db.scalar(
-            insert(PaymentEvent)
-            .values(
-                id=event_id,
-                fingerprint=fingerprint,
-                event=event,
-                provider_payment_id=provider_id,
-                payment_id=payment.id,
-                payload=notification.model_dump(mode="json"),
-            )
-            .on_conflict_do_nothing(index_elements=[PaymentEvent.fingerprint])
-            .returning(PaymentEvent.id)
-        )
-        if inserted is None:
-            return
-        if is_refund:
+        return payment, remote, object_id, refund_amount
+
+    async def _apply_notification(
+        self,
+        payment: Payment,
+        event: str,
+        remote: dict[str, Any],
+        refund_amount: Decimal | None,
+    ) -> None:
+        if event == "refund.succeeded":
+            assert refund_amount is not None
             payment.provider_payload = {**payment.provider_payload, "refund": remote}
-            if refund_amount == Decimal(expected_amount):
+            if refund_amount == Decimal(payment.amount) / 100:
                 payment.status = PaymentStatus.refunded
                 await self._expire_single_refunded_subscription(payment, remote)
-        elif event == "payment.succeeded" and payment.status is not PaymentStatus.succeeded:
+        elif event == "payment.succeeded" and payment.status not in {
+            PaymentStatus.succeeded,
+            PaymentStatus.refunded,
+        }:
             paid_at = datetime.fromisoformat(str(remote["captured_at"]).replace("Z", "+00:00"))
             payment.status = PaymentStatus.succeeded
             payment.paid_at = paid_at
@@ -349,11 +384,6 @@ class BillingService:
         elif event == "payment.canceled":
             payment.status = PaymentStatus.canceled
             payment.provider_payload = remote
-        await self.db.execute(
-            update(PaymentEvent)
-            .where(PaymentEvent.id == event_id)
-            .values(processed_at=datetime.now(UTC))
-        )
 
     async def _expire_single_refunded_subscription(
         self, payment: Payment, remote_refund: dict[str, Any]

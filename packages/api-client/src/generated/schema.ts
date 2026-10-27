@@ -77,6 +77,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/billing/events/{event_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Повторить обработку события */
+        post: operations["retry_admin_payment_event_api_v1_admin_billing_events__event_id__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/billing/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Платежи */
+        get: operations["list_admin_payments_api_v1_admin_billing_payments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/billing/payments/{payment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Карточка платежа */
+        get: operations["get_admin_payment_api_v1_admin_billing_payments__payment_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/billing/payments/{payment_id}/refund": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Запросить полный возврат */
+        post: operations["refund_admin_payment_api_v1_admin_billing_payments__payment_id__refund_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/billing/subscriptions/{subscription_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Отменить продление подписки */
+        post: operations["cancel_admin_subscription_api_v1_admin_billing_subscriptions__subscription_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/blog/media": {
         parameters: {
             query?: never;
@@ -3099,6 +3184,11 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** AdminBillingAction */
+        AdminBillingAction: {
+            /** Reason */
+            reason: string;
+        };
         /** AdminBlogHistoryItem */
         AdminBlogHistoryItem: {
             /** Action */
@@ -3510,6 +3600,156 @@ export interface components {
             /** Users Total */
             users_total: number;
         };
+        /** AdminPaymentAuditItem */
+        AdminPaymentAuditItem: {
+            /** Action */
+            action: string;
+            /** Actor Username */
+            actor_username: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Reason */
+            reason: string | null;
+        };
+        /** AdminPaymentDetail */
+        AdminPaymentDetail: {
+            /** Amount */
+            amount: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /** Discount Amount */
+            discount_amount: number;
+            /** Email */
+            email: string | null;
+            /** Events */
+            events: components["schemas"]["AdminPaymentEventItem"][];
+            /** History */
+            history: components["schemas"]["AdminPaymentAuditItem"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Interval */
+            interval: string;
+            /** Paid At */
+            paid_at: string | null;
+            /** Plan Code */
+            plan_code: string;
+            /** Plan Name */
+            plan_name: string;
+            /** Provider Payment Id */
+            provider_payment_id: string | null;
+            /** Receipt Url */
+            receipt_url: string | null;
+            refund: components["schemas"]["AdminPaymentRefund"] | null;
+            /** Status */
+            status: string;
+            /** Subscriptions */
+            subscriptions: components["schemas"]["AdminSubscriptionItem"][];
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Username */
+            username: string;
+        };
+        /** AdminPaymentEventItem */
+        AdminPaymentEventItem: {
+            /** Event */
+            event: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Processed At */
+            processed_at: string | null;
+            /** Provider Payment Id */
+            provider_payment_id: string;
+            /**
+             * Received At
+             * Format: date-time
+             */
+            received_at: string;
+        };
+        /** AdminPaymentItem */
+        AdminPaymentItem: {
+            /** Amount */
+            amount: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /** Discount Amount */
+            discount_amount: number;
+            /** Email */
+            email: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Interval */
+            interval: string;
+            /** Paid At */
+            paid_at: string | null;
+            /** Plan Code */
+            plan_code: string;
+            /** Plan Name */
+            plan_name: string;
+            /** Provider Payment Id */
+            provider_payment_id: string | null;
+            refund: components["schemas"]["AdminPaymentRefund"] | null;
+            /** Status */
+            status: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Username */
+            username: string;
+        };
+        /** AdminPaymentList */
+        AdminPaymentList: {
+            /** Items */
+            items: components["schemas"]["AdminPaymentItem"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** AdminPaymentRefund */
+        AdminPaymentRefund: {
+            /** Amount */
+            amount: number | null;
+            /** Created At */
+            created_at: string | null;
+            /** Provider Refund Id */
+            provider_refund_id: string | null;
+            /** Status */
+            status: string;
+        };
         /** AdminSecurityStatus */
         AdminSecurityStatus: {
             /** Enabled */
@@ -3547,6 +3787,36 @@ export interface components {
             provisioning_uri: string;
             /** Secret */
             secret: string;
+        };
+        /** AdminSubscriptionItem */
+        AdminSubscriptionItem: {
+            /** Cancel At Period End */
+            cancel_at_period_end: boolean;
+            /**
+             * Current Period End
+             * Format: date-time
+             */
+            current_period_end: string;
+            /**
+             * Current Period Start
+             * Format: date-time
+             */
+            current_period_start: string;
+            /** Ended At */
+            ended_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Interval */
+            interval: string;
+            /** Plan Code */
+            plan_code: string;
+            /** Plan Name */
+            plan_name: string;
+            /** Status */
+            status: string;
         };
         /** AdminUserAccess */
         AdminUserAccess: {
@@ -7609,6 +7879,185 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminLoginStep"] | components["schemas"]["AdminSessionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_admin_payment_event_api_v1_admin_billing_events__event_id__retry_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Admin-Confirmation"?: string | null;
+            };
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminBillingAction"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPaymentDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_admin_payments_api_v1_admin_billing_payments_get: {
+        parameters: {
+            query?: {
+                query?: string | null;
+                status?: ("pending" | "succeeded" | "canceled" | "refunded") | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPaymentList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_admin_payment_api_v1_admin_billing_payments__payment_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                payment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPaymentDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    refund_admin_payment_api_v1_admin_billing_payments__payment_id__refund_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Admin-Confirmation"?: string | null;
+            };
+            path: {
+                payment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminBillingAction"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPaymentDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_admin_subscription_api_v1_admin_billing_subscriptions__subscription_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Admin-Confirmation"?: string | null;
+            };
+            path: {
+                subscription_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminBillingAction"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSubscriptionItem"];
                 };
             };
             /** @description Validation Error */

@@ -55,3 +55,16 @@ class YooKassaClient:
         if response.status_code >= 400:
             raise YooKassaUnavailableError("Не удалось проверить возврат")
         return dict(response.json())
+
+    async def create_refund(self, payload: dict[str, Any], idempotency_key: str) -> dict[str, Any]:
+        settings = get_settings()
+        async with httpx.AsyncClient(timeout=20) as client:
+            response = await client.post(
+                f"{settings.yookassa_api_url.rstrip('/')}/refunds",
+                auth=self._credentials(),
+                headers={"Idempotence-Key": idempotency_key},
+                json=payload,
+            )
+        if response.status_code >= 400:
+            raise YooKassaUnavailableError("ЮKassa не приняла запрос на возврат")
+        return dict(response.json())

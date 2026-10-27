@@ -19,6 +19,12 @@ from app.schemas.admin import (
     AdminUserRoleUpdate,
     AdminUserStatusUpdate,
 )
+from app.schemas.admin_billing import (
+    AdminBillingAction,
+    AdminPaymentDetail,
+    AdminPaymentList,
+    AdminSubscriptionItem,
+)
 from app.schemas.admin_blog import (
     AdminBlogPostDetail,
     AdminBlogPostList,
@@ -34,6 +40,7 @@ from app.schemas.admin_moderation import (
 from app.schemas.agent import AgentMediaUpload, AgentMediaUploadResult
 from app.schemas.blog import BlogPostUpdate, BlogPostWrite
 from app.services.admin import AdminService
+from app.services.admin_billing import AdminBillingService
 from app.services.admin_blog import AdminBlogService
 from app.services.admin_moderation import AdminModerationService
 from app.services.agent import AgentService
@@ -307,6 +314,114 @@ async def act_on_moderation_course(
         actor=actor,
         course_id=course_id,
         action=body.action,
+        reason=body.reason,
+        idempotency_key=idempotency_key,
+        ip=ip,
+        user_agent=user_agent,
+    )
+
+
+@router.get("/billing/payments", response_model=AdminPaymentList, summary="Платежи")
+async def list_admin_payments(
+    query: Annotated[str | None, Query(min_length=1, max_length=160)] = None,
+    status: Literal["pending", "succeeded", "canceled", "refunded"] | None = Query(default=None),
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    _: User = Depends(admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminPaymentList:
+    return await AdminBillingService(db).payments(
+        query=query.strip() if query else None,
+        status=status,
+        offset=offset,
+        limit=limit,
+    )
+
+
+@router.get(
+    "/billing/payments/{payment_id}", response_model=AdminPaymentDetail, summary="Карточка платежа"
+)
+async def get_admin_payment(
+    payment_id: UUID,
+    response: Response,
+    _: User = Depends(admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminPaymentDetail:
+    response.headers["Cache-Control"] = "no-store"
+    return await AdminBillingService(db).payment(payment_id)
+
+
+@router.post(
+    "/billing/payments/{payment_id}/refund",
+    response_model=AdminPaymentDetail,
+    summary="Запросить полный возврат",
+)
+async def refund_admin_payment(
+    payment_id: UUID,
+    body: AdminBillingAction,
+    request: Request,
+    response: Response,
+    idempotency_key: IdempotencyKey,
+    actor: User = Depends(confirmed_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminPaymentDetail:
+    ip, user_agent = _request_context(request)
+    response.headers["Cache-Control"] = "no-store"
+    return await AdminBillingService(db).refund(
+        actor=actor,
+        payment_id=payment_id,
+        reason=body.reason,
+        idempotency_key=idempotency_key,
+        ip=ip,
+        user_agent=user_agent,
+    )
+
+
+@router.post(
+    "/billing/subscriptions/{subscription_id}/cancel",
+    response_model=AdminSubscriptionItem,
+    summary="Отменить продление подписки",
+)
+async def cancel_admin_subscription(
+    subscription_id: UUID,
+    body: AdminBillingAction,
+    request: Request,
+    response: Response,
+    idempotency_key: IdempotencyKey,
+    actor: User = Depends(confirmed_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminSubscriptionItem:
+    ip, user_agent = _request_context(request)
+    response.headers["Cache-Control"] = "no-store"
+    return await AdminBillingService(db).cancel_subscription(
+        actor=actor,
+        subscription_id=subscription_id,
+        reason=body.reason,
+        idempotency_key=idempotency_key,
+        ip=ip,
+        user_agent=user_agent,
+    )
+
+
+@router.post(
+    "/billing/events/{event_id}/retry",
+    response_model=AdminPaymentDetail,
+    summary="Повторить обработку события",
+)
+async def retry_admin_payment_event(
+    event_id: UUID,
+    body: AdminBillingAction,
+    request: Request,
+    response: Response,
+    idempotency_key: IdempotencyKey,
+    actor: User = Depends(confirmed_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminPaymentDetail:
+    ip, user_agent = _request_context(request)
+    response.headers["Cache-Control"] = "no-store"
+    return await AdminBillingService(db).retry_event(
+        actor=actor,
+        event_id=event_id,
         reason=body.reason,
         idempotency_key=idempotency_key,
         ip=ip,
