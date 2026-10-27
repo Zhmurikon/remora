@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import case, func, or_, select
+from sqlalchemy import and_, case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
@@ -314,16 +314,29 @@ async def user_detail(db: AsyncSession, user_id: UUID, *, now: datetime) -> User
             )
         ).all()
     )
+    iso_year, iso_week, _ = now.date().isocalendar()
+    counter_periods = {
+        ("agent.writes_per_week", f"{iso_year}-W{iso_week:02d}"): "agent.writes_per_week",
+        ("tts_chars", now.strftime("%Y-%m")): "tts.chars_per_month",
+        ("account_exports", now.date().isoformat()): "export.account_per_day",
+    }
     counters = (
         await db.scalars(
-            select(UsageCounter)
-            .where(UsageCounter.user_id == user_id)
-            .order_by(UsageCounter.metric, UsageCounter.updated_at.desc())
+            select(UsageCounter).where(
+                UsageCounter.user_id == user_id,
+                or_(
+                    *(
+                        and_(UsageCounter.metric == metric, UsageCounter.period_key == period)
+                        for metric, period in counter_periods
+                    )
+                ),
+            )
         )
     ).all()
-    counter_usage: dict[str, int] = {}
-    for counter in counters:
-        counter_usage.setdefault(counter.metric, int(counter.value))
+    counter_usage = {
+        counter_periods[(counter.metric, counter.period_key)]: int(counter.value)
+        for counter in counters
+    }
 
     payment_rows = (
         await db.execute(

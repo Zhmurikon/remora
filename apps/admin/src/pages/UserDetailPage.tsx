@@ -151,6 +151,10 @@ function MaterialsSection({ data }: { data: UserDetail }) {
           {integer.format(materials.sets_total)} наборов · {integer.format(materials.cards_total)}{' '}
           карточек · {integer.format(materials.courses_total)} курсов
         </p>
+        <p className="text-fg-subtle mt-1 text-xs">
+          В архиве наборов: {integer.format(materials.sets_archived)} · опубликовано курсов:{' '}
+          {integer.format(materials.courses_published)}
+        </p>
       </div>
       {materials.recent.length === 0 ? (
         <p className="border-border text-fg-muted border-t px-5 py-6 text-sm">
