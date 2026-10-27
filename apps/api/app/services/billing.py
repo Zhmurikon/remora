@@ -250,32 +250,32 @@ class BillingService:
         if referral is None:
             return
         plus = await self._plan("plus")
-        self.db.add(
-            Subscription(
-                user_id=invited_user_id,
-                plan_id=plus.id,
-                status=SubscriptionStatus.active,
-                interval=BillingInterval.month,
-                current_period_start=starts_at,
-                current_period_end=starts_at + timedelta(days=referral.reward_days),
-            )
+        invited_subscription = Subscription(
+            user_id=invited_user_id,
+            plan_id=plus.id,
+            status=SubscriptionStatus.active,
+            interval=BillingInterval.month,
+            current_period_start=starts_at,
+            current_period_end=starts_at + timedelta(days=referral.reward_days),
         )
         inviter_current = await self._current_subscription(referral.inviter_id)
         inviter_start = (
             inviter_current[0].current_period_end if inviter_current else datetime.now(UTC)
         )
-        self.db.add(
-            Subscription(
-                user_id=referral.inviter_id,
-                plan_id=plus.id,
-                status=SubscriptionStatus.active,
-                interval=BillingInterval.month,
-                current_period_start=inviter_start,
-                current_period_end=inviter_start + timedelta(days=referral.reward_days),
-            )
+        inviter_subscription = Subscription(
+            user_id=referral.inviter_id,
+            plan_id=plus.id,
+            status=SubscriptionStatus.active,
+            interval=BillingInterval.month,
+            current_period_start=inviter_start,
+            current_period_end=inviter_start + timedelta(days=referral.reward_days),
         )
+        self.db.add_all([invited_subscription, inviter_subscription])
+        await self.db.flush()
         referral.status = ReferralStatus.rewarded
         referral.rewarded_at = datetime.now(UTC)
+        referral.invited_subscription_id = invited_subscription.id
+        referral.inviter_subscription_id = inviter_subscription.id
 
     async def webhook(self, notification: YooKassaNotification) -> None:
         payment, remote, object_id, refund_amount = await self._verified_notification(notification)

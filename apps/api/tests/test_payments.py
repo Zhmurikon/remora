@@ -258,5 +258,7 @@ async def test_promo_and_referral_rewards_are_applied_after_payment(client: Asyn
 
         referral = await db.scalar(select(Referral).where(Referral.invited_user_id == invited.id))
         assert referral is not None and referral.status.value == "rewarded"
+        assert referral.invited_subscription_id is not None
+        assert referral.inviter_subscription_id is not None
         assert await db.scalar(select(func.count(PromoRedemption.id))) == 1
         assert await db.scalar(select(func.count(Subscription.id))) == 3

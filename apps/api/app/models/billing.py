@@ -143,6 +143,13 @@ class Referral(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     reward_days: Mapped[int] = mapped_column(Integer, default=30, server_default=text("30"))
     rewarded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    invited_subscription_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("subscriptions.id", ondelete="SET NULL"), index=True
+    )
+    inviter_subscription_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("subscriptions.id", ondelete="SET NULL"), index=True
+    )
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Payment(UUIDPrimaryKeyMixin, TimestampMixin, Base):

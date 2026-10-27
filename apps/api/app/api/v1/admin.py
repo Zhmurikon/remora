@@ -38,12 +38,21 @@ from app.schemas.admin_moderation import (
     AdminModerationReportList,
     AdminModerationResolution,
 )
+from app.schemas.admin_promotions import (
+    AdminPromoCodeCreate,
+    AdminPromoCodeItem,
+    AdminPromoCodeList,
+    AdminPromotionAction,
+    AdminReferralItem,
+    AdminReferralList,
+)
 from app.schemas.agent import AgentMediaUpload, AgentMediaUploadResult
 from app.schemas.blog import BlogPostUpdate, BlogPostWrite
 from app.services.admin import AdminService
 from app.services.admin_billing import AdminBillingService
 from app.services.admin_blog import AdminBlogService
 from app.services.admin_moderation import AdminModerationService
+from app.services.admin_promotions import AdminPromotionsService
 from app.services.agent import AgentService
 from app.services.agent_media import AgentMediaService
 
@@ -433,6 +442,128 @@ async def retry_admin_payment_event(
     return await AdminBillingService(db).retry_event(
         actor=actor,
         event_id=event_id,
+        reason=body.reason,
+        idempotency_key=idempotency_key,
+        ip=ip,
+        user_agent=user_agent,
+    )
+
+
+@router.get(
+    "/promotions/promo-codes",
+    response_model=AdminPromoCodeList,
+    summary="Промокоды",
+)
+async def list_admin_promo_codes(
+    query: Annotated[str | None, Query(min_length=1, max_length=160)] = None,
+    state: Literal["scheduled", "active", "expired", "disabled", "exhausted"] | None = Query(
+        default=None
+    ),
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    _: User = Depends(admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminPromoCodeList:
+    return await AdminPromotionsService(db).promo_codes(
+        query=query.strip() if query else None,
+        state=state,
+        offset=offset,
+        limit=limit,
+    )
+
+
+@router.post(
+    "/promotions/promo-codes",
+    response_model=AdminPromoCodeItem,
+    summary="Создать промокод",
+)
+async def create_admin_promo_code(
+    body: AdminPromoCodeCreate,
+    request: Request,
+    response: Response,
+    idempotency_key: IdempotencyKey,
+    actor: User = Depends(confirmed_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminPromoCodeItem:
+    ip, user_agent = _request_context(request)
+    response.headers["Cache-Control"] = "no-store"
+    return await AdminPromotionsService(db).create_promo(
+        actor=actor,
+        body=body,
+        idempotency_key=idempotency_key,
+        ip=ip,
+        user_agent=user_agent,
+    )
+
+
+@router.post(
+    "/promotions/promo-codes/{promo_id}/disable",
+    response_model=AdminPromoCodeItem,
+    summary="Отключить промокод",
+)
+async def disable_admin_promo_code(
+    promo_id: UUID,
+    body: AdminPromotionAction,
+    request: Request,
+    response: Response,
+    idempotency_key: IdempotencyKey,
+    actor: User = Depends(confirmed_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminPromoCodeItem:
+    ip, user_agent = _request_context(request)
+    response.headers["Cache-Control"] = "no-store"
+    return await AdminPromotionsService(db).disable_promo(
+        actor=actor,
+        promo_id=promo_id,
+        reason=body.reason,
+        idempotency_key=idempotency_key,
+        ip=ip,
+        user_agent=user_agent,
+    )
+
+
+@router.get(
+    "/promotions/referrals",
+    response_model=AdminReferralList,
+    summary="Реферальные начисления",
+)
+async def list_admin_referrals(
+    query: Annotated[str | None, Query(min_length=1, max_length=160)] = None,
+    status: Literal["registered", "rewarded", "rejected"] | None = Query(default=None),
+    suspicious: bool | None = Query(default=None),
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    _: User = Depends(admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminReferralList:
+    return await AdminPromotionsService(db).referrals(
+        query=query.strip() if query else None,
+        status=status,
+        suspicious=suspicious,
+        offset=offset,
+        limit=limit,
+    )
+
+
+@router.post(
+    "/promotions/referrals/{referral_id}/revoke",
+    response_model=AdminReferralItem,
+    summary="Компенсировать реферальное начисление",
+)
+async def revoke_admin_referral_reward(
+    referral_id: UUID,
+    body: AdminPromotionAction,
+    request: Request,
+    response: Response,
+    idempotency_key: IdempotencyKey,
+    actor: User = Depends(confirmed_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminReferralItem:
+    ip, user_agent = _request_context(request)
+    response.headers["Cache-Control"] = "no-store"
+    return await AdminPromotionsService(db).revoke_referral_reward(
+        actor=actor,
+        referral_id=referral_id,
         reason=body.reason,
         idempotency_key=idempotency_key,
         ip=ip,

@@ -51,6 +51,8 @@ async def test_admin_endpoints_require_admin_role(client: AsyncClient) -> None:
         "/api/v1/admin/plans",
         "/api/v1/admin/users",
         "/api/v1/admin/users/11111111-1111-4111-8111-111111111111",
+        "/api/v1/admin/promotions/promo-codes",
+        "/api/v1/admin/promotions/referrals",
     ):
         assert (await client.get(path)).status_code == 401
         for headers in (regular, moderator):

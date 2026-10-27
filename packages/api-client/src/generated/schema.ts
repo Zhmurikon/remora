@@ -351,6 +351,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/promotions/promo-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Промокоды */
+        get: operations["list_admin_promo_codes_api_v1_admin_promotions_promo_codes_get"];
+        put?: never;
+        /** Создать промокод */
+        post: operations["create_admin_promo_code_api_v1_admin_promotions_promo_codes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/promotions/promo-codes/{promo_id}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Отключить промокод */
+        post: operations["disable_admin_promo_code_api_v1_admin_promotions_promo_codes__promo_id__disable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/promotions/referrals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Реферальные начисления */
+        get: operations["list_admin_referrals_api_v1_admin_promotions_referrals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/promotions/referrals/{referral_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Компенсировать реферальное начисление */
+        post: operations["revoke_admin_referral_reward_api_v1_admin_promotions_referrals__referral_id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/security/audit": {
         parameters: {
             query?: never;
@@ -3831,6 +3900,140 @@ export interface components {
             price_year: number | null;
             /** Version */
             version: number;
+        };
+        /** AdminPromoCodeCreate */
+        AdminPromoCodeCreate: {
+            /** Code */
+            code: string;
+            /** Ends At */
+            ends_at?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "percent" | "free_days";
+            /** Max Redemptions */
+            max_redemptions?: number | null;
+            /** Reason */
+            reason: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /** Value */
+            value: number;
+        };
+        /** AdminPromoCodeItem */
+        AdminPromoCodeItem: {
+            /** Active */
+            active: boolean;
+            /** Code */
+            code: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Ends At */
+            ends_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Max Redemptions */
+            max_redemptions: number | null;
+            /** Redemptions */
+            redemptions: number;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "scheduled" | "active" | "expired" | "disabled" | "exhausted";
+            /** Value */
+            value: number;
+        };
+        /** AdminPromoCodeList */
+        AdminPromoCodeList: {
+            /** Items */
+            items: components["schemas"]["AdminPromoCodeItem"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** AdminPromotionAction */
+        AdminPromotionAction: {
+            /** Reason */
+            reason: string;
+        };
+        /** AdminReferralItem */
+        AdminReferralItem: {
+            /** Code */
+            code: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Invited Email */
+            invited_email: string | null;
+            /** Invited Subscription Id */
+            invited_subscription_id: string | null;
+            /**
+             * Invited User Id
+             * Format: uuid
+             */
+            invited_user_id: string;
+            /** Invited Username */
+            invited_username: string;
+            /** Inviter Email */
+            inviter_email: string | null;
+            /**
+             * Inviter Id
+             * Format: uuid
+             */
+            inviter_id: string;
+            /** Inviter Subscription Id */
+            inviter_subscription_id: string | null;
+            /** Inviter Username */
+            inviter_username: string;
+            /** Revoked At */
+            revoked_at: string | null;
+            /** Reward Days */
+            reward_days: number;
+            /** Rewarded At */
+            rewarded_at: string | null;
+            /** Risk Signals */
+            risk_signals: string[];
+            /** Status */
+            status: string;
+        };
+        /** AdminReferralList */
+        AdminReferralList: {
+            /** Items */
+            items: components["schemas"]["AdminReferralItem"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
         };
         /** AdminSecurityStatus */
         AdminSecurityStatus: {
@@ -8616,6 +8819,187 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminPlanCatalog"];
+                };
+            };
+        };
+    };
+    list_admin_promo_codes_api_v1_admin_promotions_promo_codes_get: {
+        parameters: {
+            query?: {
+                query?: string | null;
+                state?: ("scheduled" | "active" | "expired" | "disabled" | "exhausted") | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPromoCodeList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_admin_promo_code_api_v1_admin_promotions_promo_codes_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Admin-Confirmation"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminPromoCodeCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPromoCodeItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    disable_admin_promo_code_api_v1_admin_promotions_promo_codes__promo_id__disable_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Admin-Confirmation"?: string | null;
+            };
+            path: {
+                promo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminPromotionAction"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPromoCodeItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_admin_referrals_api_v1_admin_promotions_referrals_get: {
+        parameters: {
+            query?: {
+                query?: string | null;
+                status?: ("registered" | "rewarded" | "rejected") | null;
+                suspicious?: boolean | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminReferralList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_admin_referral_reward_api_v1_admin_promotions_referrals__referral_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Admin-Confirmation"?: string | null;
+            };
+            path: {
+                referral_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminPromotionAction"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminReferralItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

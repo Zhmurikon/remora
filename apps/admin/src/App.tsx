@@ -7,6 +7,7 @@ import { ModerationPage } from './pages/ModerationPage';
 import { OverviewPage } from './pages/OverviewPage';
 import { PaymentsPage } from './pages/PaymentsPage';
 import { PlansPage } from './pages/PlansPage';
+import { PromotionsPage } from './pages/PromotionsPage';
 import { SecurityPage } from './pages/SecurityPage';
 import { UserDetailPage } from './pages/UserDetailPage';
 import { UsersPage } from './pages/UsersPage';
@@ -37,6 +38,7 @@ export function App() {
         <Route path="blog" element={<BlogPage />} />
         <Route path="payments" element={<PaymentsPage />} />
         <Route path="plans" element={<PlansPage />} />
+        <Route path="promotions" element={<PromotionsPage />} />
         <Route path="security" element={<SecurityPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
