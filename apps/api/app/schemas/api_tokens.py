@@ -4,7 +4,14 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-AgentScope = Literal["materials:read", "materials:write", "courses:publish"]
+AgentScope = Literal[
+    "materials:read",
+    "materials:write",
+    "courses:publish",
+    "blog:read",
+    "blog:write",
+    "blog:publish",
+]
 
 
 class ApiTokenCreate(BaseModel):
@@ -12,7 +19,7 @@ class ApiTokenCreate(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     expires_in_days: int = Field(default=90, ge=1, le=365)
     scopes: list[AgentScope] = Field(
-        default=["materials:read", "materials:write"], min_length=1, max_length=3
+        default=["materials:read", "materials:write"], min_length=1, max_length=6
     )
 
 

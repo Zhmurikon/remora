@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.errors import ForbiddenError, NotFoundError, UnauthorizedError
 from app.core.security import hash_token
 from app.models.api_tokens import ApiToken
-from app.models.user import User, UserStatus
+from app.models.user import User, UserRole, UserStatus
 from app.repositories import api_tokens as repo
 from app.repositories import user as user_repo
 from app.schemas.api_tokens import ApiTokenCreate, ApiTokenCreated, ApiTokenPublic
@@ -18,6 +18,8 @@ class ApiTokenService:
         self.db = db
 
     async def create(self, user: User, body: ApiTokenCreate) -> ApiTokenCreated:
+        if any(scope.startswith("blog:") for scope in body.scopes) and user.role != UserRole.admin:
+            raise ForbiddenError("Права редакционного блога доступны только администратору")
         raw = "rmr_" + secrets.token_urlsafe(48)
         token = ApiToken(
             user_id=user.id,
@@ -53,6 +55,8 @@ class ApiTokenService:
             raise UnauthorizedError("Аккаунт недоступен")
         if scope not in token.scopes:
             raise ForbiddenError("У токена нет нужного права", details={"required_scope": scope})
+        if scope.startswith("blog:") and user.role != UserRole.admin:
+            raise ForbiddenError("Права редакционного блога доступны только администратору")
         token.last_used_at = now
         await self.db.flush()
         return user

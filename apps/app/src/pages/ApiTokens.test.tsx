@@ -3,6 +3,7 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, expect, it, vi } from 'vitest';
+import { useAuthStore } from '../features/auth/auth-store';
 import { api } from '../lib/api';
 import { ApiTokens } from './ApiTokens';
 
@@ -10,6 +11,28 @@ vi.mock('../lib/api', () => ({ api: { GET: vi.fn(), POST: vi.fn(), DELETE: vi.fn
 afterEach(() => {
   cleanup();
   vi.resetAllMocks();
+  useAuthStore.setState({ status: 'guest', user: null });
+});
+
+it('показывает раздельные права блога только администратору', async () => {
+  useAuthStore.setState({ status: 'authenticated', user: { role: 'admin' } as never });
+  vi.mocked(api.GET).mockResolvedValue({ data: [] } as never);
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <ApiTokens />
+    </QueryClientProvider>,
+  );
+
+  expect(
+    ((await screen.findByLabelText('Читать редакционные черновики')) as HTMLInputElement).checked,
+  ).toBe(false);
+  expect(
+    (screen.getByLabelText('Создавать и изменять статьи блога') as HTMLInputElement).checked,
+  ).toBe(false);
+  expect(
+    (screen.getByLabelText('Публиковать статьи и снимать их с публикации') as HTMLInputElement)
+      .checked,
+  ).toBe(false);
 });
 
 it('показывает секрет однократно, без кеширования и права публикации по умолчанию', async () => {

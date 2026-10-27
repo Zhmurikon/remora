@@ -1,7 +1,9 @@
 export type BlogSection = {
   id: string;
   title: string;
-  paragraphs: string[];
+  paragraphs?: string[];
+  richText?: string;
+  media?: Record<string, { url: string; width?: number | null; height?: number | null }>;
   steps?: string[];
   example?: { question: string; answer: string };
 };
@@ -16,9 +18,14 @@ export type BlogPost = {
   updatedAt: string;
   tone: 'mint' | 'lavender' | 'peach';
   diagram: [string, string, string];
+  cover?: { src: string; alt: string };
   sections: BlogSection[];
   sources?: { title: string; url: string }[];
   related: string[];
+};
+
+export type BlogPostSummary = Omit<BlogPost, 'sections' | 'sources'> & {
+  readingMinutes: number;
 };
 
 // Только редакционный контент: пользовательские курсы не становятся публикациями блога.
@@ -34,6 +41,10 @@ export const blogPosts: BlogPost[] = [
     updatedAt: '2026-09-18',
     tone: 'mint',
     diagram: ['Конспект', 'Вопросы', 'Проверка'],
+    cover: {
+      src: '/blog/kak-vyuchit-konspekt.png',
+      alt: 'Студент превращает записи из конспекта в вопросы для самопроверки',
+    },
     related: ['kak-sozdat-kartochki', 'kak-vyuchit-bilety'],
     sections: [
       {

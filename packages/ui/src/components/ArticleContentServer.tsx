@@ -8,11 +8,17 @@ import 'katex/dist/katex.min.css';
 
 const FENCE_MATH = new Set(['math', 'latex', 'tex', 'katex']);
 
+export type { ArticleMedia } from './ArticleContent';
+
 // Этот рендерер намеренно не использует клиентский ArticleContent: исходный Markdown,
 // markdown-it и KaTeX остаются на сервере публичной страницы даже для большого курса.
 function createRenderer(media: Record<string, ArticleMedia>, headingLevel: 2 | 3) {
-  const renderer = new MarkdownIt({ html: false, linkify: true, typographer: false, breaks: false })
-    .use(markdownMath);
+  const renderer = new MarkdownIt({
+    html: false,
+    linkify: true,
+    typographer: false,
+    breaks: false,
+  }).use(markdownMath);
   const links: boolean[] = [];
 
   renderer.renderer.rules.heading_open = (tokens, index) => {
@@ -32,6 +38,9 @@ function createRenderer(media: Record<string, ArticleMedia>, headingLevel: 2 | 3
   renderer.renderer.rules.bullet_list_open = () => '<ul class="list-disc space-y-2 pl-6">';
   renderer.renderer.rules.ordered_list_open = () => '<ol class="list-decimal space-y-2 pl-6">';
   renderer.renderer.rules.hr = () => '<hr class="border-border border-t">';
+  renderer.renderer.rules.table_open = () =>
+    '<div class="rm-table-scroll max-w-full overflow-x-auto"><table class="border-border w-full border-collapse border text-left text-sm">';
+  renderer.renderer.rules.table_close = () => '</table></div>';
   renderer.renderer.rules.code_inline = (tokens, index) =>
     `<code class="bg-surface-muted rounded px-1">${escapeHtml(tokens[index]!.content)}</code>`;
   renderer.renderer.rules.fence = (tokens, index) => {
@@ -40,8 +49,10 @@ function createRenderer(media: Record<string, ArticleMedia>, headingLevel: 2 | 3
     if (FENCE_MATH.has(language)) return renderFormula(token.content.trim(), true);
     return `<pre class="bg-surface-muted max-w-full overflow-x-auto rounded-xl p-4"><code>${escapeHtml(token.content)}</code></pre>`;
   };
-  renderer.renderer.rules.math_block = (tokens, index) => renderFormula(tokens[index]!.content.trim(), true);
-  renderer.renderer.rules.math_inline = (tokens, index) => renderFormula(tokens[index]!.content, false);
+  renderer.renderer.rules.math_block = (tokens, index) =>
+    renderFormula(tokens[index]!.content.trim(), true);
+  renderer.renderer.rules.math_inline = (tokens, index) =>
+    renderFormula(tokens[index]!.content, false);
   renderer.renderer.rules.link_open = (tokens, index) => {
     const href = safeHref(tokens[index]!.attrGet('href'));
     links.push(href !== null);

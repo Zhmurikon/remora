@@ -5,14 +5,28 @@ import { ArticleContentServer } from './ArticleContentServer';
 it('рендерит теорию на сервере, заменяет media и не исполняет HTML', () => {
   const html = renderToStaticMarkup(
     <ArticleContentServer
-      value={'# Тема\n\n![Схема](media:123e4567-e89b-12d3-a456-426614174000)\n\n<script>alert(1)</script>'}
+      value={
+        '# Тема\n\n![Схема](media:123e4567-e89b-12d3-a456-426614174000)\n\n<script>alert(1)</script>'
+      }
       media={{
         '123e4567-e89b-12d3-a456-426614174000': { url: 'https://cdn.example/image.png' },
       }}
     />,
   );
-  expect(html).toContain('<h3')
-  expect(html).toContain('https://cdn.example/image.png')
-  expect(html).not.toContain('<script>')
-  expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;')
+  expect(html).toContain('<h3');
+  expect(html).toContain('https://cdn.example/image.png');
+  expect(html).not.toContain('<script>');
+  expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+});
+
+it('оборачивает широкую таблицу в область горизонтальной прокрутки', () => {
+  const html = renderToStaticMarkup(
+    <ArticleContentServer
+      value={'| Термин | Значение |\n| --- | --- |\n| Интервал | Повторение |'}
+    />,
+  );
+
+  expect(html).toContain('class="rm-table-scroll max-w-full overflow-x-auto"');
+  expect(html).toContain('<table');
+  expect(html).toContain('<th');
 });

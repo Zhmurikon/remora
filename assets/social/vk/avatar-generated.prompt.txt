@@ -1,0 +1,19 @@
+Use case: logo-brand
+Asset type: official VK community avatar and compact brand mark
+Primary request: Create a completely new original circular logo for a Russian learning
+platform called “Запоминальня”. Do not reuse or trace any previous logo. The symbol is a
+clever, serious but friendly remora fish wearing simple round glasses and reading an open book.
+Design the character from scratch as a compact emblem that remains recognizable at 32–48 px.
+Scene/backdrop: a clean circular badge; genuinely transparent outside the circle
+Style/medium: premium flat vector-style brand illustration, geometric, bold clean contours,
+minimal detail, no gradients, no shadows, no 3D
+Composition/framing: perfectly centered, true circular silhouette, generous safe margin, fish
+head and open book integrated into one compact mark, nothing touches the outer edge
+Color palette: deep teal #0D8285, warm orange #EA8D2F, white, very pale aqua #E0F4F4
+Mood: intelligent, calm, trustworthy, modern educational service; not childish
+Text: no text, no letters
+Constraints: original design from scratch; transparent canvas outside the circular badge; crisp
+edges; strong contrast; balanced symmetry; suitable for social-media avatar; entire artwork
+contained inside the circle
+Avoid: square background, visible rectangle, cropping, tiny details, photorealism, gradients,
+glow, drop shadows, generic owl, mascot costume, aggressive expression, watermark

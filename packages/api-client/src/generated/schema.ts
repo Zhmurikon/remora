@@ -43,6 +43,93 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/agent/blog/media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Blog Image */
+        post: operations["upload_blog_image_api_v1_agent_blog_media_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent/blog/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Blog Posts */
+        get: operations["list_blog_posts_api_v1_agent_blog_posts_get"];
+        put?: never;
+        /** Create Blog Post */
+        post: operations["create_blog_post_api_v1_agent_blog_posts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent/blog/posts/{post_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Blog Post */
+        get: operations["get_blog_post_api_v1_agent_blog_posts__post_id__get"];
+        /** Update Blog Post */
+        put: operations["update_blog_post_api_v1_agent_blog_posts__post_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent/blog/posts/{post_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish Blog Post */
+        post: operations["publish_blog_post_api_v1_agent_blog_posts__post_id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent/blog/posts/{post_id}/unpublish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unpublish Blog Post */
+        post: operations["unpublish_blog_post_api_v1_agent_blog_posts__post_id__unpublish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/agent/courses": {
         parameters: {
             query?: never;
@@ -739,6 +826,57 @@ export interface paths {
         };
         /** Тарифы */
         get: operations["list_plans_api_v1_billing_plans_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/blog/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Blog Posts */
+        get: operations["list_blog_posts_api_v1_blog_posts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/blog/posts/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Blog Post */
+        get: operations["get_blog_post_api_v1_blog_posts__slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/blog/sitemap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Blog Sitemap */
+        get: operations["blog_sitemap_api_v1_blog_sitemap_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2995,7 +3133,7 @@ export interface components {
              *       "materials:write"
              *     ]
              */
-            scopes: ("materials:read" | "materials:write" | "courses:publish")[];
+            scopes: ("materials:read" | "materials:write" | "courses:publish" | "blog:read" | "blog:write" | "blog:publish")[];
         };
         /** ApiTokenCreated */
         ApiTokenCreated: {
@@ -3495,6 +3633,300 @@ export interface components {
             /** Referral Code */
             referral_code: string;
             subscription: components["schemas"]["SubscriptionPublic"] | null;
+        };
+        /** BlogCoverPublic */
+        BlogCoverPublic: {
+            /** Alt */
+            alt: string;
+            /** Src */
+            src: string;
+        };
+        /** BlogExample */
+        BlogExample: {
+            /** Answer */
+            answer: string;
+            /** Question */
+            question: string;
+        };
+        /** BlogMediaPublic */
+        BlogMediaPublic: {
+            /** Height */
+            height?: number | null;
+            /** Url */
+            url: string;
+            /** Width */
+            width?: number | null;
+        };
+        /** BlogPostDetail */
+        BlogPostDetail: {
+            /** Category */
+            category: string;
+            /** Cover Alt */
+            cover_alt?: string | null;
+            /** Cover Media Id */
+            cover_media_id?: string | null;
+            /** Description */
+            description: string;
+            /** Diagram */
+            diagram: [
+                string,
+                string,
+                string
+            ];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Published At */
+            published_at: string | null;
+            /** Related */
+            related?: string[];
+            /** Revision */
+            revision: number;
+            /** Sections */
+            sections: components["schemas"]["BlogSectionWrite"][];
+            /** Slug */
+            slug: string;
+            /** Sources */
+            sources?: components["schemas"]["BlogSource"][];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "published";
+            /** Title */
+            title: string;
+            /**
+             * Tone
+             * @default mint
+             * @enum {string}
+             */
+            tone: "mint" | "lavender" | "peach";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** BlogPostPublic */
+        BlogPostPublic: {
+            /** Category */
+            category: string;
+            cover?: components["schemas"]["BlogCoverPublic"] | null;
+            /** Description */
+            description: string;
+            /** Diagram */
+            diagram: [
+                string,
+                string,
+                string
+            ];
+            /**
+             * Publishedat
+             * Format: date-time
+             */
+            publishedAt: string;
+            /** Related */
+            related?: string[];
+            /** Sections */
+            sections: components["schemas"]["BlogSectionPublic"][];
+            /** Slug */
+            slug: string;
+            /** Sources */
+            sources?: components["schemas"]["BlogSource"][];
+            /**
+             * Status
+             * @default published
+             * @constant
+             */
+            status: "published";
+            /** Title */
+            title: string;
+            /**
+             * Tone
+             * @enum {string}
+             */
+            tone: "mint" | "lavender" | "peach";
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /** BlogPostSummary */
+        BlogPostSummary: {
+            /** Category */
+            category: string;
+            cover?: components["schemas"]["BlogCoverPublic"] | null;
+            /** Description */
+            description: string;
+            /** Diagram */
+            diagram: [
+                string,
+                string,
+                string
+            ];
+            /**
+             * Publishedat
+             * Format: date-time
+             */
+            publishedAt: string;
+            /** Readingminutes */
+            readingMinutes: number;
+            /** Related */
+            related?: string[];
+            /** Slug */
+            slug: string;
+            /**
+             * Status
+             * @default published
+             * @constant
+             */
+            status: "published";
+            /** Title */
+            title: string;
+            /**
+             * Tone
+             * @enum {string}
+             */
+            tone: "mint" | "lavender" | "peach";
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /** BlogPostUpdate */
+        BlogPostUpdate: {
+            /** Category */
+            category: string;
+            /** Cover Alt */
+            cover_alt?: string | null;
+            /** Cover Media Id */
+            cover_media_id?: string | null;
+            /** Description */
+            description: string;
+            /** Diagram */
+            diagram: [
+                string,
+                string,
+                string
+            ];
+            /** Related */
+            related?: string[];
+            /** Revision */
+            revision: number;
+            /** Sections */
+            sections: components["schemas"]["BlogSectionWrite"][];
+            /** Slug */
+            slug: string;
+            /** Sources */
+            sources?: components["schemas"]["BlogSource"][];
+            /** Title */
+            title: string;
+            /**
+             * Tone
+             * @default mint
+             * @enum {string}
+             */
+            tone: "mint" | "lavender" | "peach";
+        };
+        /** BlogPostWrite */
+        BlogPostWrite: {
+            /** Category */
+            category: string;
+            /** Cover Alt */
+            cover_alt?: string | null;
+            /** Cover Media Id */
+            cover_media_id?: string | null;
+            /** Description */
+            description: string;
+            /** Diagram */
+            diagram: [
+                string,
+                string,
+                string
+            ];
+            /** Related */
+            related?: string[];
+            /** Sections */
+            sections: components["schemas"]["BlogSectionWrite"][];
+            /** Slug */
+            slug: string;
+            /** Sources */
+            sources?: components["schemas"]["BlogSource"][];
+            /** Title */
+            title: string;
+            /**
+             * Tone
+             * @default mint
+             * @enum {string}
+             */
+            tone: "mint" | "lavender" | "peach";
+        };
+        /** BlogPublication */
+        BlogPublication: {
+            /** Revision */
+            revision: number;
+        };
+        /** BlogSectionPublic */
+        BlogSectionPublic: {
+            example?: components["schemas"]["BlogExample"] | null;
+            /** Id */
+            id: string;
+            /** Media */
+            media?: {
+                [key: string]: components["schemas"]["BlogMediaPublic"];
+            };
+            /** Paragraphs */
+            paragraphs?: string[];
+            /**
+             * Richtext
+             * @default
+             */
+            richText: string;
+            /** Steps */
+            steps?: string[];
+            /** Title */
+            title: string;
+        };
+        /** BlogSectionWrite */
+        BlogSectionWrite: {
+            example?: components["schemas"]["BlogExample"] | null;
+            /** Id */
+            id: string;
+            /** Paragraphs */
+            paragraphs?: string[];
+            /**
+             * Rich Text
+             * @default
+             */
+            rich_text: string;
+            /** Steps */
+            steps?: string[];
+            /** Title */
+            title: string;
+        };
+        /** BlogSitemapEntry */
+        BlogSitemapEntry: {
+            /** Slug */
+            slug: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** BlogSource */
+        BlogSource: {
+            /** Title */
+            title: string;
+            /**
+             * Url
+             * Format: uri
+             */
+            url: string;
         };
         /** BotCodeCreated */
         BotCodeCreated: {
@@ -6019,6 +6451,250 @@ export interface operations {
             };
         };
     };
+    upload_blog_image_api_v1_agent_blog_media_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentMediaUpload"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentMediaUploadResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_blog_posts_api_v1_agent_blog_posts_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlogPostDetail"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_blog_post_api_v1_agent_blog_posts_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BlogPostWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlogPostDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_blog_post_api_v1_agent_blog_posts__post_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                post_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlogPostDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_blog_post_api_v1_agent_blog_posts__post_id__put: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                post_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BlogPostUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlogPostDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_blog_post_api_v1_agent_blog_posts__post_id__publish_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                post_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BlogPublication"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlogPostDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unpublish_blog_post_api_v1_agent_blog_posts__post_id__unpublish_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                post_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BlogPublication"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlogPostDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_courses_api_v1_agent_courses_get: {
         parameters: {
             query?: {
@@ -7524,6 +8200,89 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlanPublic"][];
+                };
+            };
+        };
+    };
+    list_blog_posts_api_v1_blog_posts_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlogPostSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_blog_post_api_v1_blog_posts__slug__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlogPostPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    blog_sitemap_api_v1_blog_sitemap_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlogSitemapEntry"][];
                 };
             };
         };

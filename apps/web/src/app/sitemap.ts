@@ -1,7 +1,7 @@
 import type { components } from '@remora/api-client';
 import type { MetadataRoute } from 'next';
 import { absoluteUrl } from '../lib/seo';
-import { publishedPosts } from '../lib/blog';
+import { blogPageCount, blogPagePosts, loadPublishedPosts } from '../lib/blog';
 import { loadCollectionCourses, publishedCollections } from '../lib/collections';
 
 const API_URL = process.env.API_INTERNAL_URL ?? 'http://localhost:8000';
@@ -28,6 +28,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }),
   );
   const availableCollections = collections.filter((collection) => collection !== null);
+  const posts = await loadPublishedPosts();
+  const blogArchivePages = Array.from(
+    { length: Math.max(0, blogPageCount(posts) - 1) },
+    (_, index) => index + 2,
+  );
   const authors = new Map<string, Date>();
   const courses = entries.map((entry) => {
     const modified = new Date(entry.updated_at);
@@ -44,9 +49,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl('/terms'), changeFrequency: 'yearly', priority: 0.3 },
     { url: absoluteUrl('/en/privacy'), changeFrequency: 'yearly', priority: 0.2 },
     { url: absoluteUrl('/en/terms'), changeFrequency: 'yearly', priority: 0.2 },
-    ...publishedPosts().map((post) => ({
+    ...posts.map((post) => ({
       url: absoluteUrl(`/blog/${post.slug}`),
       lastModified: new Date(post.updatedAt),
+    })),
+    ...blogArchivePages.map((page) => ({
+      url: absoluteUrl(`/blog/stranitsa/${page}`),
+      lastModified: new Date(
+        blogPagePosts(posts, page).reduce(
+          (latest, post) => (post.updatedAt > latest ? post.updatedAt : latest),
+          '1970-01-01',
+        ),
+      ),
     })),
     ...(availableCollections.length
       ? [{ url: absoluteUrl('/podborki'), changeFrequency: 'weekly' as const, priority: 0.7 }]

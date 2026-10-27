@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="752" height="512" viewBox="0 0 752 512" role="img" aria-label="Пункт меню: Полезные материалы">
+  <rect width="752" height="512" fill="#FCFBF8"/>
+
+    <rect x="22" y="22" width="708" height="468" rx="44" fill="#FFFFFF" stroke="#DDE5E6" stroke-width="4"/>
+    <rect x="50" y="50" width="118" height="44" rx="22" fill="#FCEFE4"/>
+    <text x="109" y="80" text-anchor="middle" font-family="'Noto Sans', 'DejaVu Sans', sans-serif" font-size="20" font-weight="700" fill="#132A3D">03</text>
+    <g transform="translate(60 104)"><path d="M52 68c44-10 82 2 112 28v126c-31-26-68-36-112-26z" fill="#E0F4F4" stroke="#0D8285" stroke-width="5"/><path d="M276 68c-44-10-82 2-112 28v126c31-26 68-36 112-26z" fill="#FCEFE4" stroke="#EA8D2F" stroke-width="5"/><path d="M164 96v126" stroke="#132A3D" stroke-width="5"/></g>
+    <text x="54" y="420" font-family="'Noto Sans', 'DejaVu Sans', sans-serif" font-size="48" font-weight="700" fill="#132A3D">Полезные материалы</text>
+    <circle cx="677" cy="419" r="27" fill="#0D8285"/>
+    <path d="M665 419h24m-10-10l10 10-10 10" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+</svg>

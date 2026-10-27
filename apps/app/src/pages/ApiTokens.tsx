@@ -2,17 +2,23 @@ import type { components } from '@remora/api-client';
 import { Button, Card, Input } from '@remora/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
+import { useAuthStore } from '../features/auth/auth-store';
 import { api } from '../lib/api';
 
 type Scope = components['schemas']['ApiTokenCreate']['scopes'][number];
-const permissions: { value: Scope; label: string }[] = [
+const permissions: { value: Scope; label: string; adminOnly?: boolean }[] = [
   { value: 'materials:read', label: 'Читать свои наборы и курсы' },
   { value: 'materials:write', label: 'Создавать и изменять материалы' },
   { value: 'courses:publish', label: 'Публиковать курсы и снимать с публикации' },
+  { value: 'blog:read', label: 'Читать редакционные черновики', adminOnly: true },
+  { value: 'blog:write', label: 'Создавать и изменять статьи блога', adminOnly: true },
+  { value: 'blog:publish', label: 'Публиковать статьи и снимать их с публикации', adminOnly: true },
 ];
 
 export function ApiTokens() {
   const cache = useQueryClient();
+  const isAdmin = useAuthStore((state) => state.user?.role === 'admin');
+  const availablePermissions = permissions.filter(({ adminOnly }) => !adminOnly || isAdmin);
   const [secret, setSecret] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
@@ -134,14 +140,14 @@ export function ApiTokens() {
           </div>
           <fieldset>
             <legend className="text-sm font-medium">Права доступа</legend>
-            {permissions.map(({ value, label }) => (
+            {availablePermissions.map(({ value, label }) => (
               <label key={value} className="flex min-h-11 items-center gap-3 text-sm">
                 <input
                   className="accent-primary focus-visible:ring-primary h-5 w-5 focus-visible:ring-2"
                   type="checkbox"
                   name="scope"
                   value={value}
-                  defaultChecked={value !== 'courses:publish'}
+                  defaultChecked={value === 'materials:read' || value === 'materials:write'}
                 />
                 {label}
               </label>

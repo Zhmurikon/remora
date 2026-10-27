@@ -26,6 +26,7 @@ from app.schemas.agent import (
     AgentStructureDelete,
 )
 from app.schemas.api_tokens import AgentScope
+from app.schemas.blog import BlogPostDetail, BlogPostUpdate, BlogPostWrite, BlogPublication
 from app.schemas.content import SetSummary
 from app.schemas.courses import (
     CourseCopyRequest,
@@ -38,6 +39,7 @@ from app.schemas.courses import (
 from app.services.agent import AgentService
 from app.services.agent_media import AgentMediaService
 from app.services.api_tokens import ApiTokenService
+from app.services.blog import BlogService
 from app.services.content import ContentService
 from app.services.course_editor import CourseEditorService
 from app.services.courses import CourseService
@@ -60,7 +62,7 @@ def require_scope(scope: AgentScope) -> Callable[..., Awaitable[User]]:
         if creds is None:
             raise UnauthorizedError("Нужен персональный API-токен")
         user = await ApiTokenService(db).authenticate(creds.credentials, scope)
-        if scope != "materials:read":
+        if scope not in {"materials:read", "blog:read"}:
             period_key, resets_at = week_period()
             await Entitlements(db).consume(
                 user,
@@ -81,6 +83,111 @@ def require_scope(scope: AgentScope) -> Callable[..., Awaitable[User]]:
 read_user = require_scope("materials:read")
 write_user = require_scope("materials:write")
 publish_user = require_scope("courses:publish")
+blog_read_user = require_scope("blog:read")
+blog_write_user = require_scope("blog:write")
+blog_publish_user = require_scope("blog:publish")
+
+
+@router.post("/blog/media", response_model=AgentMediaUploadResult, status_code=201)
+async def upload_blog_image(
+    body: AgentMediaUpload,
+    key: RequestKey,
+    user: User = Depends(blog_write_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    return await AgentService(db).once(
+        user,
+        key,
+        "upload-blog-media",
+        body,
+        lambda: AgentMediaService(db).upload(user, body),
+    )
+
+
+@router.get("/blog/posts", response_model=list[BlogPostDetail])
+async def list_blog_posts(
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=20, ge=1, le=100),
+    user: User = Depends(blog_read_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[BlogPostDetail]:
+    return await BlogService(db).list_owned(user, offset=offset, limit=limit)
+
+
+@router.get("/blog/posts/{post_id}", response_model=BlogPostDetail)
+async def get_blog_post(
+    post_id: UUID,
+    user: User = Depends(blog_read_user),
+    db: AsyncSession = Depends(get_db),
+) -> BlogPostDetail:
+    return BlogService._detail(await BlogService(db).owned(user, post_id))
+
+
+@router.post("/blog/posts", response_model=BlogPostDetail, status_code=201)
+async def create_blog_post(
+    body: BlogPostWrite,
+    key: RequestKey,
+    user: User = Depends(blog_write_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    service = AgentService(db)
+    return await service.once(
+        user, key, "create-blog-post", body, lambda: BlogService(db).create(user, body)
+    )
+
+
+@router.put("/blog/posts/{post_id}", response_model=BlogPostDetail)
+async def update_blog_post(
+    post_id: UUID,
+    body: BlogPostUpdate,
+    key: RequestKey,
+    user: User = Depends(blog_write_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    service = AgentService(db)
+    return await service.once(
+        user,
+        key,
+        f"update-blog-post:{post_id}",
+        body,
+        lambda: BlogService(db).update(user, post_id, body),
+    )
+
+
+@router.post("/blog/posts/{post_id}/publish", response_model=BlogPostDetail)
+async def publish_blog_post(
+    post_id: UUID,
+    body: BlogPublication,
+    key: RequestKey,
+    user: User = Depends(blog_publish_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    service = AgentService(db)
+    return await service.once(
+        user,
+        key,
+        f"publish-blog-post:{post_id}",
+        body,
+        lambda: BlogService(db).publish(user, post_id, body.revision),
+    )
+
+
+@router.post("/blog/posts/{post_id}/unpublish", response_model=BlogPostDetail)
+async def unpublish_blog_post(
+    post_id: UUID,
+    body: BlogPublication,
+    key: RequestKey,
+    user: User = Depends(blog_publish_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    service = AgentService(db)
+    return await service.once(
+        user,
+        key,
+        f"unpublish-blog-post:{post_id}",
+        body,
+        lambda: BlogService(db).unpublish(user, post_id, body.revision),
+    )
 
 
 @router.get("/folders", response_model=list[AgentFolderDetail])

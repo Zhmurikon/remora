@@ -25,6 +25,7 @@ from app.models.billing import (
     Subscription,
     SubscriptionStatus,
 )
+from app.models.blog import BlogPost
 from app.models.bots import BotEvent, BotLink, BotLinkCode
 from app.models.classes import (
     Assignment,
@@ -105,6 +106,7 @@ __all__ = [
     "BattleParticipant",
     "BattleStatus",
     "BillingInterval",
+    "BlogPost",
     "BotEvent",
     "BotLink",
     "BotLinkCode",
