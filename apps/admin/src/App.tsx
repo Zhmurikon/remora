@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './features/auth/AuthContext';
 import { LoginPage } from './features/auth/LoginPage';
 import { AdminLayout } from './layouts/AdminLayout';
+import { ModerationPage } from './pages/ModerationPage';
 import { OverviewPage } from './pages/OverviewPage';
 import { SecurityPage } from './pages/SecurityPage';
 import { UserDetailPage } from './pages/UserDetailPage';
@@ -29,6 +30,7 @@ export function App() {
         <Route index element={<OverviewPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="users/:userId" element={<UserDetailPage />} />
+        <Route path="moderation" element={<ModerationPage />} />
         <Route path="security" element={<SecurityPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

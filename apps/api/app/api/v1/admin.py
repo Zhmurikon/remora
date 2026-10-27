@@ -1,6 +1,6 @@
 """Просмотр продукта и защищённое управление пользователями."""
 
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Query, Request, Response
@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.deps import admin_user, confirmed_admin_user
 from app.db.session import get_db
+from app.models.moderation import ReportStatus
 from app.models.user import User, UserRole, UserStatus
 from app.schemas.admin import (
     AdminOverview,
@@ -18,7 +19,15 @@ from app.schemas.admin import (
     AdminUserRoleUpdate,
     AdminUserStatusUpdate,
 )
+from app.schemas.admin_moderation import (
+    AdminModerationCourseAction,
+    AdminModerationCourseDetail,
+    AdminModerationCourseList,
+    AdminModerationReportList,
+    AdminModerationResolution,
+)
 from app.services.admin import AdminService
+from app.services.admin_moderation import AdminModerationService
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -175,6 +184,119 @@ async def revoke_user_entitlement(
         actor=actor,
         user_id=user_id,
         entitlement_id=entitlement_id,
+        reason=body.reason,
+        idempotency_key=idempotency_key,
+        ip=ip,
+        user_agent=user_agent,
+    )
+
+
+@router.get(
+    "/moderation/reports",
+    response_model=AdminModerationReportList,
+    summary="Очередь жалоб",
+)
+async def list_moderation_reports(
+    status: ReportStatus | None = Query(default=ReportStatus.open),
+    query: Annotated[str | None, Query(min_length=1, max_length=160)] = None,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    _: User = Depends(admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminModerationReportList:
+    return await AdminModerationService(db).reports(
+        status=status,
+        query=query.strip() if query else None,
+        offset=offset,
+        limit=limit,
+    )
+
+
+@router.get(
+    "/moderation/courses",
+    response_model=AdminModerationCourseList,
+    summary="Публикации для модерации",
+)
+async def list_moderation_courses(
+    query: Annotated[str | None, Query(min_length=1, max_length=160)] = None,
+    moderation_status: Literal["pending", "ok", "blocked"] | None = Query(default=None),
+    published: bool | None = Query(default=None),
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    _: User = Depends(admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminModerationCourseList:
+    return await AdminModerationService(db).courses(
+        query=query.strip() if query else None,
+        moderation_status=moderation_status,
+        published=published,
+        offset=offset,
+        limit=limit,
+    )
+
+
+@router.get(
+    "/moderation/courses/{course_id}",
+    response_model=AdminModerationCourseDetail,
+    summary="Карточка публикации для модерации",
+)
+async def get_moderation_course(
+    course_id: UUID,
+    response: Response,
+    _: User = Depends(admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminModerationCourseDetail:
+    response.headers["Cache-Control"] = "no-store"
+    return await AdminModerationService(db).course(course_id)
+
+
+@router.post(
+    "/moderation/reports/{report_id}/resolve",
+    response_model=AdminModerationCourseDetail,
+    summary="Разобрать жалобу",
+)
+async def resolve_moderation_report(
+    report_id: UUID,
+    body: AdminModerationResolution,
+    request: Request,
+    response: Response,
+    idempotency_key: IdempotencyKey,
+    actor: User = Depends(confirmed_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminModerationCourseDetail:
+    ip, user_agent = _request_context(request)
+    response.headers["Cache-Control"] = "no-store"
+    return await AdminModerationService(db).resolve_report(
+        actor=actor,
+        report_id=report_id,
+        outcome=ReportStatus(body.outcome),
+        reason=body.reason,
+        idempotency_key=idempotency_key,
+        ip=ip,
+        user_agent=user_agent,
+    )
+
+
+@router.post(
+    "/moderation/courses/{course_id}/actions",
+    response_model=AdminModerationCourseDetail,
+    summary="Изменить состояние публикации",
+)
+async def act_on_moderation_course(
+    course_id: UUID,
+    body: AdminModerationCourseAction,
+    request: Request,
+    response: Response,
+    idempotency_key: IdempotencyKey,
+    actor: User = Depends(confirmed_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminModerationCourseDetail:
+    ip, user_agent = _request_context(request)
+    response.headers["Cache-Control"] = "no-store"
+    return await AdminModerationService(db).act_on_course(
+        actor=actor,
+        course_id=course_id,
+        action=body.action,
         reason=body.reason,
         idempotency_key=idempotency_key,
         ip=ip,

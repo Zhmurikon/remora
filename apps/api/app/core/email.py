@@ -90,3 +90,15 @@ async def send_account_export_email(to: str, download_url: str, ttl_hours: int) 
         "Если вы не запрашивали экспорт, смените пароль и завершите незнакомые сессии."
     )
     await send_email(to, subject, body)
+
+
+async def send_moderation_warning_email(to: str, course_title: str, reason: str) -> None:
+    subject = "Предупреждение о публикации — Запоминальня"
+    body = (
+        "Здравствуйте!\n\n"
+        f"Модератор оставил предупреждение по курсу «{course_title}».\n\n"
+        f"Причина: {reason}\n\n"
+        "Проверьте содержание курса и при необходимости исправьте его. "
+        "Ваши материалы и учебный прогресс не удалены."
+    )
+    await send_email(to, subject, body)

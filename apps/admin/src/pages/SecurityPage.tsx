@@ -15,6 +15,11 @@ const actionLabels: Record<string, string> = {
   'admin.user.status_changed': 'Изменение состояния пользователя',
   'admin.user.entitlement_granted': 'Выдача персонального права',
   'admin.user.entitlement_revoked': 'Отзыв персонального права',
+  'admin.moderation.report_resolved': 'Решение по жалобе',
+  'admin.moderation.course_warn': 'Предупреждение автору',
+  'admin.moderation.course_unpublish': 'Снятие курса с публикации',
+  'admin.moderation.course_block': 'Блокировка курса',
+  'admin.moderation.course_restore': 'Восстановление курса',
 };
 
 export function SecurityPage() {

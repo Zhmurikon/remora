@@ -77,6 +77,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/moderation/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Публикации для модерации */
+        get: operations["list_moderation_courses_api_v1_admin_moderation_courses_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/moderation/courses/{course_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Карточка публикации для модерации */
+        get: operations["get_moderation_course_api_v1_admin_moderation_courses__course_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/moderation/courses/{course_id}/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Изменить состояние публикации */
+        post: operations["act_on_moderation_course_api_v1_admin_moderation_courses__course_id__actions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/moderation/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Очередь жалоб */
+        get: operations["list_moderation_reports_api_v1_admin_moderation_reports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/moderation/reports/{report_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Разобрать жалобу */
+        post: operations["resolve_moderation_report_api_v1_admin_moderation_reports__report_id__resolve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/overview": {
         parameters: {
             query?: never;
@@ -2985,6 +3070,200 @@ export interface components {
             step: "setup_required" | "challenge_required";
             /** Token */
             token: string;
+        };
+        /** AdminModerationCourseAction */
+        AdminModerationCourseAction: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "warn" | "unpublish" | "block" | "restore";
+            /** Reason */
+            reason: string;
+        };
+        /** AdminModerationCourseDetail */
+        AdminModerationCourseDetail: {
+            /**
+             * Author Id
+             * Format: uuid
+             */
+            author_id: string;
+            /** Author Username */
+            author_username: string;
+            /** Description */
+            description: string;
+            /** History */
+            history: components["schemas"]["AdminModerationHistoryItem"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Listed */
+            is_listed: boolean;
+            /** Is Published */
+            is_published: boolean;
+            /** Last Report At */
+            last_report_at: string | null;
+            /** Moderation Status */
+            moderation_status: string;
+            /** Published At */
+            published_at: string | null;
+            /** Reports */
+            reports: components["schemas"]["AdminModerationReportItem"][];
+            /** Reports Open */
+            reports_open: number;
+            /** Reports Total */
+            reports_total: number;
+            /** Risk Signals */
+            risk_signals: string[];
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** AdminModerationCourseItem */
+        AdminModerationCourseItem: {
+            /**
+             * Author Id
+             * Format: uuid
+             */
+            author_id: string;
+            /** Author Username */
+            author_username: string;
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Listed */
+            is_listed: boolean;
+            /** Is Published */
+            is_published: boolean;
+            /** Last Report At */
+            last_report_at: string | null;
+            /** Moderation Status */
+            moderation_status: string;
+            /** Published At */
+            published_at: string | null;
+            /** Reports Open */
+            reports_open: number;
+            /** Reports Total */
+            reports_total: number;
+            /** Risk Signals */
+            risk_signals: string[];
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** AdminModerationCourseList */
+        AdminModerationCourseList: {
+            /** Items */
+            items: components["schemas"]["AdminModerationCourseItem"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** AdminModerationHistoryItem */
+        AdminModerationHistoryItem: {
+            /** Action */
+            action: string;
+            /** Actor Username */
+            actor_username: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Details */
+            details: {
+                [key: string]: unknown;
+            };
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Reason */
+            reason: string | null;
+        };
+        /** AdminModerationReportItem */
+        AdminModerationReportItem: {
+            /**
+             * Author Id
+             * Format: uuid
+             */
+            author_id: string;
+            /** Author Username */
+            author_username: string;
+            /** Comment */
+            comment: string;
+            /**
+             * Course Id
+             * Format: uuid
+             */
+            course_id: string;
+            /** Course Is Published */
+            course_is_published: boolean;
+            /** Course Moderation Status */
+            course_moderation_status: string;
+            /** Course Slug */
+            course_slug: string;
+            /** Course Title */
+            course_title: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            reason: components["schemas"]["ReportReason"];
+            /** Reporter Username */
+            reporter_username: string;
+            /** Resolved At */
+            resolved_at: string | null;
+            status: components["schemas"]["ReportStatus"];
+        };
+        /** AdminModerationReportList */
+        AdminModerationReportList: {
+            /** Items */
+            items: components["schemas"]["AdminModerationReportItem"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** AdminModerationResolution */
+        AdminModerationResolution: {
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "accepted" | "rejected";
+            /** Reason */
+            reason: string;
         };
         /** AdminOverview */
         AdminOverview: {
@@ -7109,6 +7388,182 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminLoginStep"] | components["schemas"]["AdminSessionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_moderation_courses_api_v1_admin_moderation_courses_get: {
+        parameters: {
+            query?: {
+                query?: string | null;
+                moderation_status?: ("pending" | "ok" | "blocked") | null;
+                published?: boolean | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminModerationCourseList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_moderation_course_api_v1_admin_moderation_courses__course_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminModerationCourseDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    act_on_moderation_course_api_v1_admin_moderation_courses__course_id__actions_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Admin-Confirmation"?: string | null;
+            };
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminModerationCourseAction"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminModerationCourseDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_moderation_reports_api_v1_admin_moderation_reports_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["ReportStatus"] | null;
+                query?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminModerationReportList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_moderation_report_api_v1_admin_moderation_reports__report_id__resolve_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Admin-Confirmation"?: string | null;
+            };
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminModerationResolution"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminModerationCourseDetail"];
                 };
             };
             /** @description Validation Error */
