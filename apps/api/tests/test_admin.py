@@ -89,9 +89,13 @@ async def test_admin_sees_overview_and_searchable_users(client: AsyncClient) -> 
 
 
 async def test_admin_sees_user_card_without_sensitive_fields(client: AsyncClient) -> None:
-    admin_headers = await auth(client, "admin-card-owner")
-    await promote("courseadmin-card-owner", UserRole.admin)
-    target_headers = await auth(client, "admin-card-target")
+    suffix = uuid4().hex[:8]
+    owner_suffix = f"admin-owner-{suffix}"
+    target_suffix = f"admin-target-{suffix}"
+    target_username = f"course{target_suffix}"
+    admin_headers = await auth(client, owner_suffix)
+    await promote(f"course{owner_suffix}", UserRole.admin)
+    target_headers = await auth(client, target_suffix)
     await client.post(
         "/api/v1/sets",
         headers=target_headers,
@@ -99,10 +103,11 @@ async def test_admin_sees_user_card_without_sensitive_fields(client: AsyncClient
     )
 
     now = datetime.now(UTC)
-    promo_code = f"ADMIN20-{uuid4().hex[:8].upper()}"
+    promo_code = f"ADMIN-{suffix.upper()}"
+    referral_code = f"RMR-{suffix.upper()}"
     async with get_session_factory()() as db:
         await sync_plan_catalog(db)
-        target = await db.scalar(select(User).where(User.username == "courseadmin-card-target"))
+        target = await db.scalar(select(User).where(User.username == target_username))
         plus = await db.scalar(select(Plan).where(Plan.code == "plus", Plan.active.is_(True)))
         assert target is not None and plus is not None
         subscription = Subscription(
@@ -139,12 +144,12 @@ async def test_admin_sees_user_card_without_sensitive_fields(client: AsyncClient
                     status=PaymentStatus.succeeded,
                     amount=23_920,
                     discount_amount=5_980,
-                    idempotency_key="admin-user-card-payment",
+                    idempotency_key=f"admin-user-card-{suffix}",
                     promo_code_id=promo.id,
                     paid_at=now,
                 ),
                 PromoRedemption(promo_code_id=promo.id, user_id=target.id),
-                ReferralCode(user_id=target.id, code="RMR-ADMINCARD"),
+                ReferralCode(user_id=target.id, code=referral_code),
             ]
         )
         await db.commit()
@@ -153,7 +158,7 @@ async def test_admin_sees_user_card_without_sensitive_fields(client: AsyncClient
     response = await client.get(f"/api/v1/admin/users/{target_id}", headers=admin_headers)
     assert response.status_code == 200, response.text
     body = response.json()
-    assert body["username"] == "courseadmin-card-target"
+    assert body["username"] == target_username
     assert body["materials"]["sets_total"] == 1
     assert body["materials"]["recent"][0]["title"] == "Карточки пользователя"
     assert body["access"]["plan_code"] == "plus"
@@ -161,7 +166,7 @@ async def test_admin_sees_user_card_without_sensitive_fields(client: AsyncClient
     assert body["access"]["overrides"][0]["reason"] == "Индивидуальная квота"
     assert body["payments"][0]["promo_code"] == promo_code
     assert body["promo_redemptions"][0]["code"] == promo_code
-    assert body["referral"]["code"] == "RMR-ADMINCARD"
+    assert body["referral"]["code"] == referral_code
     assert "password_hash" not in body
     assert "provider_payload" not in body["payments"][0]
 
