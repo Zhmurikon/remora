@@ -15,12 +15,16 @@ from app.repositories import admin as repo
 from app.repositories import admin_security as security_repo
 from app.repositories import token as token_repo
 from app.schemas.admin import (
+    AdminEntitlementDecision,
     AdminOverview,
+    AdminPlanCatalog,
+    AdminPlanItem,
     AdminUserAccess,
     AdminUserActivity,
     AdminUserDegradationLimit,
     AdminUserDegradationPreview,
     AdminUserDetail,
+    AdminUserEntitlementHistoryItem,
     AdminUserEntitlementOverride,
     AdminUserItem,
     AdminUserList,
@@ -30,7 +34,7 @@ from app.schemas.admin import (
     AdminUserPromoRedemption,
     AdminUserReferral,
 )
-from app.services.entitlements import Entitlements, load_plan_catalog
+from app.services.entitlements import Entitlements, ResolvedEntitlements, load_plan_catalog
 
 DEGRADATION_GUARANTEES = [
     "Материалы не удаляются и остаются доступны",
@@ -78,6 +82,34 @@ class AdminService:
             limit=limit,
         )
 
+    async def plans(self) -> AdminPlanCatalog:
+        catalog = load_plan_catalog()
+        catalog_plans = catalog["plans"]
+        rows = await repo.active_plans(self.db)
+        return AdminPlanCatalog(
+            catalog_version=int(catalog["version"]),
+            source="app/config/plans.yaml",
+            items=[
+                AdminPlanItem(
+                    id=plan.id,
+                    code=plan.code,
+                    version=plan.version,
+                    name=plan.name,
+                    price_month=plan.price_month,
+                    price_year=plan.price_year,
+                    effective_from=plan.effective_from,
+                    features=dict(plan.features.get("features", {})),
+                    limits=dict(plan.features.get("limits", {})),
+                    active_subscriptions=subscriptions_count,
+                    matches_catalog=(
+                        plan.version == int(catalog["version"])
+                        and catalog_plans.get(plan.code) == plan.features
+                    ),
+                )
+                for plan, subscriptions_count in rows
+            ],
+        )
+
     async def user(self, user_id: UUID) -> AdminUserDetail:
         now = datetime.now(UTC)
         record = await repo.user_detail(self.db, user_id, now=now)
@@ -114,14 +146,13 @@ class AdminService:
                 cards_total=record.materials.cards_total,
                 courses_total=record.materials.courses_total,
                 courses_published=record.materials.courses_published,
-                recent=[
-                    AdminUserMaterialItem(**item.__dict__) for item in record.materials.recent
-                ],
+                recent=[AdminUserMaterialItem(**item.__dict__) for item in record.materials.recent],
             ),
             activity=AdminUserActivity(**record.activity.__dict__),
             access=AdminUserAccess(
                 plan_code=resolved.plan_code,
                 plan_name=resolved.plan_name,
+                plan_version=resolved.plan_version,
                 current_period_end=resolved.current_period_end,
                 cancel_at_period_end=resolved.cancel_at_period_end,
                 features=resolved.features,
@@ -141,6 +172,32 @@ class AdminService:
                     )
                     for item in record.overrides
                 ],
+                history=[
+                    AdminUserEntitlementHistoryItem(
+                        id=item.id,
+                        key=item.key,
+                        value=item.value,
+                        source=item.source.value,
+                        reason=item.reason,
+                        starts_at=item.starts_at,
+                        valid_until=item.valid_until,
+                        revocable=(
+                            item.source is EntitlementSource.admin
+                            and item.starts_at <= now
+                            and (item.valid_until is None or item.valid_until > now)
+                        ),
+                        status=(
+                            "scheduled"
+                            if item.starts_at > now
+                            else "active"
+                            if item.valid_until is None or item.valid_until > now
+                            else "expired"
+                        ),
+                        created_at=item.created_at,
+                    )
+                    for item in record.entitlement_history
+                ],
+                decisions=self._entitlement_decisions(resolved, record.overrides),
                 degradation=degradation,
             ),
             payments=[
@@ -459,22 +516,51 @@ class AdminService:
     def _validate_entitlement(key: str, value: bool | int | str) -> bool | int | str:
         catalog = load_plan_catalog()["plans"]
         feature_keys = {
-            f"feature.{name}"
-            for plan in catalog.values()
-            for name in plan.get("features", {})
+            f"feature.{name}" for plan in catalog.values() for name in plan.get("features", {})
         }
         limit_keys = {
             f"limit.{name}" for plan in catalog.values() for name in plan.get("limits", {})
         }
         if key in feature_keys and type(value) is bool:
             return value
-        if key in limit_keys and (
-            (type(value) is int and value >= 0) or value == "unlimited"
-        ):
+        if key in limit_keys and ((type(value) is int and value >= 0) or value == "unlimited"):
             return value
         if key not in feature_keys | limit_keys:
             raise ValidationError("Неизвестное тарифное право")
         raise ValidationError("Значение не соответствует типу тарифного права")
+
+    @staticmethod
+    def _entitlement_decisions(
+        resolved: ResolvedEntitlements, overrides: list[Entitlement]
+    ) -> list[AdminEntitlementDecision]:
+        # Репозиторий отдаёт историю от новых к старым, а разрешение применяет новые последними.
+        override_by_key = {item.key: item for item in reversed(overrides)}
+        decisions: list[AdminEntitlementDecision] = []
+        values: dict[str, bool | int | None] = {
+            **{f"feature.{key}": value for key, value in resolved.features.items()},
+            **{f"limit.{key}": value for key, value in resolved.limits.items()},
+        }
+        for key in sorted(values):
+            source = resolved.sources[key]
+            override = override_by_key.get(key)
+            raw_value = values[key]
+            decisions.append(
+                AdminEntitlementDecision(
+                    key=key,
+                    kind="feature" if key.startswith("feature.") else "limit",
+                    value="unlimited" if raw_value is None else raw_value,
+                    source=source,
+                    source_label=(
+                        "Персональное право"
+                        if source == "override"
+                        else f"Тариф {resolved.plan_name} v{resolved.plan_version}"
+                        if source == "plan"
+                        else "Free"
+                    ),
+                    reason=override.reason if override is not None else None,
+                )
+            )
+        return decisions
 
     @staticmethod
     def _degradation_preview(

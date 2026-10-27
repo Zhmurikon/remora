@@ -35,7 +35,16 @@ async def my_entitlements(
     resolved = await entitlements.resolve(user)
     usage = await entitlements.creation_quota_usage(user)
     remaining = entitlements.quota_remaining(resolved.limits, usage)
-    return EntitlementsPublic(**resolved.__dict__, usage=usage, remaining=remaining)
+    return EntitlementsPublic(
+        plan_code=resolved.plan_code,
+        plan_name=resolved.plan_name,
+        features=resolved.features,
+        limits=resolved.limits,
+        usage=usage,
+        remaining=remaining,
+        current_period_end=resolved.current_period_end,
+        cancel_at_period_end=resolved.cancel_at_period_end,
+    )
 
 
 @router.get("/overview", response_model=BillingOverview, summary="Подписка и платежи")

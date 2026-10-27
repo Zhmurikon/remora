@@ -6,6 +6,7 @@ import { BlogPage } from './pages/BlogPage';
 import { ModerationPage } from './pages/ModerationPage';
 import { OverviewPage } from './pages/OverviewPage';
 import { PaymentsPage } from './pages/PaymentsPage';
+import { PlansPage } from './pages/PlansPage';
 import { SecurityPage } from './pages/SecurityPage';
 import { UserDetailPage } from './pages/UserDetailPage';
 import { UsersPage } from './pages/UsersPage';
@@ -35,6 +36,7 @@ export function App() {
         <Route path="moderation" element={<ModerationPage />} />
         <Route path="blog" element={<BlogPage />} />
         <Route path="payments" element={<PaymentsPage />} />
+        <Route path="plans" element={<PlansPage />} />
         <Route path="security" element={<SecurityPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

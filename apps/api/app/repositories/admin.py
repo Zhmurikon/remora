@@ -22,6 +22,8 @@ from app.models.billing import (
     Referral,
     ReferralCode,
     ReferralStatus,
+    Subscription,
+    SubscriptionStatus,
 )
 from app.models.content import StudySet
 from app.models.courses import Course
@@ -109,6 +111,7 @@ class UserDetailRecord:
     materials: MaterialsRecord
     activity: ActivityRecord
     overrides: list[Entitlement]
+    entitlement_history: list[Entitlement]
     counter_usage: dict[str, int]
     payments: list[PaymentRecord]
     promo_redemptions: list[PromoRedemptionRecord]
@@ -160,6 +163,36 @@ async def entitlement_for_update(
             .with_for_update()
         ),
     )
+
+
+async def active_plans(db: AsyncSession) -> list[tuple[Plan, int]]:
+    now = datetime.now(UTC)
+    active_subscriptions = (
+        select(
+            Subscription.plan_id.label("plan_id"),
+            func.count(Subscription.id).label("subscriptions_count"),
+        )
+        .where(
+            Subscription.current_period_start <= now,
+            Subscription.current_period_end > now,
+            Subscription.status.in_(
+                [
+                    SubscriptionStatus.active,
+                    SubscriptionStatus.canceled,
+                    SubscriptionStatus.past_due,
+                ]
+            ),
+        )
+        .group_by(Subscription.plan_id)
+        .subquery()
+    )
+    rows = await db.execute(
+        select(Plan, func.coalesce(active_subscriptions.c.subscriptions_count, 0))
+        .outerjoin(active_subscriptions, active_subscriptions.c.plan_id == Plan.id)
+        .where(Plan.active.is_(True))
+        .order_by(Plan.code)
+    )
+    return [(row[0], int(row[1])) for row in rows.all()]
 
 
 async def overview(db: AsyncSession, *, now: datetime | None = None) -> OverviewRecord:
@@ -278,9 +311,7 @@ async def user_detail(db: AsyncSession, user_id: UUID, *, now: datetime) -> User
                 select(func.coalesce(func.sum(StudySet.cards_count), 0))
                 .where(StudySet.owner_id == user_id, StudySet.deleted_at.is_(None))
                 .scalar_subquery(),
-                select(func.count(Course.id))
-                .where(Course.owner_id == user_id)
-                .scalar_subquery(),
+                select(func.count(Course.id)).where(Course.owner_id == user_id).scalar_subquery(),
                 select(func.count(Course.id))
                 .where(Course.owner_id == user_id, Course.is_published.is_(True))
                 .scalar_subquery(),
@@ -350,19 +381,20 @@ async def user_detail(db: AsyncSession, user_id: UUID, *, now: datetime) -> User
         )
     ).one()
 
-    overrides = list(
+    entitlement_history = list(
         (
             await db.scalars(
                 select(Entitlement)
-                .where(
-                    Entitlement.user_id == user_id,
-                    Entitlement.starts_at <= now,
-                    or_(Entitlement.valid_until.is_(None), Entitlement.valid_until > now),
-                )
+                .where(Entitlement.user_id == user_id)
                 .order_by(Entitlement.created_at.desc())
             )
         ).all()
     )
+    overrides = [
+        item
+        for item in entitlement_history
+        if item.starts_at <= now and (item.valid_until is None or item.valid_until > now)
+    ]
     iso_year, iso_week, _ = now.date().isocalendar()
     counter_periods = {
         ("agent.writes_per_week", f"{iso_year}-W{iso_week:02d}"): "agent.writes_per_week",
@@ -454,6 +486,7 @@ async def user_detail(db: AsyncSession, user_id: UUID, *, now: datetime) -> User
             last_active_at=activity_row[4],
         ),
         overrides=overrides,
+        entitlement_history=entitlement_history,
         counter_usage=counter_usage,
         payments=payments,
         promo_redemptions=[PromoRedemptionRecord(row[0], row[1]) for row in promo_rows],

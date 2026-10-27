@@ -63,6 +63,7 @@ test('показывает тариф, активность, материалы 
       access: {
         plan_code: 'plus',
         plan_name: 'Plus',
+        plan_version: 1,
         current_period_end: '2026-11-02T03:00:00Z',
         cancel_at_period_end: true,
         features: { 'ai.generation': true, 'classes.xlsx_export': true },
@@ -79,6 +80,54 @@ test('показывает тариф, активность, материалы 
             starts_at: '2026-10-01T00:00:00Z',
             valid_until: null,
             revocable: true,
+          },
+        ],
+        history: [
+          {
+            id: '44444444-4444-4444-8444-444444444444',
+            key: 'limit.ai.generation_tokens_per_week',
+            value: 750000,
+            source: 'admin',
+            reason: 'Индивидуальная квота',
+            starts_at: '2026-10-01T00:00:00Z',
+            valid_until: null,
+            revocable: true,
+            status: 'active',
+            created_at: '2026-10-01T00:00:00Z',
+          },
+        ],
+        decisions: [
+          {
+            key: 'feature.ai.generation',
+            kind: 'feature',
+            value: true,
+            source: 'plan',
+            source_label: 'Тариф Plus v1',
+            reason: null,
+          },
+          {
+            key: 'feature.classes.xlsx_export',
+            kind: 'feature',
+            value: true,
+            source: 'plan',
+            source_label: 'Тариф Plus v1',
+            reason: null,
+          },
+          {
+            key: 'limit.courses.total',
+            kind: 'limit',
+            value: 'unlimited',
+            source: 'plan',
+            source_label: 'Тариф Plus v1',
+            reason: null,
+          },
+          {
+            key: 'limit.tts.chars_per_month',
+            kind: 'limit',
+            value: 150000,
+            source: 'plan',
+            source_label: 'Тариф Plus v1',
+            reason: null,
           },
         ],
         degradation: {
@@ -127,6 +176,8 @@ test('показывает тариф, активность, материалы 
   expect(screen.getAllByText('Plus').length).toBeGreaterThan(0);
   expect(screen.getAllByText('START20').length).toBeGreaterThan(0);
   expect(screen.getAllByText(/Индивидуальная квота/).length).toBeGreaterThan(0);
+  expect(screen.getByText('История персональных прав')).toBeInTheDocument();
+  expect(screen.getAllByText('Тариф Plus v1').length).toBeGreaterThan(0);
   expect(screen.getByText('Управление аккаунтом')).toBeInTheDocument();
   expect(screen.getByText('После перехода на Free')).toBeInTheDocument();
   expect(screen.getByText(/Отключатся: ИИ-генерация/)).toBeInTheDocument();

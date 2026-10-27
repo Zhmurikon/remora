@@ -191,6 +191,7 @@ function AccessSection({ data }: { data: UserDetail }) {
   const { access } = data;
   const limits = Object.entries(access.limits);
   const features = Object.entries(access.features);
+  const decisions = new Map(access.decisions.map((item) => [item.key, item]));
   return (
     <Card className="p-5 shadow-none">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -203,24 +204,26 @@ function AccessSection({ data }: { data: UserDetail }) {
           </p>
         </div>
         <span className="bg-primary-subtle text-primary rounded-sm px-2 py-1 text-xs font-medium">
-          {access.plan_name}
+          {access.plan_name} · v{access.plan_version}
         </span>
       </div>
 
       <div className="mt-5 overflow-x-auto" tabIndex={0} aria-label="Квоты пользователя">
-        <table className="w-full min-w-[540px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[680px] border-collapse text-left text-sm">
           <thead className="text-fg-muted">
             <tr>
               <th className="border-border border-b pb-2 font-medium">Квота</th>
               <th className="border-border border-b pb-2 text-right font-medium">Использовано</th>
               <th className="border-border border-b pb-2 text-right font-medium">Лимит</th>
               <th className="border-border border-b pb-2 text-right font-medium">Осталось</th>
+              <th className="border-border border-b pb-2 pl-4 font-medium">Источник</th>
             </tr>
           </thead>
           <tbody>
             {limits.map(([key, limit]) => {
               const used = access.usage[key];
               const remaining = access.remaining[key];
+              const decision = decisions.get(`limit.${key}`);
               return (
                 <tr key={key} className="border-border border-b last:border-0">
                   <td className="py-3 pr-4">{limitLabels[key] ?? key}</td>
@@ -234,6 +237,12 @@ function AccessSection({ data }: { data: UserDetail }) {
                     {remaining === undefined || remaining === null
                       ? '—'
                       : integer.format(remaining)}
+                  </td>
+                  <td className="py-3 pl-4 text-xs">
+                    <span className="font-medium">{decision?.source_label ?? 'Free'}</span>
+                    {decision?.reason && (
+                      <span className="text-fg-subtle mt-0.5 block">{decision.reason}</span>
+                    )}
                   </td>
                 </tr>
               );
@@ -250,8 +259,13 @@ function AccessSection({ data }: { data: UserDetail }) {
             className="bg-surface-muted flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm"
           >
             <span>{featureLabels[key] ?? key}</span>
-            <span className={enabled ? 'text-success' : 'text-fg-subtle'}>
-              {enabled ? 'Доступно' : 'Недоступно'}
+            <span className="shrink-0 text-right">
+              <span className={enabled ? 'text-success' : 'text-fg-subtle'}>
+                {enabled ? 'Доступно' : 'Недоступно'}
+              </span>
+              <span className="text-fg-subtle mt-0.5 block text-xs">
+                {decisions.get(`feature.${key}`)?.source_label ?? 'Free'}
+              </span>
             </span>
           </li>
         ))}
@@ -277,6 +291,51 @@ function AccessSection({ data }: { data: UserDetail }) {
           </ul>
         </div>
       )}
+
+      <div className="border-border mt-6 border-t pt-5">
+        <h3 className="font-semibold">История персональных прав</h3>
+        <p className="text-fg-muted mt-1 text-sm">
+          Действующие, заменённые и завершённые значения сохраняются для диагностики.
+        </p>
+        {access.history.length === 0 ? (
+          <p className="text-fg-subtle mt-3 text-sm">Персональные права не выдавались.</p>
+        ) : (
+          <div className="mt-3 overflow-x-auto" tabIndex={0} aria-label="История прав">
+            <table className="w-full min-w-[620px] border-collapse text-left text-sm">
+              <thead className="text-fg-muted">
+                <tr>
+                  <th className="border-border border-b pb-2 font-medium">Право</th>
+                  <th className="border-border border-b pb-2 font-medium">Значение</th>
+                  <th className="border-border border-b pb-2 font-medium">Источник</th>
+                  <th className="border-border border-b pb-2 font-medium">Состояние</th>
+                  <th className="border-border border-b pb-2 font-medium">Период</th>
+                </tr>
+              </thead>
+              <tbody>
+                {access.history.map((item) => (
+                  <tr key={item.id} className="border-border border-b last:border-0">
+                    <td className="py-3 pr-4">
+                      <span className="font-medium">
+                        {limitLabels[item.key.replace(/^limit\./, '')] ??
+                          featureLabels[item.key.replace(/^feature\./, '')] ??
+                          item.key}
+                      </span>
+                      <span className="text-fg-subtle mt-0.5 block text-xs">{item.reason}</span>
+                    </td>
+                    <td className="py-3 pr-4 font-mono">{String(item.value)}</td>
+                    <td className="py-3 pr-4">{entitlementSourceLabel(item.source)}</td>
+                    <td className="py-3 pr-4">{entitlementStatusLabel(item.status)}</td>
+                    <td className="py-3 text-xs">
+                      {formatDate(item.starts_at)} —{' '}
+                      {item.valid_until ? formatDate(item.valid_until) : 'без срока'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       <div className="border-border mt-6 border-t pt-5">
         <h3 className="font-semibold">После перехода на Free</h3>
@@ -429,6 +488,27 @@ function ReferralSection({ data }: { data: UserDetail }) {
         </div>
       </dl>
     </Card>
+  );
+}
+
+function entitlementSourceLabel(source: string): string {
+  return (
+    {
+      admin: 'Администратор',
+      promo: 'Промокод',
+      referral: 'Реферал',
+      grandfathering: 'Сохранённые условия',
+    }[source] ?? source
+  );
+}
+
+function entitlementStatusLabel(status: string): string {
+  return (
+    {
+      active: 'Действует',
+      expired: 'Завершено',
+      scheduled: 'Запланировано',
+    }[status] ?? status
   );
 }
 

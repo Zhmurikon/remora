@@ -334,6 +334,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Активные версии тарифов */
+        get: operations["list_admin_plans_api_v1_admin_plans_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/security/audit": {
         parameters: {
             query?: never;
@@ -3362,6 +3379,27 @@ export interface components {
              */
             expires_at: string;
         };
+        /** AdminEntitlementDecision */
+        AdminEntitlementDecision: {
+            /** Key */
+            key: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "feature" | "limit";
+            /** Reason */
+            reason: string | null;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "override" | "plan" | "free";
+            /** Source Label */
+            source_label: string;
+            /** Value */
+            value: boolean | number | "unlimited";
+        };
         /** AdminLoginRequest */
         AdminLoginRequest: {
             /**
@@ -3750,6 +3788,50 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** AdminPlanCatalog */
+        AdminPlanCatalog: {
+            /** Catalog Version */
+            catalog_version: number;
+            /** Items */
+            items: components["schemas"]["AdminPlanItem"][];
+            /** Source */
+            source: string;
+        };
+        /** AdminPlanItem */
+        AdminPlanItem: {
+            /** Active Subscriptions */
+            active_subscriptions: number;
+            /** Code */
+            code: string;
+            /**
+             * Effective From
+             * Format: date-time
+             */
+            effective_from: string;
+            /** Features */
+            features: {
+                [key: string]: boolean;
+            };
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Limits */
+            limits: {
+                [key: string]: number | null;
+            };
+            /** Matches Catalog */
+            matches_catalog: boolean;
+            /** Name */
+            name: string;
+            /** Price Month */
+            price_month: number | null;
+            /** Price Year */
+            price_year: number | null;
+            /** Version */
+            version: number;
+        };
         /** AdminSecurityStatus */
         AdminSecurityStatus: {
             /** Enabled */
@@ -3824,11 +3906,15 @@ export interface components {
             cancel_at_period_end: boolean;
             /** Current Period End */
             current_period_end: string | null;
+            /** Decisions */
+            decisions: components["schemas"]["AdminEntitlementDecision"][];
             degradation: components["schemas"]["AdminUserDegradationPreview"];
             /** Features */
             features: {
                 [key: string]: boolean;
             };
+            /** History */
+            history: components["schemas"]["AdminUserEntitlementHistoryItem"][];
             /** Limits */
             limits: {
                 [key: string]: number | null;
@@ -3839,6 +3925,8 @@ export interface components {
             plan_code: string;
             /** Plan Name */
             plan_name: string;
+            /** Plan Version */
+            plan_version: number;
             /** Remaining */
             remaining: {
                 [key: string]: number | null;
@@ -3937,6 +4025,41 @@ export interface components {
             valid_until?: string | null;
             /** Value */
             value: boolean | number | "unlimited";
+        };
+        /** AdminUserEntitlementHistoryItem */
+        AdminUserEntitlementHistoryItem: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Key */
+            key: string;
+            /** Reason */
+            reason: string;
+            /** Revocable */
+            revocable: boolean;
+            /** Source */
+            source: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "scheduled" | "active" | "expired";
+            /** Valid Until */
+            valid_until: string | null;
+            /** Value */
+            value: boolean | number | string;
         };
         /** AdminUserEntitlementOverride */
         AdminUserEntitlementOverride: {
@@ -8473,6 +8596,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminOverview"];
+                };
+            };
+        };
+    };
+    list_admin_plans_api_v1_admin_plans_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPlanCatalog"];
                 };
             };
         };

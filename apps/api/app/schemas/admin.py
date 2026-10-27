@@ -78,6 +78,20 @@ class AdminUserEntitlementOverride(BaseModel):
     revocable: bool
 
 
+class AdminUserEntitlementHistoryItem(AdminUserEntitlementOverride):
+    status: Literal["scheduled", "active", "expired"]
+    created_at: datetime
+
+
+class AdminEntitlementDecision(BaseModel):
+    key: str
+    kind: Literal["feature", "limit"]
+    value: bool | int | Literal["unlimited"]
+    source: Literal["override", "plan", "free"]
+    source_label: str
+    reason: str | None
+
+
 class AdminUserDegradationLimit(BaseModel):
     key: str
     current: int
@@ -94,6 +108,7 @@ class AdminUserDegradationPreview(BaseModel):
 class AdminUserAccess(BaseModel):
     plan_code: str
     plan_name: str
+    plan_version: int
     current_period_end: datetime | None
     cancel_at_period_end: bool
     features: dict[str, bool]
@@ -101,7 +116,29 @@ class AdminUserAccess(BaseModel):
     usage: dict[str, int]
     remaining: dict[str, int | None]
     overrides: list[AdminUserEntitlementOverride]
+    history: list[AdminUserEntitlementHistoryItem]
+    decisions: list[AdminEntitlementDecision]
     degradation: AdminUserDegradationPreview
+
+
+class AdminPlanItem(BaseModel):
+    id: UUID
+    code: str
+    version: int
+    name: str
+    price_month: int | None
+    price_year: int | None
+    effective_from: datetime
+    features: dict[str, bool]
+    limits: dict[str, int | None]
+    active_subscriptions: int
+    matches_catalog: bool
+
+
+class AdminPlanCatalog(BaseModel):
+    catalog_version: int
+    source: str
+    items: list[AdminPlanItem]
 
 
 class AdminUserRoleUpdate(BaseModel):

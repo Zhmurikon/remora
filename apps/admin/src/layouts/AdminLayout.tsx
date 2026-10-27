@@ -9,6 +9,7 @@ const navigation = [
   { to: '/moderation', label: 'Модерация', end: false },
   { to: '/blog', label: 'Блог', end: false },
   { to: '/payments', label: 'Платежи', end: false },
+  { to: '/plans', label: 'Тарифы и права', end: false },
   { to: '/security', label: 'Безопасность', end: false },
 ];
 

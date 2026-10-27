@@ -35,8 +35,10 @@ PLAN_CATALOG_PATH = Path(__file__).parents[1] / "config" / "plans.yaml"
 class ResolvedEntitlements:
     plan_code: str
     plan_name: str
+    plan_version: int
     features: dict[str, bool]
     limits: dict[str, int | None]
+    sources: dict[str, str]
     current_period_end: datetime | None = None
     cancel_at_period_end: bool = False
 
@@ -90,22 +92,35 @@ class Entitlements:
             )
         ).first()
 
-        catalog = load_plan_catalog()["plans"]
+        full_catalog = load_plan_catalog()
+        catalog = full_catalog["plans"]
+        free_data = catalog["free"]
         if row is None:
             code = "free"
-            plan_data = catalog[code]
+            plan_data = free_data
+            plan_version = int(full_catalog["version"])
             period_end = None
             cancel_at_period_end = False
         else:
             subscription, plan = row
             code = plan.code
+            plan_version = plan.version
             # Снимок версии в БД сохраняет прежние условия подписчика при изменении YAML.
             plan_data = plan.features
             period_end = subscription.current_period_end
             cancel_at_period_end = subscription.cancel_at_period_end
 
-        features = dict(plan_data.get("features", {}))
-        limits = dict(plan_data.get("limits", {}))
+        features = dict(free_data.get("features", {}))
+        limits = dict(free_data.get("limits", {}))
+        sources = {
+            **{f"feature.{key}": "free" for key in features},
+            **{f"limit.{key}": "free" for key in limits},
+        }
+        if code != "free":
+            features.update(plan_data.get("features", {}))
+            limits.update(plan_data.get("limits", {}))
+            sources.update({f"feature.{key}": "plan" for key in plan_data.get("features", {})})
+            sources.update({f"limit.{key}": "plan" for key in plan_data.get("limits", {})})
         overrides = (
             await self.db.scalars(
                 select(Entitlement)
@@ -125,12 +140,15 @@ class Entitlements:
                 limits[override.key.removeprefix("limit.")] = (
                     int(value) if isinstance(value, int) and not isinstance(value, bool) else None
                 )
+            sources[override.key] = "override"
 
         return ResolvedEntitlements(
             plan_code=code,
             plan_name=str(plan_data.get("name", code.title())),
+            plan_version=plan_version,
             features=features,
             limits=limits,
+            sources=sources,
             current_period_end=period_end,
             cancel_at_period_end=cancel_at_period_end,
         )

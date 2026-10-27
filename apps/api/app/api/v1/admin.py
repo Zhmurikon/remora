@@ -12,6 +12,7 @@ from app.models.moderation import ReportStatus
 from app.models.user import User, UserRole, UserStatus
 from app.schemas.admin import (
     AdminOverview,
+    AdminPlanCatalog,
     AdminUserDetail,
     AdminUserEntitlementGrant,
     AdminUserEntitlementRevoke,
@@ -55,6 +56,16 @@ async def get_overview(
     db: AsyncSession = Depends(get_db),
 ) -> AdminOverview:
     return await AdminService(db).overview()
+
+
+@router.get("/plans", response_model=AdminPlanCatalog, summary="Активные версии тарифов")
+async def list_admin_plans(
+    response: Response,
+    _: User = Depends(admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminPlanCatalog:
+    response.headers["Cache-Control"] = "no-store"
+    return await AdminService(db).plans()
 
 
 @router.get("/users", response_model=AdminUserList, summary="Пользователи")
