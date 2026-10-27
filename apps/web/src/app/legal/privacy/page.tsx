@@ -13,9 +13,10 @@ export default function PrivacyPage() {
     <LegalDocument title="Политика обработки персональных данных" version={PDN_CONSENT_VERSION}>
       <h2>1. Оператор и область действия</h2>
       <p>
-        Оператор: {legalConfig.operatorName}. Адрес: {legalConfig.operatorAddress}. Обращения о
-        персональных данных принимаются по адресу {legalConfig.privacyEmail}. Политика применяется к
-        сайту Remora, кабинету, мобильным клиентам и связанным каналам поддержки.
+        Оператор: {legalConfig.operatorName}. ИНН: {legalConfig.operatorInn}. ОГРНИП:{' '}
+        {legalConfig.operatorOgrnip}. Адрес: {legalConfig.operatorAddress}. Обращения о персональных
+        данных принимаются по адресу {legalConfig.privacyEmail}. Политика применяется к сайту
+        Remora, кабинету, мобильным клиентам и связанным каналам поддержки.
       </p>
       <h2>2. Данные, цели и основания</h2>
       <ul>

@@ -39,7 +39,8 @@ docker build -t remora-dev-api:local -f deploy/Dockerfile.api deploy
 не должны получать пароль мигратора или root-ключ MinIO.
 
 До обработки реальных аккаунтов заполнить в `deploy/.env` `LEGAL_OPERATOR_NAME`,
-`LEGAL_OPERATOR_ADDRESS` и `LEGAL_PRIVACY_EMAIL`, выполнить чек-лист
+`LEGAL_OPERATOR_INN`, `LEGAL_OPERATOR_OGRNIP`, `LEGAL_OPERATOR_ADDRESS` и
+`LEGAL_PRIVACY_EMAIL`, выполнить чек-лист
 [`docs/13-personal-data-operations.md`](../docs/13-personal-data-operations.md) и получить
 юридическую проверку опубликованных редакций. Значения `replace-with-*` считаются незаполненными,
 и юридические страницы показывают предупреждение. Уведомление Роскомнадзора и подтверждение
