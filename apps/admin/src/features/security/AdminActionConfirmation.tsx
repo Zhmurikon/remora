@@ -36,8 +36,10 @@ export function AdminActionConfirmation({
         return;
       }
       await onConfirmed(data.confirmation_token, reason.trim());
-    } catch {
-      setError('Сервер недоступен. Повторите попытку позже.');
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : 'Сервер недоступен. Повторите попытку позже.',
+      );
     } finally {
       setLoading(false);
     }

@@ -1,16 +1,25 @@
-"""Read-only представление состояния продукта для владельца Запоминальни."""
+"""Просмотр и защищённое управление пользователями из административной панели."""
 
+import hashlib
+import json
 from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import NotFoundError
+from app.core.errors import ConflictError, ForbiddenError, NotFoundError, ValidationError
+from app.models.billing import Entitlement, EntitlementSource
+from app.models.user import User, UserRole, UserStatus
 from app.repositories import admin as repo
+from app.repositories import admin_security as security_repo
+from app.repositories import token as token_repo
 from app.schemas.admin import (
     AdminOverview,
     AdminUserAccess,
     AdminUserActivity,
+    AdminUserDegradationLimit,
+    AdminUserDegradationPreview,
     AdminUserDetail,
     AdminUserEntitlementOverride,
     AdminUserItem,
@@ -21,7 +30,13 @@ from app.schemas.admin import (
     AdminUserPromoRedemption,
     AdminUserReferral,
 )
-from app.services.entitlements import Entitlements
+from app.services.entitlements import Entitlements, load_plan_catalog
+
+DEGRADATION_GUARANTEES = [
+    "Материалы не удаляются и остаются доступны",
+    "Обучение и повторения не ограничиваются",
+    "Создание сверх новых лимитов блокируется без скрытия существующего",
+]
 
 
 class AdminService:
@@ -74,6 +89,11 @@ class AdminService:
         usage = await entitlements.creation_quota_usage(record.user)
         usage.update(record.counter_usage)
         remaining = entitlements.quota_remaining(resolved.limits, usage)
+        degradation = self._degradation_preview(
+            resolved_features=resolved.features,
+            usage=usage,
+            overrides=record.overrides,
+        )
         return AdminUserDetail(
             id=record.user.id,
             email=record.user.email,
@@ -110,15 +130,18 @@ class AdminService:
                 remaining=remaining,
                 overrides=[
                     AdminUserEntitlementOverride(
+                        id=item.id,
                         key=item.key,
                         value=item.value,
                         source=item.source.value,
                         reason=item.reason,
                         starts_at=item.starts_at,
                         valid_until=item.valid_until,
+                        revocable=item.source is EntitlementSource.admin,
                     )
                     for item in record.overrides
                 ],
+                degradation=degradation,
             ),
             payments=[
                 AdminUserPayment(
@@ -146,4 +169,347 @@ class AdminService:
                 for item in record.promo_redemptions
             ],
             referral=AdminUserReferral(**record.referral.__dict__),
+        )
+
+    async def change_role(
+        self,
+        *,
+        actor: User,
+        user_id: UUID,
+        role: UserRole,
+        reason: str,
+        idempotency_key: str,
+        ip: str | None,
+        user_agent: str | None,
+    ) -> AdminUserDetail:
+        target, repeated = await self._mutation_target(
+            actor=actor,
+            user_id=user_id,
+            action="admin.user.role_changed",
+            idempotency_key=idempotency_key,
+            payload={"role": role.value, "reason": reason},
+        )
+        if repeated:
+            return await self.user(user_id)
+        if target.id == actor.id:
+            raise ForbiddenError("Нельзя изменить собственную роль")
+        if target.status is UserStatus.deleted:
+            raise ConflictError("Удалённый аккаунт нельзя изменять")
+        if target.role is role:
+            raise ConflictError("У пользователя уже выбрана эта роль")
+        if (
+            target.role is UserRole.admin
+            and target.status is UserStatus.active
+            and await repo.lock_active_admins(self.db) <= 1
+        ):
+            raise ConflictError("Нельзя снять роль с последнего активного администратора")
+
+        old_role = target.role
+        target.role = role
+        await token_repo.revoke_all_user_tokens(self.db, target.id)
+        await security_repo.add_audit(
+            self.db,
+            actor_user_id=actor.id,
+            action="admin.user.role_changed",
+            outcome="success",
+            target_type="user",
+            target_id=target.id,
+            reason=reason,
+            idempotency_key=idempotency_key,
+            ip=ip,
+            user_agent=user_agent,
+            details={
+                "request_hash": self._request_hash(
+                    "admin.user.role_changed",
+                    target.id,
+                    {"role": role.value, "reason": reason},
+                ),
+                "old_role": old_role.value,
+                "new_role": role.value,
+            },
+        )
+        await self.db.refresh(target)
+        return await self.user(user_id)
+
+    async def change_status(
+        self,
+        *,
+        actor: User,
+        user_id: UUID,
+        status: UserStatus,
+        reason: str,
+        idempotency_key: str,
+        ip: str | None,
+        user_agent: str | None,
+    ) -> AdminUserDetail:
+        target, repeated = await self._mutation_target(
+            actor=actor,
+            user_id=user_id,
+            action="admin.user.status_changed",
+            idempotency_key=idempotency_key,
+            payload={"status": status.value, "reason": reason},
+        )
+        if repeated:
+            return await self.user(user_id)
+        if target.id == actor.id:
+            raise ForbiddenError("Нельзя изменить состояние собственного аккаунта")
+        if target.status is UserStatus.deleted:
+            raise ConflictError("Удалённый аккаунт нельзя восстановить этой операцией")
+        if target.status is status:
+            raise ConflictError("У пользователя уже выбрано это состояние")
+        if (
+            target.role is UserRole.admin
+            and target.status is UserStatus.active
+            and await repo.lock_active_admins(self.db) <= 1
+        ):
+            raise ConflictError("Нельзя приостановить последнего активного администратора")
+
+        old_status = target.status
+        target.status = status
+        await token_repo.revoke_all_user_tokens(self.db, target.id)
+        await security_repo.add_audit(
+            self.db,
+            actor_user_id=actor.id,
+            action="admin.user.status_changed",
+            outcome="success",
+            target_type="user",
+            target_id=target.id,
+            reason=reason,
+            idempotency_key=idempotency_key,
+            ip=ip,
+            user_agent=user_agent,
+            details={
+                "request_hash": self._request_hash(
+                    "admin.user.status_changed",
+                    target.id,
+                    {"status": status.value, "reason": reason},
+                ),
+                "old_status": old_status.value,
+                "new_status": status.value,
+            },
+        )
+        await self.db.refresh(target)
+        return await self.user(user_id)
+
+    async def grant_entitlement(
+        self,
+        *,
+        actor: User,
+        user_id: UUID,
+        key: str,
+        value: bool | int | str,
+        valid_until: datetime | None,
+        reason: str,
+        idempotency_key: str,
+        ip: str | None,
+        user_agent: str | None,
+    ) -> AdminUserDetail:
+        normalized_value = self._validate_entitlement(key, value)
+        if valid_until is not None:
+            if valid_until.tzinfo is None or valid_until.utcoffset() is None:
+                raise ValidationError("Срок персонального права должен содержать часовой пояс")
+            if valid_until <= datetime.now(UTC):
+                raise ValidationError("Срок персонального права должен быть в будущем")
+        payload = {
+            "key": key,
+            "value": normalized_value,
+            "valid_until": valid_until,
+            "reason": reason,
+        }
+        target, repeated = await self._mutation_target(
+            actor=actor,
+            user_id=user_id,
+            action="admin.user.entitlement_granted",
+            idempotency_key=idempotency_key,
+            payload=payload,
+        )
+        if repeated:
+            return await self.user(user_id)
+        if target.status is UserStatus.deleted:
+            raise ConflictError("Удалённому аккаунту нельзя выдать право")
+
+        now = datetime.now(UTC)
+        previous = await repo.active_admin_entitlements(self.db, user_id, key, now=now)
+        for item in previous:
+            item.valid_until = now
+        entitlement = Entitlement(
+            user_id=user_id,
+            key=key,
+            value=normalized_value,
+            source=EntitlementSource.admin,
+            reason=reason,
+            starts_at=now,
+            valid_until=valid_until,
+        )
+        self.db.add(entitlement)
+        await self.db.flush()
+        await security_repo.add_audit(
+            self.db,
+            actor_user_id=actor.id,
+            action="admin.user.entitlement_granted",
+            outcome="success",
+            target_type="user",
+            target_id=target.id,
+            reason=reason,
+            idempotency_key=idempotency_key,
+            ip=ip,
+            user_agent=user_agent,
+            details={
+                "request_hash": self._request_hash(
+                    "admin.user.entitlement_granted", target.id, payload
+                ),
+                "entitlement_id": str(entitlement.id),
+                "key": key,
+                "value": normalized_value,
+                "valid_until": valid_until.isoformat() if valid_until else None,
+                "replaced_ids": [str(item.id) for item in previous],
+            },
+        )
+        return await self.user(user_id)
+
+    async def revoke_entitlement(
+        self,
+        *,
+        actor: User,
+        user_id: UUID,
+        entitlement_id: UUID,
+        reason: str,
+        idempotency_key: str,
+        ip: str | None,
+        user_agent: str | None,
+    ) -> AdminUserDetail:
+        payload = {"entitlement_id": entitlement_id, "reason": reason}
+        target, repeated = await self._mutation_target(
+            actor=actor,
+            user_id=user_id,
+            action="admin.user.entitlement_revoked",
+            idempotency_key=idempotency_key,
+            payload=payload,
+        )
+        if repeated:
+            return await self.user(user_id)
+        entitlement = await repo.entitlement_for_update(self.db, user_id, entitlement_id)
+        if entitlement is None:
+            raise NotFoundError("Персональное право не найдено")
+        if entitlement.source is not EntitlementSource.admin:
+            raise ForbiddenError("Можно отзывать только права, выданные администратором")
+        now = datetime.now(UTC)
+        if entitlement.valid_until is not None and entitlement.valid_until <= now:
+            raise ConflictError("Персональное право уже не действует")
+        entitlement.valid_until = now
+        await security_repo.add_audit(
+            self.db,
+            actor_user_id=actor.id,
+            action="admin.user.entitlement_revoked",
+            outcome="success",
+            target_type="user",
+            target_id=target.id,
+            reason=reason,
+            idempotency_key=idempotency_key,
+            ip=ip,
+            user_agent=user_agent,
+            details={
+                "request_hash": self._request_hash(
+                    "admin.user.entitlement_revoked", target.id, payload
+                ),
+                "entitlement_id": str(entitlement.id),
+                "key": entitlement.key,
+                "value": entitlement.value,
+            },
+        )
+        return await self.user(user_id)
+
+    async def _mutation_target(
+        self,
+        *,
+        actor: User,
+        user_id: UUID,
+        action: str,
+        idempotency_key: str,
+        payload: dict[str, Any],
+    ) -> tuple[User, bool]:
+        target = await repo.user_for_update(self.db, user_id)
+        if target is None:
+            raise NotFoundError("Пользователь не найден")
+        existing = await security_repo.get_audit_by_idempotency(self.db, idempotency_key)
+        if existing is None:
+            return target, False
+        expected_hash = self._request_hash(action, user_id, payload)
+        if (
+            existing.actor_user_id != actor.id
+            or existing.action != action
+            or existing.target_id != user_id
+            or existing.details.get("request_hash") != expected_hash
+        ):
+            raise ConflictError("Ключ идемпотентности уже использован для другого действия")
+        return target, True
+
+    @staticmethod
+    def _request_hash(action: str, user_id: UUID, payload: dict[str, Any]) -> str:
+        serialized = json.dumps(
+            {"action": action, "user_id": str(user_id), "payload": payload},
+            sort_keys=True,
+            ensure_ascii=False,
+            default=str,
+            separators=(",", ":"),
+        )
+        return hashlib.sha256(serialized.encode()).hexdigest()
+
+    @staticmethod
+    def _validate_entitlement(key: str, value: bool | int | str) -> bool | int | str:
+        catalog = load_plan_catalog()["plans"]
+        feature_keys = {
+            f"feature.{name}"
+            for plan in catalog.values()
+            for name in plan.get("features", {})
+        }
+        limit_keys = {
+            f"limit.{name}" for plan in catalog.values() for name in plan.get("limits", {})
+        }
+        if key in feature_keys and type(value) is bool:
+            return value
+        if key in limit_keys and (
+            (type(value) is int and value >= 0) or value == "unlimited"
+        ):
+            return value
+        if key not in feature_keys | limit_keys:
+            raise ValidationError("Неизвестное тарифное право")
+        raise ValidationError("Значение не соответствует типу тарифного права")
+
+    @staticmethod
+    def _degradation_preview(
+        *,
+        resolved_features: dict[str, bool],
+        usage: dict[str, int],
+        overrides: list[Entitlement],
+    ) -> AdminUserDegradationPreview:
+        free = load_plan_catalog()["plans"]["free"]
+        projected_features = dict(free.get("features", {}))
+        projected_limits = dict(free.get("limits", {}))
+        for override in overrides:
+            if override.key.startswith("feature."):
+                projected_features[override.key.removeprefix("feature.")] = bool(override.value)
+            elif override.key.startswith("limit."):
+                value = override.value
+                projected_limits[override.key.removeprefix("limit.")] = (
+                    value if type(value) is int else None
+                )
+        impacts = [
+            AdminUserDegradationLimit(
+                key=key,
+                current=current,
+                projected_limit=limit,
+                over_by=current - limit,
+            )
+            for key, current in usage.items()
+            if (limit := projected_limits.get(key)) is not None and current > limit
+        ]
+        return AdminUserDegradationPreview(
+            limit_impacts=impacts,
+            lost_features=sorted(
+                key
+                for key, enabled in resolved_features.items()
+                if enabled and not projected_features.get(key, False)
+            ),
+            guarantees=DEGRADATION_GUARANTEES,
         )

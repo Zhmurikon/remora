@@ -69,6 +69,7 @@ async def add_audit(
     target_type: str | None = None,
     target_id: UUID | None = None,
     reason: str | None = None,
+    idempotency_key: str | None = None,
     details: dict[str, Any] | None = None,
 ) -> AdminAuditLog:
     item = AdminAuditLog(
@@ -80,11 +81,23 @@ async def add_audit(
         target_type=target_type,
         target_id=target_id,
         reason=reason,
+        idempotency_key=idempotency_key,
         details=details or {},
     )
     db.add(item)
     await db.flush()
     return item
+
+
+async def get_audit_by_idempotency(
+    db: AsyncSession, idempotency_key: str
+) -> AdminAuditLog | None:
+    return cast(
+        AdminAuditLog | None,
+        await db.scalar(
+            select(AdminAuditLog).where(AdminAuditLog.idempotency_key == idempotency_key)
+        ),
+    )
 
 
 async def list_audit(

@@ -65,6 +65,7 @@ class AdminAuditItem(BaseModel):
     target_type: str | None
     target_id: UUID | None
     reason: str | None
+    idempotency_key: str | None
     ip: str | None
     details: dict[str, object]
     created_at: datetime

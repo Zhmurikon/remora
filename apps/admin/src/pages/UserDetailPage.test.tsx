@@ -71,14 +71,21 @@ test('показывает тариф, активность, материалы 
         remaining: { 'courses.total': null, 'tts.chars_per_month': 148800 },
         overrides: [
           {
+            id: '44444444-4444-4444-8444-444444444444',
             key: 'limit.ai.generation_tokens_per_week',
             value: 750000,
             source: 'admin',
             reason: 'Индивидуальная квота',
             starts_at: '2026-10-01T00:00:00Z',
             valid_until: null,
+            revocable: true,
           },
         ],
+        degradation: {
+          limit_impacts: [],
+          lost_features: ['ai.generation', 'classes.xlsx_export'],
+          guarantees: ['Материалы не удаляются и остаются доступны'],
+        },
       },
       payments: [
         {
@@ -119,7 +126,10 @@ test('показывает тариф, активность, материалы 
   expect(screen.getByText('413')).toBeInTheDocument();
   expect(screen.getAllByText('Plus').length).toBeGreaterThan(0);
   expect(screen.getAllByText('START20').length).toBeGreaterThan(0);
-  expect(screen.getByText(/Индивидуальная квота/)).toBeInTheDocument();
+  expect(screen.getAllByText(/Индивидуальная квота/).length).toBeGreaterThan(0);
+  expect(screen.getByText('Управление аккаунтом')).toBeInTheDocument();
+  expect(screen.getByText('После перехода на Free')).toBeInTheDocument();
+  expect(screen.getByText(/Отключатся: ИИ-генерация/)).toBeInTheDocument();
   expect(screen.getByText('RMR-STUDENT')).toBeInTheDocument();
   expect(get).toHaveBeenCalledWith('/api/v1/admin/users/{user_id}', {
     params: { path: { user_id: '11111111-1111-4111-8111-111111111111' } },

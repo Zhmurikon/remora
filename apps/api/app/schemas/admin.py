@@ -1,9 +1,10 @@
-"""Контракты простой административной панели только для чтения."""
+"""Контракты просмотра и управления пользователями в административной панели."""
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class AdminOverview(BaseModel):
@@ -67,12 +68,27 @@ class AdminUserActivity(BaseModel):
 
 
 class AdminUserEntitlementOverride(BaseModel):
+    id: UUID
     key: str
     value: bool | int | str
     source: str
     reason: str
     starts_at: datetime
     valid_until: datetime | None
+    revocable: bool
+
+
+class AdminUserDegradationLimit(BaseModel):
+    key: str
+    current: int
+    projected_limit: int
+    over_by: int
+
+
+class AdminUserDegradationPreview(BaseModel):
+    limit_impacts: list[AdminUserDegradationLimit]
+    lost_features: list[str]
+    guarantees: list[str]
 
 
 class AdminUserAccess(BaseModel):
@@ -85,6 +101,28 @@ class AdminUserAccess(BaseModel):
     usage: dict[str, int]
     remaining: dict[str, int | None]
     overrides: list[AdminUserEntitlementOverride]
+    degradation: AdminUserDegradationPreview
+
+
+class AdminUserRoleUpdate(BaseModel):
+    role: Literal["user", "teacher", "moderator", "admin"]
+    reason: str = Field(min_length=10, max_length=500)
+
+
+class AdminUserStatusUpdate(BaseModel):
+    status: Literal["active", "suspended"]
+    reason: str = Field(min_length=10, max_length=500)
+
+
+class AdminUserEntitlementGrant(BaseModel):
+    key: str = Field(min_length=1, max_length=80)
+    value: bool | int | Literal["unlimited"]
+    valid_until: datetime | None = None
+    reason: str = Field(min_length=10, max_length=240)
+
+
+class AdminUserEntitlementRevoke(BaseModel):
+    reason: str = Field(min_length=10, max_length=500)
 
 
 class AdminUserPayment(BaseModel):

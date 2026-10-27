@@ -3,6 +3,7 @@ import { Card } from '@remora/ui/base';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { api, getErrorMessage } from '../lib/api';
+import { EntitlementManagement, UserManagement } from '../features/users/UserManagement';
 
 type UserDetail = components['schemas']['AdminUserDetail'];
 
@@ -72,10 +73,10 @@ export function UserDetailPage() {
     );
   }
 
-  return <UserDetailContent data={user.data} />;
+  return <UserDetailContent data={user.data} onUpdated={() => void user.refetch()} />;
 }
 
-function UserDetailContent({ data }: { data: UserDetail }) {
+function UserDetailContent({ data, onUpdated }: { data: UserDetail; onUpdated: () => void }) {
   return (
     <section aria-labelledby="user-title">
       <BackLink />
@@ -100,10 +101,12 @@ function UserDetailContent({ data }: { data: UserDetail }) {
           <ActivitySection data={data} />
           <MaterialsSection data={data} />
           <AccessSection data={data} />
+          <EntitlementManagement data={data} onUpdated={onUpdated} />
           <PaymentsSection data={data} />
         </div>
         <aside className="space-y-5">
           <AccountSection data={data} />
+          <UserManagement data={data} onUpdated={onUpdated} />
           <ReferralSection data={data} />
         </aside>
       </div>
@@ -259,10 +262,7 @@ function AccessSection({ data }: { data: UserDetail }) {
           <h3 className="font-semibold">Персональные права</h3>
           <ul className="mt-3 space-y-3">
             {access.overrides.map((item) => (
-              <li
-                key={`${item.key}-${item.starts_at}`}
-                className="bg-warning-subtle rounded-md px-3 py-3 text-sm"
-              >
+              <li key={item.id} className="bg-warning-subtle rounded-md px-3 py-3 text-sm">
                 <p className="font-medium">
                   {limitLabels[item.key.replace(/^limit\./, '')] ?? item.key}
                 </p>
@@ -277,6 +277,48 @@ function AccessSection({ data }: { data: UserDetail }) {
           </ul>
         </div>
       )}
+
+      <div className="border-border mt-6 border-t pt-5">
+        <h3 className="font-semibold">После перехода на Free</h3>
+        <p className="text-fg-muted mt-1 text-sm">
+          Предпросмотр учитывает действующие персональные права.
+        </p>
+        {access.degradation.limit_impacts.length === 0 &&
+        access.degradation.lost_features.length === 0 ? (
+          <p className="bg-success-subtle text-success mt-3 rounded-md p-3 text-sm">
+            Текущий объём укладывается в квоты, платные возможности просто отключатся по тарифу.
+          </p>
+        ) : (
+          <div className="mt-3 space-y-3">
+            {access.degradation.limit_impacts.length > 0 && (
+              <ul className="bg-warning-subtle space-y-2 rounded-md p-3 text-sm">
+                {access.degradation.limit_impacts.map((item) => (
+                  <li key={item.key}>
+                    <span className="font-medium">{limitLabels[item.key] ?? item.key}:</span>{' '}
+                    {integer.format(item.current)} при квоте {integer.format(item.projected_limit)}.
+                    Новое создание будет ограничено, превышение {integer.format(item.over_by)} не
+                    удаляется.
+                  </li>
+                ))}
+              </ul>
+            )}
+            {access.degradation.lost_features.length > 0 && (
+              <p className="text-fg-muted text-sm">
+                Отключатся:{' '}
+                {access.degradation.lost_features
+                  .map((key) => featureLabels[key] ?? key)
+                  .join(', ')}
+                .
+              </p>
+            )}
+          </div>
+        )}
+        <ul className="text-fg-subtle mt-3 list-disc space-y-1 pl-5 text-xs">
+          {access.degradation.guarantees.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </div>
     </Card>
   );
 }

@@ -11,6 +11,10 @@ const actionLabels: Record<string, string> = {
   'admin.2fa.enabled': 'Включение 2FA',
   'admin.login.2fa': 'Проверка второго фактора',
   'admin.confirmation': 'Повторное подтверждение',
+  'admin.user.role_changed': 'Изменение роли пользователя',
+  'admin.user.status_changed': 'Изменение состояния пользователя',
+  'admin.user.entitlement_granted': 'Выдача персонального права',
+  'admin.user.entitlement_revoked': 'Отзыв персонального права',
 };
 
 export function SecurityPage() {
@@ -77,7 +81,9 @@ export function SecurityPage() {
         <h2 id="audit-title" className="text-xl font-semibold">
           Журнал действий
         </h2>
-        <p className="text-fg-muted mt-1 text-sm">Последние входы и проверки безопасности.</p>
+        <p className="text-fg-muted mt-1 text-sm">
+          Последние входы, проверки безопасности и изменения пользователей.
+        </p>
         {audit.isError ? (
           <ErrorState message={audit.error.message} />
         ) : audit.isPending ? (
@@ -124,7 +130,10 @@ function AuditRow({ item }: { item: AuditItem }) {
     <tr>
       <td className="whitespace-nowrap px-4 py-3">{formatDate(item.created_at)}</td>
       <td className="px-4 py-3">{item.actor_username ?? 'Система'}</td>
-      <td className="px-4 py-3">{actionLabels[item.action] ?? item.action}</td>
+      <td className="px-4 py-3">
+        <span>{actionLabels[item.action] ?? item.action}</span>
+        {item.reason && <span className="text-fg-muted mt-1 block text-xs">{item.reason}</span>}
+      </td>
       <td className={`px-4 py-3 font-medium ${success ? 'text-success' : 'text-danger'}`}>
         {success ? 'Успешно' : 'Отклонено'}
       </td>

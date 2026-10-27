@@ -244,6 +244,7 @@ class AdminSecurityService:
                     target_type=item.target_type,
                     target_id=item.target_id,
                     reason=item.reason,
+                    idempotency_key=item.idempotency_key,
                     ip=item.ip,
                     details=item.details,
                     created_at=item.created_at,

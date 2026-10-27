@@ -85,11 +85,11 @@ async def admin_user(request: Request, user: User = Depends(current_user)) -> Us
 
 
 async def confirmed_admin_user(
-    confirmation: str = Header(alias="X-Admin-Confirmation"),
+    confirmation: str | None = Header(default=None, alias="X-Admin-Confirmation"),
     user: User = Depends(admin_user),
 ) -> User:
     """Повторная проверка для будущих чувствительных административных операций."""
-    if not verify_admin_confirmation(confirmation, user):
+    if confirmation is None or not verify_admin_confirmation(confirmation, user):
         raise ForbiddenError("Требуется повторное подтверждение административного действия")
     return user
 

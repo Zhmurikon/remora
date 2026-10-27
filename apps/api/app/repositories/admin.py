@@ -5,6 +5,7 @@ from __future__ import annotations
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from typing import cast
 from uuid import UUID
 
 from sqlalchemy import and_, case, func, or_, select
@@ -13,6 +14,7 @@ from sqlalchemy.sql.elements import ColumnElement
 
 from app.models.billing import (
     Entitlement,
+    EntitlementSource,
     Payment,
     Plan,
     PromoCode,
@@ -26,7 +28,7 @@ from app.models.courses import Course
 from app.models.moderation import CourseReport, ReportStatus
 from app.models.study import Review
 from app.models.tts import UsageCounter
-from app.models.user import OauthAccount, User
+from app.models.user import OauthAccount, User, UserRole, UserStatus
 
 
 @dataclass(frozen=True)
@@ -111,6 +113,53 @@ class UserDetailRecord:
     payments: list[PaymentRecord]
     promo_redemptions: list[PromoRedemptionRecord]
     referral: ReferralRecord
+
+
+async def user_for_update(db: AsyncSession, user_id: UUID) -> User | None:
+    return cast(
+        User | None,
+        await db.scalar(select(User).where(User.id == user_id).with_for_update()),
+    )
+
+
+async def lock_active_admins(db: AsyncSession) -> int:
+    rows = await db.scalars(
+        select(User.id)
+        .where(User.role == UserRole.admin, User.status == UserStatus.active)
+        .with_for_update()
+    )
+    return len(list(rows))
+
+
+async def active_admin_entitlements(
+    db: AsyncSession, user_id: UUID, key: str, *, now: datetime
+) -> list[Entitlement]:
+    return list(
+        await db.scalars(
+            select(Entitlement)
+            .where(
+                Entitlement.user_id == user_id,
+                Entitlement.key == key,
+                Entitlement.source == EntitlementSource.admin,
+                Entitlement.starts_at <= now,
+                or_(Entitlement.valid_until.is_(None), Entitlement.valid_until > now),
+            )
+            .with_for_update()
+        )
+    )
+
+
+async def entitlement_for_update(
+    db: AsyncSession, user_id: UUID, entitlement_id: UUID
+) -> Entitlement | None:
+    return cast(
+        Entitlement | None,
+        await db.scalar(
+            select(Entitlement)
+            .where(Entitlement.id == entitlement_id, Entitlement.user_id == user_id)
+            .with_for_update()
+        ),
+    )
 
 
 async def overview(db: AsyncSession, *, now: datetime | None = None) -> OverviewRecord:

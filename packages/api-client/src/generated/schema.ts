@@ -179,6 +179,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/users/{user_id}/entitlements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Выдать персональное право */
+        post: operations["grant_user_entitlement_api_v1_admin_users__user_id__entitlements_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/entitlements/{entitlement_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Отозвать персональное право */
+        delete: operations["revoke_user_entitlement_api_v1_admin_users__user_id__entitlements__entitlement_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Изменить роль пользователя */
+        patch: operations["change_user_role_api_v1_admin_users__user_id__role_patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Приостановить или восстановить пользователя */
+        patch: operations["change_user_status_api_v1_admin_users__user_id__status_patch"];
+        trace?: never;
+    };
     "/api/v1/agent/blog/media": {
         parameters: {
             query?: never;
@@ -2852,6 +2920,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Idempotency Key */
+            idempotency_key: string | null;
             /** Ip */
             ip: string | null;
             /** Outcome */
@@ -2982,6 +3052,7 @@ export interface components {
             cancel_at_period_end: boolean;
             /** Current Period End */
             current_period_end: string | null;
+            degradation: components["schemas"]["AdminUserDegradationPreview"];
             /** Features */
             features: {
                 [key: string]: boolean;
@@ -3017,6 +3088,26 @@ export interface components {
             reviews_7d: number;
             /** Reviews Total */
             reviews_total: number;
+        };
+        /** AdminUserDegradationLimit */
+        AdminUserDegradationLimit: {
+            /** Current */
+            current: number;
+            /** Key */
+            key: string;
+            /** Over By */
+            over_by: number;
+            /** Projected Limit */
+            projected_limit: number;
+        };
+        /** AdminUserDegradationPreview */
+        AdminUserDegradationPreview: {
+            /** Guarantees */
+            guarantees: string[];
+            /** Limit Impacts */
+            limit_impacts: components["schemas"]["AdminUserDegradationLimit"][];
+            /** Lost Features */
+            lost_features: string[];
         };
         /** AdminUserDetail */
         AdminUserDetail: {
@@ -3064,12 +3155,30 @@ export interface components {
             /** Username */
             username: string;
         };
-        /** AdminUserEntitlementOverride */
-        AdminUserEntitlementOverride: {
+        /** AdminUserEntitlementGrant */
+        AdminUserEntitlementGrant: {
             /** Key */
             key: string;
             /** Reason */
             reason: string;
+            /** Valid Until */
+            valid_until?: string | null;
+            /** Value */
+            value: boolean | number | "unlimited";
+        };
+        /** AdminUserEntitlementOverride */
+        AdminUserEntitlementOverride: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Key */
+            key: string;
+            /** Reason */
+            reason: string;
+            /** Revocable */
+            revocable: boolean;
             /** Source */
             source: string;
             /**
@@ -3081,6 +3190,11 @@ export interface components {
             valid_until: string | null;
             /** Value */
             value: boolean | number | string;
+        };
+        /** AdminUserEntitlementRevoke */
+        AdminUserEntitlementRevoke: {
+            /** Reason */
+            reason: string;
         };
         /** AdminUserItem */
         AdminUserItem: {
@@ -3217,6 +3331,26 @@ export interface components {
             invited_total: number;
             /** Rewarded Total */
             rewarded_total: number;
+        };
+        /** AdminUserRoleUpdate */
+        AdminUserRoleUpdate: {
+            /** Reason */
+            reason: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "user" | "teacher" | "moderator" | "admin";
+        };
+        /** AdminUserStatusUpdate */
+        AdminUserStatusUpdate: {
+            /** Reason */
+            reason: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "suspended";
         };
         /** AgentArticleDetail */
         AgentArticleDetail: {
@@ -7134,6 +7268,159 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    grant_user_entitlement_api_v1_admin_users__user_id__entitlements_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Admin-Confirmation"?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminUserEntitlementGrant"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_user_entitlement_api_v1_admin_users__user_id__entitlements__entitlement_id__delete: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Admin-Confirmation"?: string | null;
+            };
+            path: {
+                user_id: string;
+                entitlement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminUserEntitlementRevoke"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_user_role_api_v1_admin_users__user_id__role_patch: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Admin-Confirmation"?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminUserRoleUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_user_status_api_v1_admin_users__user_id__status_patch: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Admin-Confirmation"?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminUserStatusUpdate"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

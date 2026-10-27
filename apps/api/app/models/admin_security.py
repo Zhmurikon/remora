@@ -40,6 +40,7 @@ class AdminAuditLog(UUIDPrimaryKeyMixin, Base):
     target_type: Mapped[str | None] = mapped_column(String(48))
     target_id: Mapped[UUID | None] = mapped_column()
     reason: Mapped[str | None] = mapped_column(String(500))
+    idempotency_key: Mapped[str | None] = mapped_column(String(64), unique=True, index=True)
     ip: Mapped[str | None] = mapped_column(String(45))
     user_agent: Mapped[str | None] = mapped_column(String(512))
     details: Mapped[dict[str, Any]] = mapped_column(
