@@ -89,9 +89,7 @@ async def add_audit(
     return item
 
 
-async def get_audit_by_idempotency(
-    db: AsyncSession, idempotency_key: str
-) -> AdminAuditLog | None:
+async def get_audit_by_idempotency(db: AsyncSession, idempotency_key: str) -> AdminAuditLog | None:
     return cast(
         AdminAuditLog | None,
         await db.scalar(
@@ -114,3 +112,18 @@ async def list_audit(
         )
     ).all()
     return [(row[0], row[1]) for row in rows], total
+
+
+async def target_history(
+    db: AsyncSession, *, target_type: str, target_id: UUID
+) -> list[tuple[AdminAuditLog, str | None]]:
+    rows = await db.execute(
+        select(AdminAuditLog, User.username)
+        .outerjoin(User, User.id == AdminAuditLog.actor_user_id)
+        .where(
+            AdminAuditLog.target_type == target_type,
+            AdminAuditLog.target_id == target_id,
+        )
+        .order_by(AdminAuditLog.created_at.desc(), AdminAuditLog.id.desc())
+    )
+    return [(row[0], row[1]) for row in rows.all()]

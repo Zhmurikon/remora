@@ -51,7 +51,7 @@ class BlogService:
 
     async def create(self, user: User, body: BlogPostWrite) -> BlogPostDetail:
         self.require_editor(user)
-        await self._validate_media(user, body)
+        await self._validate_media(user.id, body)
         post = BlogPost(
             author_id=user.id,
             slug=body.slug,
@@ -71,13 +71,16 @@ class BlogService:
 
     async def update(self, user: User, post_id: UUID, body: BlogPostUpdate) -> BlogPostDetail:
         post = await self.owned(user, post_id, lock=True)
+        return await self.update_post(post, body)
+
+    async def update_post(self, post: BlogPost, body: BlogPostUpdate) -> BlogPostDetail:
         if post.revision != body.revision:
             raise ConflictError(
                 "Публикация изменилась. Прочитайте её заново", details={"reason": "stale_revision"}
             )
         if post.status == "published":
             raise ConflictError("Перед изменением снимите публикацию с блога")
-        await self._validate_media(user, body)
+        await self._validate_media(post.author_id, body)
         post.slug = body.slug
         post.title = body.title
         post.description = body.description
@@ -94,11 +97,18 @@ class BlogService:
 
     async def publish(self, user: User, post_id: UUID, revision: int) -> BlogPostDetail:
         post = await self.owned(user, post_id, lock=True)
+        return await self.publish_post(post, revision)
+
+    async def publish_post(
+        self, post: BlogPost, revision: int, *, published_at: datetime | None = None
+    ) -> BlogPostDetail:
         self._check_revision(post, revision)
-        if post.status == "published":
+        if post.status == "published" and published_at is None:
             return self._detail(post)
-        post.status = "published"
-        post.published_at = post.published_at or datetime.now(UTC)
+        now = datetime.now(UTC)
+        effective_at = published_at or now
+        post.status = "scheduled" if effective_at > now else "published"
+        post.published_at = effective_at
         post.updated_at = datetime.now(UTC)
         post.revision += 1
         await self.db.flush()
@@ -107,10 +117,14 @@ class BlogService:
 
     async def unpublish(self, user: User, post_id: UUID, revision: int) -> BlogPostDetail:
         post = await self.owned(user, post_id, lock=True)
+        return await self.unpublish_post(post, revision)
+
+    async def unpublish_post(self, post: BlogPost, revision: int) -> BlogPostDetail:
         self._check_revision(post, revision)
         if post.status == "draft":
             return self._detail(post)
         post.status = "draft"
+        post.published_at = None
         post.updated_at = datetime.now(UTC)
         post.revision += 1
         await self.db.flush()
@@ -139,7 +153,7 @@ class BlogService:
             raise NotFoundError("Публикация блога не найдена")
         return await self._public(post)
 
-    async def _validate_media(self, user: User, body: BlogPostWrite) -> None:
+    async def _validate_media(self, owner_id: UUID, body: BlogPostWrite) -> None:
         ids = {
             media_id
             for section in body.sections
@@ -149,7 +163,7 @@ class BlogService:
             ids.add(body.cover_media_id)
         assets = {asset.id: asset for asset in await content_repo.get_media_assets(self.db, ids)}
         if any(media_id not in assets for media_id in ids) or any(
-            asset.owner_id != user.id or asset.status != MediaStatus.ready
+            asset.owner_id != owner_id or asset.status != MediaStatus.ready
             for asset in assets.values()
         ):
             raise ConflictError(

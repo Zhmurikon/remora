@@ -7,6 +7,7 @@ const navigation = [
   { to: '/', label: 'Сводка', end: true },
   { to: '/users', label: 'Пользователи', end: false },
   { to: '/moderation', label: 'Модерация', end: false },
+  { to: '/blog', label: 'Блог', end: false },
   { to: '/security', label: 'Безопасность', end: false },
 ];
 
@@ -28,8 +29,8 @@ export function AdminLayout() {
       >
         К содержимому
       </a>
-      <aside className="border-border bg-surface border-b px-4 py-3 lg:sticky lg:top-0 lg:h-dvh lg:border-b-0 lg:border-r lg:p-5">
-        <div className="flex items-center justify-between gap-4 lg:block">
+      <aside className="border-border bg-surface min-w-0 border-b px-4 py-3 lg:sticky lg:top-0 lg:h-dvh lg:border-b-0 lg:border-r lg:p-5">
+        <div className="flex min-w-0 items-center gap-4 lg:block">
           <div
             className="flex items-center gap-2.5 px-1"
             aria-label="Запоминальня — администрирование"
@@ -40,7 +41,10 @@ export function AdminLayout() {
               <p className="text-fg-subtle text-xs">Администрирование</p>
             </div>
           </div>
-          <nav className="flex gap-1 lg:mt-8 lg:block lg:space-y-1" aria-label="Разделы панели">
+          <nav
+            className="flex min-w-0 flex-1 gap-1 overflow-x-auto lg:mt-8 lg:block lg:space-y-1 lg:overflow-visible"
+            aria-label="Разделы панели"
+          >
             {navigation.map(({ to, label, end }) => (
               <NavLink
                 key={to}

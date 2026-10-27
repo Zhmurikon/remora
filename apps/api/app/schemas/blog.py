@@ -101,7 +101,7 @@ class BlogSectionPublic(BaseModel):
 
 class BlogPostDetail(BlogPostWrite):
     id: UUID
-    status: Literal["draft", "published"]
+    status: Literal["draft", "scheduled", "published"]
     revision: int
     published_at: datetime | None
     updated_at: datetime

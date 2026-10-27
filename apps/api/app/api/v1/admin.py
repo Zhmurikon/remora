@@ -19,6 +19,11 @@ from app.schemas.admin import (
     AdminUserRoleUpdate,
     AdminUserStatusUpdate,
 )
+from app.schemas.admin_blog import (
+    AdminBlogPostDetail,
+    AdminBlogPostList,
+    AdminBlogPublicationAction,
+)
 from app.schemas.admin_moderation import (
     AdminModerationCourseAction,
     AdminModerationCourseDetail,
@@ -26,8 +31,13 @@ from app.schemas.admin_moderation import (
     AdminModerationReportList,
     AdminModerationResolution,
 )
+from app.schemas.agent import AgentMediaUpload, AgentMediaUploadResult
+from app.schemas.blog import BlogPostUpdate, BlogPostWrite
 from app.services.admin import AdminService
+from app.services.admin_blog import AdminBlogService
 from app.services.admin_moderation import AdminModerationService
+from app.services.agent import AgentService
+from app.services.agent_media import AgentMediaService
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -298,6 +308,130 @@ async def act_on_moderation_course(
         course_id=course_id,
         action=body.action,
         reason=body.reason,
+        idempotency_key=idempotency_key,
+        ip=ip,
+        user_agent=user_agent,
+    )
+
+
+@router.get("/blog/posts", response_model=AdminBlogPostList, summary="Публикации блога")
+async def list_blog_posts(
+    query: Annotated[str | None, Query(min_length=1, max_length=160)] = None,
+    status: Literal["draft", "scheduled", "published"] | None = Query(default=None),
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    _: User = Depends(admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminBlogPostList:
+    return await AdminBlogService(db).posts(
+        query=query.strip() if query else None,
+        status=status,
+        offset=offset,
+        limit=limit,
+    )
+
+
+@router.post(
+    "/blog/media",
+    response_model=AgentMediaUploadResult,
+    status_code=201,
+    summary="Загрузить изображение блога",
+)
+async def upload_blog_media(
+    body: AgentMediaUpload,
+    idempotency_key: IdempotencyKey,
+    actor: User = Depends(admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, object]:
+    return await AgentService(db).once(
+        actor,
+        idempotency_key,
+        "admin-upload-blog-media",
+        body,
+        lambda: AgentMediaService(db).upload(actor, body),
+    )
+
+
+@router.get(
+    "/blog/posts/{post_id}", response_model=AdminBlogPostDetail, summary="Редакционная статья"
+)
+async def get_blog_post(
+    post_id: UUID,
+    response: Response,
+    _: User = Depends(admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminBlogPostDetail:
+    response.headers["Cache-Control"] = "no-store"
+    return await AdminBlogService(db).post(post_id)
+
+
+@router.post(
+    "/blog/posts", response_model=AdminBlogPostDetail, status_code=201, summary="Создать статью"
+)
+async def create_blog_post(
+    body: BlogPostWrite,
+    request: Request,
+    response: Response,
+    idempotency_key: IdempotencyKey,
+    actor: User = Depends(admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminBlogPostDetail:
+    ip, user_agent = _request_context(request)
+    response.headers["Cache-Control"] = "no-store"
+    return await AdminBlogService(db).create(
+        actor=actor,
+        body=body,
+        idempotency_key=idempotency_key,
+        ip=ip,
+        user_agent=user_agent,
+    )
+
+
+@router.put("/blog/posts/{post_id}", response_model=AdminBlogPostDetail, summary="Сохранить статью")
+async def update_blog_post(
+    post_id: UUID,
+    body: BlogPostUpdate,
+    request: Request,
+    response: Response,
+    idempotency_key: IdempotencyKey,
+    actor: User = Depends(admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminBlogPostDetail:
+    ip, user_agent = _request_context(request)
+    response.headers["Cache-Control"] = "no-store"
+    return await AdminBlogService(db).update(
+        actor=actor,
+        post_id=post_id,
+        body=body,
+        idempotency_key=idempotency_key,
+        ip=ip,
+        user_agent=user_agent,
+    )
+
+
+@router.post(
+    "/blog/posts/{post_id}/publication",
+    response_model=AdminBlogPostDetail,
+    summary="Изменить публикацию статьи",
+)
+async def change_blog_publication(
+    post_id: UUID,
+    body: AdminBlogPublicationAction,
+    request: Request,
+    response: Response,
+    idempotency_key: IdempotencyKey,
+    actor: User = Depends(confirmed_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminBlogPostDetail:
+    ip, user_agent = _request_context(request)
+    response.headers["Cache-Control"] = "no-store"
+    return await AdminBlogService(db).publication_action(
+        actor=actor,
+        post_id=post_id,
+        action=body.action,
+        revision=body.revision,
+        reason=body.reason,
+        publish_at=body.publish_at,
         idempotency_key=idempotency_key,
         ip=ip,
         user_agent=user_agent,

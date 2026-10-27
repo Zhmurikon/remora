@@ -39,7 +39,7 @@ await writeFile(schemaFile, schema, 'utf8');
 
 const types = execFileSync(
   'pnpm',
-  ['--filter', '@remora/api-client', 'exec', 'openapi-typescript', schemaFile],
+  ['--silent', '--filter', '@remora/api-client', 'exec', 'openapi-typescript', schemaFile],
   { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
 );
 
