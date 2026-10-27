@@ -10,7 +10,7 @@ import hashlib
 import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import jwt
 from argon2 import PasswordHasher
@@ -27,6 +27,9 @@ TokenType = Literal[
     "password_reset",
     "oauth_state",
     "battle_invite",
+    "admin_2fa_setup",
+    "admin_2fa_challenge",
+    "admin_confirmation",
 ]
 
 
@@ -70,12 +73,17 @@ def create_jwt(
         ttl = timedelta(minutes=settings.oauth_state_ttl_minutes)
     elif token_type == "battle_invite":
         ttl = timedelta(minutes=settings.battle_invite_ttl_minutes)
+    elif token_type in {"admin_2fa_setup", "admin_2fa_challenge"}:
+        ttl = timedelta(minutes=settings.admin_2fa_challenge_ttl_minutes)
+    elif token_type == "admin_confirmation":
+        ttl = timedelta(minutes=settings.admin_confirmation_ttl_minutes)
 
     now = datetime.now(tz=UTC)
     payload: dict[str, str | int] = {
         **(extra or {}),
         "sub": subject,
         "type": token_type,
+        "jti": str(uuid4()),
         "iat": int(now.timestamp()),
         "exp": int((now + ttl).timestamp()),
     }

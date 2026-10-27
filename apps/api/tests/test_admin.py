@@ -6,6 +6,7 @@ from uuid import uuid4
 from httpx import AsyncClient
 from sqlalchemy import select, update
 
+from app.core.security import create_jwt
 from app.db.session import get_engine, get_session_factory
 from app.models.billing import (
     BillingInterval,
@@ -32,6 +33,14 @@ async def promote(username: str, role: UserRole) -> None:
         await conn.execute(update(User).where(User.username == username).values(role=role))
 
 
+async def verified_admin_headers(username: str) -> dict[str, str]:
+    async with get_session_factory()() as db:
+        user = await db.scalar(select(User).where(User.username == username))
+        assert user is not None
+        token = create_jwt(str(user.id), "access", extra={"admin_2fa": "true"})
+        return {"Authorization": f"Bearer {token}"}
+
+
 async def test_admin_endpoints_require_admin_role(client: AsyncClient) -> None:
     regular = await auth(client, "admin-regular")
     moderator = await auth(client, "admin-moderator")
@@ -52,6 +61,7 @@ async def test_admin_endpoints_require_admin_role(client: AsyncClient) -> None:
 async def test_admin_sees_overview_and_searchable_users(client: AsyncClient) -> None:
     admin_headers = await auth(client, "admin-owner")
     await promote("courseadmin-owner", UserRole.admin)
+    admin_headers = await verified_admin_headers("courseadmin-owner")
     creator_headers = await auth(client, "admin-creator")
     await client.post("/api/v1/sets", headers=creator_headers, json={"title": "Набор автора"})
 
@@ -95,6 +105,7 @@ async def test_admin_sees_user_card_without_sensitive_fields(client: AsyncClient
     target_username = f"course{target_suffix}"
     admin_headers = await auth(client, owner_suffix)
     await promote(f"course{owner_suffix}", UserRole.admin)
+    admin_headers = await verified_admin_headers(f"course{owner_suffix}")
     target_headers = await auth(client, target_suffix)
     await client.post(
         "/api/v1/sets",

@@ -68,6 +68,9 @@ class Settings(BaseSettings):
     # Публичное чтение: применяется только к прямым обращениям с внешнего адреса
     rate_limit_public_read: int = 120
     rate_limit_public_read_window_seconds: int = 60
+    rate_limit_admin_2fa: int = 5
+    rate_limit_admin_2fa_window_seconds: int = 300
+    admin_allowed_ips: list[str] = []
 
     # CORS: адреса обоих фронтендов
     cors_origins: list[str] = [
@@ -87,6 +90,9 @@ class Settings(BaseSettings):
     password_reset_ttl_minutes: int = 30
     oauth_state_ttl_minutes: int = Field(default=10, ge=1, le=30)
     battle_invite_ttl_minutes: int = Field(default=10, ge=1, le=60)
+    admin_2fa_challenge_ttl_minutes: int = Field(default=5, ge=1, le=15)
+    admin_confirmation_ttl_minutes: int = Field(default=5, ge=1, le=15)
+    admin_2fa_encryption_key: SecretStr | None = None
 
     # Google OpenID Connect. Без пары client_id/client_secret вход через Google выключен.
     google_oauth_client_id: str | None = None

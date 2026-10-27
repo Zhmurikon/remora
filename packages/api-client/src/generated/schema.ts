@@ -9,6 +9,74 @@
  */
 
 export interface paths {
+    "/api/v1/admin/auth/2fa/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Включить 2FA и завершить вход */
+        post: operations["admin_2fa_enable_api_v1_admin_auth_2fa_enable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/auth/2fa/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Получить секрет первоначальной настройки 2FA */
+        post: operations["admin_2fa_setup_api_v1_admin_auth_2fa_setup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/auth/2fa/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Проверить второй фактор и завершить вход */
+        post: operations["admin_2fa_verify_api_v1_admin_auth_2fa_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Начать вход администратора */
+        post: operations["admin_login_api_v1_admin_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/overview": {
         parameters: {
             query?: never;
@@ -18,6 +86,57 @@ export interface paths {
         };
         /** Сводка продукта */
         get: operations["get_overview_api_v1_admin_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/security/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Журнал администратора */
+        get: operations["admin_audit_api_v1_admin_security_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/security/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Повторно подтвердить чувствительное действие */
+        post: operations["admin_security_confirm_api_v1_admin_security_confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/security/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Состояние защиты администратора */
+        get: operations["admin_security_status_api_v1_admin_security_status_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2711,6 +2830,92 @@ export interface components {
             /** Xp Earned */
             xp_earned: number;
         };
+        /** AdminAuditItem */
+        AdminAuditItem: {
+            /** Action */
+            action: string;
+            /** Actor User Id */
+            actor_user_id: string | null;
+            /** Actor Username */
+            actor_username: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Details */
+            details: {
+                [key: string]: unknown;
+            };
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Ip */
+            ip: string | null;
+            /** Outcome */
+            outcome: string;
+            /** Reason */
+            reason: string | null;
+            /** Target Id */
+            target_id: string | null;
+            /** Target Type */
+            target_type: string | null;
+        };
+        /** AdminAuditList */
+        AdminAuditList: {
+            /** Items */
+            items: components["schemas"]["AdminAuditItem"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** AdminCodeRequest */
+        AdminCodeRequest: {
+            /** Code */
+            code: string;
+            /** Token */
+            token: string;
+        };
+        /** AdminConfirmationRequest */
+        AdminConfirmationRequest: {
+            /** Code */
+            code: string;
+        };
+        /** AdminConfirmationResponse */
+        AdminConfirmationResponse: {
+            /** Confirmation Token */
+            confirmation_token: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+        };
+        /** AdminLoginRequest */
+        AdminLoginRequest: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Password */
+            password: string;
+        };
+        /** AdminLoginStep */
+        AdminLoginStep: {
+            /**
+             * Step
+             * @enum {string}
+             */
+            step: "setup_required" | "challenge_required";
+            /** Token */
+            token: string;
+        };
         /** AdminOverview */
         AdminOverview: {
             /** Courses Published */
@@ -2734,6 +2939,42 @@ export interface components {
             users_new_7d: number;
             /** Users Total */
             users_total: number;
+        };
+        /** AdminSecurityStatus */
+        AdminSecurityStatus: {
+            /** Enabled */
+            enabled: boolean;
+            /** Enabled At */
+            enabled_at: string | null;
+            /** Last Used At */
+            last_used_at: string | null;
+            /** Recovery Codes Remaining */
+            recovery_codes_remaining: number;
+        };
+        /** AdminSessionResponse */
+        AdminSessionResponse: {
+            /** Access Token */
+            access_token: string;
+            /** Recovery Codes */
+            recovery_codes?: string[];
+            /**
+             * Token Type
+             * @default bearer
+             */
+            token_type: string;
+            user: components["schemas"]["UserPublic"];
+        };
+        /** AdminSetupRequest */
+        AdminSetupRequest: {
+            /** Token */
+            token: string;
+        };
+        /** AdminSetupResponse */
+        AdminSetupResponse: {
+            /** Provisioning Uri */
+            provisioning_uri: string;
+            /** Secret */
+            secret: string;
         };
         /** AdminUserAccess */
         AdminUserAccess: {
@@ -6613,6 +6854,138 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    admin_2fa_enable_api_v1_admin_auth_2fa_enable_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSessionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_2fa_setup_api_v1_admin_auth_2fa_setup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminSetupRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSetupResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_2fa_verify_api_v1_admin_auth_2fa_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSessionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_login_api_v1_admin_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminLoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLoginStep"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_overview_api_v1_admin_overview_get: {
         parameters: {
             query?: never;
@@ -6629,6 +7002,91 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminOverview"];
+                };
+            };
+        };
+    };
+    admin_audit_api_v1_admin_security_audit_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAuditList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_security_confirm_api_v1_admin_security_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminConfirmationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminConfirmationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_security_status_api_v1_admin_security_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSecurityStatus"];
                 };
             };
         };

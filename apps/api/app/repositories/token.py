@@ -20,6 +20,7 @@ async def create_token(
     expires_at: datetime,
     user_agent: str | None = None,
     ip: str | None = None,
+    admin_2fa: bool = False,
 ) -> RefreshToken:
     token = RefreshToken(
         user_id=user_id,
@@ -28,6 +29,7 @@ async def create_token(
         expires_at=expires_at,
         user_agent=user_agent,
         ip=ip,
+        admin_2fa=admin_2fa,
     )
     db.add(token)
     await db.flush()

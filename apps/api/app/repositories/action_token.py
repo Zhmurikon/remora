@@ -56,6 +56,26 @@ async def consume_token(
     return True
 
 
+async def is_token_active(
+    db: AsyncSession,
+    *,
+    token_hash: str,
+    purpose: str,
+    user_id: UUID,
+) -> bool:
+    now = datetime.now(tz=UTC)
+    token_id = await db.scalar(
+        select(ActionToken.id).where(
+            ActionToken.token_hash == token_hash,
+            ActionToken.purpose == purpose,
+            ActionToken.user_id == user_id,
+            ActionToken.consumed_at.is_(None),
+            ActionToken.expires_at > now,
+        )
+    )
+    return token_id is not None
+
+
 async def consume_active_tokens(
     db: AsyncSession,
     *,

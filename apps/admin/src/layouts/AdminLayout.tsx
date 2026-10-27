@@ -6,6 +6,7 @@ import { useAuth } from '../features/auth/AuthContext';
 const navigation = [
   { to: '/', label: 'Сводка', end: true },
   { to: '/users', label: 'Пользователи', end: false },
+  { to: '/security', label: 'Безопасность', end: false },
 ];
 
 export function AdminLayout() {

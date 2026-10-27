@@ -20,15 +20,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const controller = new AbortController();
-    void api.GET('/api/v1/auth/me', { signal: controller.signal }).then(({ data }) => {
+    void api.GET('/api/v1/auth/me', { signal: controller.signal }).then(async ({ data }) => {
       if (controller.signal.aborted) return;
       if (data?.role === 'admin') {
-        setUser(data);
-        setStatus('authenticated');
-      } else {
-        setUser(null);
-        setStatus('guest');
+        const security = await api.GET('/api/v1/admin/security/status', {
+          signal: controller.signal,
+        });
+        if (controller.signal.aborted) return;
+        if (security.data?.enabled) {
+          setUser(data);
+          setStatus('authenticated');
+          return;
+        }
       }
+      setAccessToken(null);
+      setUser(null);
+      setStatus('guest');
     });
     return () => controller.abort();
   }, []);

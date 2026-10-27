@@ -54,8 +54,13 @@ class AuthService:
         *,
         user_agent: str | None,
         ip: str | None,
+        admin_2fa: bool = False,
     ) -> tuple[str, str, datetime]:
-        access_token = create_jwt(str(user.id), "access")
+        access_token = create_jwt(
+            str(user.id),
+            "access",
+            extra={"admin_2fa": "true"} if admin_2fa else None,
+        )
         raw_token, token_hash = generate_refresh_token()
         settings = get_settings()
         expires_at = datetime.now(tz=UTC) + timedelta(days=settings.refresh_token_ttl_days)
@@ -67,8 +72,23 @@ class AuthService:
             expires_at=expires_at,
             user_agent=user_agent,
             ip=ip,
+            admin_2fa=admin_2fa,
         )
         return access_token, raw_token, expires_at
+
+    async def create_admin_session(
+        self,
+        user: User,
+        *,
+        user_agent: str | None,
+        ip: str | None,
+    ) -> tuple[str, str, datetime]:
+        return await self._create_session(
+            user,
+            user_agent=user_agent,
+            ip=ip,
+            admin_2fa=True,
+        )
 
     async def register(
         self,
@@ -360,13 +380,18 @@ class AuthService:
             expires_at=expires_at,
             user_agent=user_agent,
             ip=ip,
+            admin_2fa=stored.admin_2fa,
         )
 
         user = await user_repo.get_user_by_id(self.db, stored.user_id)
         if user is None or user.status != UserStatus.active:
             raise UnauthorizedError("Аккаунт недоступен")
 
-        access_token = create_jwt(str(user.id), "access")
+        access_token = create_jwt(
+            str(user.id),
+            "access",
+            extra={"admin_2fa": "true"} if stored.admin_2fa else None,
+        )
         log.info("auth.refresh", user_id=str(user.id))
         return user, access_token, new_raw, expires_at
 

@@ -6,10 +6,10 @@
 
 from __future__ import annotations
 
-from ipaddress import ip_address
+from ipaddress import ip_address, ip_network
 from uuid import UUID
 
-from fastapi import Depends, Request
+from fastapi import Depends, Header, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,6 +20,7 @@ from app.core.security import decode_jwt
 from app.db.session import get_db
 from app.models.user import User, UserRole, UserStatus
 from app.repositories import user as user_repo
+from app.services.admin_security import verify_admin_confirmation
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -41,6 +42,7 @@ async def current_user(
     if user is None or user.status != UserStatus.active:
         raise UnauthorizedError("Аккаунт недоступен")
 
+    request.state.auth_claims = payload
     return user
 
 
@@ -62,10 +64,33 @@ async def moderator_user(user: User = Depends(current_user)) -> User:
     return user
 
 
-async def admin_user(user: User = Depends(current_user)) -> User:
+async def admin_user(request: Request, user: User = Depends(current_user)) -> User:
     """Доступ к служебной статистике и данным пользователей только для владельца."""
     if user.role is not UserRole.admin:
         raise ForbiddenError("Требуются права администратора")
+    claims = getattr(request.state, "auth_claims", {})
+    if claims.get("admin_2fa") != "true":
+        raise ForbiddenError("Требуется вход в административную панель с двухфакторной защитой")
+    allowed = get_settings().admin_allowed_ips
+    if allowed:
+        host = request.client.host if request.client else ""
+        try:
+            address = ip_address(host)
+            permitted = any(address in ip_network(item, strict=False) for item in allowed)
+        except ValueError:
+            permitted = False
+        if not permitted:
+            raise ForbiddenError("Административный доступ с этого адреса запрещён")
+    return user
+
+
+async def confirmed_admin_user(
+    confirmation: str = Header(alias="X-Admin-Confirmation"),
+    user: User = Depends(admin_user),
+) -> User:
+    """Повторная проверка для будущих чувствительных административных операций."""
+    if not verify_admin_confirmation(confirmation, user):
+        raise ForbiddenError("Требуется повторное подтверждение административного действия")
     return user
 
 

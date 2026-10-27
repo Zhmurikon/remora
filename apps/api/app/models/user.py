@@ -7,7 +7,7 @@ from datetime import UTC, date, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func, text
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, UniqueConstraint, func, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -132,6 +132,7 @@ class RefreshToken(UUIDPrimaryKeyMixin, Base):
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     user_agent: Mapped[str | None] = mapped_column(String(512))
     ip: Mapped[str | None] = mapped_column(String(45))
+    admin_2fa: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
 
     user: Mapped[User] = relationship(back_populates="refresh_tokens")
 

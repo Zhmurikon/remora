@@ -3,6 +3,7 @@ import { useAuth } from './features/auth/AuthContext';
 import { LoginPage } from './features/auth/LoginPage';
 import { AdminLayout } from './layouts/AdminLayout';
 import { OverviewPage } from './pages/OverviewPage';
+import { SecurityPage } from './pages/SecurityPage';
 import { UserDetailPage } from './pages/UserDetailPage';
 import { UsersPage } from './pages/UsersPage';
 
@@ -28,6 +29,7 @@ export function App() {
         <Route index element={<OverviewPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="users/:userId" element={<UserDetailPage />} />
+        <Route path="security" element={<SecurityPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
