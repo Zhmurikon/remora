@@ -36,6 +36,10 @@ export function pendingPythonProgressCount(storage: Storage | null = browserStor
   return readQueue(storage).length;
 }
 
+export function clearPendingPythonProgress(storage: Storage | null = browserStorage()): void {
+  writeQueue([], storage);
+}
+
 let flushInFlight: Promise<PythonSyncResult> | null = null;
 
 export function flushPythonProgress(

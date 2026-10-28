@@ -2407,7 +2407,8 @@ export interface paths {
         get: operations["list_python_progress_api_v1_practice_python_progress_get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Удалить прогресс практики Python */
+        delete: operations["delete_python_progress_api_v1_practice_python_progress_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -13626,6 +13627,24 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PythonProgressOut"][];
                 };
+            };
+        };
+    };
+    delete_python_progress_api_v1_practice_python_progress_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

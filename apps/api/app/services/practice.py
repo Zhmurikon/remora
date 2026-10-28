@@ -25,6 +25,10 @@ class PracticeService:
             for row in await repo.list_python_progress(self.db, user.id)
         ]
 
+    async def delete_python_progress(self, user: User) -> None:
+        await repo.delete_python_progress(self.db, user.id)
+        await self.db.commit()
+
     async def merge_python_progress(
         self, user: User, task_id: str, body: PythonProgressUpdate
     ) -> PythonProgressOut:

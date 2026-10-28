@@ -2,15 +2,13 @@
 
 from uuid import UUID
 
-from sqlalchemy import select, text
+from sqlalchemy import delete, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.practice import PythonPracticeProgress
 
 
-async def list_python_progress(
-    db: AsyncSession, user_id: UUID
-) -> list[PythonPracticeProgress]:
+async def list_python_progress(db: AsyncSession, user_id: UUID) -> list[PythonPracticeProgress]:
     rows = await db.scalars(
         select(PythonPracticeProgress)
         .where(PythonPracticeProgress.user_id == user_id)
@@ -37,3 +35,9 @@ async def python_progress_for_update(
         .with_for_update()
     )
     return rows.one_or_none()
+
+
+async def delete_python_progress(db: AsyncSession, user_id: UUID) -> None:
+    await db.execute(
+        delete(PythonPracticeProgress).where(PythonPracticeProgress.user_id == user_id)
+    )

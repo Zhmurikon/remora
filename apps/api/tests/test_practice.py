@@ -106,3 +106,25 @@ async def test_task_versions_keep_separate_progress(
         (1, "version 1"),
         (2, "version 2"),
     ]
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_delete_progress_only_for_current_user(
+    _mock_send: AsyncMock, client: pytest.fixture
+) -> None:
+    owner = await _auth(client, "practice-delete-owner")
+    other = await _auth(client, "practice-delete-other")
+    for headers in (owner, other):
+        created = await client.put(
+            "/api/v1/practice/python/progress/python-factorial",
+            headers=headers,
+            json=_progress(),
+        )
+        assert created.status_code == 200
+
+    assert (await client.delete("/api/v1/practice/python/progress")).status_code == 401
+    assert (
+        await client.delete("/api/v1/practice/python/progress", headers=owner)
+    ).status_code == 204
+    assert (await client.get("/api/v1/practice/python/progress", headers=owner)).json() == []
+    assert len((await client.get("/api/v1/practice/python/progress", headers=other)).json()) == 1

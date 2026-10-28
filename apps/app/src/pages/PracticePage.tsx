@@ -9,6 +9,7 @@ import { PythonRunner } from '../features/practice/python-runner';
 import { findPythonTask, pythonTasks, type PythonTask } from '../features/practice/python-tasks';
 import { PythonCodeEditor } from '../features/practice/PythonCodeEditor';
 import {
+  deletePythonPracticeProgress,
   markPythonTaskStarted,
   pythonProgressSummary,
   readPythonTaskProgress,
@@ -18,11 +19,13 @@ import {
   type PythonTaskStatus,
 } from '../features/practice/python-progress';
 import {
+  clearPendingPythonProgress,
   flushPythonProgress,
   pendingPythonProgressCount,
   queuePythonProgress,
   syncPythonProgress,
 } from '../features/practice/python-progress-sync';
+import { api } from '../lib/api';
 
 const primaryLinkStyle =
   'bg-primary text-primary-fg hover:bg-primary-hover inline-flex min-h-11 items-center justify-center rounded-md px-4 font-medium transition-colors';
@@ -83,6 +86,10 @@ export function PythonPracticePage() {
   const [topic, setTopic] = useState('all');
   const [status, setStatus] = useState<PythonTaskStatus | 'all'>('all');
   const [syncState, setSyncState] = useState<'syncing' | 'synced' | 'offline'>('syncing');
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [resetState, setResetState] = useState<'idle' | 'pending' | 'error'>('idle');
+  const resetInProgress = useRef(false);
+  const syncInProgress = useRef<Promise<unknown> | null>(null);
   const [, setSyncRevision] = useState(0);
   const summary = pythonProgressSummary(pythonTasks);
   const topics = [...new Set(pythonTasks.map((task) => task.topic))];
@@ -101,9 +108,13 @@ export function PythonPracticePage() {
   useEffect(() => {
     let active = true;
     const synchronize = async () => {
+      if (resetInProgress.current) return;
       setSyncState('syncing');
-      const result = await syncPythonProgress(pythonTasks);
-      if (!active) return;
+      const request = syncPythonProgress(pythonTasks);
+      syncInProgress.current = request;
+      const result = await request;
+      if (syncInProgress.current === request) syncInProgress.current = null;
+      if (!active || resetInProgress.current) return;
       setSyncRevision((value) => value + 1);
       setSyncState(result.ok ? 'synced' : 'offline');
     };
@@ -114,6 +125,27 @@ export function PythonPracticePage() {
       window.removeEventListener('online', synchronize);
     };
   }, []);
+
+  async function resetPractice() {
+    resetInProgress.current = true;
+    setResetState('pending');
+    await syncInProgress.current;
+    const { error } = await api.DELETE('/api/v1/practice/python/progress');
+    if (error) {
+      resetInProgress.current = false;
+      setResetState('error');
+      return;
+    }
+    clearPendingPythonProgress();
+    deletePythonPracticeProgress(pythonTasks);
+    setTopic('all');
+    setStatus('all');
+    setSyncState('synced');
+    setSyncRevision((value) => value + 1);
+    setConfirmReset(false);
+    setResetState('idle');
+    resetInProgress.current = false;
+  }
 
   return (
     <div className="space-y-7">
@@ -126,8 +158,8 @@ export function PythonPracticePage() {
             <p className="text-primary text-sm font-medium">Практика</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Python</h1>
             <p className="text-fg-muted mt-3 max-w-2xl">
-              Пройдите путь от переменных и условий до NumPy, pandas, статистики SciPy и
-              графиков matplotlib. Задачи расположены от простого к сложному.
+              Пройдите путь от переменных и условий до NumPy, pandas, статистики SciPy и графиков
+              matplotlib. Задачи расположены от простого к сложному.
             </p>
           </div>
           <Badge tone="primary" className="mt-1 px-3 py-1">
@@ -233,6 +265,51 @@ export function PythonPracticePage() {
               Сбросить фильтры
             </Button>
           </Card>
+        )}
+      </section>
+
+      <section className="border-danger/40 border-t pt-7" aria-labelledby="reset-practice-title">
+        <h2 id="reset-practice-title" className="text-xl font-semibold">
+          Сбросить практику
+        </h2>
+        <p className="text-fg-muted mt-2 max-w-2xl">
+          Все решения, черновики и отметки о выполнении задач Python будут удалены из аккаунта и
+          этого браузера. Начисленный опыт сохранится.
+        </p>
+        {confirmReset ? (
+          <div className="mt-4 space-y-3">
+            <p>Удалить весь прогресс практики? Это действие нельзя отменить.</p>
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant="danger"
+                className="min-h-11"
+                loading={resetState === 'pending'}
+                onClick={() => void resetPractice()}
+              >
+                Подтвердить удаление
+              </Button>
+              <Button
+                variant="ghost"
+                className="min-h-11"
+                disabled={resetState === 'pending'}
+                onClick={() => {
+                  setConfirmReset(false);
+                  setResetState('idle');
+                }}
+              >
+                Отмена
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button variant="danger" className="mt-4 min-h-11" onClick={() => setConfirmReset(true)}>
+            Удалить прогресс практики
+          </Button>
+        )}
+        {resetState === 'error' && (
+          <p role="alert" className="text-danger mt-3 text-sm">
+            Не удалось удалить прогресс. Проверьте соединение и повторите попытку.
+          </p>
         )}
       </section>
     </div>

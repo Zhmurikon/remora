@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readPythonTaskProgress, replacePythonTaskProgress } from './python-progress';
 import {
+  clearPendingPythonProgress,
   flushPythonProgress,
   mergeProgress,
   pendingPythonProgressCount,
@@ -75,6 +76,15 @@ describe('синхронизация прогресса Python', () => {
       attempts: 5,
       draft: 'remote',
     });
+  });
+
+  it('очищает офлайн-очередь при удалении практики', () => {
+    const storage = new MemoryStorage();
+    queuePythonProgress(progress(), storage);
+
+    clearPendingPythonProgress(storage);
+
+    expect(pendingPythonProgressCount(storage)).toBe(0);
   });
 });
 

@@ -107,6 +107,21 @@ export function replacePythonTaskProgress(
   return progress;
 }
 
+export function deletePythonPracticeProgress(
+  tasks: readonly PythonTask[],
+  storage: Storage | null = browserStorage(),
+): void {
+  if (!storage) return;
+  for (const task of tasks) {
+    try {
+      storage.removeItem(progressKey(task));
+    } catch {
+      // Недоступное хранилище не должно мешать серверному сбросу прогресса.
+      return;
+    }
+  }
+}
+
 function initialProgress(task: PythonTask): PythonTaskProgress {
   return {
     taskId: task.id,

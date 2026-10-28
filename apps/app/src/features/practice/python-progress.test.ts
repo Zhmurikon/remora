@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PythonTask } from './python-tasks';
 import {
+  deletePythonPracticeProgress,
   markPythonTaskStarted,
   pythonProgressSummary,
   readPythonTaskProgress,
@@ -87,6 +88,20 @@ describe('локальный прогресс Python', () => {
       attempts: 3,
       updatedAt: new Date(0).toISOString(),
     });
+  });
+
+  it('удаляет локальный прогресс всех переданных задач', () => {
+    const storage = new MemoryStorage();
+    const first = task(1);
+    const second = task(2);
+    savePythonDraft(first, 'первый', storage);
+    savePythonDraft(second, 'второй', storage);
+
+    deletePythonPracticeProgress([first, second], storage);
+
+    expect(storage.length).toBe(0);
+    expect(readPythonTaskProgress(first, storage).status).toBe('not_started');
+    expect(readPythonTaskProgress(second, storage).status).toBe('not_started');
   });
 });
 

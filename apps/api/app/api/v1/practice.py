@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response, status
 from pydantic import StringConstraints
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,6 +25,18 @@ async def list_python_progress(
     user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
 ) -> list[PythonProgressOut]:
     return await PracticeService(db).list_python_progress(user)
+
+
+@router.delete(
+    "/python/progress",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Удалить прогресс практики Python",
+)
+async def delete_python_progress(
+    user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+) -> Response:
+    await PracticeService(db).delete_python_progress(user)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.put(

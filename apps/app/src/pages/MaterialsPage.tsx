@@ -52,6 +52,8 @@ type SetItem = {
   folderId: string | null;
   hasUpdates: boolean;
   saveId?: string;
+  accessVia?: SavedSet['access_via'];
+  sourceTitle?: string;
   orderDate: string;
 };
 
@@ -323,10 +325,51 @@ export function MaterialsPage() {
       if (error) throw new Error('Не удалось убрать материал');
     },
     onSuccess: async () => {
+      setSelectedId(null);
+      setMobileDetailOpen(false);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['library'] }),
         queryClient.invalidateQueries({ queryKey: ['library', 'courses'] }),
         queryClient.invalidateQueries({ queryKey: ['library', 'sets'] }),
+      ]);
+    },
+  });
+
+  const deleteCourse = useMutation({
+    mutationFn: async (courseId: string) => {
+      const { error } = await api.DELETE('/api/v1/courses/{course_id}', {
+        params: { path: { course_id: courseId } },
+      });
+      if (error) throw new Error('Не удалось удалить курс');
+    },
+    onSuccess: async () => {
+      setSelectedId(null);
+      setMobileDetailOpen(false);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['courses'] }),
+        queryClient.invalidateQueries({ queryKey: ['sets'] }),
+        queryClient.invalidateQueries({ queryKey: ['sets', 'archived'] }),
+      ]);
+    },
+  });
+
+  const deleteSet = useMutation({
+    mutationFn: async ({ setId, permanent }: { setId: string; permanent: boolean }) => {
+      const { error } = permanent
+        ? await api.DELETE('/api/v1/sets/{set_id}/permanent', {
+            params: { path: { set_id: setId } },
+          })
+        : await api.DELETE('/api/v1/sets/{set_id}', {
+            params: { path: { set_id: setId } },
+          });
+      if (error) throw new Error('Не удалось удалить набор');
+    },
+    onSuccess: async () => {
+      setSelectedId(null);
+      setMobileDetailOpen(false);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['sets'] }),
+        queryClient.invalidateQueries({ queryKey: ['sets', 'archived'] }),
       ]);
     },
   });
@@ -486,6 +529,20 @@ export function MaterialsPage() {
                 courseProgress.get(selectedCourse.id) ?? { ...emptyProgress, loading: true }
               }
               statsBySetId={statsBySetId}
+              deleting={
+                selectedCourse.saved
+                  ? removeLibraryItem.isPending &&
+                    removeLibraryItem.variables === selectedCourse.saveId
+                  : deleteCourse.isPending && deleteCourse.variables === selectedCourse.id
+              }
+              deleteError={selectedCourse.saved ? removeLibraryItem.error : deleteCourse.error}
+              onDelete={() => {
+                if (selectedCourse.saved && selectedCourse.saveId) {
+                  removeLibraryItem.mutate(selectedCourse.saveId);
+                } else {
+                  deleteCourse.mutate(selectedCourse.id);
+                }
+              }}
             />
           )}
           {(view === 'sets' || view === 'archive') && selectedSet && (
@@ -496,6 +553,20 @@ export function MaterialsPage() {
                 void queryClient.invalidateQueries({ queryKey: ['sets'] });
                 void queryClient.invalidateQueries({ queryKey: ['sets', 'archived'] });
                 switchView('sets');
+              }}
+              deleting={
+                selectedSet.saved
+                  ? removeLibraryItem.isPending &&
+                    removeLibraryItem.variables === selectedSet.saveId
+                  : deleteSet.isPending && deleteSet.variables?.setId === selectedSet.id
+              }
+              deleteError={selectedSet.saved ? removeLibraryItem.error : deleteSet.error}
+              onDelete={() => {
+                if (selectedSet.saved && selectedSet.saveId) {
+                  removeLibraryItem.mutate(selectedSet.saveId);
+                } else {
+                  deleteSet.mutate({ setId: selectedSet.id, permanent: selectedSet.archived });
+                }
               }}
             />
           )}
@@ -521,11 +592,17 @@ function CourseNavigator({
   detail,
   progress,
   statsBySetId,
+  deleting,
+  deleteError,
+  onDelete,
 }: {
   course: CourseItem;
   detail?: CourseDetail;
   progress: MaterialProgress;
   statsBySetId: Map<string, SetStats>;
+  deleting: boolean;
+  deleteError: Error | null;
+  onDelete: () => void;
 }) {
   const sections = detail?.sections ?? [];
   const weakestSection = weakestSectionIndex(sections, statsBySetId);
@@ -657,6 +734,20 @@ function CourseNavigator({
             })}
           </div>
         </section>
+
+        <DangerZone
+          title={course.saved ? 'Удалить сохранённый курс' : 'Удалить курс'}
+          description={
+            course.saved
+              ? 'Курс исчезнет из ваших сохранённых материалов. Оригинал автора и ваш учебный прогресс не удалятся.'
+              : 'Курс и его статьи будут удалены. Входящие в него наборы переместятся в архив вместе с учебным прогрессом.'
+          }
+          buttonLabel={course.saved ? 'Убрать из сохранённых' : 'Удалить курс'}
+          confirmText={`Удалить «${course.title}»? ${course.saved ? 'При необходимости вы сможете сохранить оригинал снова.' : 'Удаление курса нельзя отменить.'}`}
+          pending={deleting}
+          error={deleteError}
+          onConfirm={onDelete}
+        />
       </div>
     </div>
   );
@@ -666,10 +757,16 @@ function SetNavigator({
   item,
   progress,
   onRestored,
+  deleting,
+  deleteError,
+  onDelete,
 }: {
   item: SetItem;
   progress: MaterialProgress;
   onRestored: () => void;
+  deleting: boolean;
+  deleteError: Error | null;
+  onDelete: () => void;
 }) {
   const [busy, setBusy] = useState(false);
   async function restore() {
@@ -745,8 +842,92 @@ function SetNavigator({
             </Button>
           </section>
         )}
+        <DangerZone
+          title={
+            item.archived
+              ? 'Удалить набор навсегда'
+              : item.saved
+                ? 'Удалить сохранённый набор'
+                : 'Удалить набор'
+          }
+          description={
+            item.archived
+              ? 'Набор, карточки и связанный учебный прогресс будут удалены без возможности восстановления.'
+              : item.saved
+                ? savedSetRemovalDescription(item)
+                : 'Набор переместится в архив. Карточки и учебный прогресс сохранятся, пока вы не удалите его навсегда.'
+          }
+          buttonLabel={
+            item.archived
+              ? 'Удалить навсегда'
+              : item.saved
+                ? item.accessVia === 'course'
+                  ? 'Убрать курс из сохранённых'
+                  : item.accessVia === 'article'
+                    ? 'Убрать раздел из сохранённых'
+                    : 'Убрать из сохранённых'
+                : 'Переместить в архив'
+          }
+          confirmText={`Удалить «${item.title}»? ${item.archived ? 'Это действие нельзя отменить.' : ''}`}
+          pending={deleting}
+          error={deleteError}
+          onConfirm={onDelete}
+        />
       </div>
     </div>
+  );
+}
+
+function DangerZone({
+  title,
+  description,
+  buttonLabel,
+  confirmText,
+  pending,
+  error,
+  onConfirm,
+}: {
+  title: string;
+  description: string;
+  buttonLabel: string;
+  confirmText: string;
+  pending: boolean;
+  error: Error | null;
+  onConfirm: () => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  return (
+    <section className="border-danger/40 mt-10 border-t pt-7" aria-label={title}>
+      <h3 className="text-xl font-semibold">{title}</h3>
+      <p className="text-fg-muted mt-2 max-w-2xl">{description}</p>
+      {confirming ? (
+        <div className="mt-4 space-y-3">
+          <p>{confirmText}</p>
+          <div className="flex flex-wrap gap-3">
+            <Button className="min-h-11" variant="danger" loading={pending} onClick={onConfirm}>
+              Подтвердить удаление
+            </Button>
+            <Button
+              className="min-h-11"
+              variant="ghost"
+              disabled={pending}
+              onClick={() => setConfirming(false)}
+            >
+              Отмена
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button variant="danger" className="mt-4 min-h-11" onClick={() => setConfirming(true)}>
+          {buttonLabel}
+        </Button>
+      )}
+      {error && (
+        <p role="alert" className="text-danger mt-3 text-sm">
+          {error.message}. Проверьте соединение и повторите попытку.
+        </p>
+      )}
+    </section>
   );
 }
 
@@ -1307,8 +1488,20 @@ function savedSetItem(set: SavedSet): SetItem {
     folderId: set.folder_id ?? null,
     hasUpdates: set.has_updates,
     saveId: set.save_id,
+    accessVia: set.access_via,
+    sourceTitle: set.access_via === 'course' ? set.course_title : set.article_title,
     orderDate: set.saved_at,
   };
+}
+
+function savedSetRemovalDescription(item: SetItem): string {
+  if (item.accessVia === 'course') {
+    return `Набор сохранён вместе с курсом «${item.sourceTitle ?? 'Без названия'}». Курс и все его наборы исчезнут из вашей библиотеки, но оригинал автора и учебный прогресс сохранятся.`;
+  }
+  if (item.accessVia === 'article') {
+    return `Набор сохранён вместе с разделом «${item.sourceTitle ?? 'Без названия'}». Раздел исчезнет из вашей библиотеки, но оригинал автора и учебный прогресс сохранятся.`;
+  }
+  return 'Набор исчезнет из ваших сохранённых материалов. Оригинал автора и ваш учебный прогресс не удалятся.';
 }
 
 function filterBySearch<T extends { title: string }>(items: T[], search: string): T[] {
