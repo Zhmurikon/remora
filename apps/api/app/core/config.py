@@ -72,6 +72,7 @@ class Settings(BaseSettings):
     rate_limit_admin_2fa_window_seconds: int = 300
     admin_2fa_required: bool = False
     admin_allowed_ips: list[str] = []
+    admin_monitoring_links: dict[str, str] = {}
 
     # CORS: адреса обоих фронтендов
     cors_origins: list[str] = [

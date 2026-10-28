@@ -505,6 +505,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/system": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Состояние системы */
+        get: operations["get_admin_system_api_v1_admin_system_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/system/flags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Создать или изменить фиче-флаг */
+        put: operations["write_admin_feature_flag_api_v1_admin_system_flags_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/system/incidents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Создать запись об инциденте */
+        post: operations["create_admin_incident_api_v1_admin_system_incidents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/system/incidents/{incident_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Обновить состояние инцидента */
+        patch: operations["update_admin_incident_api_v1_admin_system_incidents__incident_id__patch"];
+        trace?: never;
+    };
     "/api/v1/admin/users": {
         parameters: {
             query?: never;
@@ -3503,6 +3571,132 @@ export interface components {
             /** Value */
             value: boolean | number | "unlimited";
         };
+        /** AdminFeatureFlagItem */
+        AdminFeatureFlagItem: {
+            /** Description */
+            description: string;
+            /** Effective */
+            effective: boolean;
+            /** Enabled */
+            enabled: boolean;
+            /** Environment */
+            environment: string;
+            /** Expires At */
+            expires_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Key */
+            key: string;
+            /** Owner */
+            owner: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Updated By */
+            updated_by: string | null;
+        };
+        /** AdminFeatureFlagWrite */
+        AdminFeatureFlagWrite: {
+            /** Description */
+            description: string;
+            /** Enabled */
+            enabled: boolean;
+            /**
+             * Environment
+             * @enum {string}
+             */
+            environment: "local" | "staging" | "production";
+            /** Expires At */
+            expires_at?: string | null;
+            /** Key */
+            key: string;
+            /** Owner */
+            owner: string;
+            /** Reason */
+            reason: string;
+        };
+        /** AdminIncidentCreate */
+        AdminIncidentCreate: {
+            /** External Url */
+            external_url?: string | null;
+            /** Reason */
+            reason: string;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "low" | "medium" | "high" | "critical";
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Summary */
+            summary: string;
+            /** Title */
+            title: string;
+        };
+        /** AdminIncidentItem */
+        AdminIncidentItem: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** External Url */
+            external_url: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Resolved At */
+            resolved_at: string | null;
+            /** Severity */
+            severity: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Status */
+            status: string;
+            /** Summary */
+            summary: string;
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Updated By */
+            updated_by: string | null;
+        };
+        /** AdminIncidentUpdate */
+        AdminIncidentUpdate: {
+            /** External Url */
+            external_url?: string | null;
+            /** Reason */
+            reason: string;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "low" | "medium" | "high" | "critical";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "monitoring" | "resolved";
+            /** Summary */
+            summary: string;
+        };
         /** AdminJobItem */
         AdminJobItem: {
             /**
@@ -3772,6 +3966,13 @@ export interface components {
             outcome: "accepted" | "rejected";
             /** Reason */
             reason: string;
+        };
+        /** AdminMonitoringLink */
+        AdminMonitoringLink: {
+            /** Label */
+            label: string;
+            /** Url */
+            url: string;
         };
         /** AdminOverview */
         AdminOverview: {
@@ -4192,6 +4393,43 @@ export interface components {
             plan_name: string;
             /** Status */
             status: string;
+        };
+        /** AdminSystemCheck */
+        AdminSystemCheck: {
+            /**
+             * Checked At
+             * Format: date-time
+             */
+            checked_at: string;
+            /** Detail */
+            detail: string;
+            /** Group */
+            group: string;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "ok" | "degraded" | "disabled" | "unknown";
+        };
+        /** AdminSystemOverview */
+        AdminSystemOverview: {
+            /**
+             * Checked At
+             * Format: date-time
+             */
+            checked_at: string;
+            /** Checks */
+            checks: components["schemas"]["AdminSystemCheck"][];
+            /** Flags */
+            flags: components["schemas"]["AdminFeatureFlagItem"][];
+            /** Incidents */
+            incidents: components["schemas"]["AdminIncidentItem"][];
+            /** Monitoring Links */
+            monitoring_links: components["schemas"]["AdminMonitoringLink"][];
         };
         /** AdminUserAccess */
         AdminUserAccess: {
@@ -9249,6 +9487,136 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminSecurityStatus"];
+                };
+            };
+        };
+    };
+    get_admin_system_api_v1_admin_system_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSystemOverview"];
+                };
+            };
+        };
+    };
+    write_admin_feature_flag_api_v1_admin_system_flags_put: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Admin-Confirmation"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminFeatureFlagWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminFeatureFlagItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_admin_incident_api_v1_admin_system_incidents_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Admin-Confirmation"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminIncidentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminIncidentItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_admin_incident_api_v1_admin_system_incidents__incident_id__patch: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Admin-Confirmation"?: string | null;
+            };
+            path: {
+                incident_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminIncidentUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminIncidentItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

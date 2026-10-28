@@ -10,6 +10,7 @@ import { PaymentsPage } from './pages/PaymentsPage';
 import { PlansPage } from './pages/PlansPage';
 import { PromotionsPage } from './pages/PromotionsPage';
 import { SecurityPage } from './pages/SecurityPage';
+import { SystemPage } from './pages/SystemPage';
 import { UserDetailPage } from './pages/UserDetailPage';
 import { UsersPage } from './pages/UsersPage';
 
@@ -42,6 +43,7 @@ export function App() {
         <Route path="plans" element={<PlansPage />} />
         <Route path="promotions" element={<PromotionsPage />} />
         <Route path="security" element={<SecurityPage />} />
+        <Route path="system" element={<SystemPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

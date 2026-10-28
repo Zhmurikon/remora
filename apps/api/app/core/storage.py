@@ -51,6 +51,10 @@ class ObjectStorage:
         response = await asyncio.to_thread(self.client.head_object, Bucket=self.bucket, Key=key)
         return int(response["ContentLength"])
 
+    async def health(self) -> None:
+        """Проверить доступ к бакету без чтения пользовательских объектов."""
+        await asyncio.to_thread(self.client.head_bucket, Bucket=self.bucket)
+
     async def read(self, key: str, max_bytes: int) -> tuple[bytes, int]:
         def load() -> tuple[bytes, int]:
             response = self.client.get_object(Bucket=self.bucket, Key=key)

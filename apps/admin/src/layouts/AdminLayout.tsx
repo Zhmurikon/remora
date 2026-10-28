@@ -12,6 +12,7 @@ const navigation = [
   { to: '/plans', label: 'Тарифы и права', end: false },
   { to: '/promotions', label: 'Промокоды', end: false },
   { to: '/jobs', label: 'Операции', end: false },
+  { to: '/system', label: 'Система', end: false },
   { to: '/security', label: 'Безопасность', end: false },
 ];
 

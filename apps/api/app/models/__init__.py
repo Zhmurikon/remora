@@ -1,5 +1,6 @@
 """Модели SQLAlchemy. Импортируются Alembic при автогенерации миграций."""
 
+from app.models.admin_operations import AdminIncident, FeatureFlag
 from app.models.admin_security import AdminAuditLog, AdminTotp
 from app.models.api_tokens import AgentRequest, ApiToken
 from app.models.battles import (
@@ -96,6 +97,7 @@ __all__ = [
     "Achievement",
     "ActionToken",
     "AdminAuditLog",
+    "AdminIncident",
     "AdminTotp",
     "AgentRequest",
     "ApiToken",
@@ -134,6 +136,7 @@ __all__ = [
     "DailyActivity",
     "Entitlement",
     "EntitlementSource",
+    "FeatureFlag",
     "Folder",
     "ImportJob",
     "ImportJobStatus",

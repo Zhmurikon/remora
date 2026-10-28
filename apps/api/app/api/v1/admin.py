@@ -47,6 +47,14 @@ from app.schemas.admin_promotions import (
     AdminReferralItem,
     AdminReferralList,
 )
+from app.schemas.admin_system import (
+    AdminFeatureFlagItem,
+    AdminFeatureFlagWrite,
+    AdminIncidentCreate,
+    AdminIncidentItem,
+    AdminIncidentUpdate,
+    AdminSystemOverview,
+)
 from app.schemas.agent import AgentMediaUpload, AgentMediaUploadResult
 from app.schemas.blog import BlogPostUpdate, BlogPostWrite
 from app.services.admin import AdminService
@@ -55,6 +63,7 @@ from app.services.admin_blog import AdminBlogService
 from app.services.admin_jobs import AdminJobsService
 from app.services.admin_moderation import AdminModerationService
 from app.services.admin_promotions import AdminPromotionsService
+from app.services.admin_system import AdminSystemService
 from app.services.agent import AgentService
 from app.services.agent_media import AgentMediaService
 
@@ -121,6 +130,84 @@ async def retry_admin_job(
         kind=kind,
         job_id=job_id,
         reason=body.reason,
+        idempotency_key=idempotency_key,
+        ip=ip,
+        user_agent=user_agent,
+    )
+
+
+@router.get("/system", response_model=AdminSystemOverview, summary="Состояние системы")
+async def get_admin_system(
+    response: Response,
+    _: User = Depends(admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminSystemOverview:
+    response.headers["Cache-Control"] = "no-store"
+    return await AdminSystemService(db).overview()
+
+
+@router.put(
+    "/system/flags",
+    response_model=AdminFeatureFlagItem,
+    summary="Создать или изменить фиче-флаг",
+)
+async def write_admin_feature_flag(
+    body: AdminFeatureFlagWrite,
+    request: Request,
+    idempotency_key: IdempotencyKey,
+    actor: User = Depends(confirmed_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminFeatureFlagItem:
+    ip, user_agent = _request_context(request)
+    return await AdminSystemService(db).write_flag(
+        actor=actor,
+        body=body,
+        idempotency_key=idempotency_key,
+        ip=ip,
+        user_agent=user_agent,
+    )
+
+
+@router.post(
+    "/system/incidents",
+    response_model=AdminIncidentItem,
+    summary="Создать запись об инциденте",
+)
+async def create_admin_incident(
+    body: AdminIncidentCreate,
+    request: Request,
+    idempotency_key: IdempotencyKey,
+    actor: User = Depends(confirmed_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminIncidentItem:
+    ip, user_agent = _request_context(request)
+    return await AdminSystemService(db).create_incident(
+        actor=actor,
+        body=body,
+        idempotency_key=idempotency_key,
+        ip=ip,
+        user_agent=user_agent,
+    )
+
+
+@router.patch(
+    "/system/incidents/{incident_id}",
+    response_model=AdminIncidentItem,
+    summary="Обновить состояние инцидента",
+)
+async def update_admin_incident(
+    incident_id: UUID,
+    body: AdminIncidentUpdate,
+    request: Request,
+    idempotency_key: IdempotencyKey,
+    actor: User = Depends(confirmed_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminIncidentItem:
+    ip, user_agent = _request_context(request)
+    return await AdminSystemService(db).update_incident(
+        actor=actor,
+        incident_id=incident_id,
+        body=body,
         idempotency_key=idempotency_key,
         ip=ip,
         user_agent=user_agent,
