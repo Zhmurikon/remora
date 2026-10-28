@@ -31,6 +31,7 @@ from app.schemas.admin_blog import (
     AdminBlogPostList,
     AdminBlogPublicationAction,
 )
+from app.schemas.admin_jobs import AdminJobItem, AdminJobKind, AdminJobList, AdminJobRetry
 from app.schemas.admin_moderation import (
     AdminModerationCourseAction,
     AdminModerationCourseDetail,
@@ -51,6 +52,7 @@ from app.schemas.blog import BlogPostUpdate, BlogPostWrite
 from app.services.admin import AdminService
 from app.services.admin_billing import AdminBillingService
 from app.services.admin_blog import AdminBlogService
+from app.services.admin_jobs import AdminJobsService
 from app.services.admin_moderation import AdminModerationService
 from app.services.admin_promotions import AdminPromotionsService
 from app.services.agent import AgentService
@@ -59,12 +61,70 @@ from app.services.agent_media import AgentMediaService
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
+def _request_context(request: Request) -> tuple[str | None, str | None]:
+    return (
+        request.client.host if request.client else None,
+        request.headers.get("user-agent"),
+    )
+
+
+IdempotencyKey = Annotated[
+    str,
+    Header(alias="Idempotency-Key", min_length=16, max_length=64),
+]
+
+
 @router.get("/overview", response_model=AdminOverview, summary="Сводка продукта")
 async def get_overview(
     _: User = Depends(admin_user),
     db: AsyncSession = Depends(get_db),
 ) -> AdminOverview:
     return await AdminService(db).overview()
+
+
+@router.get("/jobs", response_model=AdminJobList, summary="Фоновые операции")
+async def list_admin_jobs(
+    query: Annotated[str | None, Query(min_length=1, max_length=160)] = None,
+    kind: AdminJobKind | None = None,
+    status: Annotated[str | None, Query(min_length=1, max_length=32)] = None,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    _: User = Depends(admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminJobList:
+    return await AdminJobsService(db).jobs(
+        query=query.strip() if query else None,
+        kind=kind,
+        status=status,
+        offset=offset,
+        limit=limit,
+    )
+
+
+@router.post(
+    "/jobs/{kind}/{job_id}/retry",
+    response_model=AdminJobItem,
+    summary="Безопасно повторить фоновую операцию",
+)
+async def retry_admin_job(
+    kind: AdminJobKind,
+    job_id: UUID,
+    body: AdminJobRetry,
+    request: Request,
+    idempotency_key: IdempotencyKey,
+    actor: User = Depends(confirmed_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminJobItem:
+    ip, user_agent = _request_context(request)
+    return await AdminJobsService(db).retry(
+        actor=actor,
+        kind=kind,
+        job_id=job_id,
+        reason=body.reason,
+        idempotency_key=idempotency_key,
+        ip=ip,
+        user_agent=user_agent,
+    )
 
 
 @router.get("/plans", response_model=AdminPlanCatalog, summary="Активные версии тарифов")
@@ -102,19 +162,6 @@ async def get_user(
 ) -> AdminUserDetail:
     response.headers["Cache-Control"] = "no-store"
     return await AdminService(db).user(user_id)
-
-
-def _request_context(request: Request) -> tuple[str | None, str | None]:
-    return (
-        request.client.host if request.client else None,
-        request.headers.get("user-agent"),
-    )
-
-
-IdempotencyKey = Annotated[
-    str,
-    Header(alias="Idempotency-Key", min_length=16, max_length=64),
-]
 
 
 @router.patch(

@@ -3,6 +3,7 @@ import { useAuth } from './features/auth/AuthContext';
 import { LoginPage } from './features/auth/LoginPage';
 import { AdminLayout } from './layouts/AdminLayout';
 import { BlogPage } from './pages/BlogPage';
+import { JobsPage } from './pages/JobsPage';
 import { ModerationPage } from './pages/ModerationPage';
 import { OverviewPage } from './pages/OverviewPage';
 import { PaymentsPage } from './pages/PaymentsPage';
@@ -36,6 +37,7 @@ export function App() {
         <Route path="users/:userId" element={<UserDetailPage />} />
         <Route path="moderation" element={<ModerationPage />} />
         <Route path="blog" element={<BlogPage />} />
+        <Route path="jobs" element={<JobsPage />} />
         <Route path="payments" element={<PaymentsPage />} />
         <Route path="plans" element={<PlansPage />} />
         <Route path="promotions" element={<PromotionsPage />} />

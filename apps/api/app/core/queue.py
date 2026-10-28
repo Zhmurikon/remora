@@ -14,10 +14,13 @@ async def enqueue_import(job_id: str) -> None:
         await pool.aclose()
 
 
-async def enqueue_account_export(job_id: str) -> None:
+async def enqueue_account_export(job_id: str, *, attempt: str | None = None) -> None:
     pool: ArqRedis = await create_pool(RedisSettings.from_dsn(str(get_settings().redis_url)))
     try:
-        await pool.enqueue_job("process_account_export", job_id, _job_id=f"account-export:{job_id}")
+        suffix = f":{attempt}" if attempt else ""
+        await pool.enqueue_job(
+            "process_account_export", job_id, _job_id=f"account-export:{job_id}{suffix}"
+        )
     finally:
         await pool.aclose()
 

@@ -232,6 +232,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Фоновые операции */
+        get: operations["list_admin_jobs_api_v1_admin_jobs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/jobs/{kind}/{job_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Безопасно повторить фоновую операцию */
+        post: operations["retry_admin_job_api_v1_admin_jobs__kind___job_id__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/moderation/courses": {
         parameters: {
             query?: never;
@@ -3468,6 +3502,62 @@ export interface components {
             source_label: string;
             /** Value */
             value: boolean | number | "unlimited";
+        };
+        /** AdminJobItem */
+        AdminJobItem: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Email */
+            email: string | null;
+            /** Error */
+            error: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "import" | "export" | "transcription" | "media" | "search";
+            /** Label */
+            label: string;
+            /** Progress */
+            progress: number | null;
+            /** Retryable */
+            retryable: boolean;
+            /** Stale */
+            stale: boolean;
+            /** Started At */
+            started_at: string | null;
+            /** Status */
+            status: string;
+            /** User Id */
+            user_id: string | null;
+            /** Username */
+            username: string | null;
+        };
+        /** AdminJobList */
+        AdminJobList: {
+            /** Items */
+            items: components["schemas"]["AdminJobItem"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** AdminJobRetry */
+        AdminJobRetry: {
+            /** Reason */
+            reason: string;
         };
         /** AdminLoginRequest */
         AdminLoginRequest: {
@@ -8594,6 +8684,80 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminBlogPostDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_admin_jobs_api_v1_admin_jobs_get: {
+        parameters: {
+            query?: {
+                query?: string | null;
+                kind?: ("import" | "export" | "transcription" | "media" | "search") | null;
+                status?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminJobList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_admin_job_api_v1_admin_jobs__kind___job_id__retry_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Admin-Confirmation"?: string | null;
+            };
+            path: {
+                kind: "import" | "export" | "transcription" | "media" | "search";
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminJobRetry"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminJobItem"];
                 };
             };
             /** @description Validation Error */
