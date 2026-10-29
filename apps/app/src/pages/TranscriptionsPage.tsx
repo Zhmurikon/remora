@@ -179,7 +179,7 @@ function UploadWorkspace({
       setDurationSeconds(await readMediaDuration(next));
     } catch {
       setError(
-        'Не удалось определить длительность файла. Выберите запись в MP3, WAV, M4A, MP4, WebM, OGG или FLAC.',
+        'Не удалось прочитать длительность. Проверьте, что файл содержит аудио или видео и не повреждён.',
       );
     } finally {
       setReadingDuration(false);
@@ -302,14 +302,14 @@ function UploadWorkspace({
             Выбрать файл
           </Button>
           <p className="text-fg-subtle mt-4 text-sm">
-            MP3, WAV, M4A, MP4, WEBM, OGG, FLAC и TS · до 1 ГБ
+            MP3, WAV, M4A, FLAC, MP4, MOV, MKV, AVI, WebM, TS/MTS/M2TS и другие · до 1 ГБ
           </p>
         </div>
         <input
           ref={inputRef}
           hidden
           type="file"
-          accept="audio/*,video/*,.ts,.m4a,.flac,.ogg,.webm"
+          accept="audio/*,video/*,.aac,.ac3,.aiff,.amr,.ape,.avi,.flac,.flv,.m2ts,.m4a,.m4v,.mkv,.mov,.mp3,.mp4,.mpeg,.mpg,.mts,.ogg,.opus,.ts,.vob,.wav,.webm,.wma,.wmv,.3gp"
           onChange={(event: ChangeEvent<HTMLInputElement>) =>
             void chooseFile(event.target.files?.[0])
           }
@@ -962,21 +962,80 @@ function limitFromUnknown(
   };
 }
 
-function readMediaDuration(file: File): Promise<number> {
+const BROWSER_METADATA_EXTENSIONS = new Set([
+  'aac',
+  'm4a',
+  'm4v',
+  'mp3',
+  'mp4',
+  'ogg',
+  'opus',
+  'wav',
+  'webm',
+]);
+
+async function readMediaDuration(file: File): Promise<number> {
+  if (canUseBrowserMetadata(file)) {
+    try {
+      return await readBrowserMediaDuration(file);
+    } catch {
+      // Поддержка контейнеров различается между браузерами, поэтому пробуем универсальный анализатор.
+    }
+  }
+
+  const { default: mediaInfoFactory } = await import('mediainfo.js');
+  const mediaInfo = await mediaInfoFactory({
+    format: 'object',
+    locateFile: () => `${import.meta.env.BASE_URL}assets/mediainfo/MediaInfoModule.wasm`,
+  });
+  try {
+    const result = await mediaInfo.analyzeData(file.size, async (size, offset) => {
+      const chunk = await file.slice(offset, offset + size).arrayBuffer();
+      return new Uint8Array(chunk);
+    });
+    const general = result.media?.track.find((track) => track['@type'] === 'General');
+    const duration = general?.Duration;
+    if (typeof duration !== 'number' || !Number.isFinite(duration) || duration <= 0) {
+      throw new Error('duration unavailable');
+    }
+    return Math.ceil(duration);
+  } finally {
+    mediaInfo.close();
+  }
+}
+
+function canUseBrowserMetadata(file: File) {
+  const extension = file.name.split('.').pop()?.toLocaleLowerCase('en') ?? '';
+  return BROWSER_METADATA_EXTENSIONS.has(extension);
+}
+
+function readBrowserMediaDuration(file: File): Promise<number> {
   return new Promise((resolve, reject) => {
     const media = document.createElement(file.type.startsWith('video/') ? 'video' : 'audio');
     const url = URL.createObjectURL(file);
+    let settled = false;
     media.preload = 'metadata';
+    const timeout = window.setTimeout(
+      () => finish(() => reject(new Error('duration unavailable'))),
+      5_000,
+    );
+
+    function finish(callback: () => void) {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      URL.revokeObjectURL(url);
+      callback();
+    }
+
     media.onloadedmetadata = () => {
       const duration = Math.ceil(media.duration);
-      URL.revokeObjectURL(url);
-      if (Number.isFinite(duration) && duration > 0) resolve(duration);
-      else reject(new Error('duration unavailable'));
+      finish(() => {
+        if (Number.isFinite(duration) && duration > 0) resolve(duration);
+        else reject(new Error('duration unavailable'));
+      });
     };
-    media.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error('duration unavailable'));
-    };
+    media.onerror = () => finish(() => reject(new Error('duration unavailable')));
     media.src = url;
   });
 }

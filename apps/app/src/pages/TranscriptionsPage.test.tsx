@@ -11,6 +11,11 @@ const get = vi.fn();
 const post = vi.fn();
 const patch = vi.fn();
 const remove = vi.fn();
+const mediaInfoMocks = vi.hoisted(() => ({
+  analyzeData: vi.fn(),
+  close: vi.fn(),
+  factory: vi.fn(),
+}));
 
 vi.mock('../lib/api', () => ({
   api: {
@@ -21,6 +26,10 @@ vi.mock('../lib/api', () => ({
   },
   ApiRequestError: class extends Error {},
   uploadTranscriptionChunk: vi.fn(),
+}));
+
+vi.mock('mediainfo.js', () => ({
+  default: (...args: unknown[]) => mediaInfoMocks.factory(...args),
 }));
 
 const entitlements = {
@@ -70,6 +79,10 @@ function renderPage(path = '/transcriptions') {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mediaInfoMocks.factory.mockResolvedValue({
+    analyzeData: mediaInfoMocks.analyzeData,
+    close: mediaInfoMocks.close,
+  });
   get.mockImplementation((path: string) => {
     if (path === '/api/v1/transcriptions') return Promise.resolve({ data: [] });
     return Promise.resolve({ data: entitlements });
@@ -142,5 +155,28 @@ describe('TranscriptionsPage', () => {
 
     expect(await screen.findByText(/3 минуты/)).toBeTruthy();
     expect(screen.queryByLabelText('Длительность, минут')).toBeNull();
+  });
+
+  it('получает длительность MPEG-TS через универсальный анализатор', async () => {
+    mediaInfoMocks.analyzeData.mockResolvedValue({
+      media: {
+        track: [{ '@type': 'General', Duration: 3725.4, Format: 'MPEG-TS' }],
+      },
+    });
+    const user = userEvent.setup();
+    const view = renderPage();
+    await screen.findByRole('heading', { name: 'Новая расшифровка' });
+
+    const input = view.container.querySelector<HTMLInputElement>('input[type="file"]');
+    expect(input).toBeTruthy();
+    const file = new File(['transport stream'], 'lecture.ts', { type: 'video/mp2t' });
+    await user.upload(input!, file);
+
+    expect(await screen.findByText(/63 минуты/)).toBeTruthy();
+    expect(mediaInfoMocks.factory).toHaveBeenCalledWith(
+      expect.objectContaining({ format: 'object', locateFile: expect.any(Function) }),
+    );
+    expect(mediaInfoMocks.analyzeData).toHaveBeenCalledWith(file.size, expect.any(Function));
+    expect(mediaInfoMocks.close).toHaveBeenCalledOnce();
   });
 });

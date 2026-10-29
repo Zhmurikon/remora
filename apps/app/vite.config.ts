@@ -27,6 +27,8 @@ const pyodidePackageFiles = [
   'pillow-12.2.0-cp314-cp314-pyemscripten_2026_0_wasm32.whl',
   'pyparsing-3.3.2-py3-none-any.whl',
 ].map((file) => fileURLToPath(new URL(`./vendor/pyodide/${file}`, import.meta.url)));
+const mediaInfoDirectory = dirname(dirname(fileURLToPath(import.meta.resolve('mediainfo.js'))));
+const mediaInfoWasm = join(mediaInfoDirectory, 'MediaInfoModule.wasm').replace(/\\/g, '/');
 
 export default defineConfig({
   base: process.env.VITE_BASE_PATH ?? '/',
@@ -42,6 +44,11 @@ export default defineConfig({
         {
           src: pyodidePackageFiles,
           dest: 'assets/pyodide',
+          rename: { stripBase: true },
+        },
+        {
+          src: mediaInfoWasm,
+          dest: 'assets/mediainfo',
           rename: { stripBase: true },
         },
       ],
