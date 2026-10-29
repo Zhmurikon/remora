@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -189,7 +189,7 @@ describe('TranscriptionsPage', () => {
     expect(mediaInfoMocks.close).toHaveBeenCalledOnce();
   });
 
-  it('загружает файл напрямую в хранилище по подписанной ссылке', async () => {
+  it('автоматически загружает файл напрямую в хранилище по подписанной ссылке', async () => {
     const job = {
       ...completed,
       id: '22222222-2222-4222-8222-222222222222',
@@ -237,15 +237,16 @@ describe('TranscriptionsPage', () => {
 
     const input = view.container.querySelector<HTMLInputElement>('input[type="file"]');
     await user.upload(input!, new File(['transport stream'], 'lecture.ts', { type: 'video/mp2t' }));
-    await user.click(await screen.findByRole('button', { name: 'Начать расшифровку' }));
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://storage.example/upload',
-      expect.objectContaining({ method: 'PUT', credentials: 'omit' }),
-    );
-    expect(post).toHaveBeenCalledWith(
-      '/api/v1/transcriptions/{job_id}/complete',
-      expect.objectContaining({ params: { path: { job_id: job.id } } }),
-    );
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://storage.example/upload',
+        expect.objectContaining({ method: 'PUT', credentials: 'omit' }),
+      );
+      expect(post).toHaveBeenCalledWith(
+        '/api/v1/transcriptions/{job_id}/complete',
+        expect.objectContaining({ params: { path: { job_id: job.id } } }),
+      );
+    });
   });
 });

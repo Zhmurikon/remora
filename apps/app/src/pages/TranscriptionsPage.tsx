@@ -11,8 +11,8 @@ type JobStatus = components['schemas']['TranscriptionStatus'];
 
 const CHUNK_BYTES = 16 * 1024 * 1024;
 const MAX_FILE_BYTES = 1024 * 1024 * 1024;
-const UPLOAD_CONCURRENCY = 3;
-const UPLOAD_RETRIES = 5;
+const UPLOAD_CONCURRENCY = 2;
+const UPLOAD_RETRIES = 8;
 const TRANSCRIPTION_LIMIT = 'ai.transcription_minutes_per_week';
 const busyStatuses = new Set<JobStatus>(['uploading', 'queued', 'converting', 'transcribing']);
 
@@ -182,7 +182,7 @@ function UploadWorkspace({
   }, [resumeJob]);
 
   async function chooseFile(next: File | undefined) {
-    if (!next) return;
+    if (!next || uploading) return;
     setError('');
     setProgress(0);
     if (next.size > MAX_FILE_BYTES) {
@@ -194,30 +194,35 @@ function UploadWorkspace({
       return;
     }
     setFile(next);
+    let detectedDuration: number;
     if (currentJob?.duration_seconds) {
-      setDurationSeconds(currentJob.duration_seconds);
-      return;
+      detectedDuration = currentJob.duration_seconds;
+      setDurationSeconds(detectedDuration);
+    } else {
+      setDurationSeconds(null);
+      setReadingDuration(true);
+      try {
+        detectedDuration = await readMediaDuration(next);
+        setDurationSeconds(detectedDuration);
+      } catch {
+        setError(
+          'Не удалось прочитать длительность. Проверьте, что файл содержит аудио или видео и не повреждён.',
+        );
+        return;
+      } finally {
+        setReadingDuration(false);
+      }
     }
-    setDurationSeconds(null);
-    setReadingDuration(true);
-    try {
-      setDurationSeconds(await readMediaDuration(next));
-    } catch {
-      setError(
-        'Не удалось прочитать длительность. Проверьте, что файл содержит аудио или видео и не повреждён.',
-      );
-    } finally {
-      setReadingDuration(false);
-    }
+    await upload(next, detectedDuration);
   }
 
-  async function upload() {
-    if (!file || uploading) return;
-    if (durationSeconds === null) {
+  async function upload(selectedFile = file, selectedDuration = durationSeconds) {
+    if (!selectedFile || uploading) return;
+    if (selectedDuration === null) {
       setError('Не удалось автоматически определить длительность записи.');
       return;
     }
-    const seconds = durationSeconds;
+    const seconds = selectedDuration;
     const requested = Math.ceil(seconds / 60);
     const remaining = entitlements?.remaining[TRANSCRIPTION_LIMIT];
     if (!currentJob && remaining !== null && remaining !== undefined && remaining < requested) {
@@ -235,14 +240,14 @@ function UploadWorkspace({
     const controller = new AbortController();
     abortRef.current = controller;
     try {
-      const totalParts = Math.ceil(file.size / CHUNK_BYTES);
+      const totalParts = Math.ceil(selectedFile.size / CHUNK_BYTES);
       let job = currentJob;
       if (!job) {
         const created = await api.POST('/api/v1/transcriptions', {
           body: {
-            filename: file.name,
-            content_type: file.type || 'application/octet-stream',
-            size_bytes: file.size,
+            filename: selectedFile.name,
+            content_type: selectedFile.type || 'application/octet-stream',
+            size_bytes: selectedFile.size,
             total_parts: totalParts,
             duration_seconds: seconds,
             language: language || null,
@@ -272,7 +277,7 @@ function UploadWorkspace({
         (sum, part) => sum + part.size_bytes,
         0,
       );
-      setProgress(Math.round((completedBytes / file.size) * 100));
+      setProgress(Math.round((completedBytes / selectedFile.size) * 100));
       const pending = Array.from({ length: totalParts }, (_, index) => index + 1).filter(
         (part) => !uploaded.has(part),
       );
@@ -283,10 +288,10 @@ function UploadWorkspace({
           cursor += 1;
           if (partNumber === undefined) return;
           const start = (partNumber - 1) * CHUNK_BYTES;
-          const chunk = file.slice(start, Math.min(file.size, start + CHUNK_BYTES));
+          const chunk = selectedFile.slice(start, Math.min(selectedFile.size, start + CHUNK_BYTES));
           await uploadPartWithRetry(job.id, partNumber, chunk, controller.signal);
           completedBytes += chunk.size;
-          setProgress(Math.round((completedBytes / file.size) * 100));
+          setProgress(Math.round((completedBytes / selectedFile.size) * 100));
         }
       };
       await Promise.all(
@@ -302,6 +307,7 @@ function UploadWorkspace({
       setUploadJob(undefined);
       onUploaded(completed.data);
     } catch (caught) {
+      controller.abort();
       if (caught instanceof DOMException && caught.name === 'AbortError') {
         setError('Загрузка отменена.');
       } else if (caught instanceof ApiRequestError && caught.code === 'LIMIT_EXCEEDED') {
@@ -350,11 +356,28 @@ function UploadWorkspace({
         <p className="text-fg-muted mt-2">
           {currentJob
             ? `Повторно выберите файл «${currentJob.filename}» — загруженные части сохранятся.`
-            : 'Загрузите аудио или видео — обработка продолжится, даже если закрыть страницу.'}
+            : 'Выберите аудио или видео — загрузка начнётся автоматически.'}
         </p>
       </header>
 
       <div className="border-border bg-surface mt-5 rounded-xl border p-4 sm:p-6">
+        {!currentJob ? (
+          <div className="mb-5 max-w-sm">
+            <label className="text-sm font-medium">
+              Язык записи
+              <select
+                className="border-border bg-surface focus:border-primary focus:ring-primary mt-2 h-11 w-full rounded-lg border px-3 outline-none focus:ring-1"
+                value={language}
+                onChange={(event) => setLanguage(event.target.value)}
+                disabled={uploading}
+              >
+                <option value="ru">Русский</option>
+                <option value="en">Английский</option>
+                <option value="">Определить автоматически</option>
+              </select>
+            </label>
+          </div>
+        ) : null}
         <div
           role="button"
           tabIndex={0}
@@ -375,7 +398,7 @@ function UploadWorkspace({
           onDrop={(event: DragEvent<HTMLDivElement>) => {
             event.preventDefault();
             setDragging(false);
-            void chooseFile(event.dataTransfer.files[0]);
+            if (!uploading) void chooseFile(event.dataTransfer.files[0]);
           }}
         >
           <span className="text-primary mb-5 grid h-16 w-16 place-items-center" aria-hidden="true">
@@ -418,26 +441,10 @@ function UploadWorkspace({
               type="button"
               className="text-fg-muted hover:text-danger min-h-11 rounded-lg px-3 text-sm"
               onClick={() => setFile(null)}
+              disabled={uploading}
             >
               Убрать
             </button>
-          </div>
-        ) : null}
-
-        {!currentJob ? (
-          <div className="mt-5 max-w-sm">
-            <label className="text-sm font-medium">
-              Язык записи
-              <select
-                className="border-border bg-surface focus:border-primary focus:ring-primary mt-2 h-11 w-full rounded-lg border px-3 outline-none focus:ring-1"
-                value={language}
-                onChange={(event) => setLanguage(event.target.value)}
-              >
-                <option value="ru">Русский</option>
-                <option value="en">Английский</option>
-                <option value="">Определить автоматически</option>
-              </select>
-            </label>
           </div>
         ) : null}
 
@@ -463,13 +470,9 @@ function UploadWorkspace({
               Отменить загрузку
             </Button>
           ) : null}
-          <Button
-            disabled={!file || uploading || readingDuration || durationSeconds === null}
-            loading={uploading}
-            onClick={() => void upload()}
-          >
-            {currentJob ? 'Продолжить загрузку' : 'Начать расшифровку'}
-          </Button>
+          {!uploading && error && file && durationSeconds !== null ? (
+            <Button onClick={() => void upload()}>Продолжить загрузку</Button>
+          ) : null}
         </div>
       </div>
     </div>
@@ -1083,9 +1086,12 @@ async function uploadPartWithRetry(
       if (signal.aborted) throw new DOMException('Загрузка отменена', 'AbortError');
       lastError = caught instanceof Error ? caught : new Error('Не удалось загрузить часть файла');
       if (attempt + 1 < UPLOAD_RETRIES) {
-        await abortableDelay(2 ** attempt * 1_000, signal);
+        await abortableDelay(Math.min(2 ** attempt * 1_000, 8_000), signal);
       }
     }
+  }
+  if (lastError instanceof TypeError) {
+    throw new Error('Соединение прервалось. Проверьте интернет и продолжите загрузку.');
   }
   throw lastError ?? new Error('Не удалось загрузить часть файла');
 }
