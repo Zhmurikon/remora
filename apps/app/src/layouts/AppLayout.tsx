@@ -12,7 +12,7 @@ const navigation = [
     icon: 'materials',
     matches: ['/materials', '/sets', '/courses', '/library'],
   },
-  { to: '/transcriptions', label: 'Конспекты', icon: 'transcriptions' },
+  { to: '/transcriptions', label: 'Ai Конспекты', icon: 'transcriptions' },
   { to: '/practice', label: 'Практика', icon: 'practice' },
   { to: '/classes', label: 'Классы', icon: 'classes' },
   { to: '/achievements', label: 'Достижения', icon: 'achievement' },

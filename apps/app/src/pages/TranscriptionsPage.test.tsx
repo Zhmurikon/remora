@@ -76,7 +76,12 @@ beforeEach(() => {
   });
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+  Reflect.deleteProperty(URL, 'createObjectURL');
+  Reflect.deleteProperty(URL, 'revokeObjectURL');
+});
 
 describe('TranscriptionsPage', () => {
   it('показывает загрузку вместо пустого документа', async () => {
@@ -105,5 +110,37 @@ describe('TranscriptionsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Открыть библиотеку' }));
     expect(screen.getByRole('heading', { name: 'Библиотека конспектов' })).toBeTruthy();
     expect(screen.getByText(completed.title)).toBeTruthy();
+  });
+
+  it('автоматически получает длительность из выбранного файла', async () => {
+    const createElement = document.createElement.bind(document);
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: vi.fn(() => 'blob:lecture'),
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: vi.fn(),
+    });
+    vi.spyOn(document, 'createElement').mockImplementation((tagName, options) => {
+      const element = createElement(tagName, options);
+      if (tagName !== 'audio') return element;
+      Object.defineProperty(element, 'duration', { configurable: true, value: 125 });
+      Object.defineProperty(element, 'src', {
+        configurable: true,
+        set: () => queueMicrotask(() => element.onloadedmetadata?.(new Event('loadedmetadata'))),
+      });
+      return element;
+    });
+    const user = userEvent.setup();
+    const view = renderPage();
+    await screen.findByRole('heading', { name: 'Новая расшифровка' });
+
+    const input = view.container.querySelector<HTMLInputElement>('input[type="file"]');
+    expect(input).toBeTruthy();
+    await user.upload(input!, new File(['audio'], 'lecture.mp3', { type: 'audio/mpeg' }));
+
+    expect(await screen.findByText(/3 минуты/)).toBeTruthy();
+    expect(screen.queryByLabelText('Длительность, минут')).toBeNull();
   });
 });

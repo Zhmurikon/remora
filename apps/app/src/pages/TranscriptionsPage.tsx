@@ -159,8 +159,7 @@ function UploadWorkspace({
   const [language, setLanguage] = useState('ru');
   const [dragging, setDragging] = useState(false);
   const [durationSeconds, setDurationSeconds] = useState<number | null>(null);
-  const [durationError, setDurationError] = useState(false);
-  const [manualMinutes, setManualMinutes] = useState('');
+  const [readingDuration, setReadingDuration] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -175,21 +174,25 @@ function UploadWorkspace({
     }
     setFile(next);
     setDurationSeconds(null);
-    setDurationError(false);
+    setReadingDuration(true);
     try {
       setDurationSeconds(await readMediaDuration(next));
     } catch {
-      setDurationError(true);
+      setError(
+        'Не удалось определить длительность файла. Выберите запись в MP3, WAV, M4A, MP4, WebM, OGG или FLAC.',
+      );
+    } finally {
+      setReadingDuration(false);
     }
   }
 
   async function upload() {
     if (!file || uploading) return;
-    const seconds = durationSeconds ?? Math.round(Number(manualMinutes) * 60);
-    if (!Number.isFinite(seconds) || seconds < 1) {
-      setError('Укажите длительность записи, чтобы проверить недельный лимит.');
+    if (durationSeconds === null) {
+      setError('Не удалось автоматически определить длительность записи.');
       return;
     }
+    const seconds = durationSeconds;
     const requested = Math.ceil(seconds / 60);
     const remaining = entitlements?.remaining[TRANSCRIPTION_LIMIT];
     if (remaining !== null && remaining !== undefined && remaining < requested) {
@@ -319,7 +322,11 @@ function UploadWorkspace({
               <p className="truncate text-sm font-semibold">{file.name}</p>
               <p className="text-fg-muted text-xs">
                 {formatBytes(file.size)}
-                {durationSeconds ? ` · ${formatDuration(durationSeconds)}` : ''}
+                {readingDuration
+                  ? ' · Определяем длительность…'
+                  : durationSeconds
+                    ? ` · ${formatDuration(durationSeconds)}`
+                    : ''}
               </p>
             </div>
             <button
@@ -332,7 +339,7 @@ function UploadWorkspace({
           </div>
         ) : null}
 
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <div className="mt-5 max-w-sm">
           <label className="text-sm font-medium">
             Язык записи
             <select
@@ -345,19 +352,6 @@ function UploadWorkspace({
               <option value="">Определить автоматически</option>
             </select>
           </label>
-          {durationError ? (
-            <label className="text-sm font-medium">
-              Длительность, минут
-              <input
-                className="border-border bg-surface focus:border-primary focus:ring-primary mt-2 h-11 w-full rounded-lg border px-3 outline-none focus:ring-1"
-                type="number"
-                min="1"
-                max="240"
-                value={manualMinutes}
-                onChange={(event) => setManualMinutes(event.target.value)}
-              />
-            </label>
-          ) : null}
         </div>
 
         {uploading ? (
@@ -377,7 +371,11 @@ function UploadWorkspace({
           </p>
         ) : null}
         <div className="mt-5 flex justify-end">
-          <Button disabled={!file || uploading} loading={uploading} onClick={() => void upload()}>
+          <Button
+            disabled={!file || uploading || readingDuration || durationSeconds === null}
+            loading={uploading}
+            onClick={() => void upload()}
+          >
             Начать расшифровку
           </Button>
         </div>
