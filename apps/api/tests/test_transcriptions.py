@@ -1,5 +1,5 @@
 from datetime import UTC, datetime, timedelta
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from httpx import AsyncClient
@@ -161,7 +161,12 @@ async def test_user_transcription_rejects_inconsistent_chunk_count(client: Async
 
 
 @pytest.mark.asyncio
-async def test_user_transcriptions_are_private_and_metered(client: AsyncClient) -> None:
+async def test_user_transcriptions_are_private_and_metered(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    storage = AsyncMock()
+    storage.create_multipart_upload.return_value = "upload-first"
+    monkeypatch.setattr("app.services.transcriptions.get_object_storage", lambda: storage)
     first_headers, first_email = await register(client, "first")
     second_headers, second_email = await register(client, "second")
     await set_transcription_limit(first_email, 10)
@@ -189,6 +194,16 @@ async def test_user_transcriptions_are_private_and_metered(client: AsyncClient) 
     assert (
         await client.get(f"/api/v1/transcriptions/{job_id}", headers=second_headers)
     ).status_code == 404
+    assert (
+        await client.get(f"/api/v1/transcriptions/{job_id}/upload", headers=second_headers)
+    ).status_code == 404
+    assert (
+        await client.post(
+            f"/api/v1/transcriptions/{job_id}/upload/parts",
+            headers=second_headers,
+            json={"part_numbers": [1]},
+        )
+    ).status_code == 404
 
     entitlements = await client.get("/api/v1/billing/entitlements", headers=first_headers)
     assert entitlements.json()["usage"]["ai.transcription_minutes_per_week"] == 2
@@ -203,6 +218,12 @@ async def test_user_can_upload_edit_and_delete_own_transcription(
     headers, email = await register(client, "lifecycle")
     await set_transcription_limit(email, 10)
     storage = AsyncMock()
+    storage.create_multipart_upload.return_value = "upload-lifecycle"
+    storage.upload_part_url = Mock(return_value="https://storage.example/upload-part")
+    storage.list_multipart_parts.return_value = [
+        {"part_number": 1, "size_bytes": 4, "etag": '"etag-1"'}
+    ]
+    storage.size.return_value = 4
     monkeypatch.setattr("app.services.transcriptions.get_object_storage", lambda: storage)
     enqueue = AsyncMock()
     monkeypatch.setattr("app.api.v1.transcriptions.enqueue_transcription", enqueue)
@@ -218,14 +239,19 @@ async def test_user_can_upload_edit_and_delete_own_transcription(
         },
     )
     job_id = created.json()["id"]
-    uploaded = await client.put(
-        f"/api/v1/transcriptions/{job_id}/parts/0",
-        headers={**headers, "Content-Type": "application/octet-stream"},
-        content=b"test",
+    upload_state = await client.get(f"/api/v1/transcriptions/{job_id}/upload", headers=headers)
+    assert upload_state.status_code == 200
+    assert upload_state.json()["uploaded_parts"] == [{"part_number": 1, "size_bytes": 4}]
+    signed = await client.post(
+        f"/api/v1/transcriptions/{job_id}/upload/parts",
+        headers=headers,
+        json={"part_numbers": [1]},
     )
-    assert uploaded.status_code == 200
+    assert signed.status_code == 200
+    assert signed.json() == [{"part_number": 1, "url": "https://storage.example/upload-part"}]
     completed = await client.post(f"/api/v1/transcriptions/{job_id}/complete", headers=headers)
     assert completed.status_code == 200
+    storage.complete_multipart_upload.assert_awaited_once()
     enqueue.assert_awaited_once_with(job_id)
 
     async with get_session_factory()() as db:
@@ -247,3 +273,38 @@ async def test_user_can_upload_edit_and_delete_own_transcription(
     assert deleted.status_code == 204
     missing = await client.get(f"/api/v1/transcriptions/{job_id}", headers=headers)
     assert missing.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_user_can_cancel_multipart_upload_and_release_quota(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    headers, email = await register(client, "cancel")
+    await set_transcription_limit(email, 10)
+    storage = AsyncMock()
+    storage.create_multipart_upload.return_value = "upload-cancel"
+    monkeypatch.setattr("app.services.transcriptions.get_object_storage", lambda: storage)
+
+    created = await client.post(
+        "/api/v1/transcriptions",
+        headers=headers,
+        json={
+            "filename": "cancelled.ts",
+            "content_type": "video/mp2t",
+            "size_bytes": 4,
+            "total_parts": 1,
+            "duration_seconds": 61,
+        },
+    )
+    assert created.status_code == 201
+
+    deleted = await client.delete(
+        f"/api/v1/transcriptions/{created.json()['id']}", headers=headers
+    )
+    assert deleted.status_code == 204
+    storage.abort_multipart_upload.assert_awaited_once_with(
+        f"transcriptions/{created.json()['id']}/source", "upload-cancel"
+    )
+    entitlements = await client.get("/api/v1/billing/entitlements", headers=headers)
+    assert entitlements.json()["usage"]["ai.transcription_minutes_per_week"] == 0
+    assert entitlements.json()["remaining"]["ai.transcription_minutes_per_week"] == 10

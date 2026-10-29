@@ -230,6 +230,7 @@ async def process_transcription(_context: dict[str, Any], job_id_value: str) -> 
     job_id = UUID(job_id_value)
     storage = get_object_storage()
     part_keys: list[str] = []
+    source_key: str | None = None
     async with get_session_factory()() as db:
         job = await db.get(TranscriptionJob, job_id)
         if job is None or job.status != TranscriptionStatus.queued:
@@ -240,6 +241,7 @@ async def process_transcription(_context: dict[str, Any], job_id_value: str) -> 
         total_parts = job.total_parts
         source_suffix = Path(job.filename).suffix.lower()[:12] or ".bin"
         provider = job.provider
+        source_key = job.storage_key
 
     try:
         with tempfile.TemporaryDirectory(prefix="remora-transcription-") as temp_dir:
@@ -247,12 +249,15 @@ async def process_transcription(_context: dict[str, Any], job_id_value: str) -> 
             audio = Path(temp_dir) / (
                 "audio.mp3" if provider == TranscriptionProvider.yandex_speechkit else "audio.flac"
             )
-            with source.open("wb") as target:
-                for part in range(total_parts):
-                    key = f"transcriptions/{job_id}/parts/{part:04d}"
-                    part_keys.append(key)
-                    payload, _ = await storage.read(key, 16 * 1024 * 1024)
-                    target.write(payload)
+            if source_key:
+                await storage.download_to(source_key, source)
+            else:
+                with source.open("wb") as target:
+                    for part in range(total_parts):
+                        key = f"transcriptions/{job_id}/parts/{part:04d}"
+                        part_keys.append(key)
+                        payload, _ = await storage.read(key, 16 * 1024 * 1024)
+                        target.write(payload)
 
             await _reconcile_transcription_quota(job_id, await _probe_duration(source))
 
@@ -283,13 +288,18 @@ async def process_transcription(_context: dict[str, Any], job_id_value: str) -> 
                 raise RuntimeError(f"ffmpeg failed: {detail}")
 
             source.unlink()
-            await storage.delete_many(part_keys)
+            if source_key:
+                await storage.delete(source_key)
+                source_key = None
+            else:
+                await storage.delete_many(part_keys)
             part_keys.clear()
             async with get_session_factory()() as db:
                 job = await db.get(TranscriptionJob, job_id)
                 if job is None:
                     return
                 job.status = TranscriptionStatus.transcribing
+                job.storage_key = None
                 await db.commit()
                 language = job.language
                 beam_size = job.beam_size
@@ -362,6 +372,8 @@ async def process_transcription(_context: dict[str, Any], job_id_value: str) -> 
                 await db.commit()
         raise
     finally:
+        if source_key:
+            await storage.delete(source_key)
         await storage.delete_many(part_keys)
 
 
@@ -459,7 +471,13 @@ async def cleanup_transcriptions(_context: dict[str, Any]) -> None:
                         or_(
                             (
                                 (TranscriptionJob.status == TranscriptionStatus.uploading)
-                                & (TranscriptionJob.created_at < now - timedelta(hours=6))
+                                & or_(
+                                    TranscriptionJob.upload_expires_at <= now,
+                                    (
+                                        TranscriptionJob.upload_expires_at.is_(None)
+                                        & (TranscriptionJob.created_at < now - timedelta(hours=6))
+                                    ),
+                                )
                             ),
                             (
                                 TranscriptionJob.status.in_(
@@ -480,7 +498,7 @@ async def cleanup_transcriptions(_context: dict[str, Any]) -> None:
                                 )
                                 & (TranscriptionJob.created_at < now - timedelta(hours=48))
                             ),
-                        )
+                        ),
                     )
                 )
             ).all()
@@ -493,7 +511,13 @@ async def cleanup_transcriptions(_context: dict[str, Any]) -> None:
                         or_(
                             (
                                 (TranscriptionJob.status == TranscriptionStatus.uploading)
-                                & (TranscriptionJob.created_at < now - timedelta(hours=6))
+                                & or_(
+                                    TranscriptionJob.upload_expires_at <= now,
+                                    (
+                                        TranscriptionJob.upload_expires_at.is_(None)
+                                        & (TranscriptionJob.created_at < now - timedelta(hours=6))
+                                    ),
+                                )
                             ),
                             (
                                 TranscriptionJob.status.in_(
@@ -512,9 +536,16 @@ async def cleanup_transcriptions(_context: dict[str, Any]) -> None:
         )
         storage = get_object_storage()
         for job in [*internal_jobs, *stale_user_jobs]:
-            await storage.delete_many(
-                [f"transcriptions/{job.id}/parts/{part:04d}" for part in range(job.total_parts)]
-            )
+            if job.storage_key and job.storage_upload_id:
+                await storage.abort_multipart_upload(job.storage_key, job.storage_upload_id)
+                job.storage_upload_id = None
+            elif job.storage_key:
+                await storage.delete(job.storage_key)
+            else:
+                await storage.delete_many(
+                    [f"transcriptions/{job.id}/parts/{part:04d}" for part in range(job.total_parts)]
+                )
+            job.storage_key = None
         for job in stale_user_jobs:
             job.status = TranscriptionStatus.failed
             job.error_message = "Загрузка или обработка не завершилась вовремя"

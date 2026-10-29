@@ -3140,6 +3140,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/transcriptions/{job_id}/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Состояние прямой загрузки */
+        get: operations["get_transcription_upload_api_v1_transcriptions__job_id__upload_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/transcriptions/{job_id}/upload/parts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Подписать части прямой загрузки */
+        post: operations["sign_transcription_upload_parts_api_v1_transcriptions__job_id__upload_parts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tts/speak": {
         parameters: {
             query?: never;
@@ -8463,6 +8497,8 @@ export interface components {
             title: string | null;
             /** Total Parts */
             total_parts: number;
+            /** Upload Expires At */
+            upload_expires_at: string | null;
             /** Uploaded Parts */
             uploaded_parts: number;
         };
@@ -8477,6 +8513,39 @@ export interface components {
             result_text?: string | null;
             /** Title */
             title?: string | null;
+        };
+        /** TranscriptionUploadPartUrl */
+        TranscriptionUploadPartUrl: {
+            /** Part Number */
+            part_number: number;
+            /** Url */
+            url: string;
+        };
+        /** TranscriptionUploadPartsRequest */
+        TranscriptionUploadPartsRequest: {
+            /** Part Numbers */
+            part_numbers: number[];
+        };
+        /** TranscriptionUploadState */
+        TranscriptionUploadState: {
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Part Size Bytes */
+            part_size_bytes: number;
+            /** Total Parts */
+            total_parts: number;
+            /** Uploaded Parts */
+            uploaded_parts: components["schemas"]["TranscriptionUploadedPart"][];
+        };
+        /** TranscriptionUploadedPart */
+        TranscriptionUploadedPart: {
+            /** Part Number */
+            part_number: number;
+            /** Size Bytes */
+            size_bytes: number;
         };
         /** TtsStatus */
         TtsStatus: {
@@ -15345,6 +15414,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TranscriptionPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_transcription_upload_api_v1_transcriptions__job_id__upload_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranscriptionUploadState"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sign_transcription_upload_parts_api_v1_transcriptions__job_id__upload_parts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TranscriptionUploadPartsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranscriptionUploadPartUrl"][];
                 };
             };
             /** @description Validation Error */

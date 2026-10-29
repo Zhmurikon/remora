@@ -44,6 +44,15 @@ const entitlements = {
   cancel_at_period_end: false,
 };
 
+const paidEntitlements = {
+  ...entitlements,
+  plan_code: 'pro',
+  plan_name: 'Pro',
+  features: { 'ai.transcription': true },
+  limits: { 'ai.transcription_minutes_per_week': 1500 },
+  remaining: { 'ai.transcription_minutes_per_week': 1500 },
+};
+
 const completed = {
   id: '11111111-1111-4111-8111-111111111111',
   filename: 'lecture.mp4',
@@ -178,5 +187,65 @@ describe('TranscriptionsPage', () => {
     );
     expect(mediaInfoMocks.analyzeData).toHaveBeenCalledWith(file.size, expect.any(Function));
     expect(mediaInfoMocks.close).toHaveBeenCalledOnce();
+  });
+
+  it('загружает файл напрямую в хранилище по подписанной ссылке', async () => {
+    const job = {
+      ...completed,
+      id: '22222222-2222-4222-8222-222222222222',
+      filename: 'lecture.ts',
+      title: 'lecture',
+      size_bytes: 16,
+      duration_seconds: 120,
+      status: 'uploading',
+      uploaded_parts: 0,
+      result_text: null,
+      upload_expires_at: '2026-10-30T00:00:00Z',
+    } as const;
+    get.mockImplementation((path: string) => {
+      if (path === '/api/v1/transcriptions') return Promise.resolve({ data: [] });
+      if (path === '/api/v1/transcriptions/{job_id}/upload') {
+        return Promise.resolve({
+          data: {
+            part_size_bytes: 16 * 1024 * 1024,
+            total_parts: 1,
+            uploaded_parts: [],
+            expires_at: '2026-10-30T00:00:00Z',
+          },
+        });
+      }
+      return Promise.resolve({ data: paidEntitlements });
+    });
+    post.mockImplementation((path: string) => {
+      if (path === '/api/v1/transcriptions') return Promise.resolve({ data: job });
+      if (path === '/api/v1/transcriptions/{job_id}/upload/parts') {
+        return Promise.resolve({
+          data: [{ part_number: 1, url: 'https://storage.example/upload' }],
+        });
+      }
+      return Promise.resolve({ data: { ...job, status: 'queued', uploaded_parts: 1 } });
+    });
+    mediaInfoMocks.analyzeData.mockResolvedValue({
+      media: { track: [{ '@type': 'General', Duration: 120, Format: 'MPEG-TS' }] },
+    });
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response(null, { status: 200 }));
+    const user = userEvent.setup();
+    const view = renderPage();
+    await screen.findByRole('heading', { name: 'Новая расшифровка' });
+
+    const input = view.container.querySelector<HTMLInputElement>('input[type="file"]');
+    await user.upload(input!, new File(['transport stream'], 'lecture.ts', { type: 'video/mp2t' }));
+    await user.click(await screen.findByRole('button', { name: 'Начать расшифровку' }));
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://storage.example/upload',
+      expect.objectContaining({ method: 'PUT', credentials: 'omit' }),
+    );
+    expect(post).toHaveBeenCalledWith(
+      '/api/v1/transcriptions/{job_id}/complete',
+      expect.objectContaining({ params: { path: { job_id: job.id } } }),
+    );
   });
 });

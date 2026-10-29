@@ -32,6 +32,7 @@ class TranscriptionPublic(BaseModel):
     provider: TranscriptionProvider
     result_text: str | None
     error_message: str | None
+    upload_expires_at: datetime | None
     created_at: datetime
     started_at: datetime | None
     finished_at: datetime | None
@@ -49,3 +50,24 @@ class UserTranscriptionCreate(BaseModel):
 class TranscriptionUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=255)
     result_text: str | None = Field(default=None, max_length=5_000_000)
+
+
+class TranscriptionUploadPartsRequest(BaseModel):
+    part_numbers: list[int] = Field(min_length=1, max_length=10)
+
+
+class TranscriptionUploadPartUrl(BaseModel):
+    part_number: int
+    url: str
+
+
+class TranscriptionUploadedPart(BaseModel):
+    part_number: int
+    size_bytes: int
+
+
+class TranscriptionUploadState(BaseModel):
+    part_size_bytes: int
+    total_parts: int
+    uploaded_parts: list[TranscriptionUploadedPart]
+    expires_at: datetime

@@ -2,6 +2,7 @@
 
 import asyncio
 from functools import lru_cache
+from pathlib import Path
 from urllib.parse import quote
 
 import boto3
@@ -27,6 +28,71 @@ class ObjectStorage:
         return self.client.generate_presigned_url(
             "get_object", Params={"Bucket": self.bucket, "Key": key}, ExpiresIn=ttl
         )
+
+    async def create_multipart_upload(self, key: str, mime: str) -> str:
+        response = await asyncio.to_thread(
+            self.client.create_multipart_upload,
+            Bucket=self.bucket,
+            Key=key,
+            ContentType=mime,
+        )
+        return str(response["UploadId"])
+
+    def upload_part_url(self, key: str, upload_id: str, part_number: int, ttl: int) -> str:
+        return self.client.generate_presigned_url(
+            "upload_part",
+            Params={
+                "Bucket": self.bucket,
+                "Key": key,
+                "UploadId": upload_id,
+                "PartNumber": part_number,
+            },
+            ExpiresIn=ttl,
+        )
+
+    async def list_multipart_parts(self, key: str, upload_id: str) -> list[dict[str, int | str]]:
+        def load() -> list[dict[str, int | str]]:
+            response = self.client.list_parts(Bucket=self.bucket, Key=key, UploadId=upload_id)
+            return [
+                {
+                    "part_number": int(part["PartNumber"]),
+                    "size_bytes": int(part["Size"]),
+                    "etag": str(part["ETag"]),
+                }
+                for part in response.get("Parts", [])
+            ]
+
+        return await asyncio.to_thread(load)
+
+    async def complete_multipart_upload(
+        self, key: str, upload_id: str, parts: list[dict[str, int | str]]
+    ) -> None:
+        await asyncio.to_thread(
+            self.client.complete_multipart_upload,
+            Bucket=self.bucket,
+            Key=key,
+            UploadId=upload_id,
+            MultipartUpload={
+                "Parts": [
+                    {
+                        "PartNumber": int(part["part_number"]),
+                        "ETag": str(part["etag"]),
+                    }
+                    for part in parts
+                ]
+            },
+        )
+
+    async def abort_multipart_upload(self, key: str, upload_id: str) -> None:
+        await asyncio.to_thread(
+            self.client.abort_multipart_upload,
+            Bucket=self.bucket,
+            Key=key,
+            UploadId=upload_id,
+        )
+
+    async def download_to(self, key: str, target: Path) -> None:
+        await asyncio.to_thread(self.client.download_file, self.bucket, key, str(target))
 
     def attachment_download_url(self, key: str, filename: str, ttl: int) -> str:
         """Принудительное скачивание с сохранением Unicode-имени файла."""

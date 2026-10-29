@@ -3,7 +3,7 @@ import { Button } from '@remora/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { api, ApiRequestError, uploadTranscriptionChunk } from '../lib/api';
+import { api, ApiRequestError } from '../lib/api';
 
 type Transcription = components['schemas']['TranscriptionPublic'];
 type Entitlements = components['schemas']['EntitlementsPublic'];
@@ -11,6 +11,8 @@ type JobStatus = components['schemas']['TranscriptionStatus'];
 
 const CHUNK_BYTES = 16 * 1024 * 1024;
 const MAX_FILE_BYTES = 1024 * 1024 * 1024;
+const UPLOAD_CONCURRENCY = 3;
+const UPLOAD_RETRIES = 5;
 const TRANSCRIPTION_LIMIT = 'ai.transcription_minutes_per_week';
 const busyStatuses = new Set<JobStatus>(['uploading', 'queued', 'converting', 'transcribing']);
 
@@ -96,8 +98,9 @@ export function TranscriptionsPage() {
     <div className="mx-auto max-w-[1440px]">
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
         <section className="min-w-0">
-          {showUploader ? (
+          {showUploader || selected?.status === 'uploading' ? (
             <UploadWorkspace
+              resumeJob={selected?.status === 'uploading' ? selected : undefined}
               entitlements={entitlementsQuery.data}
               onLimit={setLimitDetails}
               onUploaded={(job) => void refreshAfterUpload(job)}
@@ -144,17 +147,23 @@ export function TranscriptionsPage() {
 }
 
 function UploadWorkspace({
+  resumeJob,
   entitlements,
   onLimit,
   onUploaded,
   onOpenLibrary,
 }: {
+  resumeJob?: Transcription;
   entitlements?: Entitlements;
   onLimit: (details: LimitDetails) => void;
   onUploaded: (job: Transcription) => void;
   onOpenLibrary: () => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const activeJobIdRef = useRef<string | null>(resumeJob?.id ?? null);
+  const queryClient = useQueryClient();
+  const [uploadJob, setUploadJob] = useState<Transcription | undefined>(resumeJob);
   const [file, setFile] = useState<File | null>(null);
   const [language, setLanguage] = useState('ru');
   const [dragging, setDragging] = useState(false);
@@ -163,6 +172,14 @@ function UploadWorkspace({
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
+  const currentJob = uploadJob ?? resumeJob;
+
+  useEffect(() => {
+    if (resumeJob) {
+      setUploadJob(resumeJob);
+      activeJobIdRef.current = resumeJob.id;
+    }
+  }, [resumeJob]);
 
   async function chooseFile(next: File | undefined) {
     if (!next) return;
@@ -172,7 +189,15 @@ function UploadWorkspace({
       setError('Файл должен быть не больше 1 ГБ.');
       return;
     }
+    if (currentJob && (next.name !== currentJob.filename || next.size !== currentJob.size_bytes)) {
+      setError(`Выберите исходный файл «${currentJob.filename}» без изменений.`);
+      return;
+    }
     setFile(next);
+    if (currentJob?.duration_seconds) {
+      setDurationSeconds(currentJob.duration_seconds);
+      return;
+    }
     setDurationSeconds(null);
     setReadingDuration(true);
     try {
@@ -195,7 +220,7 @@ function UploadWorkspace({
     const seconds = durationSeconds;
     const requested = Math.ceil(seconds / 60);
     const remaining = entitlements?.remaining[TRANSCRIPTION_LIMIT];
-    if (remaining !== null && remaining !== undefined && remaining < requested) {
+    if (!currentJob && remaining !== null && remaining !== undefined && remaining < requested) {
       onLimit({
         limit: entitlements?.limits[TRANSCRIPTION_LIMIT] ?? 0,
         current: entitlements?.usage[TRANSCRIPTION_LIMIT] ?? 0,
@@ -207,49 +232,105 @@ function UploadWorkspace({
 
     setUploading(true);
     setError('');
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
       const totalParts = Math.ceil(file.size / CHUNK_BYTES);
-      const created = await api.POST('/api/v1/transcriptions', {
-        body: {
-          filename: file.name,
-          content_type: file.type || 'application/octet-stream',
-          size_bytes: file.size,
-          total_parts: totalParts,
-          duration_seconds: seconds,
-          language: language || null,
-        },
-      });
-      if (created.error || !created.data) {
-        if (isLimitExceeded(created.error)) {
-          onLimit(limitFromError(created.error, entitlements));
-          return;
+      let job = currentJob;
+      if (!job) {
+        const created = await api.POST('/api/v1/transcriptions', {
+          body: {
+            filename: file.name,
+            content_type: file.type || 'application/octet-stream',
+            size_bytes: file.size,
+            total_parts: totalParts,
+            duration_seconds: seconds,
+            language: language || null,
+          },
+        });
+        if (created.error || !created.data) {
+          if (isLimitExceeded(created.error)) {
+            onLimit(limitFromError(created.error, entitlements));
+            return;
+          }
+          throw new Error(apiMessage(created.error, 'Не удалось создать расшифровку'));
         }
-        throw new Error(apiMessage(created.error, 'Не удалось создать расшифровку'));
+        job = created.data;
+        setUploadJob(job);
+        activeJobIdRef.current = job.id;
+        await queryClient.invalidateQueries({ queryKey: ['transcriptions'] });
       }
-      const job = created.data;
-      for (let part = 0; part < totalParts; part += 1) {
-        await uploadTranscriptionChunk<Transcription>(
-          `/api/v1/transcriptions/${job.id}/parts/${part}`,
-          file.slice(part * CHUNK_BYTES, Math.min(file.size, (part + 1) * CHUNK_BYTES)),
-        );
-        setProgress(Math.round(((part + 1) / totalParts) * 100));
+
+      const uploadState = await api.GET('/api/v1/transcriptions/{job_id}/upload', {
+        params: { path: { job_id: job.id } },
+      });
+      if (uploadState.error || !uploadState.data) {
+        throw new Error(apiMessage(uploadState.error, 'Не удалось продолжить загрузку'));
       }
+      const uploaded = new Set(uploadState.data.uploaded_parts.map((part) => part.part_number));
+      let completedBytes = uploadState.data.uploaded_parts.reduce(
+        (sum, part) => sum + part.size_bytes,
+        0,
+      );
+      setProgress(Math.round((completedBytes / file.size) * 100));
+      const pending = Array.from({ length: totalParts }, (_, index) => index + 1).filter(
+        (part) => !uploaded.has(part),
+      );
+      let cursor = 0;
+      const worker = async () => {
+        while (cursor < pending.length) {
+          const partNumber = pending[cursor];
+          cursor += 1;
+          if (partNumber === undefined) return;
+          const start = (partNumber - 1) * CHUNK_BYTES;
+          const chunk = file.slice(start, Math.min(file.size, start + CHUNK_BYTES));
+          await uploadPartWithRetry(job.id, partNumber, chunk, controller.signal);
+          completedBytes += chunk.size;
+          setProgress(Math.round((completedBytes / file.size) * 100));
+        }
+      };
+      await Promise.all(
+        Array.from({ length: Math.min(UPLOAD_CONCURRENCY, pending.length) }, () => worker()),
+      );
       const completed = await api.POST('/api/v1/transcriptions/{job_id}/complete', {
         params: { path: { job_id: job.id } },
       });
       if (completed.error || !completed.data) {
         throw new Error(apiMessage(completed.error, 'Не удалось запустить распознавание'));
       }
+      activeJobIdRef.current = null;
+      setUploadJob(undefined);
       onUploaded(completed.data);
     } catch (caught) {
-      if (caught instanceof ApiRequestError && caught.code === 'LIMIT_EXCEEDED') {
+      if (caught instanceof DOMException && caught.name === 'AbortError') {
+        setError('Загрузка отменена.');
+      } else if (caught instanceof ApiRequestError && caught.code === 'LIMIT_EXCEEDED') {
         onLimit(limitFromUnknown(caught.details, entitlements));
       } else {
         setError(caught instanceof Error ? caught.message : 'Не удалось загрузить файл');
       }
     } finally {
+      abortRef.current = null;
       setUploading(false);
     }
+  }
+
+  async function cancelUpload() {
+    abortRef.current?.abort();
+    const jobId = activeJobIdRef.current;
+    if (jobId) {
+      await api.DELETE('/api/v1/transcriptions/{job_id}', {
+        params: { path: { job_id: jobId } },
+      });
+      activeJobIdRef.current = null;
+      setUploadJob(undefined);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['transcriptions'] }),
+        queryClient.invalidateQueries({ queryKey: ['billing-entitlements'] }),
+      ]);
+    }
+    setProgress(0);
+    setUploading(false);
   }
 
   return (
@@ -263,9 +344,13 @@ function UploadWorkspace({
         Все конспекты
       </button>
       <header className="border-border bg-surface rounded-xl border px-5 py-4 sm:px-6">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Новая расшифровка</h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+          {currentJob ? 'Продолжить загрузку' : 'Новая расшифровка'}
+        </h1>
         <p className="text-fg-muted mt-2">
-          Загрузите аудио или видео — обработка продолжится, даже если закрыть страницу.
+          {currentJob
+            ? `Повторно выберите файл «${currentJob.filename}» — загруженные части сохранятся.`
+            : 'Загрузите аудио или видео — обработка продолжится, даже если закрыть страницу.'}
         </p>
       </header>
 
@@ -339,20 +424,22 @@ function UploadWorkspace({
           </div>
         ) : null}
 
-        <div className="mt-5 max-w-sm">
-          <label className="text-sm font-medium">
-            Язык записи
-            <select
-              className="border-border bg-surface focus:border-primary focus:ring-primary mt-2 h-11 w-full rounded-lg border px-3 outline-none focus:ring-1"
-              value={language}
-              onChange={(event) => setLanguage(event.target.value)}
-            >
-              <option value="ru">Русский</option>
-              <option value="en">Английский</option>
-              <option value="">Определить автоматически</option>
-            </select>
-          </label>
-        </div>
+        {!currentJob ? (
+          <div className="mt-5 max-w-sm">
+            <label className="text-sm font-medium">
+              Язык записи
+              <select
+                className="border-border bg-surface focus:border-primary focus:ring-primary mt-2 h-11 w-full rounded-lg border px-3 outline-none focus:ring-1"
+                value={language}
+                onChange={(event) => setLanguage(event.target.value)}
+              >
+                <option value="ru">Русский</option>
+                <option value="en">Английский</option>
+                <option value="">Определить автоматически</option>
+              </select>
+            </label>
+          </div>
+        ) : null}
 
         {uploading ? (
           <div className="mt-5" aria-live="polite">
@@ -370,13 +457,18 @@ function UploadWorkspace({
             {error}
           </p>
         ) : null}
-        <div className="mt-5 flex justify-end">
+        <div className="mt-5 flex flex-wrap justify-end gap-3">
+          {uploading ? (
+            <Button variant="secondary" onClick={() => void cancelUpload()}>
+              Отменить загрузку
+            </Button>
+          ) : null}
           <Button
             disabled={!file || uploading || readingDuration || durationSeconds === null}
             loading={uploading}
             onClick={() => void upload()}
           >
-            Начать расшифровку
+            {currentJob ? 'Продолжить загрузку' : 'Начать расшифровку'}
           </Button>
         </div>
       </div>
@@ -960,6 +1052,56 @@ function limitFromUnknown(
         ? details.resets_at
         : (entitlements?.resets_at[TRANSCRIPTION_LIMIT] ?? null),
   };
+}
+
+async function uploadPartWithRetry(
+  jobId: string,
+  partNumber: number,
+  chunk: Blob,
+  signal: AbortSignal,
+) {
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < UPLOAD_RETRIES; attempt += 1) {
+    signal.throwIfAborted();
+    try {
+      const signed = await api.POST('/api/v1/transcriptions/{job_id}/upload/parts', {
+        params: { path: { job_id: jobId } },
+        body: { part_numbers: [partNumber] },
+      });
+      if (signed.error || !signed.data?.[0]) {
+        throw new Error(apiMessage(signed.error, 'Не удалось подготовить часть файла'));
+      }
+      const response = await fetch(signed.data[0].url, {
+        method: 'PUT',
+        body: chunk,
+        credentials: 'omit',
+        signal,
+      });
+      if (!response.ok) throw new Error(`Хранилище вернуло ошибку ${response.status}`);
+      return;
+    } catch (caught) {
+      if (signal.aborted) throw new DOMException('Загрузка отменена', 'AbortError');
+      lastError = caught instanceof Error ? caught : new Error('Не удалось загрузить часть файла');
+      if (attempt + 1 < UPLOAD_RETRIES) {
+        await abortableDelay(2 ** attempt * 1_000, signal);
+      }
+    }
+  }
+  throw lastError ?? new Error('Не удалось загрузить часть файла');
+}
+
+function abortableDelay(milliseconds: number, signal: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    const timeout = window.setTimeout(resolve, milliseconds);
+    signal.addEventListener(
+      'abort',
+      () => {
+        window.clearTimeout(timeout);
+        reject(new DOMException('Загрузка отменена', 'AbortError'));
+      },
+      { once: true },
+    );
+  });
 }
 
 const BROWSER_METADATA_EXTENSIONS = new Set([

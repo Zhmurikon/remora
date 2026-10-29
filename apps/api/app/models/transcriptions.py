@@ -62,5 +62,8 @@ class TranscriptionJob(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     result_text: Mapped[str | None] = mapped_column(Text)
     error_message: Mapped[str | None] = mapped_column(Text)
     provider_operation_id: Mapped[str | None] = mapped_column(String(120))
+    storage_key: Mapped[str | None] = mapped_column(String(512))
+    storage_upload_id: Mapped[str | None] = mapped_column(String(512))
+    upload_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

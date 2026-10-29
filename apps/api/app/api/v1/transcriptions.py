@@ -16,6 +16,9 @@ from app.schemas.transcriptions import (
     TranscriptionCreate,
     TranscriptionPublic,
     TranscriptionUpdate,
+    TranscriptionUploadPartsRequest,
+    TranscriptionUploadPartUrl,
+    TranscriptionUploadState,
     UserTranscriptionCreate,
 )
 from app.services.transcriptions import PART_BYTES, TranscriptionService
@@ -99,8 +102,10 @@ async def list_transcriptions(
 
 
 @user_router.post(
-    "", response_model=TranscriptionPublic, status_code=status.HTTP_201_CREATED,
-    summary="Создать расшифровку"
+    "",
+    response_model=TranscriptionPublic,
+    status_code=status.HTTP_201_CREATED,
+    summary="Создать расшифровку",
 )
 async def create_transcription(
     body: UserTranscriptionCreate,
@@ -132,6 +137,33 @@ async def upload_transcription_part(
     return TranscriptionPublic.model_validate(job)
 
 
+@user_router.get(
+    "/{job_id}/upload", response_model=TranscriptionUploadState, summary="Состояние прямой загрузки"
+)
+async def get_transcription_upload(
+    job_id: UUID,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+) -> TranscriptionUploadState:
+    state = await TranscriptionService(db).upload_state(user, job_id)
+    await db.commit()
+    return state
+
+
+@user_router.post(
+    "/{job_id}/upload/parts",
+    response_model=list[TranscriptionUploadPartUrl],
+    summary="Подписать части прямой загрузки",
+)
+async def sign_transcription_upload_parts(
+    job_id: UUID,
+    body: TranscriptionUploadPartsRequest,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[TranscriptionUploadPartUrl]:
+    return await TranscriptionService(db).sign_upload_parts(user, job_id, body.part_numbers)
+
+
 @user_router.post("/{job_id}/complete", response_model=TranscriptionPublic)
 async def complete_transcription(
     job_id: UUID,
@@ -139,9 +171,17 @@ async def complete_transcription(
     db: AsyncSession = Depends(get_db),
 ) -> TranscriptionPublic:
     service = TranscriptionService(db)
-    await service.get_for_user(user, job_id)
-    job = await service.complete(job_id)
+    current = await service.get_for_user(user, job_id)
+    should_enqueue = current.status == TranscriptionStatus.uploading
+    job = (
+        await service.complete_user_upload(user, job_id)
+        if current.storage_upload_id
+        else await service.complete(job_id)
+    )
     await db.commit()
+    if not should_enqueue:
+        await db.refresh(job)
+        return TranscriptionPublic.model_validate(job)
     try:
         await enqueue_transcription(str(job.id))
     except Exception as exc:
