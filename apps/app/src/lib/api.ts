@@ -113,6 +113,46 @@ export async function uploadBinary<T>(path: string, file: File): Promise<T> {
   return (await response.json()) as T;
 }
 
+export class ApiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly code?: string,
+    readonly details?: Record<string, unknown>,
+  ) {
+    super(message);
+  }
+}
+
+/** Загружает одну часть большого файла с тем же обновлением access-токена, что и API-клиент. */
+export async function uploadTranscriptionChunk<T>(path: string, chunk: Blob): Promise<T> {
+  const request = async () =>
+    fetch(`${API_BASE_URL}${path}`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: chunk,
+    });
+
+  let response = await request();
+  if (response.status === 401 && (await refreshAccessToken())) response = await request();
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      code?: string;
+      message?: string;
+      details?: Record<string, unknown>;
+    } | null;
+    throw new ApiRequestError(
+      body?.message ?? 'Не удалось загрузить часть файла',
+      body?.code,
+      body?.details,
+    );
+  }
+  return (await response.json()) as T;
+}
+
 /** Открывает полученный файл в новой вкладке — оттуда пользователь печатает. */
 export async function openPdf(path: string): Promise<void> {
   const blob = await fetchBlob(path);

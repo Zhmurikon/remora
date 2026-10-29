@@ -23,6 +23,7 @@ import { AchievementsPage } from './pages/AchievementsPage';
 import { BattlePage } from './pages/BattlePage';
 import { ClassPage, ClassesPage, JoinClassPage, StudentReportPage } from './pages/ClassesPage';
 import { BillingPage } from './pages/BillingPage';
+import { TranscriptionsPage } from './pages/TranscriptionsPage';
 
 export function App() {
   return (
@@ -64,6 +65,8 @@ export function App() {
               <Route path="battles/:battleId" element={<BattlePage />} />
               <Route path="sets/:setId/listen" element={<ListenPage />} />
               <Route path="library" element={<MaterialsPage />} />
+              <Route path="transcriptions" element={<TranscriptionsPage />} />
+              <Route path="transcriptions/:jobId" element={<TranscriptionsPage />} />
               <Route path="practice" element={<PracticePage />} />
               <Route path="practice/python" element={<PythonPracticePage />} />
               <Route path="practice/python/:taskSlug" element={<PythonTaskPage />} />

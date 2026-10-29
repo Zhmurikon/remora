@@ -19,5 +19,6 @@ class EntitlementsPublic(BaseModel):
     limits: dict[str, int | None]
     usage: dict[str, int]
     remaining: dict[str, int | None]
+    resets_at: dict[str, datetime | None]
     current_period_end: datetime | None
     cancel_at_period_end: bool

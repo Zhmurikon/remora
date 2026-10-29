@@ -13,6 +13,7 @@
   --rm-surface: 255 255 255;
   --rm-surface-muted: 245 245 244;
   --rm-border: 231 229 228;
+  --rm-overlay: 0 0 0;
 
   --rm-fg: 28 25 23;
   --rm-fg-muted: 87 83 78;
@@ -56,6 +57,7 @@
   --rm-surface: 30 30 33;
   --rm-surface-muted: 40 40 44;
   --rm-border: 56 56 61;
+  --rm-overlay: 0 0 0;
 
   --rm-fg: 245 245 244;
   --rm-fg-muted: 180 177 173;
@@ -99,6 +101,7 @@
     --rm-surface: 30 30 33;
     --rm-surface-muted: 40 40 44;
     --rm-border: 56 56 61;
+    --rm-overlay: 0 0 0;
 
     --rm-fg: 245 245 244;
     --rm-fg-muted: 180 177 173;

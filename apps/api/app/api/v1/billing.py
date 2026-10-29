@@ -33,7 +33,7 @@ async def my_entitlements(
     response.headers["Cache-Control"] = "no-store"
     entitlements = Entitlements(db)
     resolved = await entitlements.resolve(user)
-    usage = await entitlements.creation_quota_usage(user)
+    usage, resets_at = await entitlements.public_quota_usage(user)
     remaining = entitlements.quota_remaining(resolved.limits, usage)
     return EntitlementsPublic(
         plan_code=resolved.plan_code,
@@ -42,6 +42,7 @@ async def my_entitlements(
         limits=resolved.limits,
         usage=usage,
         remaining=remaining,
+        resets_at=resets_at,
         current_period_end=resolved.current_period_end,
         cancel_at_period_end=resolved.cancel_at_period_end,
     )

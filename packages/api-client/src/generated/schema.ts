@@ -3069,6 +3069,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/transcriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Мои расшифровки */
+        get: operations["list_transcriptions_api_v1_transcriptions_get"];
+        put?: never;
+        /** Создать расшифровку */
+        post: operations["create_transcription_api_v1_transcriptions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/transcriptions/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Расшифровка */
+        get: operations["get_transcription_api_v1_transcriptions__job_id__get"];
+        put?: never;
+        post?: never;
+        /** Удалить расшифровку */
+        delete: operations["delete_transcription_api_v1_transcriptions__job_id__delete"];
+        options?: never;
+        head?: never;
+        /** Изменить расшифровку */
+        patch: operations["update_transcription_api_v1_transcriptions__job_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/transcriptions/{job_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete Transcription */
+        post: operations["complete_transcription_api_v1_transcriptions__job_id__complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/transcriptions/{job_id}/parts/{part}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Upload Transcription Part */
+        put: operations["upload_transcription_part_api_v1_transcriptions__job_id__parts__part__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tts/speak": {
         parameters: {
             query?: never;
@@ -6779,6 +6850,10 @@ export interface components {
             remaining: {
                 [key: string]: number | null;
             };
+            /** Resets At */
+            resets_at: {
+                [key: string]: string | null;
+            };
             /** Usage */
             usage: {
                 [key: string]: number;
@@ -8351,6 +8426,58 @@ export interface components {
             token_type: string;
             user: components["schemas"]["UserPublic"];
         };
+        /**
+         * TranscriptionProvider
+         * @enum {string}
+         */
+        TranscriptionProvider: "faster_whisper" | "yandex_speechkit";
+        /** TranscriptionPublic */
+        TranscriptionPublic: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Duration Seconds */
+            duration_seconds: number | null;
+            /** Error Message */
+            error_message: string | null;
+            /** Filename */
+            filename: string;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            provider: components["schemas"]["TranscriptionProvider"];
+            /** Result Text */
+            result_text: string | null;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Started At */
+            started_at: string | null;
+            status: components["schemas"]["TranscriptionStatus"];
+            /** Title */
+            title: string | null;
+            /** Total Parts */
+            total_parts: number;
+            /** Uploaded Parts */
+            uploaded_parts: number;
+        };
+        /**
+         * TranscriptionStatus
+         * @enum {string}
+         */
+        TranscriptionStatus: "uploading" | "queued" | "converting" | "transcribing" | "completed" | "failed";
+        /** TranscriptionUpdate */
+        TranscriptionUpdate: {
+            /** Result Text */
+            result_text?: string | null;
+            /** Title */
+            title?: string | null;
+        };
         /** TtsStatus */
         TtsStatus: {
             /** Available */
@@ -8387,6 +8514,27 @@ export interface components {
             timezone: string;
             /** Username */
             username: string;
+        };
+        /** UserTranscriptionCreate */
+        UserTranscriptionCreate: {
+            /**
+             * Content Type
+             * @default application/octet-stream
+             */
+            content_type: string;
+            /** Duration Seconds */
+            duration_seconds: number;
+            /** Filename */
+            filename: string;
+            /**
+             * Language
+             * @default ru
+             */
+            language: string | null;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Total Parts */
+            total_parts: number;
         };
         /** ValidationError */
         ValidationError: {
@@ -14986,6 +15134,217 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TestResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_transcriptions_api_v1_transcriptions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranscriptionPublic"][];
+                };
+            };
+        };
+    };
+    create_transcription_api_v1_transcriptions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserTranscriptionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranscriptionPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_transcription_api_v1_transcriptions__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranscriptionPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_transcription_api_v1_transcriptions__job_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_transcription_api_v1_transcriptions__job_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TranscriptionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranscriptionPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    complete_transcription_api_v1_transcriptions__job_id__complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranscriptionPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_transcription_part_api_v1_transcriptions__job_id__parts__part__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+                part: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranscriptionPublic"];
                 };
             };
             /** @description Validation Error */

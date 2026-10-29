@@ -327,6 +327,29 @@ class Entitlements:
             "sets.library_total": len(await self.active_library_set_ids(user)),
         }
 
+    async def public_quota_usage(
+        self, user: User
+    ) -> tuple[dict[str, int], dict[str, datetime | None]]:
+        usage = await self.creation_quota_usage(user)
+        period_key, resets_at = week_period()
+        weekly_metrics = {
+            "agent.writes_per_week": "agent.writes_per_week",
+            "ai.transcription_minutes_per_week": "ai_transcription_minutes",
+            "ai.generation_tokens_per_week": "ai_generation_tokens",
+        }
+        for limit_key, counter_metric in weekly_metrics.items():
+            current = await self.db.scalar(
+                select(UsageCounter.value).where(
+                    UsageCounter.user_id == user.id,
+                    UsageCounter.metric == counter_metric,
+                    UsageCounter.period_key == period_key,
+                )
+            )
+            usage[limit_key] = int(current or 0)
+        reset_times = dict.fromkeys(usage)
+        reset_times.update(dict.fromkeys(weekly_metrics, resets_at))
+        return usage, reset_times
+
     @staticmethod
     def quota_remaining(
         limits: dict[str, int | None], usage: dict[str, int]

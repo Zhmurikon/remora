@@ -12,6 +12,7 @@ const navigation = [
     icon: 'materials',
     matches: ['/materials', '/sets', '/courses', '/library'],
   },
+  { to: '/transcriptions', label: 'Конспекты', icon: 'transcriptions' },
   { to: '/practice', label: 'Практика', icon: 'practice' },
   { to: '/classes', label: 'Классы', icon: 'classes' },
   { to: '/achievements', label: 'Достижения', icon: 'achievement' },
@@ -96,9 +97,17 @@ export function AppLayout() {
       </aside>
 
       <main
-        className={`min-w-0 ${isMaterialsPath(location.pathname) ? '' : 'px-5 py-8 sm:px-8 lg:px-12 lg:py-10'}`}
+        className={`min-w-0 ${isMaterialsPath(location.pathname) ? '' : 'px-5 py-8 sm:px-8 lg:px-10 lg:py-8'}`}
       >
-        <div className={isMaterialsPath(location.pathname) ? '' : 'mx-auto max-w-6xl'}>
+        <div
+          className={
+            isMaterialsPath(location.pathname)
+              ? ''
+              : isTranscriptionsPath(location.pathname)
+                ? 'mx-auto max-w-[1440px]'
+                : 'mx-auto max-w-6xl'
+          }
+        >
           <Outlet />
         </div>
       </main>
@@ -178,6 +187,10 @@ function isMaterialsPath(pathname: string) {
   return ['/materials', '/sets', '/courses', '/library'].some((path) => pathname === path);
 }
 
+function isTranscriptionsPath(pathname: string) {
+  return pathname.startsWith('/transcriptions');
+}
+
 function NavigationIcon({ name }: { name: string }) {
   const common = 'h-5 w-5 shrink-0';
   if (name === 'home') {
@@ -211,6 +224,19 @@ function NavigationIcon({ name }: { name: string }) {
         <rect x="3" y="5" width="18" height="14" rx="3" stroke="currentColor" strokeWidth="1.7" />
         <path
           d="m7 10 2 2-2 2m5 0h5"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+  if (name === 'transcriptions') {
+    return (
+      <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M6 3h8l4 4v14H6V3Zm8 0v5h5M9 12h6m-6 4h6"
           stroke="currentColor"
           strokeWidth="1.7"
           strokeLinecap="round"

@@ -14,6 +14,7 @@ export default {
         bg: 'rgb(var(--rm-bg) / <alpha-value>)',
         surface: 'rgb(var(--rm-surface) / <alpha-value>)',
         'surface-muted': 'rgb(var(--rm-surface-muted) / <alpha-value>)',
+        overlay: 'rgb(var(--rm-overlay) / <alpha-value>)',
         border: 'rgb(var(--rm-border) / <alpha-value>)',
 
         // Текст

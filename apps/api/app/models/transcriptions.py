@@ -1,9 +1,10 @@
-"""Долговечные задания закрытого инструмента расшифровки."""
+"""Долговечные задания пользовательской и внутренней расшифровки."""
 
 import enum
 from datetime import datetime
+from uuid import UUID
 
-from sqlalchemy import BigInteger, Boolean, DateTime, Enum, Integer, String, Text, text
+from sqlalchemy import BigInteger, Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -26,7 +27,11 @@ class TranscriptionProvider(enum.Enum):
 class TranscriptionJob(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "transcription_jobs"
 
+    user_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
     filename: Mapped[str] = mapped_column(String(255))
+    title: Mapped[str | None] = mapped_column(String(255))
     content_type: Mapped[str] = mapped_column(String(120))
     size_bytes: Mapped[int] = mapped_column(BigInteger)
     total_parts: Mapped[int] = mapped_column(Integer)
@@ -46,6 +51,12 @@ class TranscriptionJob(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     beam_size: Mapped[int] = mapped_column(Integer, default=5, server_default=text("5"))
     vad_filter: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text("true"))
     word_timestamps: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false")
+    )
+    duration_seconds: Mapped[int | None] = mapped_column(Integer)
+    quota_minutes: Mapped[int | None] = mapped_column(Integer)
+    quota_period_key: Mapped[str | None] = mapped_column(String(10))
+    quota_released: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=text("false")
     )
     result_text: Mapped[str | None] = mapped_column(Text)

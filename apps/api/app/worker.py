@@ -4,6 +4,7 @@ import asyncio
 import logging
 import tempfile
 from datetime import UTC, datetime, timedelta
+from math import ceil
 from pathlib import Path
 from typing import Any, ClassVar
 from uuid import UUID
@@ -12,6 +13,7 @@ import httpx
 from arq import cron
 from arq.connections import RedisSettings
 from sqlalchemy import delete, or_, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.email import send_account_export_email
@@ -27,11 +29,93 @@ from app.models.transcriptions import (
 )
 from app.models.user import User
 from app.services.account_exports import AccountExportService
+from app.services.entitlements import Entitlements, week_period
 from app.services.imports import ImportService
 from app.services.search_sync import synchronize_courses, synchronize_pending_courses
 from app.services.yandex_transcriptions import YandexSpeechKitTranscriber
 
 logger = logging.getLogger(__name__)
+
+
+async def _release_transcription_quota(db: AsyncSession, job: TranscriptionJob) -> None:
+    if (
+        job.user_id is None
+        or job.quota_released
+        or not job.quota_minutes
+        or not job.quota_period_key
+    ):
+        return
+    user = await db.get(User, job.user_id)
+    if user is None:
+        return
+    await Entitlements(db).release(
+        user,
+        "ai.transcription_minutes_per_week",
+        amount=job.quota_minutes,
+        period_key=job.quota_period_key,
+        counter_metric="ai_transcription_minutes",
+    )
+    job.quota_released = True
+
+
+async def _probe_duration(source: Path) -> int:
+    process = await asyncio.create_subprocess_exec(
+        "ffprobe",
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "default=noprint_wrappers=1:nokey=1",
+        str(source),
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, stderr = await process.communicate()
+    if process.returncode != 0:
+        detail = stderr.decode("utf-8", errors="replace")[-1000:]
+        raise RuntimeError(f"ffprobe failed: {detail}")
+    try:
+        return max(1, ceil(float(stdout.decode().strip())))
+    except ValueError as exc:
+        raise RuntimeError("ffprobe returned no duration") from exc
+
+
+async def _reconcile_transcription_quota(job_id: UUID, actual_seconds: int) -> None:
+    async with get_session_factory()() as db:
+        job = await db.get(TranscriptionJob, job_id)
+        if job is None:
+            return
+        job.duration_seconds = actual_seconds
+        if job.user_id is None or not job.quota_minutes or not job.quota_period_key:
+            await db.commit()
+            return
+        user = await db.get(User, job.user_id)
+        if user is None:
+            return
+        actual_minutes = ceil(actual_seconds / 60)
+        difference = actual_minutes - job.quota_minutes
+        entitlements = Entitlements(db)
+        if difference > 0:
+            _, resets_at = week_period()
+            await entitlements.consume(
+                user,
+                "ai.transcription_minutes_per_week",
+                amount=difference,
+                period_key=job.quota_period_key,
+                resets_at=resets_at,
+                counter_metric="ai_transcription_minutes",
+            )
+        elif difference < 0:
+            await entitlements.release(
+                user,
+                "ai.transcription_minutes_per_week",
+                amount=-difference,
+                period_key=job.quota_period_key,
+                counter_metric="ai_transcription_minutes",
+            )
+        job.quota_minutes = actual_minutes
+        await db.commit()
 
 
 async def _set_progress(job_id: UUID, value: int) -> None:
@@ -170,6 +254,8 @@ async def process_transcription(_context: dict[str, Any], job_id_value: str) -> 
                     payload, _ = await storage.read(key, 16 * 1024 * 1024)
                     target.write(payload)
 
+            await _reconcile_transcription_quota(job_id, await _probe_duration(source))
+
             audio_codec = (
                 ("-c:a", "libmp3lame", "-b:a", "64k")
                 if provider == TranscriptionProvider.yandex_speechkit
@@ -261,13 +347,18 @@ async def process_transcription(_context: dict[str, Any], job_id_value: str) -> 
                 job.result_text = text.strip()
                 job.finished_at = datetime.now(UTC)
                 await db.commit()
-    except Exception:
+    except Exception as exc:
         async with get_session_factory()() as db:
             job = await db.get(TranscriptionJob, job_id)
             if job is not None:
                 job.status = TranscriptionStatus.failed
-                job.error_message = "Не удалось обработать файл. Проверьте его формат"
+                job.error_message = (
+                    "Длительность файла превышает доступный недельный лимит"
+                    if isinstance(exc, AppError) and exc.code == "LIMIT_EXCEEDED"
+                    else "Не удалось обработать файл. Проверьте его формат"
+                )
                 job.finished_at = datetime.now(UTC)
+                await _release_transcription_quota(db, job)
                 await db.commit()
         raise
     finally:
@@ -320,6 +411,7 @@ async def poll_yandex_transcriptions(_context: dict[str, Any]) -> None:
                     job.status = TranscriptionStatus.failed
                     job.error_message = "Результат SpeechKit больше недоступен"
                     job.finished_at = datetime.now(UTC)
+                    await _release_transcription_quota(db, job)
                 else:
                     logger.warning(
                         "Не удалось проверить операцию SpeechKit для задания %s: HTTP %s",
@@ -338,6 +430,7 @@ async def poll_yandex_transcriptions(_context: dict[str, Any]) -> None:
                 job.status = TranscriptionStatus.failed
                 job.error_message = "SpeechKit не смог распознать файл"
                 job.finished_at = datetime.now(UTC)
+                await _release_transcription_quota(db, job)
                 continue
             if operation.get("done") is not True:
                 continue
@@ -358,10 +451,11 @@ async def poll_yandex_transcriptions(_context: dict[str, Any]) -> None:
 async def cleanup_transcriptions(_context: dict[str, Any]) -> None:
     now = datetime.now(UTC)
     async with get_session_factory()() as db:
-        jobs = list(
+        internal_jobs = list(
             (
                 await db.scalars(
                     select(TranscriptionJob).where(
+                        TranscriptionJob.user_id.is_(None),
                         or_(
                             (
                                 (TranscriptionJob.status == TranscriptionStatus.uploading)
@@ -391,14 +485,45 @@ async def cleanup_transcriptions(_context: dict[str, Any]) -> None:
                 )
             ).all()
         )
+        stale_user_jobs = list(
+            (
+                await db.scalars(
+                    select(TranscriptionJob).where(
+                        TranscriptionJob.user_id.is_not(None),
+                        or_(
+                            (
+                                (TranscriptionJob.status == TranscriptionStatus.uploading)
+                                & (TranscriptionJob.created_at < now - timedelta(hours=6))
+                            ),
+                            (
+                                TranscriptionJob.status.in_(
+                                    [
+                                        TranscriptionStatus.queued,
+                                        TranscriptionStatus.converting,
+                                        TranscriptionStatus.transcribing,
+                                    ]
+                                )
+                                & (TranscriptionJob.created_at < now - timedelta(hours=48))
+                            ),
+                        ),
+                    )
+                )
+            ).all()
+        )
         storage = get_object_storage()
-        for job in jobs:
+        for job in [*internal_jobs, *stale_user_jobs]:
             await storage.delete_many(
                 [f"transcriptions/{job.id}/parts/{part:04d}" for part in range(job.total_parts)]
             )
-        if jobs:
-            job_ids = [job.id for job in jobs]
+        for job in stale_user_jobs:
+            job.status = TranscriptionStatus.failed
+            job.error_message = "Загрузка или обработка не завершилась вовремя"
+            job.finished_at = now
+            await _release_transcription_quota(db, job)
+        if internal_jobs:
+            job_ids = [job.id for job in internal_jobs]
             await db.execute(delete(TranscriptionJob).where(TranscriptionJob.id.in_(job_ids)))
+        if internal_jobs or stale_user_jobs:
             await db.commit()
 
 
