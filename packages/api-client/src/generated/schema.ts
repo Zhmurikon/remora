@@ -7025,7 +7025,10 @@ export interface components {
             definition: string;
             /** Term */
             term: string;
-            /** Wrong Definition Answers */
+            /**
+             * Wrong Definition Answers
+             * @description Три однозначно неверных определения; правильный ответ сюда не включать
+             */
             wrong_definition_answers: string[];
         };
         /** GenerationCreate */

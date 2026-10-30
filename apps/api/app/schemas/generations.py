@@ -14,7 +14,9 @@ class GeneratedCard(BaseModel):
     term: str = Field(min_length=1, max_length=160)
     definition: str = Field(min_length=1, max_length=1000)
     wrong_definition_answers: list[Annotated[str, Field(max_length=1000)]] = Field(
-        min_length=3, max_length=3
+        min_length=3,
+        max_length=3,
+        description="Три однозначно неверных определения; правильный ответ сюда не включать",
     )
 
 
