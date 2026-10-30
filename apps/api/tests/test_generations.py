@@ -122,7 +122,13 @@ async def test_generation_snapshot_idempotency_quota_and_access(client, monkeypa
     reserved = await usage(client, headers)
     assert reserved > 200
     assert (await start(client, headers, source, request_id=request_id))["id"] == job["id"]
-    assert (await start(client, headers, source))["id"] == job["id"]
+    assert (
+        await client.post(
+            f"/api/v1/transcriptions/{source}/generations",
+            headers=headers,
+            json={"request_id": str(uuid4()), "kind": "notes"},
+        )
+    ).status_code == 409
     assert await usage(client, headers) == reserved
     for path in [
         f"/api/v1/transcriptions/{source}/generations",

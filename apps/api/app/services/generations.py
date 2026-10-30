@@ -58,11 +58,7 @@ class GenerationService:
             return previous
         for active in await repo.list_for_source(self.db, user.id, source_id):
             if active.status in {"queued", "processing"}:
-                return (
-                    active
-                    if (active.kind, active.parent_id) == (body.kind, body.parent_id)
-                    else self._busy()
-                )
+                raise ConflictError("Дождитесь завершения текущей генерации")
         await Entitlements(self.db).require_feature(user, "ai.generation")
         key = get_settings().open_ai_api_key
         if not key or not key.get_secret_value():
@@ -110,10 +106,6 @@ class GenerationService:
         self.db.add(job)
         await self.db.flush()
         return job
-
-    @staticmethod
-    def _busy() -> GenerationJob:
-        raise ConflictError("Дождитесь завершения текущей генерации")
 
     async def update(self, user: User, job_id: UUID, body: GenerationUpdate) -> GenerationJob:
         job = await self.get(user, job_id, lock=True)

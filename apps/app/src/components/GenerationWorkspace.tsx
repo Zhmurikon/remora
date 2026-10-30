@@ -77,17 +77,20 @@ export function GenerationWorkspace({
   const create = useMutation({
     mutationFn: async () => {
       requestId.current ??= crypto.randomUUID();
-      const { data, error } = await api.POST('/api/v1/transcriptions/{source_id}/generations', {
-        params: { path: { source_id: source.id } },
-        body: {
-          request_id: requestId.current,
-          kind,
-          parent_id: kind === 'cards' ? notes?.id : null,
+      const { data, error, response } = await api.POST(
+        '/api/v1/transcriptions/{source_id}/generations',
+        {
+          params: { path: { source_id: source.id } },
+          body: {
+            request_id: requestId.current,
+            kind,
+            parent_id: kind === 'cards' ? notes?.id : null,
+          },
         },
-      });
+      );
       if (error || !data) {
-        // Ответ сервера однозначен: следующая попытка может использовать новый ключ.
-        if (error) requestId.current = null;
+        // Ошибка 5xx может прийти уже после записи задания: сохраняем тот же ключ.
+        if (error && response.status < 500 && response.status !== 408) requestId.current = null;
         throw new Error(message(error));
       }
       requestId.current = null;
@@ -254,6 +257,7 @@ function ResultEditor({
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
   const save = useMutation({
+    onError: () => onSaved(),
     mutationFn: async () => {
       const { data, error } = await api.PATCH('/api/v1/generations/{job_id}', {
         params: { path: { job_id: job.id } },
@@ -284,6 +288,21 @@ function ResultEditor({
   return (
     <div className="mt-7 space-y-5">
       <div className="flex flex-wrap items-center gap-3">
+        {dirty && !job.saved_set_id ? (
+          <Button
+            variant="ghost"
+            disabled={busy}
+            onClick={() => {
+              setMarkdown(job.markdown ?? '');
+              setCards(job.cards ?? []);
+              setRevision(job.updated_at);
+              setBaseline(JSON.stringify({ markdown: job.markdown ?? '', cards: job.cards ?? [] }));
+              save.reset();
+            }}
+          >
+            Отменить правки
+          </Button>
+        ) : null}
         {job.kind === 'notes' ? (
           <Button variant="secondary" onClick={() => setEditing(!editing)}>
             {editing ? 'Предпросмотр' : 'Редактировать'}

@@ -104,6 +104,20 @@ describe('Генерация учебных материалов', () => {
     expect(post.mock.calls[0]?.[1].body.parent_id).toBe(note.id);
     expect(await screen.findByRole('status')).toBeTruthy();
   });
+  it('сохраняет ключ запроса после 5xx, чтобы повтор не оплачивался заново', async () => {
+    post.mockResolvedValueOnce({
+      error: { message: 'Временная ошибка' },
+      response: { status: 500 },
+    });
+    post.mockResolvedValueOnce({ data: note });
+    mount();
+    const button = await screen.findByRole('button', { name: 'Создать новую версию' });
+    await userEvent.click(button);
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    await userEvent.click(button);
+    await waitFor(() => expect(post).toHaveBeenCalledTimes(2));
+    expect(post.mock.calls[1]?.[1].body.request_id).toBe(post.mock.calls[0]?.[1].body.request_id);
+  });
   it('сохраняет правку с ревизией и восстанавливает черновик после перехода', async () => {
     const first = mount();
     await userEvent.click(await screen.findByRole('button', { name: 'Редактировать' }));
