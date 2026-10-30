@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.deps import current_user
 from app.core.config import Settings, get_settings
-from app.core.errors import ForbiddenError
+from app.core.errors import ConflictError, ForbiddenError
 from app.core.queue import enqueue_transcription
 from app.db.session import get_db
 from app.models.transcriptions import TranscriptionStatus
@@ -15,6 +15,7 @@ from app.models.user import User
 from app.schemas.transcriptions import (
     TranscriptionCreate,
     TranscriptionPublic,
+    TranscriptionStructuredResult,
     TranscriptionUpdate,
     TranscriptionUploadPartsRequest,
     TranscriptionUploadPartUrl,
@@ -202,6 +203,22 @@ async def get_transcription(
 ) -> TranscriptionPublic:
     job = await TranscriptionService(db).get_for_user(user, job_id)
     return TranscriptionPublic.model_validate(job)
+
+
+@user_router.get(
+    "/{job_id}/structured-result",
+    response_model=TranscriptionStructuredResult,
+    summary="Структурированный результат расшифровки",
+)
+async def get_transcription_structured_result(
+    job_id: UUID,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+) -> TranscriptionStructuredResult:
+    job = await TranscriptionService(db).get_for_user(user, job_id)
+    if job.provider_result is None:
+        raise ConflictError("Структурированный результат ещё недоступен")
+    return TranscriptionStructuredResult(provider=job.provider, data=job.provider_result)
 
 
 @user_router.patch("/{job_id}", response_model=TranscriptionPublic, summary="Изменить расшифровку")

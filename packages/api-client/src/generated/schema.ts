@@ -3140,6 +3140,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/transcriptions/{job_id}/structured-result": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Структурированный результат расшифровки */
+        get: operations["get_transcription_structured_result_api_v1_transcriptions__job_id__structured_result_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/transcriptions/{job_id}/upload": {
         parameters: {
             query?: never;
@@ -8476,20 +8493,30 @@ export interface components {
             duration_seconds: number | null;
             /** Error Message */
             error_message: string | null;
+            /** Fast Mode */
+            fast_mode: boolean;
             /** Filename */
             filename: string;
             /** Finished At */
             finished_at: string | null;
+            /** Has Structured Result */
+            has_structured_result: boolean;
             /**
              * Id
              * Format: uuid
              */
             id: string;
+            /** Phrase Timestamps */
+            phrase_timestamps: boolean;
             provider: components["schemas"]["TranscriptionProvider"];
+            /** Quota Minutes */
+            quota_minutes: number | null;
             /** Result Text */
             result_text: string | null;
             /** Size Bytes */
             size_bytes: number;
+            /** Speaker Labeling */
+            speaker_labeling: boolean;
             /** Started At */
             started_at: string | null;
             status: components["schemas"]["TranscriptionStatus"];
@@ -8507,6 +8534,14 @@ export interface components {
          * @enum {string}
          */
         TranscriptionStatus: "uploading" | "queued" | "converting" | "transcribing" | "completed" | "failed";
+        /** TranscriptionStructuredResult */
+        TranscriptionStructuredResult: {
+            /** Data */
+            data: {
+                [key: string]: unknown;
+            };
+            provider: components["schemas"]["TranscriptionProvider"];
+        };
         /** TranscriptionUpdate */
         TranscriptionUpdate: {
             /** Result Text */
@@ -8593,6 +8628,11 @@ export interface components {
             content_type: string;
             /** Duration Seconds */
             duration_seconds: number;
+            /**
+             * Fast Mode
+             * @default false
+             */
+            fast_mode: boolean;
             /** Filename */
             filename: string;
             /**
@@ -8600,8 +8640,18 @@ export interface components {
              * @default ru
              */
             language: string | null;
+            /**
+             * Phrase Timestamps
+             * @default false
+             */
+            phrase_timestamps: boolean;
             /** Size Bytes */
             size_bytes: number;
+            /**
+             * Speaker Labeling
+             * @default false
+             */
+            speaker_labeling: boolean;
             /** Total Parts */
             total_parts: number;
         };
@@ -15414,6 +15464,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TranscriptionPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_transcription_structured_result_api_v1_transcriptions__job_id__structured_result_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranscriptionStructuredResult"];
                 };
             };
             /** @description Validation Error */

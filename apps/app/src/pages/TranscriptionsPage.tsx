@@ -14,6 +14,7 @@ const MAX_FILE_BYTES = 1024 * 1024 * 1024;
 const UPLOAD_CONCURRENCY = 2;
 const UPLOAD_RETRIES = 8;
 const TRANSCRIPTION_LIMIT = 'ai.transcription_minutes_per_week';
+const FAST_MODE_MULTIPLIER = 4;
 const busyStatuses = new Set<JobStatus>(['uploading', 'queued', 'converting', 'transcribing']);
 
 const statusLabels: Record<JobStatus, string> = {
@@ -166,6 +167,9 @@ function UploadWorkspace({
   const [uploadJob, setUploadJob] = useState<Transcription | undefined>(resumeJob);
   const [file, setFile] = useState<File | null>(null);
   const [language, setLanguage] = useState('ru');
+  const [fastMode, setFastMode] = useState(false);
+  const [phraseTimestamps, setPhraseTimestamps] = useState(false);
+  const [speakerLabeling, setSpeakerLabeling] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [durationSeconds, setDurationSeconds] = useState<number | null>(null);
   const [readingDuration, setReadingDuration] = useState(false);
@@ -223,7 +227,7 @@ function UploadWorkspace({
       return;
     }
     const seconds = selectedDuration;
-    const requested = Math.ceil(seconds / 60);
+    const requested = Math.ceil(seconds / 60) * (fastMode ? FAST_MODE_MULTIPLIER : 1);
     const remaining = entitlements?.remaining[TRANSCRIPTION_LIMIT];
     if (!currentJob && remaining !== null && remaining !== undefined && remaining < requested) {
       onLimit({
@@ -251,6 +255,9 @@ function UploadWorkspace({
             total_parts: totalParts,
             duration_seconds: seconds,
             language: language || null,
+            fast_mode: fastMode,
+            phrase_timestamps: phraseTimestamps,
+            speaker_labeling: speakerLabeling,
           },
         });
         if (created.error || !created.data) {
@@ -362,20 +369,63 @@ function UploadWorkspace({
 
       <div className="border-border bg-surface mt-5 rounded-xl border p-4 sm:p-6">
         {!currentJob ? (
-          <div className="mb-5 max-w-sm">
-            <label className="text-sm font-medium">
-              Язык записи
-              <select
-                className="border-border bg-surface focus:border-primary focus:ring-primary mt-2 h-11 w-full rounded-lg border px-3 outline-none focus:ring-1"
-                value={language}
-                onChange={(event) => setLanguage(event.target.value)}
-                disabled={uploading}
-              >
-                <option value="ru">Русский</option>
-                <option value="en">Английский</option>
-                <option value="">Определить автоматически</option>
-              </select>
-            </label>
+          <div className="mb-5 space-y-5">
+            <div className="max-w-sm">
+              <label className="text-sm font-medium">
+                Язык записи
+                <select
+                  className="border-border bg-surface focus:border-primary focus:ring-primary mt-2 h-11 w-full rounded-lg border px-3 outline-none focus:ring-1"
+                  value={language}
+                  onChange={(event) => setLanguage(event.target.value)}
+                  disabled={uploading}
+                >
+                  <option value="ru">Русский</option>
+                  <option value="en">Английский</option>
+                  <option value="">Определить автоматически</option>
+                </select>
+              </label>
+              <p className="text-fg-subtle mt-2 text-xs">
+                Пунктуация, заглавные буквы, числа и даты оформляются автоматически.
+              </p>
+            </div>
+
+            <fieldset>
+              <legend className="text-sm font-semibold">Дополнительные настройки</legend>
+              <div className="mt-3 grid gap-3 lg:grid-cols-3">
+                <TranscriptionOption
+                  checked={fastMode}
+                  onChange={setFastMode}
+                  title="Быстрый режим"
+                  badge="Расход ×4"
+                  description="Стандартная очередь SpeechKit вместо отложенной."
+                  disabled={uploading}
+                  warning
+                />
+                <TranscriptionOption
+                  checked={phraseTimestamps}
+                  onChange={setPhraseTimestamps}
+                  title="Временные метки"
+                  badge="Без доп. расхода"
+                  description="Добавить время начала к каждой распознанной фразе."
+                  disabled={uploading}
+                />
+                <TranscriptionOption
+                  checked={speakerLabeling}
+                  onChange={setSpeakerLabeling}
+                  title="Определять дикторов"
+                  badge="Без доп. расхода"
+                  description="Разделить монозапись максимум на двух говорящих."
+                  disabled={uploading}
+                />
+              </div>
+            </fieldset>
+
+            {fastMode ? (
+              <p className="bg-warning-subtle rounded-lg px-4 py-3 text-sm" role="status">
+                Быстрый режим расходует недельный лимит в 4 раза быстрее: 20 минут записи спишут 80
+                минут лимита.
+              </p>
+            ) : null}
           </div>
         ) : null}
         <div
@@ -479,6 +529,47 @@ function UploadWorkspace({
   );
 }
 
+function TranscriptionOption({
+  checked,
+  onChange,
+  title,
+  badge,
+  description,
+  disabled,
+  warning = false,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  title: string;
+  badge: string;
+  description: string;
+  disabled: boolean;
+  warning?: boolean;
+}) {
+  return (
+    <label
+      className={`border-border flex min-h-32 cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${checked ? 'border-primary bg-primary-subtle/40' : 'hover:bg-surface-muted'} ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+    >
+      <input
+        type="checkbox"
+        className="border-border text-primary focus:ring-primary mt-1 h-5 w-5 shrink-0 rounded"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        disabled={disabled}
+      />
+      <span className="min-w-0">
+        <span className="block font-medium">{title}</span>
+        <span
+          className={`mt-1.5 inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${warning ? 'bg-warning-subtle text-warning' : 'bg-surface-muted text-fg-muted'}`}
+        >
+          {badge}
+        </span>
+        <span className="text-fg-muted mt-2 block text-sm leading-5">{description}</span>
+      </span>
+    </label>
+  );
+}
+
 function DocumentWorkspace({ job }: { job: Transcription }) {
   const queryClient = useQueryClient();
   const [title, setTitle] = useState(job.title ?? job.filename);
@@ -542,6 +633,9 @@ function DocumentWorkspace({ job }: { job: Transcription }) {
           <span>{formatDate(job.created_at)}</span>
           {job.duration_seconds ? <span>· {formatDuration(job.duration_seconds)}</span> : null}
           <span>· {statusLabels[job.status]}</span>
+          {job.fast_mode ? <span>· Быстрый режим</span> : null}
+          {job.phrase_timestamps ? <span>· С таймкодами</span> : null}
+          {job.speaker_labeling ? <span>· С дикторами</span> : null}
           {saveState !== 'idle' ? (
             <span
               className={saveState === 'error' ? 'text-danger' : 'text-primary'}
@@ -643,6 +737,11 @@ function UtilityRail({
             <RailButton onClick={() => downloadText(selected, 'md')} icon="download">
               Скачать .md
             </RailButton>
+            {selected.has_structured_result ? (
+              <RailButton onClick={() => void downloadStructuredResult(selected)} icon="download">
+                Скачать данные .json
+              </RailButton>
+            ) : null}
             <button
               type="button"
               className="text-danger hover:bg-danger-subtle flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-medium transition-colors"
@@ -1194,6 +1293,22 @@ function downloadText(job: Transcription, extension: 'txt' | 'md') {
   const link = document.createElement('a');
   link.href = url;
   link.download = `${sanitizeFilename(job.title ?? job.filename)}.${extension}`;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+async function downloadStructuredResult(job: Transcription) {
+  const { data, error } = await api.GET('/api/v1/transcriptions/{job_id}/structured-result', {
+    params: { path: { job_id: job.id } },
+  });
+  if (error || !data) return;
+  const blob = new Blob([JSON.stringify(data, null, 2)], {
+    type: 'application/json;charset=utf-8',
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${sanitizeFilename(job.title ?? job.filename)}.json`;
   link.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }

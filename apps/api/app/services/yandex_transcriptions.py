@@ -3,6 +3,7 @@
 import asyncio
 import base64
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -13,11 +14,26 @@ OPERATION_URL = "https://operation.api.cloud.yandex.net/operations"
 RESULT_URL = "https://stt.api.cloud.yandex.net/stt/v3/getRecognition"
 
 
-def build_recognition_request(audio: bytes, language: str | None) -> dict[str, Any]:
+@dataclass(frozen=True)
+class YandexRecognitionResult:
+    text: str
+    data: dict[str, Any]
+
+
+def build_recognition_request(
+    audio: bytes,
+    language: str | None,
+    *,
+    fast_mode: bool = False,
+    speaker_labeling: bool = False,
+) -> dict[str, Any]:
     model: dict[str, Any] = {
-        "model": "deferred-general",
+        "model": "general" if fast_mode else "deferred-general",
         "audioFormat": {"containerAudio": {"containerAudioType": "MP3"}},
-        "textNormalization": {"textNormalization": "TEXT_NORMALIZATION_ENABLED"},
+        "textNormalization": {
+            "textNormalization": "TEXT_NORMALIZATION_ENABLED",
+            "literatureText": True,
+        },
     }
     language_code = {"ru": "ru-RU", "en": "en-US"}.get(language or "")
     if language_code:
@@ -25,13 +41,22 @@ def build_recognition_request(audio: bytes, language: str | None) -> dict[str, A
             "restrictionType": "WHITELIST",
             "languageCode": [language_code],
         }
-    return {
+    request: dict[str, Any] = {
         "content": base64.b64encode(audio).decode("ascii"),
         "recognitionModel": model,
     }
+    if speaker_labeling:
+        model["audioProcessingType"] = "FULL_DATA"
+        request["speakerLabeling"] = {"speakerLabeling": "SPEAKER_LABELING_ENABLED"}
+    return request
 
 
-def parse_recognition_result(payload: str) -> str:
+def parse_recognition_result(
+    payload: str,
+    *,
+    phrase_timestamps: bool = False,
+    speaker_labeling: bool = False,
+) -> YandexRecognitionResult:
     """Собирает финальные фразы из NDJSON-ответа SpeechKit."""
     messages: list[dict[str, Any]] = []
     try:
@@ -48,38 +73,60 @@ def parse_recognition_result(payload: str) -> str:
             if isinstance(item, dict):
                 messages.append(item)
 
-    finals: list[str] = []
-    refinements: dict[int, str] = {}
+    phrases: list[dict[str, Any]] = []
+    refinements: dict[int, dict[str, Any]] = {}
     for message in messages:
         result = message.get("result", message)
         if not isinstance(result, dict):
             continue
         final = result.get("final")
         if isinstance(final, dict):
-            text = _first_alternative_text(final)
-            if text:
-                finals.append(text)
+            alternative = _first_alternative(final)
+            if alternative:
+                phrases.append(
+                    _phrase_from_alternative(
+                        alternative,
+                        final.get("channelTag", result.get("channelTag")),
+                    )
+                )
         refinement = result.get("finalRefinement")
         if isinstance(refinement, dict):
             normalized = refinement.get("normalizedText")
-            text = _first_alternative_text(normalized) if isinstance(normalized, dict) else None
+            alternative = _first_alternative(normalized) if isinstance(normalized, dict) else None
             try:
                 index = int(refinement.get("finalIndex", -1))
             except (TypeError, ValueError):
                 index = -1
-            if text and index >= 0:
-                refinements[index] = text
+            if alternative and index >= 0:
+                channel_tag = (
+                    normalized.get("channelTag", result.get("channelTag"))
+                    if isinstance(normalized, dict)
+                    else result.get("channelTag")
+                )
+                refinements[index] = _phrase_from_alternative(
+                    alternative,
+                    channel_tag,
+                )
 
-    for index, text in refinements.items():
-        if index < len(finals):
-            finals[index] = text
-    result_text = "\n".join(finals).strip()
+    for index, refinement in refinements.items():
+        if index < len(phrases):
+            original = phrases[index]
+            phrases[index] = {
+                **original,
+                **{key: value for key, value in refinement.items() if value is not None},
+            }
+    result_text = "\n".join(
+        _format_phrase(phrase, phrase_timestamps, speaker_labeling) for phrase in phrases
+    ).strip()
     if not result_text:
         raise RuntimeError("SpeechKit returned no final text")
-    return result_text
+    return YandexRecognitionResult(
+        text=result_text,
+        data={"schemaVersion": 1, "phrases": phrases, "messages": messages},
+    )
 
 
-def _first_alternative_text(update: dict[str, Any]) -> str | None:
+def _first_alternative(update: dict[str, Any]) -> dict[str, Any] | None:
     alternatives = update.get("alternatives")
     if not isinstance(alternatives, list) or not alternatives:
         return None
@@ -87,7 +134,55 @@ def _first_alternative_text(update: dict[str, Any]) -> str | None:
     if not isinstance(first, dict):
         return None
     text = first.get("text")
-    return text.strip() if isinstance(text, str) and text.strip() else None
+    return first if isinstance(text, str) and text.strip() else None
+
+
+def _phrase_from_alternative(alternative: dict[str, Any], channel_tag: Any) -> dict[str, Any]:
+    text = alternative["text"].strip()
+    return {
+        "text": text,
+        "startTimeMs": _optional_int(alternative.get("startTimeMs")),
+        "endTimeMs": _optional_int(alternative.get("endTimeMs")),
+        "channelTag": str(channel_tag) if channel_tag is not None else None,
+        "confidence": alternative.get("confidence"),
+        "words": alternative.get("words", []),
+        "languages": alternative.get("languages", []),
+    }
+
+
+def _optional_int(value: Any) -> int | None:
+    try:
+        return int(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _format_phrase(
+    phrase: dict[str, Any], phrase_timestamps: bool, speaker_labeling: bool
+) -> str:
+    parts: list[str] = []
+    start_ms = phrase.get("startTimeMs")
+    if phrase_timestamps and isinstance(start_ms, int):
+        total_seconds = start_ms // 1000
+        hours, remainder = divmod(total_seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        timestamp = (
+            f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+            if hours
+            else f"{minutes:02d}:{seconds:02d}"
+        )
+        parts.append(f"[{timestamp}]")
+    if speaker_labeling:
+        channel_tag = phrase.get("channelTag")
+        try:
+            speaker = int(channel_tag) + 1 if isinstance(channel_tag, (int, str)) else None
+            if speaker is None:
+                raise ValueError
+            parts.append(f"Диктор {speaker}:")
+        except (TypeError, ValueError):
+            parts.append("Диктор:")
+    parts.append(str(phrase["text"]))
+    return " ".join(parts)
 
 
 class YandexSpeechKitTranscriber:
@@ -103,7 +198,14 @@ class YandexSpeechKitTranscriber:
             self.headers["x-folder-id"] = folder_id
         self.max_audio_bytes = max_audio_bytes
 
-    async def submit(self, audio_path: Path, language: str | None) -> str:
+    async def submit(
+        self,
+        audio_path: Path,
+        language: str | None,
+        *,
+        fast_mode: bool = False,
+        speaker_labeling: bool = False,
+    ) -> str:
         size = (await asyncio.to_thread(audio_path.stat)).st_size
         if size > self.max_audio_bytes:
             raise RuntimeError("SpeechKit audio exceeds the test-mode limit")
@@ -113,7 +215,12 @@ class YandexSpeechKitTranscriber:
             response = await client.post(
                 RECOGNIZE_URL,
                 headers=self.headers,
-                json=build_recognition_request(audio, language),
+                json=build_recognition_request(
+                    audio,
+                    language,
+                    fast_mode=fast_mode,
+                    speaker_labeling=speaker_labeling,
+                ),
             )
             response.raise_for_status()
             operation = response.json()
@@ -132,7 +239,13 @@ class YandexSpeechKitTranscriber:
             raise RuntimeError("SpeechKit returned an invalid operation")
         return operation
 
-    async def get_result(self, operation_id: str) -> str:
+    async def get_result(
+        self,
+        operation_id: str,
+        *,
+        phrase_timestamps: bool = False,
+        speaker_labeling: bool = False,
+    ) -> YandexRecognitionResult:
         timeout = httpx.Timeout(60.0, connect=15.0)
         async with httpx.AsyncClient(timeout=timeout) as client:
             result_response = await client.get(
@@ -141,4 +254,8 @@ class YandexSpeechKitTranscriber:
                 params={"operation_id": operation_id},
             )
             result_response.raise_for_status()
-            return parse_recognition_result(result_response.text)
+            return parse_recognition_result(
+                result_response.text,
+                phrase_timestamps=phrase_timestamps,
+                speaker_labeling=speaker_labeling,
+            )

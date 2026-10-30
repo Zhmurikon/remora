@@ -63,6 +63,11 @@ const completed = {
   uploaded_parts: 1,
   status: 'completed',
   provider: 'yandex_speechkit',
+  fast_mode: false,
+  phrase_timestamps: false,
+  speaker_labeling: false,
+  quota_minutes: 48,
+  has_structured_result: true,
   result_text: 'Вероятность события — численная мера возможности его наступления.',
   error_message: null,
   created_at: '2026-10-29T00:00:00Z',
@@ -235,10 +240,25 @@ describe('TranscriptionsPage', () => {
     const view = renderPage();
     await screen.findByRole('heading', { name: 'Новая расшифровка' });
 
+    await user.click(screen.getByRole('checkbox', { name: /Быстрый режим/ }));
+    await user.click(screen.getByRole('checkbox', { name: /Временные метки/ }));
+    await user.click(screen.getByRole('checkbox', { name: /Определять дикторов/ }));
+    expect(screen.getByText(/20 минут записи спишут 80 минут лимита/)).toBeTruthy();
+
     const input = view.container.querySelector<HTMLInputElement>('input[type="file"]');
     await user.upload(input!, new File(['transport stream'], 'lecture.ts', { type: 'video/mp2t' }));
 
     await waitFor(() => {
+      expect(post).toHaveBeenCalledWith(
+        '/api/v1/transcriptions',
+        expect.objectContaining({
+          body: expect.objectContaining({
+            fast_mode: true,
+            phrase_timestamps: true,
+            speaker_labeling: true,
+          }),
+        }),
+      );
       expect(fetchMock).toHaveBeenCalledWith(
         'https://storage.example/upload',
         expect.objectContaining({ method: 'PUT', credentials: 'omit' }),

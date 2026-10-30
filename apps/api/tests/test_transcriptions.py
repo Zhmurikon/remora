@@ -141,6 +141,40 @@ async def test_free_user_gets_weekly_limit_error(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_fast_transcription_consumes_four_times_more_minutes(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    headers, email = await register(client, "fast")
+    await set_transcription_limit(email, 20)
+    storage = AsyncMock()
+    storage.create_multipart_upload.return_value = "upload-fast"
+    monkeypatch.setattr("app.services.transcriptions.get_object_storage", lambda: storage)
+    response = await client.post(
+        "/api/v1/transcriptions",
+        headers=headers,
+        json={
+            "filename": "lecture.mp4",
+            "content_type": "video/mp4",
+            "size_bytes": 4,
+            "total_parts": 1,
+            "duration_seconds": 121,
+            "language": "ru",
+            "fast_mode": True,
+            "phrase_timestamps": True,
+            "speaker_labeling": True,
+        },
+    )
+
+    assert response.status_code == 201
+    assert response.json()["fast_mode"] is True
+    assert response.json()["phrase_timestamps"] is True
+    assert response.json()["speaker_labeling"] is True
+    assert response.json()["quota_minutes"] == 12
+    entitlements = await client.get("/api/v1/billing/entitlements", headers=headers)
+    assert entitlements.json()["usage"]["ai.transcription_minutes_per_week"] == 12
+
+
+@pytest.mark.asyncio
 async def test_user_transcription_rejects_inconsistent_chunk_count(client: AsyncClient) -> None:
     headers, email = await register(client, "parts")
     await set_transcription_limit(email, 10)
@@ -216,6 +250,7 @@ async def test_user_can_upload_edit_and_delete_own_transcription(
     client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     headers, email = await register(client, "lifecycle")
+    stranger_headers, _ = await register(client, "lifecycle-stranger")
     await set_transcription_limit(email, 10)
     storage = AsyncMock()
     storage.create_multipart_upload.return_value = "upload-lifecycle"
@@ -259,7 +294,24 @@ async def test_user_can_upload_edit_and_delete_own_transcription(
         assert job is not None
         job.status = TranscriptionStatus.completed
         job.result_text = "Исходный текст"
+        job.provider_result = {
+            "schemaVersion": 1,
+            "phrases": [{"text": "Исходный текст", "startTimeMs": 0}],
+            "messages": [],
+        }
         await db.commit()
+
+    structured = await client.get(
+        f"/api/v1/transcriptions/{job_id}/structured-result", headers=headers
+    )
+    assert structured.status_code == 200
+    assert structured.json()["provider"] == "yandex_speechkit"
+    assert structured.json()["data"]["phrases"][0]["startTimeMs"] == 0
+    assert (
+        await client.get(
+            f"/api/v1/transcriptions/{job_id}/structured-result", headers=stranger_headers
+        )
+    ).status_code == 404
 
     updated = await client.patch(
         f"/api/v1/transcriptions/{job_id}",

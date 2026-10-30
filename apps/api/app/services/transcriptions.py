@@ -22,6 +22,12 @@ from app.services.entitlements import Entitlements, week_period
 
 PART_BYTES = 16 * 1024 * 1024
 UPLOAD_TTL = timedelta(hours=24)
+FAST_TRANSCRIPTION_QUOTA_MULTIPLIER = 4
+
+
+def transcription_quota_minutes(duration_seconds: int, fast_mode: bool) -> int:
+    multiplier = FAST_TRANSCRIPTION_QUOTA_MULTIPLIER if fast_mode else 1
+    return ceil(duration_seconds / 60) * multiplier
 
 
 class TranscriptionService:
@@ -37,7 +43,7 @@ class TranscriptionService:
     async def create_for_user(self, user: User, body: UserTranscriptionCreate) -> TranscriptionJob:
         if body.total_parts != ceil(body.size_bytes / PART_BYTES):
             raise ValidationError("Количество частей файла не соответствует его размеру")
-        quota_minutes = ceil(body.duration_seconds / 60)
+        quota_minutes = transcription_quota_minutes(body.duration_seconds, body.fast_mode)
         period_key, resets_at = week_period()
         await Entitlements(self.db).consume(
             user,
@@ -59,6 +65,9 @@ class TranscriptionService:
             quota_period_key=period_key,
             provider=TranscriptionProvider.yandex_speechkit,
             language=body.language,
+            fast_mode=body.fast_mode,
+            phrase_timestamps=body.phrase_timestamps,
+            speaker_labeling=body.speaker_labeling,
         )
         self.db.add(job)
         await self.db.flush()

@@ -32,6 +32,7 @@ from app.services.account_exports import AccountExportService
 from app.services.entitlements import Entitlements, week_period
 from app.services.imports import ImportService
 from app.services.search_sync import synchronize_courses, synchronize_pending_courses
+from app.services.transcriptions import transcription_quota_minutes
 from app.services.yandex_transcriptions import YandexSpeechKitTranscriber
 
 logger = logging.getLogger(__name__)
@@ -93,7 +94,7 @@ async def _reconcile_transcription_quota(job_id: UUID, actual_seconds: int) -> N
         user = await db.get(User, job.user_id)
         if user is None:
             return
-        actual_minutes = ceil(actual_seconds / 60)
+        actual_minutes = transcription_quota_minutes(actual_seconds, job.fast_mode)
         difference = actual_minutes - job.quota_minutes
         entitlements = Entitlements(db)
         if difference > 0:
@@ -305,6 +306,8 @@ async def process_transcription(_context: dict[str, Any], job_id_value: str) -> 
                 beam_size = job.beam_size
                 vad_filter = job.vad_filter
                 word_timestamps = job.word_timestamps
+                fast_mode = job.fast_mode
+                speaker_labeling = job.speaker_labeling
 
             settings = get_settings()
             if provider == TranscriptionProvider.yandex_speechkit:
@@ -316,7 +319,12 @@ async def process_transcription(_context: dict[str, Any], job_id_value: str) -> 
                     api_key.get_secret_value(),
                     folder_id=settings.yandex_speechkit_folder_id,
                     max_audio_bytes=settings.yandex_transcription_max_audio_bytes,
-                ).submit(audio, language)
+                ).submit(
+                    audio,
+                    language,
+                    fast_mode=fast_mode,
+                    speaker_labeling=speaker_labeling,
+                )
                 async with get_session_factory()() as operation_db:
                     operation_job = await operation_db.get(TranscriptionJob, job_id)
                     if operation_job is not None:
@@ -447,7 +455,13 @@ async def poll_yandex_transcriptions(_context: dict[str, Any]) -> None:
             if operation.get("done") is not True:
                 continue
             try:
-                job.result_text = (await transcriber.get_result(operation_id)).strip()
+                result = await transcriber.get_result(
+                    operation_id,
+                    phrase_timestamps=job.phrase_timestamps,
+                    speaker_labeling=job.speaker_labeling,
+                )
+                job.result_text = result.text.strip()
+                job.provider_result = result.data
             except (httpx.HTTPError, RuntimeError, ValueError):
                 logger.warning(
                     "Не удалось получить результат SpeechKit для задания %s",

@@ -5,6 +5,7 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import BigInteger, Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -53,6 +54,13 @@ class TranscriptionJob(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     word_timestamps: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=text("false")
     )
+    fast_mode: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
+    phrase_timestamps: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false")
+    )
+    speaker_labeling: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false")
+    )
     duration_seconds: Mapped[int | None] = mapped_column(Integer)
     quota_minutes: Mapped[int | None] = mapped_column(Integer)
     quota_period_key: Mapped[str | None] = mapped_column(String(10))
@@ -60,6 +68,7 @@ class TranscriptionJob(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Boolean, default=False, server_default=text("false")
     )
     result_text: Mapped[str | None] = mapped_column(Text)
+    provider_result: Mapped[dict[str, object] | None] = mapped_column(JSONB)
     error_message: Mapped[str | None] = mapped_column(Text)
     provider_operation_id: Mapped[str | None] = mapped_column(String(120))
     storage_key: Mapped[str | None] = mapped_column(String(512))
@@ -67,3 +76,7 @@ class TranscriptionJob(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     upload_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    @property
+    def has_structured_result(self) -> bool:
+        return self.provider_result is not None
