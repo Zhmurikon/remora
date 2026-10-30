@@ -108,6 +108,15 @@ class AccountExportService:
         with ZipFile(output, "w", compression=ZIP_DEFLATED) as archive:
             archive.writestr("account.json", _json(account))
             archive.writestr(
+                "ai-materials.json",
+                _json(
+                    {
+                        key: [_row(item) for item in rows[key]]
+                        for key in ("transcriptions", "generations")
+                    }
+                ),
+            )
+            archive.writestr(
                 "sets.json",
                 _json(
                     {

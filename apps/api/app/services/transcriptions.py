@@ -8,8 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.core.storage import get_object_storage
+from app.models.generations import GenerationJob
 from app.models.transcriptions import TranscriptionJob, TranscriptionProvider, TranscriptionStatus
 from app.models.user import User
+from app.repositories.api_tokens import lock_request
 from app.schemas.transcriptions import (
     TranscriptionCreate,
     TranscriptionUpdate,
@@ -216,7 +218,18 @@ class TranscriptionService:
         return job
 
     async def delete_for_user(self, user: User, job_id: UUID) -> None:
+        await lock_request(self.db, user.id)
         job = await self.get_for_user(user, job_id)
+        active = await self.db.scalar(
+            select(GenerationJob.id)
+            .where(
+                GenerationJob.transcription_id == job_id,
+                GenerationJob.status.in_(["queued", "processing"]),
+            )
+            .limit(1)
+        )
+        if active:
+            raise ConflictError("Дождитесь завершения генерации перед удалением")
         if job.status in {TranscriptionStatus.converting, TranscriptionStatus.transcribing}:
             raise ConflictError("Дождитесь завершения обработки перед удалением")
         if job.status in {

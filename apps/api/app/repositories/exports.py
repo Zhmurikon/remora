@@ -11,7 +11,9 @@ from app.models.battles import Battle, BattleAnswer, BattleParticipant
 from app.models.content import Card, Folder, MediaAsset, StudySet
 from app.models.courses import Course, CourseArticle, CourseSection
 from app.models.exports import AccountExportJob
+from app.models.generations import GenerationJob
 from app.models.study import CardState, Review, StudySession, TestAttempt, UserSetProgress
+from app.models.transcriptions import TranscriptionJob
 from app.models.user import Consent, OauthAccount, UserSettings
 
 
@@ -38,6 +40,12 @@ async def account_rows(db: AsyncSession, user_id: UUID) -> dict[str, list[Any]]:
     participant_ids = [item.id for item in battle_participants]
     battle_ids = [item.battle_id for item in battle_participants]
     return {
+        "transcriptions": await _all(
+            db, select(TranscriptionJob).where(TranscriptionJob.user_id == user_id)
+        ),
+        "generations": await _all(
+            db, select(GenerationJob).where(GenerationJob.user_id == user_id)
+        ),
         "courses": await _all(db, select(Course).where(Course.owner_id == user_id)),
         "course_sections": await _all(
             db, select(CourseSection).join(Course).where(Course.owner_id == user_id)

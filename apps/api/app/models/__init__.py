@@ -61,6 +61,7 @@ from app.models.courses import (
     LibrarySave,
 )
 from app.models.exports import AccountExportJob, AccountExportStatus
+from app.models.generations import GenerationJob
 from app.models.imports import ImportJob, ImportJobStatus
 from app.models.moderation import CourseReport, ReportReason, ReportStatus
 from app.models.practice import PythonPracticeProgress
@@ -138,6 +139,7 @@ __all__ = [
     "EntitlementSource",
     "FeatureFlag",
     "Folder",
+    "GenerationJob",
     "ImportJob",
     "ImportJobStatus",
     "LibrarySave",

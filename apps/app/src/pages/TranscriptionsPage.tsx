@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, ApiRequestError } from '../lib/api';
+import { GenerationWorkspace } from '../components/GenerationWorkspace';
 
 type Transcription = components['schemas']['TranscriptionPublic'];
 type Entitlements = components['schemas']['EntitlementsPublic'];
@@ -108,7 +109,11 @@ export function TranscriptionsPage() {
               onOpenLibrary={() => setLibraryOpen(true)}
             />
           ) : selected ? (
-            <DocumentWorkspace job={selected} />
+            <DocumentWorkspace
+              key={selected.id}
+              job={selected}
+              entitlements={entitlementsQuery.data}
+            />
           ) : (
             <PageMessage>Расшифровка не найдена.</PageMessage>
           )}
@@ -570,11 +575,19 @@ function TranscriptionOption({
   );
 }
 
-function DocumentWorkspace({ job }: { job: Transcription }) {
+function DocumentWorkspace({
+  job,
+  entitlements,
+}: {
+  job: Transcription;
+  entitlements?: Entitlements;
+}) {
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const queryClient = useQueryClient();
   const [title, setTitle] = useState(job.title ?? job.filename);
   const [text, setText] = useState(job.result_text ?? '');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const saveQueue = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
     setTitle(job.title ?? job.filename);
@@ -590,22 +603,35 @@ function DocumentWorkspace({ job }: { job: Transcription }) {
     ) {
       return;
     }
-    const timer = window.setTimeout(async () => {
-      setSaveState('saving');
-      const { data, error } = await api.PATCH('/api/v1/transcriptions/{job_id}', {
-        params: { path: { job_id: job.id } },
-        body: { title: title.trim(), result_text: text },
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      // Последовательная запись не даёт старому запросу затереть более свежий текст.
+      saveQueue.current = saveQueue.current.then(async () => {
+        if (cancelled) return;
+        setSaveState('saving');
+        try {
+          const { data, error } = await api.PATCH('/api/v1/transcriptions/{job_id}', {
+            params: { path: { job_id: job.id } },
+            body: { title: title.trim(), result_text: text },
+          });
+          if (cancelled) return;
+          if (error || !data) {
+            setSaveState('error');
+            return;
+          }
+          queryClient.setQueryData<Transcription[]>(['transcriptions'], (items = []) =>
+            items.map((item) => (item.id === data.id ? data : item)),
+          );
+          setSaveState('saved');
+        } catch {
+          if (!cancelled) setSaveState('error');
+        }
       });
-      if (error || !data) {
-        setSaveState('error');
-        return;
-      }
-      queryClient.setQueryData<Transcription[]>(['transcriptions'], (items = []) =>
-        items.map((item) => (item.id === data.id ? data : item)),
-      );
-      setSaveState('saved');
     }, 750);
-    return () => window.clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, [job, queryClient, text, title]);
 
   const isBusy = busyStatuses.has(job.status);
@@ -652,28 +678,58 @@ function DocumentWorkspace({ job }: { job: Transcription }) {
         </div>
       </header>
 
-      <div className="border-border bg-surface mt-5 min-h-[640px] rounded-xl border">
-        {job.status === 'completed' ? (
-          <textarea
-            aria-label="Текст расшифровки"
-            className="selection:bg-primary-subtle selection:text-fg min-h-[638px] w-full resize-none rounded-xl bg-transparent px-5 py-6 text-base leading-7 outline-none sm:px-9 sm:py-8 lg:px-14"
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-          />
-        ) : isBusy ? (
-          <ProcessingState job={job} />
-        ) : (
-          <div className="flex min-h-[638px] flex-col items-center justify-center px-6 text-center">
-            <span className="text-danger">
-              <Icon name="warning" className="h-12 w-12" />
-            </span>
-            <h2 className="mt-5 text-xl font-semibold">Не удалось обработать файл</h2>
-            <p className="text-fg-muted mt-2 max-w-md">
-              {job.error_message ?? 'Попробуйте загрузить запись ещё раз.'}
-            </p>
-          </div>
-        )}
-      </div>
+      <nav aria-label="Шаги подготовки материала" className="mt-5 grid grid-cols-3 gap-2">
+        {(['Расшифровка', 'Конспект', 'Карточки'] as const).map((label, index) => (
+          <button
+            key={label}
+            type="button"
+            aria-current={step === index + 1 ? 'step' : undefined}
+            disabled={index > 0 && job.status !== 'completed'}
+            onClick={() => setStep((index + 1) as 1 | 2 | 3)}
+            className={`focus-visible:ring-primary min-h-11 rounded-lg px-2 py-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 disabled:opacity-50 ${step === index + 1 ? 'bg-primary-subtle text-primary' : 'bg-surface text-fg-muted'}`}
+          >
+            {index + 1}. {label}
+          </button>
+        ))}
+      </nav>
+      {step !== 1 ? (
+        <GenerationWorkspace
+          key={`${job.id}:${step}`}
+          source={job}
+          kind={step === 2 ? 'notes' : 'cards'}
+          entitlements={entitlements}
+          sourceReady={
+            title === (job.title ?? job.filename) &&
+            text === (job.result_text ?? '') &&
+            saveState !== 'error' &&
+            !!text.trim()
+          }
+          onNext={() => setStep(3)}
+        />
+      ) : (
+        <div className="border-border bg-surface mt-5 min-h-[640px] rounded-xl border">
+          {job.status === 'completed' ? (
+            <textarea
+              aria-label="Текст расшифровки"
+              className="selection:bg-primary-subtle selection:text-fg min-h-[638px] w-full resize-none rounded-xl bg-transparent px-5 py-6 text-base leading-7 outline-none sm:px-9 sm:py-8 lg:px-14"
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+            />
+          ) : isBusy ? (
+            <ProcessingState job={job} />
+          ) : (
+            <div className="flex min-h-[638px] flex-col items-center justify-center px-6 text-center">
+              <span className="text-danger">
+                <Icon name="warning" className="h-12 w-12" />
+              </span>
+              <h2 className="mt-5 text-xl font-semibold">Не удалось обработать файл</h2>
+              <p className="text-fg-muted mt-2 max-w-md">
+                {job.error_message ?? 'Попробуйте загрузить запись ещё раз.'}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -729,13 +785,13 @@ function UtilityRail({
               onClick={() => void navigator.clipboard.writeText(selected.result_text ?? '')}
               icon="copy"
             >
-              Копировать
+              Копировать расшифровку
             </RailButton>
             <RailButton onClick={() => downloadText(selected, 'txt')} icon="download">
-              Скачать .txt
+              Расшифровка .txt
             </RailButton>
             <RailButton onClick={() => downloadText(selected, 'md')} icon="download">
-              Скачать .md
+              Расшифровка .md
             </RailButton>
             {selected.has_structured_result ? (
               <RailButton onClick={() => void downloadStructuredResult(selected)} icon="download">
@@ -969,7 +1025,7 @@ function DeleteDialog({
       <p className="text-fg-muted">
         {cancel
           ? 'Загрузка остановится, а зарезервированные минуты вернутся в недельный лимит.'
-          : 'Текст будет удалён без возможности восстановления. Исходный файл уже не хранится.'}
+          : 'Расшифровка, версии конспекта и черновики карточек будут удалены без восстановления. Сохранённые наборы останутся.'}
       </p>
       {mutation.error ? (
         <p className="text-danger mt-4 text-sm" role="alert">

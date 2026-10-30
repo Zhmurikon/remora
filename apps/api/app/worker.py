@@ -20,6 +20,7 @@ from app.core.email import send_account_export_email
 from app.core.errors import AppError
 from app.core.storage import get_object_storage
 from app.db.session import dispose_engine, get_session_factory
+from app.generation_worker import process_generation
 from app.models.exports import AccountExportJob, AccountExportStatus
 from app.models.imports import ImportJob, ImportJobStatus
 from app.models.transcriptions import (
@@ -577,8 +578,12 @@ class WorkerSettings:
         process_anki_import,
         process_account_export,
         process_transcription,
+        process_generation,
     ]
     cron_jobs: ClassVar[list[object]] = [
+        cron(
+            "app.generation_worker.recover_generations", minute=None, second=15, run_at_startup=True
+        ),
         cron("app.worker.sync_course_search", minute=None, second=0, run_at_startup=True),
         cron(
             "app.worker.reconcile_course_search", hour=4, minute=17, second=0, run_at_startup=True

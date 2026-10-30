@@ -137,6 +137,11 @@ class Settings(BaseSettings):
     # API v3 принимает в теле запроса не больше 60 МБ аудио.
     yandex_transcription_max_audio_bytes: int = 60 * 1024 * 1024
 
+    # Учебная генерация: ключ и необязательный прокси доступны только API и worker.
+    open_ai_api_key: SecretStr | None = None
+    openai_proxy_url: str | None = None
+    ai_notes_budget_usd: float = Field(default=0.05, gt=0, le=1)
+
     @property
     def is_local(self) -> bool:
         return self.environment == "local"

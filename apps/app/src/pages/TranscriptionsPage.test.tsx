@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -132,11 +132,38 @@ describe('TranscriptionsPage', () => {
     expect(
       (screen.getByRole('textbox', { name: 'Текст расшифровки' }) as HTMLTextAreaElement).value,
     ).toBe(completed.result_text);
-    expect(screen.getByRole('button', { name: 'Скачать .txt' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Расшифровка .txt' })).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Открыть библиотеку' }));
     expect(screen.getByRole('heading', { name: 'Библиотека конспектов' })).toBeTruthy();
     expect(screen.getByText(completed.title)).toBeTruthy();
+  });
+
+  it('не затирает свежую правку запоздавшим ответом автосохранения', async () => {
+    get.mockImplementation((path: string) =>
+      Promise.resolve({ data: path === '/api/v1/transcriptions' ? [completed] : entitlements }),
+    );
+    let resolveFirst!: (value: unknown) => void;
+    patch.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFirst = resolve;
+        }),
+    );
+    patch.mockImplementationOnce(() =>
+      Promise.resolve({ data: { ...completed, result_text: 'Свежая правка' } }),
+    );
+    renderPage(`/transcriptions/${completed.id}`);
+    const input = await screen.findByRole('textbox', { name: 'Текст расшифровки' });
+    fireEvent.change(input, { target: { value: 'Первая правка' } });
+    await waitFor(() => expect(patch).toHaveBeenCalledTimes(1), { timeout: 2000 });
+    fireEvent.change(input, { target: { value: 'Свежая правка' } });
+    await act(async () => {
+      resolveFirst({ data: { ...completed, result_text: 'Первая правка' } });
+    });
+    expect((input as HTMLTextAreaElement).value).toBe('Свежая правка');
+    await waitFor(() => expect(patch).toHaveBeenCalledTimes(2), { timeout: 2000 });
+    expect(patch.mock.calls[1]?.[1].body.result_text).toBe('Свежая правка');
   });
 
   it('автоматически получает длительность из выбранного файла', async () => {

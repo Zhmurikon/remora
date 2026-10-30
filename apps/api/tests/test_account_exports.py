@@ -130,6 +130,7 @@ async def test_account_export_archive_and_email(
     with ZipFile(BytesIO(archive_payload)) as archive:
         assert set(archive.namelist()) == {
             "account.json",
+            "ai-materials.json",
             "sets.json",
             "learning.json",
             "preferences.json",

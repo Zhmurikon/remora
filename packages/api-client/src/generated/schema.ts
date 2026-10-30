@@ -2105,6 +2105,41 @@ export interface paths {
         patch: operations["update_folder_api_v1_folders__folder_id__patch"];
         trace?: never;
     };
+    "/api/v1/generations/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Generation */
+        get: operations["get_generation_api_v1_generations__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Generation */
+        patch: operations["update_generation_api_v1_generations__job_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/generations/{job_id}/save-set": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Save Generation Set */
+        post: operations["save_generation_set_api_v1_generations__job_id__save_set_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -3185,6 +3220,24 @@ export interface paths {
         put?: never;
         /** Подписать части прямой загрузки */
         post: operations["sign_transcription_upload_parts_api_v1_transcriptions__job_id__upload_parts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/transcriptions/{source_id}/generations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Generations */
+        get: operations["list_generations_api_v1_transcriptions__source_id__generations_get"];
+        put?: never;
+        /** Create Generation */
+        post: operations["create_generation_api_v1_transcriptions__source_id__generations_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6965,6 +7018,101 @@ export interface components {
             count: number;
             /** Date */
             date: string;
+        };
+        /** GeneratedCard */
+        GeneratedCard: {
+            /** Definition */
+            definition: string;
+            /** Term */
+            term: string;
+            /** Wrong Definition Answers */
+            wrong_definition_answers: string[];
+        };
+        /** GenerationCreate */
+        GenerationCreate: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "notes" | "cards";
+            /** Parent Id */
+            parent_id?: string | null;
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+        };
+        /** GenerationPublic */
+        GenerationPublic: {
+            /** Cards */
+            cards: components["schemas"]["GeneratedCard"][] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Error Message */
+            error_message: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Issues */
+            issues?: string[];
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "notes" | "cards";
+            /** Markdown */
+            markdown: string | null;
+            /** Parent Id */
+            parent_id: string | null;
+            /** Saved Set Id */
+            saved_set_id: string | null;
+            /** Source Hash */
+            source_hash: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "processing" | "completed" | "failed";
+            /** Title */
+            title: string;
+            /**
+             * Transcription Id
+             * Format: uuid
+             */
+            transcription_id: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** GenerationSaveSet */
+        GenerationSaveSet: {
+            /**
+             * Revision
+             * Format: date-time
+             */
+            revision: string;
+            /** Title */
+            title: string;
+        };
+        /** GenerationUpdate */
+        GenerationUpdate: {
+            /** Cards */
+            cards?: components["schemas"]["GeneratedCard"][] | null;
+            /** Markdown */
+            markdown?: string | null;
+            /**
+             * Revision
+             * Format: date-time
+             */
+            revision: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -13322,6 +13470,107 @@ export interface operations {
             };
         };
     };
+    get_generation_api_v1_generations__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerationPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_generation_api_v1_generations__job_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerationUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerationPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_generation_set_api_v1_generations__job_id__save_set_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerationSaveSet"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerationPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     health_api_v1_health_get: {
         parameters: {
             query?: never;
@@ -15561,6 +15810,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TranscriptionUploadPartUrl"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_generations_api_v1_transcriptions__source_id__generations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerationPublic"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_generation_api_v1_transcriptions__source_id__generations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerationCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerationPublic"];
                 };
             };
             /** @description Validation Error */

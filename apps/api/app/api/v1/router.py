@@ -22,6 +22,7 @@ from app.api.v1 import (
     courses,
     exports,
     folders,
+    generations,
     health,
     imports,
     library,
@@ -67,3 +68,4 @@ api_router.include_router(retention.router)
 api_router.include_router(tts.router)
 api_router.include_router(printing.router)
 api_router.include_router(transcriptions.router)
+api_router.include_router(generations.router)
