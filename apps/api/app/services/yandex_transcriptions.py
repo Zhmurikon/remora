@@ -14,6 +14,10 @@ OPERATION_URL = "https://operation.api.cloud.yandex.net/operations"
 RESULT_URL = "https://stt.api.cloud.yandex.net/stt/v3/getRecognition"
 
 
+class EmptyRecognitionResultError(RuntimeError):
+    """Завершённое распознавание не содержит речи для сохранения."""
+
+
 @dataclass(frozen=True)
 class YandexRecognitionResult:
     text: str
@@ -119,7 +123,7 @@ def parse_recognition_result(
         _format_phrase(phrase, phrase_timestamps, speaker_labeling) for phrase in phrases
     ).strip()
     if not result_text:
-        raise RuntimeError("SpeechKit returned no final text")
+        raise EmptyRecognitionResultError("SpeechKit returned no final text")
     return YandexRecognitionResult(
         text=result_text,
         data={"schemaVersion": 1, "phrases": phrases, "messages": messages},

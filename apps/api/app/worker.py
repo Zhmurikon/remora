@@ -34,7 +34,10 @@ from app.services.entitlements import Entitlements, week_period
 from app.services.imports import ImportService
 from app.services.search_sync import synchronize_courses, synchronize_pending_courses
 from app.services.transcriptions import transcription_quota_minutes
-from app.services.yandex_transcriptions import YandexSpeechKitTranscriber
+from app.services.yandex_transcriptions import (
+    EmptyRecognitionResultError,
+    YandexSpeechKitTranscriber,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -463,6 +466,17 @@ async def poll_yandex_transcriptions(_context: dict[str, Any]) -> None:
                 )
                 job.result_text = result.text.strip()
                 job.provider_result = result.data
+            except EmptyRecognitionResultError:
+                # Готовый пустой результат не изменится от повторного запроса к провайдеру.
+                job.status = TranscriptionStatus.failed
+                job.error_message = (
+                    "В записи не удалось распознать речь. "
+                    "Проверьте звуковую дорожку и загрузите файл ещё раз."
+                )
+                job.finished_at = datetime.now(UTC)
+                await _release_transcription_quota(db, job)
+                logger.info("SpeechKit вернул пустой результат для задания %s", job.id)
+                continue
             except (httpx.HTTPError, RuntimeError, ValueError):
                 logger.warning(
                     "Не удалось получить результат SpeechKit для задания %s",

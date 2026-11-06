@@ -1,7 +1,10 @@
 import base64
 import json
 
+import pytest
+
 from app.services.yandex_transcriptions import (
+    EmptyRecognitionResultError,
     build_recognition_request,
     parse_recognition_result,
 )
@@ -79,3 +82,18 @@ def test_yandex_result_collects_and_normalizes_final_phrases() -> None:
     assert result.data["schemaVersion"] == 1
     assert result.data["messages"] == messages
     assert result.data["phrases"][0]["startTimeMs"] == 1200
+
+
+@pytest.mark.parametrize("text", ["", "   "])
+def test_yandex_empty_final_result_is_terminal(text: str) -> None:
+    messages = [
+        {"result": {"final": {"alternatives": [{"text": text, "words": []}]}}},
+        {"result": {"finalRefinement": {
+            "finalIndex": "0",
+            "normalizedText": {"alternatives": [{"text": text, "words": []}]},
+        }}},
+        {"result": {"eouUpdate": {"timeMs": "5000"}}},
+    ]
+
+    with pytest.raises(EmptyRecognitionResultError, match="no final text"):
+        parse_recognition_result("\n".join(json.dumps(message) for message in messages))

@@ -1,8 +1,10 @@
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, Mock
+from uuid import UUID
 
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, ReadTimeout
+from pydantic import SecretStr
 from sqlalchemy import select
 
 from app.core.config import get_settings
@@ -10,6 +12,11 @@ from app.db.session import get_session_factory
 from app.models.billing import Entitlement, EntitlementSource
 from app.models.transcriptions import TranscriptionJob, TranscriptionStatus
 from app.models.user import User
+from app.services.yandex_transcriptions import (
+    YandexSpeechKitTranscriber,
+    parse_recognition_result,
+)
+from app.worker import poll_yandex_transcriptions
 
 
 async def register(client: AsyncClient, suffix: str) -> tuple[dict[str, str], str]:
@@ -40,6 +47,111 @@ async def set_transcription_limit(email: str, value: int) -> None:
             )
         )
         await db.commit()
+
+
+async def create_polling_job(
+    client: AsyncClient, headers: dict[str, str], *, operation_id: str
+) -> str:
+    response = await client.post(
+        "/api/v1/transcriptions",
+        headers=headers,
+        json={
+            "filename": "lecture.mp4",
+            "content_type": "video/mp4",
+            "size_bytes": 4,
+            "total_parts": 1,
+            "duration_seconds": 61,
+        },
+    )
+    assert response.status_code == 201
+    job_id = response.json()["id"]
+    async with get_session_factory()() as db:
+        job = await db.get(TranscriptionJob, UUID(job_id))
+        assert job is not None
+        job.status = TranscriptionStatus.transcribing
+        job.provider_operation_id = operation_id
+        job.started_at = datetime.now(UTC)
+        await db.commit()
+    return job_id
+
+
+async def test_empty_recognition_fails_and_refunds_only_once(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    headers, email = await register(client, "empty-result")
+    await set_transcription_limit(email, 10)
+    monkeypatch.setattr(get_settings(), "yandex_speechkit_api_key", SecretStr("test-only-key"))
+    storage = AsyncMock()
+    storage.create_multipart_upload.return_value = "test-upload"
+    monkeypatch.setattr("app.services.transcriptions.get_object_storage", lambda: storage)
+    empty_id = await create_polling_job(client, headers, operation_id="empty")
+    good_id = await create_polling_job(client, headers, operation_id="good")
+    operation = AsyncMock(return_value={"done": True})
+    monkeypatch.setattr(YandexSpeechKitTranscriber, "get_operation", operation)
+
+    async def recognition(operation_id: str, **_options: bool):
+        text = "" if operation_id == "empty" else "Распознанная речь."
+        return parse_recognition_result(
+            '{"result":{"final":{"alternatives":[{"text":"' + text + '"}]}}}'
+        )
+
+    result = AsyncMock(side_effect=recognition)
+    monkeypatch.setattr(YandexSpeechKitTranscriber, "get_result", result)
+    await poll_yandex_transcriptions({})
+
+    failed = (await client.get(f"/api/v1/transcriptions/{empty_id}", headers=headers)).json()
+    assert failed["status"] == "failed"
+    assert "не удалось распознать речь" in failed["error_message"]
+    async with get_session_factory()() as db:
+        row = await db.get(TranscriptionJob, UUID(empty_id))
+        assert row is not None and row.finished_at is not None and row.quota_released
+    good = (await client.get(f"/api/v1/transcriptions/{good_id}", headers=headers)).json()
+    assert good["status"] == "completed"
+    assert good["result_text"] == "Распознанная речь."
+
+    await poll_yandex_transcriptions({})
+
+    assert result.await_count == operation.await_count == 2
+    usage = (await client.get("/api/v1/billing/entitlements", headers=headers)).json()["usage"]
+    assert usage["ai.transcription_minutes_per_week"] == 2
+
+
+@pytest.mark.parametrize("failing_method", ["get_operation", "get_result"])
+async def test_recognition_recovers_after_network_timeout(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch, failing_method: str
+) -> None:
+    headers, email = await register(client, "network")
+    await set_transcription_limit(email, 10)
+    monkeypatch.setattr(get_settings(), "yandex_speechkit_api_key", SecretStr("test-only-key"))
+    storage = AsyncMock()
+    storage.create_multipart_upload.return_value = "test-upload"
+    monkeypatch.setattr("app.services.transcriptions.get_object_storage", lambda: storage)
+    job_id = await create_polling_job(client, headers, operation_id="retry")
+    operation = AsyncMock(return_value={"done": True})
+    result = AsyncMock(return_value=parse_recognition_result(
+        '{"result":{"final":{"alternatives":[{"text":"Речь."}]}}}'
+    ))
+    monkeypatch.setattr(YandexSpeechKitTranscriber, "get_operation", operation)
+    monkeypatch.setattr(YandexSpeechKitTranscriber, "get_result", result)
+    failing_call = operation if failing_method == "get_operation" else result
+    failing_call.side_effect = ReadTimeout("temporary timeout")
+
+    await poll_yandex_transcriptions({})
+
+    pending = (await client.get(f"/api/v1/transcriptions/{job_id}", headers=headers)).json()
+    assert pending["status"] == "transcribing"
+    assert pending["error_message"] is None
+    usage = (await client.get("/api/v1/billing/entitlements", headers=headers)).json()["usage"]
+    assert usage["ai.transcription_minutes_per_week"] == 2
+    failing_call.side_effect = None
+
+    await poll_yandex_transcriptions({})
+
+    completed = (await client.get(f"/api/v1/transcriptions/{job_id}", headers=headers)).json()
+    assert completed["status"] == "completed"
+    assert completed["result_text"] == "Речь."
+    usage = (await client.get("/api/v1/billing/entitlements", headers=headers)).json()["usage"]
+    assert usage["ai.transcription_minutes_per_week"] == 2
 
 
 @pytest.mark.asyncio
