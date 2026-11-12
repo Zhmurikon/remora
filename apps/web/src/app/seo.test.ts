@@ -18,7 +18,7 @@ it('публикует карту сайта и закрывает служеб�
 });
 
 it('публикует подтверждение Яндекс Вебмастера', () => {
-  expect(metadata.verification).toMatchObject({ yandex: '77f83742d96aa582' });
+  expect(metadata.verification).toMatchObject({ yandex: ['77f83742d96aa582', 'da6e853dcccb797a'] });
 });
 
 it('добавляет доступные курсы и уникальные профили авторов в sitemap', async () => {
