@@ -1,3 +1,4 @@
+import { PublicAnalytics } from '../../../components/analytics/PublicAnalytics';
 import type { components } from '@remora/api-client';
 import { ArticleContentServer, Badge } from '@remora/ui';
 import type { Metadata } from 'next';
@@ -138,6 +139,7 @@ export default async function PublicCoursePage({ params }: { params: Promise<{ s
   };
   return (
     <main className="mx-auto min-h-dvh max-w-6xl px-4 py-6 sm:px-8">
+      {course.is_listed && <PublicAnalytics path={`/kurs/${encodeURIComponent(course.slug)}`} />}
       <JsonLd data={structuredData} />
       <nav
         className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2"

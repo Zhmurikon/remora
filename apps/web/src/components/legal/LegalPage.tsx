@@ -1,3 +1,4 @@
+import { PublicAnalytics } from '../analytics/PublicAnalytics';
 import Link from 'next/link';
 import { FishMark } from '@remora/ui';
 import {
@@ -57,12 +58,20 @@ export function LegalPage({ kind, language }: LegalPageProps) {
           {document.eyebrow}
         </p>
         <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">{document.title}</h1>
-        <time dateTime={LEGAL_UPDATED_AT} className="text-fg-subtle mt-5 block text-sm">
+        <time
+          dateTime={kind === 'privacy' ? '2026-11-12' : LEGAL_UPDATED_AT}
+          className="text-fg-subtle mt-5 block text-sm"
+        >
           {document.updated}
         </time>
         <p className="text-fg-muted mt-8 text-lg leading-8">{document.intro}</p>
 
         <div className="mt-14 space-y-12">
+          <PublicAnalytics
+            path={paths[language][kind]}
+            settings={kind === 'privacy'}
+            english={!isRu}
+          />
           {document.sections.map((section) => (
             <section key={section.title}>
               <h2 className="text-2xl font-bold tracking-tight">{section.title}</h2>

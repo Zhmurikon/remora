@@ -1,3 +1,4 @@
+import { PublicAnalytics } from '../../components/analytics/PublicAnalytics';
 import { JsonLd } from '../../components/JsonLd';
 import { CollectionCards } from '../../components/collections/CollectionCards';
 import {
@@ -13,6 +14,7 @@ export function generateMetadata() {
 export default function CollectionsPage() {
   return (
     <>
+      <PublicAnalytics path="/podborki" />
       <JsonLd data={collectionsStructuredData()} />
       <header className="blog-intro">
         <span className="home-kicker">Подборки «Запоминальни»</span>

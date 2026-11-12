@@ -1,3 +1,4 @@
+import { PublicAnalytics } from '../../components/analytics/PublicAnalytics';
 import type { components } from '@remora/api-client';
 import { Badge, Button, Card, Input } from '@remora/ui';
 import type { Metadata } from 'next';
@@ -78,6 +79,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
   const field = 'grid min-w-0 gap-2 text-sm font-medium';
   return (
     <main className="mx-auto min-h-dvh max-w-6xl px-4 py-6 sm:px-8">
+      <PublicAnalytics path="/kursy" />
       {params.size === 0 && result && (
         <JsonLd
           data={{

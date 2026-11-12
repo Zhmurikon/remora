@@ -24,7 +24,7 @@ const privacyRu: LegalDocument = {
   title: 'Политика конфиденциальности',
   description: 'Как «Запоминальня» получает, использует, хранит и защищает данные пользователей.',
   eyebrow: 'Конфиденциальность',
-  updated: 'Обновлено 2 октября 2026 года',
+  updated: 'Обновлено 12 ноября 2026 года',
   intro:
     'Эта политика объясняет, какие данные обрабатывает сервис «Запоминальня», зачем они нужны и как вы можете управлять ими. Она действует для сайта zapominalnya.ru и связанных приложений сервиса.',
   sections: [
@@ -79,6 +79,7 @@ const privacyRu: LegalDocument = {
       title: '7. Cookie и сеансы',
       paragraphs: [
         '«Запоминальня» использует необходимые cookie для входа, защиты сеанса и сохранения базовых настроек. Без них авторизация и часть функций не работают. Сейчас мы не используем рекламные cookie.',
+        'С вашего согласия Яндекс Метрика использует cookie на публичных страницах. Она получает адрес страницы, источник перехода и технические сведения о браузере и устройстве. Изменить выбор можно на этой странице.',
       ],
     },
     {
@@ -109,7 +110,7 @@ const privacyEn: LegalDocument = {
   title: 'Privacy Policy',
   description: 'How Zapominalnya collects, uses, stores, and protects user data.',
   eyebrow: 'Privacy',
-  updated: 'Updated October 2, 2026',
+  updated: 'Updated November 12, 2026',
   intro:
     'This policy explains what data Zapominalnya processes, why it is needed, and how you can manage it. It applies to zapominalnya.ru and related Zapominalnya applications.',
   sections: [
@@ -164,6 +165,7 @@ const privacyEn: LegalDocument = {
       title: '7. Cookies and sessions',
       paragraphs: [
         'Zapominalnya uses essential cookies to sign you in, protect your session, and remember basic settings. Authentication and some features cannot work without them. We currently do not use advertising cookies.',
+        'With your consent, Yandex Metrica uses cookies on public pages. It receives the page address, referral source, and technical details about the browser and device. You can change your choice on this page.',
       ],
     },
     {

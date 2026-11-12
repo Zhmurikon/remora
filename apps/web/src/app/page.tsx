@@ -1,3 +1,4 @@
+import { PublicAnalytics } from '../components/analytics/PublicAnalytics';
 import type { Metadata } from 'next';
 import { FishMark } from '@remora/ui';
 import { JsonLd } from '../components/JsonLd';
@@ -58,6 +59,7 @@ export const metadata: Metadata = {
 export default function HomePage() {
   return (
     <div className="home">
+      <PublicAnalytics path="/" />
       <HomeMotion />
       <HomeBackground />
       <a className="home-skip" href="#main-content">

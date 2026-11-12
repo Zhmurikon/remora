@@ -1,3 +1,4 @@
+import { PublicAnalytics } from '../../components/analytics/PublicAnalytics';
 import type { Metadata } from 'next';
 import { FishMark } from '@remora/ui';
 import { JsonLd } from '../../components/JsonLd';
@@ -65,6 +66,7 @@ const faqs = [
 export default function PricingPage() {
   return (
     <div className="home pricing-page">
+      <PublicAnalytics path="/tarify" />
       <a className="home-skip" href="#main-content">
         Перейти к содержимому
       </a>

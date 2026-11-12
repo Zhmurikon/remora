@@ -1,3 +1,4 @@
+import { PublicAnalytics } from '../../../components/analytics/PublicAnalytics';
 import { Badge, Card } from '@remora/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -84,6 +85,9 @@ export default async function PublicSetPage({ params }: { params: Promise<{ slug
 
   return (
     <main className="public-set-page min-h-dvh px-4 py-5 sm:px-6 sm:py-8">
+      {set.visibility === 'public' && (
+        <PublicAnalytics path={`/nabor/${encodeURIComponent(set.slug)}`} />
+      )}
       <div className="mx-auto max-w-6xl">
         <nav className="flex items-center justify-between py-2" aria-label="Основная навигация">
           <Link href="/" className="flex items-center gap-3 text-lg font-semibold tracking-tight">

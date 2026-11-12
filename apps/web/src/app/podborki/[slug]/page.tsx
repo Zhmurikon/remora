@@ -1,3 +1,4 @@
+import { PublicAnalytics } from '../../../components/analytics/PublicAnalytics';
 import { notFound } from 'next/navigation';
 import { JsonLd } from '../../../components/JsonLd';
 import {
@@ -29,6 +30,7 @@ export default async function CollectionPage({ params }: Props) {
   const result = await loadCollectionCourses(collection);
   return (
     <>
+      <PublicAnalytics path={`/podborki/${encodeURIComponent(collection.slug)}`} />
       {result.ok && <JsonLd data={collectionsStructuredData(collection, result.courses)} />}
       <nav className="blog-breadcrumbs" aria-label="Хлебные крошки">
         <a href="/">Главная</a>

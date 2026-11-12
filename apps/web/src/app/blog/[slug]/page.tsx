@@ -1,3 +1,4 @@
+import { PublicAnalytics } from '../../../components/analytics/PublicAnalytics';
 import { notFound } from 'next/navigation';
 import { JsonLd } from '../../../components/JsonLd';
 import { BlogDiagram } from '../../../components/blog/BlogCards';
@@ -34,6 +35,7 @@ export default async function BlogPostPage({ params }: Props) {
   if (!post) notFound();
   return (
     <>
+      <PublicAnalytics path={`/blog/${encodeURIComponent(post.slug)}`} />
       <JsonLd data={blogStructuredData(post)} />
       <nav className="blog-breadcrumbs" aria-label="Хлебные крошки">
         <a href="/">Главная</a>

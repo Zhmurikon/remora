@@ -1,3 +1,4 @@
+import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, expect, it, vi } from 'vitest';
 import Page, { generateMetadata } from './page';
 
@@ -9,6 +10,10 @@ vi.mock('next/navigation', () => ({
     throw new Error(`REDIRECT:${url}`);
   },
 }));
+vi.mock('../../../components/analytics/PublicAnalytics', () => ({
+  PublicAnalytics: () => <span data-analytics-probe="" />,
+}));
+
 afterEach(() => vi.unstubAllGlobals());
 
 it('не кодирует русскоязычный slug дважды', async () => {
@@ -45,26 +50,34 @@ it('не перенаправляет закрытый материал', async 
   await expect(Page({ params: Promise.resolve({ slug: 'hidden' }) })).rejects.toThrow('NOT_FOUND');
 });
 
-it('сохраняет старую страницу для ещё не перенесённого набора', async () => {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(
-      async () =>
-        new Response(
-          JSON.stringify({
-            title: 'Набор',
-            slug: 'old-set',
-            description: '',
-            visibility: 'unlisted',
-            author: { username: 'author' },
-            cards: [],
-            cards_count: 0,
-            course_url: null,
-          }),
-        ),
-    ),
-  );
-  const props = { params: Promise.resolve({ slug: 'old-set' }) };
-  expect(await Page(props)).toBeTruthy();
-  expect((await generateMetadata(props)).robots).toEqual({ index: false, follow: false });
-});
+it.each(['public', 'unlisted'])(
+  'проверяет аналитику и индексацию самостоятельного набора %s',
+  async (visibility) => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              title: 'Набор',
+              slug: 'old-set',
+              description: '',
+              visibility,
+              author: { username: 'author' },
+              cards: [],
+              cards_count: 0,
+              course_url: null,
+            }),
+          ),
+      ),
+    );
+    const props = { params: Promise.resolve({ slug: 'old-set' }) };
+    expect(renderToStaticMarkup(await Page(props)).includes('data-analytics-probe')).toBe(
+      visibility === 'public',
+    );
+    expect((await generateMetadata(props)).robots).toEqual({
+      index: visibility === 'public',
+      follow: visibility === 'public',
+    });
+  },
+);

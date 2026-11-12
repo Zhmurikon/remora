@@ -1,3 +1,4 @@
+import { PublicAnalytics } from '../../components/analytics/PublicAnalytics';
 import { JsonLd } from '../../components/JsonLd';
 import { BlogCards } from '../../components/blog/BlogCards';
 import type { BlogPost, BlogPostSummary } from '../../content/blog';
@@ -73,6 +74,7 @@ export function BlogIndexPage({
 
   return (
     <>
+      <PublicAnalytics path={blogPageHref(currentPage)} />
       {includeStructuredData ? <JsonLd data={blogStructuredData(undefined, posts)} /> : null}
       <header className="blog-intro">
         <h1>Блог об учёбе и запоминании</h1>
