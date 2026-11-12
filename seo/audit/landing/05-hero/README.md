@@ -1,5 +1,17 @@
 # На полях лекции. Настольные эскизы
 
+## Светлый разворот с зарисовками на полях
+
+[Обновлённый первый экран](illustrated-light-v2.png). По просьбе владельца фон стал белее, заголовок занимает две строки, между действиями и примером больше места. Автобус, университет, часы, микрофон и учебные карточки распределены по полям. Это настольный эскиз для обсуждения перед вёрсткой.
+
+<details>
+<summary>Запрос к ImageGen</summary>
+
+Edit the provided landing-page screenshot into the next design iteration, a high-fidelity desktop hero of a Russian educational service. The owner wants a distinctly lighter, more spacious page, with more small illustrations and delightful peripheral details. Recompose the whole canvas. Keep the central concept of a popular science magazine with marginalia, the product, and Cyrillic content. Wide landscape viewport, flat edge-to-edge web UI, white luminous untextured paper (remove all beige/grain), warm charcoal text, medium cobalt as the only strong accent. Large quiet unbroken areas of paper between components and around each image, optically spaced page grid. Wide 7–9% side margins. Compact calm header "Запоминальня" and "Войти". In the main hero: balanced, readable human-scale high-contrast Cyrillic serif headline, roughly half the relative size of the reference's oversized text. Left copy at a comfortable measure, and a separate compact example inset on the right, with generous separation. Regular sans body and understated 46px-equivalent rectangular blue action. Keep exact headline "Конспект и карточки по записи вашей лекции". Body "Загрузите аудио или видео с пары. Соберите конспект и проверьте себя перед зачётом." Primary CTA "Ответить на вопрос из лекции". Quiet link "Создать аккаунт". Note "Пример без регистрации. Своя запись — на Plus или Pro." Right label "Фрагмент расшифровки". Quote "В понедельник дорога заняла 10 минут, во вторник — 12. В среду сломался автобус, и я доехала за 50 минут." A real thin blue editorial bracket from «сломался автобус» to a nearby margin note "Среднее — 24 минуты. Медиана — 12 минут." ART DIRECTION: replace the large scenic engraving with a lively family of 5 separate small bespoke line illustrations in airy blue and slate pencil ink with just a hint of pale sky-blue wash. A miniature bus in side view, a loosely sketched tiny university facade, a pocket watch or clock, a small pair of index cards with pencil, a tiny microphone or voice waveform. Position as spot drawings at the top outer corner, above the example, in the outer and bottom margin with deliberate rhythm and space. Fine ink wiggles, a dotted route with tiny endpoints and a small asterisk where it serves the annotation. Keep text zones empty of drawings, give each drawing generous white space. Friendly, academic, subtly playful, fine linework visible at actual desktop size. No giant drawing, no scenic background, no large filled zones, no cards or panels with shadows, no stickers or emoji, no mock browser borders, no fake page numbers/irrelevant lettering, no watermark, no filler navigation. Make it look like a real polished and inviting homepage with entirely legible and carefully spelled Cyrillic.
+
+</details>
+
+
 - [Типографический разворот](editorial.png) — первый экран. Синяя пометка связывает слова преподавателя с выводом.
 - [Вопрос открыт](question.png) — состояние типографического разворота после нажатия на кнопку, до выбора ответа.
 - [Разворот с рисунком](illustrated.png) — альтернативный первый экран. Иллюстрация автобусной остановки привязана к примеру о дороге на пару.
