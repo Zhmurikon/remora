@@ -1,7 +1,13 @@
-import { ArticleContent } from '@remora/ui';
+import { ArticleContent } from './ArticleContent';
 
 // Разрешены только details/summary без атрибутов. Остальной HTML остаётся обычным текстом.
-export function StudyNotesPreview({ value }: { value: string }) {
+export function StudyNotesPreview({
+  value,
+  Content = ArticleContent,
+}: {
+  value: string;
+  Content?: typeof ArticleContent;
+}) {
   const parts = value.split(/(<details>\s*<summary>[^<>]*<\/summary>[\s\S]*?<\/details>)/g);
   const markdown = (text: string) =>
     text.replace(
@@ -21,11 +27,11 @@ export function StudyNotesPreview({ value }: { value: string }) {
               {detail[1]}
             </summary>
             <div className="pb-4">
-              <ArticleContent value={markdown(detail[2] ?? '')} headingLevel={2} />
+              <Content value={markdown(detail[2] ?? '')} headingLevel={2} />
             </div>
           </details>
         ) : (
-          <ArticleContent key={index} value={markdown(part)} headingLevel={2} />
+          <Content key={index} value={markdown(part)} headingLevel={2} />
         );
       })}
     </div>

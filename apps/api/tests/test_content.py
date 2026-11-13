@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from tests.test_courses import legacy_visibility
+from tests.test_courses import allow_private, legacy_visibility
 
 
 async def _auth(client: pytest.fixture, suffix: str) -> dict[str, str]:
@@ -92,7 +92,7 @@ async def test_set_lifecycle_and_card_batch(mock_send: AsyncMock, client: pytest
         json={
             "title": "Машинное обучение от статистики до нейросетей",
             "description": "",
-            "visibility": "private",
+            "visibility": "public",
             "lang_term": "ru",
             "lang_definition": "ru",
             "folder_id": None,
@@ -157,6 +157,7 @@ async def test_public_link_respects_visibility_and_limits_ssr_cards(
     mock_send: AsyncMock, client: pytest.fixture
 ) -> None:
     owner = await _auth(client, "publicowner")
+    await allow_private(client, owner)
     private_set = await client.post(
         "/api/v1/sets",
         headers=owner,
@@ -179,7 +180,9 @@ async def test_public_link_respects_visibility_and_limits_ssr_cards(
 
     course = (
         await client.post(
-            "/api/v1/courses", headers=owner, json={"title": "Физика", "set_id": set_id}
+            "/api/v1/courses",
+            headers=owner,
+            json={"title": "Физика", "set_id": set_id, "is_published": False},
         )
     ).json()
     await client.post(f"/api/v1/courses/{course['id']}/publish", headers=owner, json={})

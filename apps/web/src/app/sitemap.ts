@@ -7,12 +7,12 @@ import { loadCollectionCourses, publishedCollections } from '../lib/collections'
 const API_URL = process.env.API_INTERNAL_URL ?? 'http://localhost:8000';
 type Entry = components['schemas']['CourseSitemapEntry'];
 
-async function loadEntries(): Promise<Entry[]> {
+async function loadEntries<T>(path: string): Promise<T[]> {
   try {
-    const response = await fetch(`${API_URL}/api/v1/courses/sitemap`, {
+    const response = await fetch(`${API_URL}/api/v1/${path}/sitemap`, {
       next: { revalidate: 3600 },
     });
-    return response.ok ? ((await response.json()) as Entry[]) : [];
+    return response.ok ? ((await response.json()) as T[]) : [];
   } catch {
     // Статические страницы остаются в карте даже при временной недоступности API.
     return [];
@@ -20,7 +20,10 @@ async function loadEntries(): Promise<Entry[]> {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const entries = await loadEntries();
+  const [entries, notes] = await Promise.all([
+    loadEntries<Entry>('courses'),
+    loadEntries<components['schemas']['NoteSitemapEntry']>('notes'),
+  ]);
   const collections = await Promise.all(
     publishedCollections().map(async (collection) => {
       const result = await loadCollectionCourses(collection);
@@ -70,6 +73,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(collection.updatedAt),
     })),
     ...courses,
+    ...notes.map((note) => ({
+      url: absoluteUrl(`/konspekt/${note.id}`),
+      lastModified: new Date(note.updated_at),
+    })),
     ...Array.from(authors, ([username, lastModified]) => ({
       url: absoluteUrl(`/avtor/${username}`),
       lastModified,

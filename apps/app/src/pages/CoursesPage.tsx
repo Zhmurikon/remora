@@ -3,6 +3,7 @@ import { Badge, Button, Card, Input } from '@remora/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { MaterialVisibility, useCanHideMaterials } from '../components/MaterialVisibility';
 import { api } from '../lib/api';
 import { CoursePublicationPanel } from './CoursePublicationPanel';
 import { CopyCourseButton } from './CourseReaderPage';
@@ -111,7 +112,7 @@ export function CoursesPage() {
       <header>
         <h1 className="text-3xl font-semibold">Мои курсы</h1>
         <p className="text-fg-muted mt-2">
-          Объединяйте учебные материалы в курсы и делитесь ими после публикации.
+          Новые курсы публичны. Ссылкой на курс можно поделиться сразу.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <Link className={primaryActionStyle} to="/courses/new">
@@ -310,6 +311,8 @@ function CourseForm({ course }: { course?: Course }) {
   const client = useQueryClient();
   const [title, setTitle] = useState(course?.title ?? '');
   const [description, setDescription] = useState(course?.description ?? '');
+  const canHide = useCanHideMaterials();
+  const [isPublic, setIsPublic] = useState(true);
   const [setId, setSetId] = useState('');
   const [saved, setSaved] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -330,7 +333,9 @@ function CourseForm({ course }: { course?: Course }) {
             params: { path: { course_id: course.id } },
             body: metadata,
           })
-        : await api.POST('/api/v1/courses', { body: { ...metadata, set_id: setId || null } });
+        : await api.POST('/api/v1/courses', {
+            body: { ...metadata, is_published: isPublic, set_id: setId || null },
+          });
       if (!result.data || result.error) throw failure(result.error);
       return result.data;
     },
@@ -399,6 +404,12 @@ function CourseForm({ course }: { course?: Course }) {
           </div>
           {!course && (
             <div>
+              <MaterialVisibility
+                label="Доступ к курсу"
+                isPublic={isPublic}
+                canHide={canHide}
+                onChange={setIsPublic}
+              />
               <label htmlFor="course-set" className="mb-2 block text-sm font-medium">
                 Первый набор карточек
               </label>
@@ -459,6 +470,7 @@ function CourseForm({ course }: { course?: Course }) {
       </form>
       {course && (
         <CoursePublicationPanel
+          canHide={canHide}
           course={course}
           hasUnsavedChanges={
             save.isPending || title.trim() !== course.title || description !== course.description

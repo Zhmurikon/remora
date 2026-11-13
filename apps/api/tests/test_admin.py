@@ -24,6 +24,7 @@ from app.models.billing import (
 )
 from app.models.tts import UsageCounter
 from app.models.user import User, UserRole
+from app.services.entitlements import week_period
 from app.services.plans import sync_plan_catalog
 from tests.test_courses import auth
 
@@ -150,7 +151,7 @@ async def test_admin_sees_user_card_without_sensitive_fields(client: AsyncClient
                 UsageCounter(
                     user_id=target.id,
                     metric="agent.writes_per_week",
-                    period_key="2026-W44",
+                    period_key=week_period(now)[0],
                     value=12,
                 ),
                 Payment(
@@ -178,6 +179,7 @@ async def test_admin_sees_user_card_without_sensitive_fields(client: AsyncClient
     assert body["materials"]["sets_total"] == 1
     assert body["materials"]["recent"][0]["title"] == "Карточки пользователя"
     assert body["access"]["plan_code"] == "plus"
+    assert body["access"]["features"]["materials.private"] is True
     assert body["access"]["usage"]["agent.writes_per_week"] == 12
     assert body["access"]["overrides"][0]["reason"] == "Индивидуальная квота"
     assert body["payments"][0]["promo_code"] == promo_code

@@ -357,7 +357,7 @@ async def test_learning_modes_share_study_session_and_progress(client, internal)
     assert "Настройки заучивания" in bot_settings["text"]
     assert [button["label"] for button in bot_settings["keyboard"][0]] == [
         "Быстро",
-        "Обычно",
+        "Рекомендуем",
         "Тщательно",
     ]
     await ack(internal, bot_settings)

@@ -102,8 +102,8 @@ class UserSettings(UUIDPrimaryKeyMixin, Base):
     # но не ограничивают доступ к карточкам и повторениям.
     learn_question_types: Mapped[list[str]] = mapped_column(
         JSONB,
-        default=lambda: ["choice", "typing", "recall"],
-        server_default=text('\'["choice", "typing", "recall"]\'::jsonb'),
+        default=lambda: ["choice", "recall"],
+        server_default=text('\'["choice", "recall"]\'::jsonb'),
     )
     learn_successes_required: Mapped[int] = mapped_column(default=1, server_default=text("1"))
     learn_session_size: Mapped[int] = mapped_column(default=10, server_default=text("10"))

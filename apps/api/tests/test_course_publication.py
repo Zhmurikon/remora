@@ -7,11 +7,12 @@ from sqlalchemy import update
 from app.db.session import get_engine
 from app.models.courses import Course
 from app.models.user import User, UserStatus
-from tests.test_courses import auth, legacy_visibility
+from tests.test_courses import allow_private, auth, legacy_visibility
 
 
 async def test_course_cards_pagination_revision_and_access(client: AsyncClient) -> None:
     owner = await auth(client, "pagination")
+    await allow_private(client, owner)
     study_set = (
         await client.post("/api/v1/sets", headers=owner, json={"title": "Большой набор"})
     ).json()
@@ -50,6 +51,7 @@ async def test_course_cards_pagination_revision_and_access(client: AsyncClient) 
 
 async def test_authenticated_user_can_like_public_course_once(client: AsyncClient) -> None:
     owner = await auth(client, "liked-owner")
+    await allow_private(client, owner)
     reader = await auth(client, "liked-reader")
     other_reader = await auth(client, "liked-other")
     study_set = (
@@ -98,12 +100,15 @@ async def test_publication_access_and_nested_revocation(
     client: AsyncClient, visibility: str
 ) -> None:
     owner = await auth(client, "publisher")
+    await allow_private(client, owner)
     stranger = await auth(client, "reader")
     study_set = (await client.post("/api/v1/sets", headers=owner, json={"title": "Матрицы"})).json()
     await legacy_visibility(study_set["id"], visibility)
     course = (
         await client.post(
-            "/api/v1/courses", headers=owner, json={"title": "Алгебра", "set_id": study_set["id"]}
+            "/api/v1/courses",
+            headers=owner,
+            json={"title": "Алгебра", "set_id": study_set["id"], "is_published": False},
         )
     ).json()
     path = f"/api/v1/courses/{course['id']}"
@@ -113,7 +118,7 @@ async def test_publication_access_and_nested_revocation(
     legacy = f"/api/v1/sets/public/{study_set['slug']}"
     assert (await client.get(public)).status_code == 404
     assert (await client.get(material)).status_code == 404
-    assert (await client.get(legacy)).status_code == (200 if visibility == "public" else 404)
+    assert (await client.get(legacy)).status_code == (404 if visibility == "private" else 200)
     assert (await client.post(path + "/publish", headers=stranger, json={})).status_code == 403
     assert (await client.post(path + "/publish", json={})).status_code == 401
     invalid = await client.post(path + "/publish", headers=owner, json={"tags": ["<script>"]})

@@ -1,11 +1,13 @@
 """Изоляция курсов и атомарное создание структуры."""
 
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 from httpx import AsyncClient
 from sqlalchemy import update
 
-from app.db.session import get_engine
+from app.db.session import get_engine, get_session_factory
+from app.models.billing import Entitlement, EntitlementSource
 from app.models.content import SetVisibility, StudySet
 
 
@@ -17,6 +19,22 @@ async def legacy_visibility(set_id: str, visibility: str) -> None:
             .where(StudySet.id == UUID(set_id))
             .values(visibility=SetVisibility(visibility))
         )
+
+
+async def allow_private(client: AsyncClient, headers: dict[str, str]) -> None:
+    me = (await client.get("/api/v1/auth/me", headers=headers)).json()
+    async with get_session_factory()() as db:
+        db.add(
+            Entitlement(
+                user_id=UUID(me["id"]),
+                key="feature.materials.private",
+                value=True,
+                starts_at=datetime.now(UTC) - timedelta(minutes=1),
+                source=EntitlementSource.admin,
+                reason="Проверка закрытого доступа",
+            )
+        )
+        await db.commit()
 
 
 async def auth(client: AsyncClient, suffix: str) -> dict[str, str]:
@@ -47,7 +65,7 @@ async def test_course_structure_and_ownership(client: AsyncClient) -> None:
     assert course["sections"][0]["articles"][0]["set_id"] == set_id
     path = f"/api/v1/courses/{course['id']}"
     assert (await client.get(path, headers=owner)).status_code == 200
-    assert (await client.get(path, headers=stranger)).status_code == 403
+    assert (await client.get(path, headers=stranger)).json()["can_edit"] is False
     assert (await client.get(path)).status_code == 401
     assert (await client.get("/api/v1/courses", headers=stranger)).json() == []
     assert (await client.put(path, headers=stranger, json={"title": "Чужое"})).status_code == 403

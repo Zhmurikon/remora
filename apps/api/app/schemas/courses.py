@@ -20,6 +20,7 @@ class CourseMetadata(BaseModel):
 
 
 class CourseCreate(CourseMetadata):
+    is_published: bool = True
     set_id: UUID | None = None
 
 

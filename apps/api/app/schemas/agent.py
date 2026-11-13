@@ -3,11 +3,13 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
+from app.models.content import SetVisibility
 from app.schemas.content import CardWrite, FolderPublic, SetDetail
 from app.schemas.courses import CourseMetadata, CourseSummary
 
 
 class AgentSetWrite(CourseMetadata):
+    visibility: SetVisibility = SetVisibility.public
     model_config = ConfigDict(extra="forbid")
     lang_term: str = Field(default="ru", min_length=2, max_length=10)
     lang_definition: str = Field(default="ru", min_length=2, max_length=10)
@@ -50,6 +52,10 @@ class AgentCourseWrite(CourseMetadata):
         if sum(len(a.body) for a in articles) > 1_000_000:
             raise ValueError("Один запрос: до 1 000 000 символов теории")
         return self
+
+
+class AgentCourseCreate(AgentCourseWrite):
+    is_published: bool = True
 
 
 class AgentCourseUpdate(AgentCourseWrite):

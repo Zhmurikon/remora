@@ -5,7 +5,7 @@ from sqlalchemy import update
 
 from app.db.session import get_engine
 from app.models.user import User, UserRole
-from tests.test_courses import auth
+from tests.test_courses import allow_private, auth
 
 
 async def promote(client: AsyncClient, suffix: str, role: UserRole) -> dict[str, str]:
@@ -39,6 +39,7 @@ async def publish_course(client: AsyncClient, owner: dict[str, str], title: str)
 
 async def test_report_is_accepted_without_hiding_the_course(client: AsyncClient) -> None:
     owner = await auth(client, "report-owner")
+    await allow_private(client, owner)
     reader = await auth(client, "report-reader")
     other = await auth(client, "report-other")
     course = await publish_course(client, owner, "Открытый курс")

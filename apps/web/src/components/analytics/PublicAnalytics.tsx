@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@remora/ui';
 import { useEffect, useState } from 'react';
 
 type Choice = 'yes' | 'no' | 'ask';
@@ -72,7 +73,10 @@ export function PublicAnalytics({
   const [choice, setChoice] = useState<Choice | null>(null);
 
   useEffect(() => {
-    if (location.origin !== publicOrigin) return;
+    const localPreview =
+      process.env.NEXT_PUBLIC_ANALYTICS_PREVIEW === '1' &&
+      ['localhost', '127.0.0.1'].includes(location.hostname);
+    if (location.origin !== publicOrigin && !localPreview) return;
     const sync = () => setChoice(readChoice());
     sync();
     const onStorage = (event: StorageEvent) => {
@@ -87,7 +91,7 @@ export function PublicAnalytics({
   }, []);
 
   useEffect(() => {
-    if (choice !== 'yes') return;
+    if (choice !== 'yes' || location.origin !== publicOrigin) return;
     const url = publicOrigin + path;
     let active = true;
     let counter: Counter | undefined;
@@ -131,22 +135,20 @@ export function PublicAnalytics({
   }
 
   if (!choice || (choice !== 'ask' && !settings)) return null;
-  const button =
-    'border-border bg-surface text-fg hover:border-primary focus-visible:ring-primary min-h-11 rounded-md border px-4 text-sm font-semibold focus-visible:ring-2';
   return (
     <aside
       aria-label={english ? 'Analytics preferences' : 'Настройки аналитики'}
       className={
         settings
           ? 'border-border bg-surface text-fg my-6 rounded-xl border p-4'
-          : 'border-border bg-surface text-fg fixed inset-x-3 bottom-3 z-50 mx-auto max-w-xl rounded-xl border p-4 shadow-lg'
+          : 'border-border bg-surface text-fg fixed inset-x-3 bottom-3 z-50 max-w-md rounded-xl border p-4 shadow-lg sm:inset-x-6 sm:bottom-6'
       }
     >
       <p className="text-sm leading-6">
         {choice === 'ask'
           ? english
-            ? 'May we use Yandex Metrica cookies to see which public pages people visit and how they find them?'
-            : 'Разрешить cookie Яндекс Метрики, чтобы мы видели, какие публичные страницы читают и как их находят?'
+            ? 'May we use cookies to see which public pages people visit and how they find them?'
+            : 'Разрешить cookie, чтобы мы видели, какие публичные страницы читают и как их находят?'
           : choice === 'yes'
             ? english
               ? 'Analytics is on.'
@@ -165,14 +167,24 @@ export function PublicAnalytics({
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         {choice !== 'no' && (
-          <button type="button" className={button} onClick={() => choose('no')}>
+          <Button
+            type="button"
+            variant="secondary"
+            className="min-h-11 text-sm font-semibold"
+            onClick={() => choose('no')}
+          >
             {english ? 'Decline' : 'Отказаться'}
-          </button>
+          </Button>
         )}
         {choice !== 'yes' && (
-          <button type="button" className={button} onClick={() => choose('yes')}>
-            {english ? 'Allow analytics' : 'Разрешить аналитику'}
-          </button>
+          <Button
+            type="button"
+            variant="primary"
+            className="min-h-11 text-sm font-semibold"
+            onClick={() => choose('yes')}
+          >
+            {english ? 'Allow' : 'Разрешить'}
+          </Button>
         )}
       </div>
     </aside>

@@ -19,6 +19,7 @@ from app.models.transcriptions import TranscriptionJob, TranscriptionStatus
 from app.models.user import User
 from app.schemas.generations import GeneratedCard, card_issues
 from app.services import generation_provider as provider
+from tests.test_courses import allow_private
 from tests.test_transcriptions import register
 
 CARDS = [
@@ -119,6 +120,8 @@ async def test_generation_snapshot_idempotency_quota_and_access(client, monkeypa
     outsider, _ = await register(client, "other")
     request_id = uuid4()
     job = await start(client, headers, source, request_id=request_id)
+    public_url = f"/api/v1/notes/public/{job['id']}"
+    assert (await client.get(public_url)).status_code == 404
     reserved = await usage(client, headers)
     assert reserved > 200
     assert (await start(client, headers, source, request_id=request_id))["id"] == job["id"]
@@ -176,6 +179,33 @@ async def test_generation_snapshot_idempotency_quota_and_access(client, monkeypa
         json={"revision": ready["updated_at"], "markdown": "# Правка"},
     )
     assert updated.status_code == 200
+    assert (await client.get(public_url)).json() == {
+        "title": ready["title"],
+        "markdown": "# Правка",
+    }
+    hide = {"revision": updated.json()["updated_at"], "is_public": False}
+    path = f"/api/v1/generations/{job['id']}"
+    assert (await client.patch(path, headers=outsider, json=hide)).status_code == 404
+    denied = await client.patch(path, headers=headers, json=hide)
+    assert denied.status_code == 402
+    assert denied.json()["details"]["limit_key"] == "materials.private"
+    await allow_private(client, headers)
+    hidden = await client.patch(path, headers=headers, json=hide)
+    assert hidden.status_code == 200
+    assert (await client.get("/api/v1/notes/sitemap")).json() == []
+    assert (await client.get(public_url)).status_code == 404
+    assert (await client.get(path, headers=headers)).json()["markdown"] == "# Правка"
+    reopened = await client.patch(
+        path,
+        headers=headers,
+        json={
+            "revision": hidden.json()["updated_at"],
+            "is_public": True,
+        },
+    )
+    assert reopened.status_code == 200
+    assert [n["id"] for n in (await client.get("/api/v1/notes/sitemap")).json()] == [job["id"]]
+    assert (await client.get(public_url)).status_code == 200
     assert (
         await client.patch(
             f"/api/v1/generations/{job['id']}",
@@ -188,7 +218,7 @@ async def test_generation_snapshot_idempotency_quota_and_access(client, monkeypa
         assert stored.provider_response and stored.estimated_cost_usd == "0.0015"
 
 
-async def test_cards_edit_validate_save_private_set_once(client, monkeypatch):
+async def test_cards_edit_validate_save_public_set_once(client, monkeypatch):
     headers, source = await setup(client, monkeypatch)
     note = await start(client, headers, source)
     mock_provider(monkeypatch)
@@ -197,6 +227,7 @@ async def test_cards_edit_validate_save_private_set_once(client, monkeypatch):
     mock_provider(monkeypatch, cards=True)
     await process_generation({}, cards["id"])
     ready = (await client.get(f"/api/v1/generations/{cards['id']}", headers=headers)).json()
+    assert (await client.get(f"/api/v1/notes/public/{cards['id']}")).status_code == 404
     assert ready["issues"] == []
     bad = [
         {
@@ -230,7 +261,7 @@ async def test_cards_edit_validate_save_private_set_once(client, monkeypatch):
     )
     assert again.json()["saved_set_id"] == saved.json()["saved_set_id"]
     result = await client.get(f"/api/v1/sets/{saved.json()['saved_set_id']}", headers=headers)
-    assert result.json()["visibility"] == "private"
+    assert result.json()["visibility"] == "public"
     assert len(result.json()["cards"][0]["wrong_definition_answers"]) == 3
 
 

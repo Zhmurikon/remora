@@ -10,7 +10,7 @@ from arq.worker import Worker
 from app.core.config import get_settings
 from app.core.search import SearchIndex
 from app.worker import sync_course_search
-from tests.test_courses import auth
+from tests.test_courses import allow_private, auth
 
 
 @pytest.mark.skipif(
@@ -22,6 +22,7 @@ async def test_worker_publication_update_and_unpublish(client, monkeypatch):
     monkeypatch.setenv("NO_PROXY", "localhost,127.0.0.1")
     monkeypatch.setenv("no_proxy", "localhost,127.0.0.1")
     headers = await auth(client, "live")
+    await allow_private(client, headers)
     response = await client.post(
         "/api/v1/sets", headers=headers, json={"title": "Линейная алгебра"}
     )

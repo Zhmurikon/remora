@@ -1,0 +1,126 @@
+.faq {
+  width: min(90%, 66rem);
+  margin-inline: auto;
+  padding-block: 4rem;
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 5fr);
+  align-items: start;
+  gap: 2.5rem;
+}
+.faq-heading h2 {
+  margin: 0;
+  font:
+    400 1.75rem/1.17 Georgia,
+    'Times New Roman',
+    serif;
+  letter-spacing: -0.02em;
+}
+.faq-heading h2::after {
+  content: '';
+  display: block;
+  width: 4.5rem;
+  height: 0.45rem;
+  margin-top: 0.3rem;
+  border-top: 0.18rem solid #edbf53;
+  border-radius: 50%;
+  transform: rotate(-4deg);
+}
+.faq-writing {
+  margin-top: 1.5rem;
+}
+.faq-heading img {
+  width: 100%;
+  height: auto;
+  display: block;
+  mix-blend-mode: multiply;
+}
+.faq-list details {
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 38%, var(--line));
+}
+.faq-list summary {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.8rem 0.4rem;
+  font-size: 1.125rem;
+  line-height: 1.5;
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+}
+.faq-list summary::-webkit-details-marker {
+  display: none;
+}
+.faq-list summary::after {
+  content: '';
+  width: 1rem;
+  height: 1rem;
+  color: var(--blue);
+  background:
+    linear-gradient(currentColor, currentColor) center / 100% 2px no-repeat,
+    linear-gradient(currentColor, currentColor) center / 2px 100% no-repeat;
+}
+.faq-list details[open] > summary::after {
+  background-size:
+    100% 2px,
+    0 0;
+}
+.faq-list summary:hover {
+  color: var(--accent);
+}
+.faq-list p {
+  max-width: 72ch;
+  margin: 0;
+  padding: 0 1.8rem 1.1rem 0.4rem;
+  line-height: 1.56;
+}
+@media (max-width: 1023px) {
+  .faq-heading h2 {
+    font-size: 1.625rem;
+  }
+  .faq-list summary {
+    font-size: 1.0625rem;
+  }
+}
+@media (max-width: 800px) {
+  .faq {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+    padding-block: 3rem;
+  }
+  .faq-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .faq-writing {
+    width: 5rem;
+    margin: 0;
+  }
+}
+@media (max-width: 620px) {
+  .faq-heading h2 {
+    font-size: 1.5rem;
+  }
+  .faq-list summary {
+    font-size: 1rem;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  .faq-heading img {
+    mix-blend-mode: screen;
+    filter: invert(1) hue-rotate(180deg);
+  }
+}
+@media (forced-colors: active) {
+  .faq-list summary {
+    display: list-item;
+    list-style: revert;
+  }
+  .faq-list summary::after {
+    display: none;
+  }
+}

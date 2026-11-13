@@ -1,5 +1,33 @@
 # На полях лекции. Настольные эскизы
 
+## Первый экран с рабочим мини-демо
+
+[Кликабельный прототип](study-demo-v5.html) и [настольный снимок](study-demo-v5.png). HTML можно открыть в браузере из этой папки. Рисунки на полях взяты из соседнего файла `flashcards-centered-v4.png`.
+
+Одна демолекция о географии Японии связывает четыре раздела. В «Лекциях» кнопка «Собрать конспект» открывает три тезиса из расшифровки. Из конспекта можно перейти к карточкам с самопроверкой. В тесте проверяются те же факты. Переключение разделов сохраняет ответы до перезагрузки страницы. Демо работает на подготовленных материалах.
+
+## Карточка под заголовком
+
+[Вариант с центральной композицией](flashcards-centered-v4.png). Под заголовком сразу видны вопрос и четыре ответа. Регистрация вынесена в шапку. Бумага в точку, цветные листы по краям и мягкие тени взяты из нового референса. На листах — синие рисунки из предыдущего эскиза.
+
+<details>
+<summary>Запрос к ImageGen</summary>
+
+Design the next high-fidelity Russian desktop hero mockup, landscape 16:10 edge-to-edge viewport. Image 1 is the edit target (v3 of Запоминальня); image 2 is a reference for composition, spatial depth and cropped floating stationery only. Fuse them into a single confident new composition. From image 2: compact white masthead, an inset subtly rounded dot-grid canvas, oversized centered headline, inviting paper objects suspended at the very edges with natural light contact shadows. From image 1: Russian wording, distinctive editorial serif, luminous white + cobalt ink, meticulous small blue pen drawings and a real geography mini-quiz. Full-bleed webpage, no gray presentation background. Header wordmark «Запоминальня» left, «Войти» and restrained outlined «Создать аккаунт» right. Upper center: beautiful two-line headline «Конспект и карточки» / «по записи вашей лекции», first line substantial dark contemporary Cyrillic serif, second line lighter italic serif in deep slate blue. Subhead in clean readable sans: «Загрузите аудио или видео с пары. Соберите конспект и проверьте себя перед зачётом.» Beneath text immediately show ONE fully visible wide white index-card stack, frontal, centered on the same axis, sized around 42% of page width. Its four answer buttons are the primary action on this screen. Small top line «География» left and «1 из 5» right. Big elegant question «Столица Японии?» Four unselected, neatly aligned clickable choices in two rows: «А  Токио», «Б  Сеул», «В  Пекин», «Г  Бангкок». Near the card «Демо без регистрации. Своя запись — на Plus или Pro.» No extra start button. Beautiful tactile peripheral editorial collage, genuinely integrate the ink drawings with paper: at left edge gently rotated pale buttery yellow sheet with cobalt botanical study and binder clip, lower left cropped ruled notebook with a short cobalt sound waveform and pencil, at right edge tilted pale blue index divider with a finely drawn blue geography globe, offset papers underneath. Central interface flat, crisp, absolutely level, lots of white space between illustrations and content. One blue accent, quiet cream and icy blue paper accents. All essential copy and quiz visible within a single viewport with bottom breathing room. No English words except Plus and Pro, no feature lists, invented labels, extra nav or other brands, no transport imagery, no dashboards, no generic 3d icons. Aim for a real inviting and well-crafted study website, not a poster or a parody.
+
+</details>
+
+## Первый экран с учебной карточкой
+
+[Настольный эскиз с мини-демо](flashcards-v3.png). На лицевой карточке виден первый вопрос из демо действующей главной, четыре варианта ответа и счётчик «1 из 5». Глобус отсылает к теме вопроса, а раскрытая тетрадь и звуковая волна — к записи лекции. Для вёрстки предусмотрен тот же сценарий, что и на главной: выбор ответа, короткое пояснение, следующий вопрос и результат после пятого.
+
+<details>
+<summary>Запрос к ImageGen</summary>
+
+Edit the attached hero mockup of Запоминальня into the next high-fidelity desktop 16:10 design, first screen only. Preserve its minimal masthead «Запоминальня» / «Войти» and hairline, light white paper, generous space, sophisticated black Cyrillic serif headline and cobalt pen-and-ink drawings. Recompose the two-column hero around an immediately playable study flashcard, large on the right. Delete the bus, route, transport, times, clock, university facade, transcript, annotation and statistics entirely. Use learning marginalia instead: small exquisitely drawn open notebook with pencil and tiny sound wave at bottom left, a small celestial-style desktop globe sketched in cobalt at top right peeking from behind the card, subtle spare blue marginalia above left. Keep illustrations delicate and peripheral. Main left type exactly «Конспект и карточки по записи вашей лекции», comfortable two or three lines. Body «Загрузите аудио или видео с пары. Соберите конспект и проверьте себя перед зачётом.» Cobalt primary button «Попробовать карточки», next to it quiet underlined «Создать аккаунт». Below «Демо без регистрации. Своя запись — на Plus или Pro.» On right, the actual demo is a bespoke physical stack of two slightly offset index cards in crisp flat frontal web UI, front horizontal perfectly legible, thin cobalt borders and faint ruled detail on rear sheet, almost no shadow. Front card large enough to answer comfortably, white with generous inset. Compact header row «География» on left and «1 из 5» on right, small indicator. Set large black serif question «Столица Японии?» and exactly four roomy multiple choice buttons in two columns and two rows: «А  Токио», «Б  Сеул», «В  Пекин», «Г  Бангкок». Unanswered neutral state, no green, no checkmarks. Small text «Выберите ответ» below. Make the right-hand card the visual counterpart of the headline and align their centers. Professional editorial art direction like a contemporary science journal, beautifully kerned Cyrillic and natural spacing. No additional copy or sections, symbols masquerading as text, motivational stickers or browser chrome.
+
+</details>
+
 ## Светлый разворот с зарисовками на полях
 
 [Обновлённый первый экран](illustrated-light-v2.png). По просьбе владельца фон стал белее, заголовок занимает две строки, между действиями и примером больше места. Автобус, университет, часы, микрофон и учебные карточки распределены по полям. Это настольный эскиз для обсуждения перед вёрсткой.

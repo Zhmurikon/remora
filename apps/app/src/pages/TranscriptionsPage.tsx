@@ -2,8 +2,14 @@ import { isLimitExceeded, type components } from '@remora/api-client';
 import { Button } from '@remora/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, ApiRequestError } from '../lib/api';
+import {
+  clearLectureIntent,
+  loadLectureDraft,
+  removeLectureDraft,
+} from '../features/study/lecture-demo-draft';
+import { useAuthStore } from '../features/auth/auth-store';
 import { GenerationWorkspace } from '../components/GenerationWorkspace';
 
 type Transcription = components['schemas']['TranscriptionPublic'];
@@ -36,6 +42,7 @@ type LimitDetails = {
 
 export function TranscriptionsPage() {
   const { jobId } = useParams();
+  const [search] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [creating, setCreating] = useState(jobId === 'new');
@@ -102,6 +109,7 @@ export function TranscriptionsPage() {
         <section className="min-w-0">
           {showUploader || selected?.status === 'uploading' ? (
             <UploadWorkspace
+              draftId={jobId === 'new' ? search.get('draft') : null}
               resumeJob={selected?.status === 'uploading' ? selected : undefined}
               entitlements={entitlementsQuery.data}
               onLimit={setLimitDetails}
@@ -153,12 +161,14 @@ export function TranscriptionsPage() {
 }
 
 function UploadWorkspace({
+  draftId,
   resumeJob,
   entitlements,
   onLimit,
   onUploaded,
   onOpenLibrary,
 }: {
+  draftId: string | null;
   resumeJob?: Transcription;
   entitlements?: Entitlements;
   onLimit: (details: LimitDetails) => void;
@@ -182,6 +192,29 @@ function UploadWorkspace({
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
   const currentJob = uploadJob ?? resumeJob;
+
+  const email = useAuthStore((state) => state.user?.email);
+  const [draftFile, setDraftFile] = useState<File | null>(null);
+  useEffect(() => {
+    let active = true;
+    setDraftFile(null);
+    if (draftId) {
+      if (email) clearLectureIntent(draftId, email);
+      void loadLectureDraft(draftId)
+        .then((saved) => {
+          if (!active) return;
+          setDraftFile(saved);
+          if (!saved)
+            setError('Запись больше не сохранена в этом браузере. Выберите файл ещё раз.');
+        })
+        .catch(() => {
+          if (active) setError('Не удалось открыть сохранённую запись. Выберите файл ещё раз.');
+        });
+    }
+    return () => {
+      active = false;
+    };
+  }, [draftId, email]);
 
   useEffect(() => {
     if (resumeJob) {
@@ -317,6 +350,7 @@ function UploadWorkspace({
       }
       activeJobIdRef.current = null;
       setUploadJob(undefined);
+      if (draftId) void removeLectureDraft(draftId).catch(() => undefined);
       onUploaded(completed.data);
     } catch (caught) {
       controller.abort();
@@ -431,6 +465,18 @@ function UploadWorkspace({
                 минут лимита.
               </p>
             ) : null}
+          </div>
+        ) : null}
+        {draftFile && !uploading ? (
+          <div className="bg-primary-subtle mb-4 rounded-xl p-4">
+            <p className="break-words">Выбранная запись — {draftFile.name}</p>
+            <Button
+              className="mt-3"
+              disabled={readingDuration}
+              onClick={() => void chooseFile(draftFile)}
+            >
+              Расшифровать запись
+            </Button>
           </div>
         ) : null}
         <div

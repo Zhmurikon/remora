@@ -10,7 +10,7 @@ from sqlalchemy import update
 
 from app.db.session import get_engine
 from app.models.courses import Course
-from tests.test_courses import auth
+from tests.test_courses import allow_private, auth
 from tests.test_media import FakeStorage, _png
 
 
@@ -110,7 +110,9 @@ async def test_copy_clones_media_and_rolls_back_on_storage_failure(client: Async
     assert len(storage.deleted) == 1
 
 
-async def setup_course(client: AsyncClient, headers: dict[str, str]) -> dict:
+async def setup_course(
+    client: AsyncClient, headers: dict[str, str], *, is_published: bool = True
+) -> dict:
     material = (
         await client.post("/api/v1/sets", headers=headers, json={"title": "Матрицы"})
     ).json()
@@ -131,7 +133,9 @@ async def setup_course(client: AsyncClient, headers: dict[str, str]) -> dict:
     assert response.status_code == 200
     course = (
         await client.post(
-            "/api/v1/courses", headers=headers, json={"title": "Алгебра", "set_id": material["id"]}
+            "/api/v1/courses",
+            headers=headers,
+            json={"title": "Алгебра", "set_id": material["id"], "is_published": is_published},
         )
     ).json()
     return (await client.get(f"/api/v1/courses/{course['id']}/editor", headers=headers)).json()
@@ -200,14 +204,15 @@ async def test_structure_permissions_atomicity_and_publication(client: AsyncClie
     assert current == course
     await client.post(f"/api/v1/courses/{course['id']}/publish", headers=owner, json={})
     current = (await client.get(f"/api/v1/courses/{course['id']}/editor", headers=owner)).json()
-    assert (await save(client, owner, current, [])).status_code == 409
+    assert (await save(client, owner, current, [])).status_code == 200
 
 
 async def test_copy_public_course_and_article_independent_and_idempotent(
     client: AsyncClient,
 ) -> None:
     owner, learner = await auth(client, "copyowner"), await auth(client, "copylearner")
-    course = await setup_course(client, owner)
+    await allow_private(client, owner)
+    course = await setup_course(client, owner, is_published=False)
     sections = deepcopy(course["sections"])
     sections[0]["articles"][0]["body"] = "Полный конспект"
     course = (await save(client, owner, course, sections)).json()
@@ -219,7 +224,7 @@ async def test_copy_public_course_and_article_independent_and_idempotent(
     assert result.status_code == 201, result.text
     copied = result.json()
     assert (await client.post(path, headers=headers, json={})).json() == copied
-    assert copied["is_published"] is False
+    assert copied["is_published"] is True
     article = copied["sections"][0]["articles"][0]
     assert article["body"] == "Полный конспект"
     assert article["id"] != course["sections"][0]["articles"][0]["id"]
@@ -248,7 +253,8 @@ async def test_copy_set_from_public_course_is_independent_and_isolated(
 ) -> None:
     """Набор копируется только из доступного курса; копия не зависит от оригинала."""
     owner, learner = await auth(client, "setcopyowner"), await auth(client, "setcopylearner")
-    course = await setup_course(client, owner)
+    await allow_private(client, owner)
+    course = await setup_course(client, owner, is_published=False)
     set_id = course["sections"][0]["articles"][0]["set_id"]
     path = f"/api/v1/sets/{set_id}/copy"
     headers = {**learner, "Idempotency-Key": str(uuid4())}

@@ -6,6 +6,7 @@ from uuid import uuid4
 from httpx import AsyncClient
 
 from tests.test_agent_api import course_body, token
+from tests.test_courses import allow_private
 from tests.test_study import _auth
 
 
@@ -84,14 +85,15 @@ async def test_agent_structure_copy_delete_and_permissions(client: AsyncClient) 
     assert len(response.json()["sections"]) == 1
     headers["Idempotency-Key"] = str(uuid4())
     assert (await client.post(path + "/copy", headers=reader, json={})).status_code == 403
-    assert (await client.post(path + "/copy", headers=stranger, json={})).status_code == 404
+    assert (await client.post(path + "/copy", headers=stranger, json={})).status_code == 201
     copied = await client.post(path + "/copy", headers=headers, json={})
-    assert copied.status_code == 201 and not copied.json()["is_published"]
+    assert copied.status_code == 201 and copied.json()["is_published"]
     assert (await client.post(path + "/copy", headers=headers, json={})).json() == copied.json()
 
 
-async def test_agent_copy_public_article_and_publication_blocks_delete(client: AsyncClient) -> None:
+async def test_agent_copy_public_article_and_delete_while_published(client: AsyncClient) -> None:
     owner = await _auth(client, "e6bpublic")
+    await allow_private(client, owner)
     headers, _ = await token(client, owner)
     other, _ = await token(client, await _auth(client, "e6bcopy"))
     created = (
@@ -113,7 +115,7 @@ async def test_agent_copy_public_article_and_publication_blocks_delete(client: A
         headers=headers,
         json={"revision": structure["revision"], "confirm": True},
     )
-    assert response.status_code == 409
+    assert response.status_code == 200
     await client.post(f"/api/v1/courses/{created['id']}/unpublish", headers=owner)
     other["Idempotency-Key"] = str(uuid4())
     assert (await client.post(path + "/copy", headers=other, json={})).status_code == 404

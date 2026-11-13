@@ -10,9 +10,11 @@ const WEB_URL = import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000';
 export function CoursePublicationPanel({
   course,
   hasUnsavedChanges,
+  canHide,
 }: {
   course: Course;
   hasUnsavedChanges: boolean;
+  canHide: boolean;
 }) {
   const client = useQueryClient();
   const [tags, setTags] = useState(course.tags.join(', '));
@@ -67,7 +69,7 @@ export function CoursePublicationPanel({
         <Badge>{blocked ? 'Заблокирован' : course.is_published ? 'Опубликован' : 'Черновик'}</Badge>
       </div>
       <p className="text-fg-muted">
-        После публикации курс и его карточки доступны всем. Обложка и описание необязательны.
+        Рекомендуем публичный доступ. На Plus и Pro курс можно скрыть.
       </p>
       {blocked && (
         <p role="alert" className="text-danger">
@@ -125,8 +127,8 @@ export function CoursePublicationPanel({
           {confirmHide ? (
             <div className="space-y-3">
               <p>
-                Курс и вложенные материалы станут недоступны другим пользователям. Ваши карточки и
-                независимые копии останутся.
+                Статьи курса станут доступны только вам. Доступ к наборам карточек можно изменить в
+                редакторе каждого набора.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button
@@ -154,7 +156,7 @@ export function CoursePublicationPanel({
             <Button
               className="min-h-11"
               variant="ghost"
-              disabled={mutation.isPending}
+              disabled={mutation.isPending || !canHide}
               onClick={() => setConfirmHide(true)}
             >
               Снять с публикации

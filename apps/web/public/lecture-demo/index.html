@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Запоминальня — демо по записи лекции</title>
+    <meta name="robots" content="noindex" />
+    <link rel="stylesheet" href="./hero.css" />
+    <link rel="stylesheet" href="./about.css" />
+    <link rel="stylesheet" href="./create-cards.css" />
+    <link rel="stylesheet" href="./study-modes.css" />
+    <link rel="stylesheet" href="./catalog.css" />
+    <link rel="stylesheet" href="./course-outline.css" />
+    <link rel="stylesheet" href="./class-plan.css" />
+    <link rel="stylesheet" href="./messengers.css" />
+    <link rel="stylesheet" href="./pricing.css" />
+    <link rel="stylesheet" href="./faq.css" />
+    <link rel="stylesheet" href="./news.css" />
+    <link rel="stylesheet" href="./footer.css" />
+    <link rel="stylesheet" href="./header-nav.css" />
+    <link rel="stylesheet" href="./sheet-buttons.css" />
+    <script src="./sheet-buttons.js" defer></script>
+    <script src="./header-nav.js" defer></script>
+    <script src="./brand-wave.js" defer></script>
+    <script src="./frame.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img src="./remora-icon.png" width="40" height="40" alt="" />
+        <span class="brand-name">Запоминальня</span>
+      </a>
+      <button
+        class="header-toggle"
+        data-sheet="outline"
+        type="button"
+        aria-controls="header-nav"
+        aria-expanded="false"
+        hidden
+      >
+        Меню
+      </button>
+      <nav id="header-nav" class="header-nav" aria-label="Основная навигация">
+        <div class="header-sections">
+          <a href="#about">Как это работает</a>
+          <a href="/kursy">Каталог курсов</a>
+          <a href="#class-plan">Преподавателям</a>
+          <a href="#pricing">Тарифы</a>
+          <a href="/blog">Блог</a>
+          <a href="#faq">Вопросы и ответы</a>
+        </div>
+        <div class="header-account">
+          <a href="/login" class="line-action"><span class="line-label">Войти</span></a
+          ><a class="signup" data-sheet="blue" href="/register">Создать аккаунт</a>
+        </div>
+      </nav>
+    </header>
+    <main>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="art botany" aria-hidden="true">
+          <svg class="chart-tracker" viewBox="0 0 490 561" focusable="false">
+            <g>
+              <circle r="17" class="tracker-halo" />
+              <circle r="8" class="tracker-dot" />
+            </g>
+          </svg>
+        </div>
+        <div class="art globe" aria-hidden="true"></div>
+        <div class="art notebook" aria-hidden="true">
+          <span class="voice-wave"
+            ><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i
+            ><i></i><i></i><i></i><i></i
+          ></span>
+        </div>
+        <div class="art flashcards" aria-hidden="true"><span class="extra-card"></span></div>
+        <div class="intro">
+          <h1 id="hero-title">
+            <span>Конспект и карточки</span>
+            <em>по записи вашей <span class="ink-word">лекции</span></em>
+          </h1>
+          <p>
+            Загрузите аудио или видео с пары.
+            <span>Соберите конспект и&nbsp;проверьте себя перед зачётом.</span>
+          </p>
+        </div>
+        <iframe
+          class="demo-frame"
+          src="./widget.html"
+          title="Карточки, конспект и загрузка лекции"
+        ></iframe>
+        <p class="caption">
+          <a href="/register" class="sheets" data-sheet="blue" aria-label="Попробовать бесплатно"
+            >Попробовать бесплатно</a
+          >
+        </p>
+      </section>
+      <section class="about" id="about" aria-labelledby="about-title">
+        <h2 id="about-title">Что такое Запоминальня</h2>
+        <div class="about-copy">
+          <p>
+            Запоминальня — сервис, где можно создавать карточки для запоминания и заниматься по ним
+            онлайн. На одной стороне карточки вопрос, на другой — ответ. Попробуйте вспомнить ответ,
+            переверните карточку и сверьтесь.
+          </p>
+          <p>
+            Соберите свой набор к зачёту или откройте курс другого пользователя. Запоминальня
+            учитывает ваши ответы и подбирает время следующего повторения для каждой карточки. Так
+            работает интервальное повторение.
+          </p>
+        </div>
+        <figure class="about-sequence">
+          <picture>
+            <source
+              media="(max-width: 830px)"
+              srcset="./about-sequence-mobile.webp"
+              width="520"
+              height="1293"
+            />
+            <img src="./about-sequence.webp" width="1672" height="450" alt="" loading="lazy" />
+          </picture>
+          <figcaption>
+            <span class="about-question-card">
+              <span class="about-question"
+                >Что такое<br /><span class="about-term">морось?</span></span
+              >
+            </span>
+            <span class="about-rain-card">
+              <span class="about-answer">Очень<br />мелкий<br />дождь.</span>
+              <svg class="about-rain" viewBox="0 0 100 83" aria-hidden="true" focusable="false">
+                <g class="rain-strokes">
+                  <path d="M17 8l-2 4 M33 19l-2 5 M52 6l-2 4 M61 30l-2 4 M77 13l-3 6 M91 22l-2 4" />
+                  <path d="M24 4l-2 4 M42 11l-2 4 M35 27l-2 5 M64 9l-3 6 M72 24l-2 4 M95 5l-2 4" />
+                  <path
+                    d="M14 19l-2 4 M28 12l-2 4 M48 23l-3 6 M57 15l-2 4 M80 4l-2 5 M86 28l-2 4"
+                  />
+                  <path
+                    d="M21 16l-2 4 M38 4l-2 5 M46 32l-2 4 M68 20l-2 4 M83 16l-3 6 M93 11l-2 4"
+                  />
+                </g>
+              </svg>
+            </span>
+            <span class="about-calendar">Отметка в календаре — время повторить карточку.</span>
+            <svg
+              class="about-calendar-art"
+              viewBox="0 0 240 183"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <rect width="240" height="183" fill="transparent" stroke="none" />
+              <path
+                pathLength="1"
+                d="M137 88 C130 78 112 84 107 96 C102 110 119 111 132 103 C141 97 143 88 135 84"
+              />
+            </svg>
+          </figcaption>
+        </figure>
+      </section>
+      <section class="create-cards" id="create-cards" aria-labelledby="create-title">
+        <div class="create-intro">
+          <h2 id="create-title">Как создать карточки по своим материалам</h2>
+          <a class="create-signup" data-sheet="blue" href="/register">Создать бесплатный аккаунт</a>
+        </div>
+        <div class="create-methods">
+          <div class="folio folio-lecture">
+            <h3>Из записи лекции · Plus и Pro</h3>
+            <span class="folio-art" aria-hidden="true"></span>
+            <p>
+              Загрузите аудио или видео с пары. Сначала вы получите расшифровку. По ней можно
+              составить конспект, а из него — карточки. Перед сохранением поправьте термины и
+              оставьте вопросы, которые преподаватель просил подготовить к зачёту.
+            </p>
+          </div>
+          <div class="folio folio-table">
+            <h3>Из таблицы · бесплатно</h3>
+            <span class="folio-art" aria-hidden="true"></span>
+            <p>
+              Скопируйте сразу два столбца, например английские слова и их переводы. Вставьте их в
+              редактор набора. Перед сохранением вы увидите обе стороны каждой карточки.
+            </p>
+          </div>
+          <div class="folio folio-manual">
+            <h3>Вручную · бесплатно</h3>
+            <span class="folio-art" aria-hidden="true"></span>
+            <p>
+              Запишите вопрос так, как его задаёт преподаватель, и добавьте ответ. В карточках можно
+              использовать формулы, код и изображения. Например, на одну сторону поместите схему
+              сердца с номерами, на другую — названия отделов под этими номерами.
+            </p>
+          </div>
+          <div class="folio folio-ai">
+            <h3>С помощью своего ИИ</h3>
+            <span class="folio-art" aria-hidden="true"></span>
+            <p>
+              Попросите своего ИИ-помощника: «Составь 10 карточек по этому конспекту и сохрани их в
+              Запоминальне». Помощник подготовит вопросы и ответы, а набор появится в вашей
+              библиотеке.
+            </p>
+            <p>
+              Открытый API доступен бесплатно. Для помощников с поддержкой MCP есть готовый
+              коннектор. На бесплатном тарифе — до 500 операций записи в неделю.
+            </p>
+            <a class="folio-help" href="https://github.com/Zhmurikon/remora-ai-integrations#readme"
+              >Как подключить помощника</a
+            >
+          </div>
+        </div>
+      </section>
+      <section class="study-modes" id="study-modes" aria-labelledby="study-modes-title">
+        <h2 id="study-modes-title">Пять способов заниматься по одному набору</h2>
+        <p>
+          Возьмём английское слово <i lang="en">drizzle</i>. В одном режиме вы вспоминаете перевод,
+          в другом — пишете слово по памяти, в третьем — узнаёте его на слух.
+        </p>
+        <iframe
+          class="practice-frame"
+          src="./practice.html"
+          title="Попробовать пять режимов обучения"
+        ></iframe>
+      </section>
+      <section id="catalog" class="catalog" aria-labelledby="catalog-title">
+        <h2 id="catalog-title">Курсы и карточки других пользователей</h2>
+        <p class="catalog-intro">
+          Найдите курс по теме, которую сейчас изучаете. Прочитайте урок и проверьте себя по
+          карточкам к нему.
+        </p>
+        <div class="catalog-lookup">
+          <form action="/kursy" method="get" role="search" aria-label="Поиск по курсам">
+            <label class="catalog-field">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="10" cy="10" r="6.5" />
+                <path d="m15 15 6 6" />
+              </svg>
+              <input
+                type="search"
+                name="q"
+                aria-label="Какой курс вы ищете?"
+                placeholder="Какой курс вы ищете?"
+              />
+            </label>
+            <button type="submit" data-sheet="blue">Найти курс</button>
+          </form>
+          <img src="./catalog-drawer.webp" width="380" height="288" alt="" loading="lazy" />
+        </div>
+        <ul class="catalog-links">
+          <li>
+            <a href="/kurs/course-c89dda88-3539-461a-8383-35ff3d00068b">
+              <svg viewBox="0 0 32 32" aria-hidden="true">
+                <path
+                  d="M16 8c-4-3-8-3-13-2v19c5-1 9-1 13 2 4-3 8-3 13-2V6c-5-1-9-1-13 2Zm0 0v19M6.5 11c2.5-.3 4 .2 6 1m7 0c2-.8 3.5-1.3 6-1"
+                />
+              </svg>
+              <span>Блок 1. Урок 1: Git и «три зоны»</span><b aria-hidden="true">→</b></a
+            >
+          </li>
+          <li>
+            <a href="/nabor/урок-1-git-и-три-зоны-карточки-c131b53e">
+              <svg viewBox="0 0 32 32" aria-hidden="true">
+                <path d="m4 12-1-5 21-3 1 4M6 13V9l21-1 1 5" />
+                <rect x="6" y="13" width="23" height="15" rx="2" />
+                <path d="M10 18h13m-13 4h8" />
+              </svg>
+              <span>Урок 1. Git и «три зоны» — карточки</span><b aria-hidden="true">→</b></a
+            >
+          </li>
+          <li>
+            <a href="/podborki/k-pervomu-zachetu">
+              <svg viewBox="0 0 32 32" aria-hidden="true">
+                <path d="M8 4h16v24l-8-6-8 6Z" />
+                <path d="M11 8h10" />
+              </svg>
+              <span>Подборка «К первому зачёту»</span><b aria-hidden="true">→</b></a
+            >
+          </li>
+        </ul>
+      </section>
+      <section class="course-outline" id="course-outline" aria-labelledby="course-outline-title">
+        <h2 id="course-outline-title">Как устроен учебный курс</h2>
+        <div class="course-layout">
+          <div>
+            <p class="course-lead">
+              Курс состоит из разделов и уроков. Внутри урока — объяснение темы и карточки, по
+              которым можно себя проверить.
+            </p>
+            <div class="course-desk">
+              <span class="ink-illustration course-books"
+                ><img
+                  src="./course-books.webp"
+                  width="347"
+                  height="462"
+                  loading="lazy"
+                  alt="" /><svg
+                  class="art-strokes"
+                  viewBox="0 0 263 350"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path pathLength="1" d="M218 15l-4-6 M233 13l4-7 M240 24l9-2" /></svg
+              ></span>
+              <div class="course-contents" role="group" aria-label="Пример оглавления курса">
+                <details open>
+                  <summary>Раздел 1</summary>
+                  <details open>
+                    <summary>Урок 1</summary>
+                    <p>Карточки к уроку</p>
+                  </details>
+                </details>
+                <details>
+                  <summary>Раздел 2</summary>
+                  <details>
+                    <summary>Урок 2</summary>
+                    <p>Карточки к уроку</p>
+                  </details>
+                </details>
+              </div>
+            </div>
+          </div>
+          <p class="course-note">
+            Прочитайте урок, затем откройте карточки и попробуйте ответить по памяти. Если что-то
+            забылось, вернитесь к нужному месту в уроке.
+          </p>
+        </div>
+        <div class="course-bottom">
+          <p>
+            Можно собрать курс и из своих материалов. Разложите конспекты по урокам и добавьте к
+            каждому карточки с вопросами и ответами.
+          </p>
+          <a href="/kursy" class="line-action"
+            ><span class="line-label">Посмотреть курсы</span> <span aria-hidden="true">→</span></a
+          >
+        </div>
+      </section>
+      <section id="class-plan" class="class-plan" aria-labelledby="class-plan-title">
+        <h2 id="class-plan-title">Что повторить с классом на следующем уроке</h2>
+        <div class="class-scene">
+          <div class="class-prop class-calendar ink-illustration">
+            <img src="./class-calendar.webp" alt="" width="700" height="572" loading="lazy" />
+            <svg class="art-strokes" viewBox="0 0 350 286" aria-hidden="true" focusable="false">
+              <path pathLength="1" d="m133 151 5 5 9-14" />
+            </svg>
+            <strong>Четверг</strong><span>Слова<br />о погоде</span>
+          </div>
+          <div class="class-prop class-report">
+            <img src="./class-report.webp" alt="" width="600" height="572" loading="lazy" />
+            <div class="class-report-body">
+              <h3>Пример отчёта</h3>
+              <dl>
+                <div>
+                  <dt>Занимались</dt>
+                  <dd>24 из 28</dd>
+                </div>
+                <div>
+                  <dt>Средний результат</dt>
+                  <dd>86 %</dd>
+                </div>
+              </dl>
+              <p>
+                Частые ошибки<br /><mark><i lang="en">drizzle</i> — 6 ошибок</mark>
+              </p>
+            </div>
+          </div>
+          <div class="class-prop class-note">
+            <img src="./class-note.webp" alt="" width="660" height="572" loading="lazy" />
+            <div>
+              <h3>На уроке</h3>
+              <p>Разобрать <i lang="en">drizzle</i>.<br />Попросить примеры.</p>
+            </div>
+          </div>
+        </div>
+        <div class="class-copy">
+          <p>
+            Пригласите учеников в класс и задайте на четверг набор английских слов о погоде. В
+            отчёте по заданию вы увидите, кто уже занимался, сколько карточек прошёл каждый ученик и
+            как справился с тестом.
+          </p>
+          <p>
+            Отчёт по карточкам поможет подготовиться к уроку. Например, если многие ошиблись на
+            слове <i lang="en">drizzle</i>, разберите его вместе и попросите класс привести примеры.
+          </p>
+        </div>
+        <div class="class-terms">
+          <p>
+            Бесплатно можно вести один класс до 30 учеников и назначать до трёх активных заданий
+            одновременно. Разбор частых ошибок по карточкам и выгрузка отчётов в Excel доступны на
+            Plus и Pro.
+          </p>
+          <a class="create-signup" data-sheet="blue" href="/app/classes"
+            >Открыть классы в кабинете</a
+          >
+        </div>
+      </section>
+      <section id="messengers" class="messengers" aria-labelledby="messengers-title">
+        <div class="messenger-copy">
+          <h2 id="messengers-title">Повторяйте карточки в&nbsp;Telegram и&nbsp;VK</h2>
+          <p>
+            До пары пять минут — хватит на несколько карточек. Подключите Telegram или VK в
+            настройках Запоминальни, откройте чат с ботом и нажмите «Учить сегодня».
+          </p>
+          <p>
+            Бот предложит набор, который пора повторить. Если хотите позаниматься по другой теме,
+            откройте «Мои наборы» и выберите её сами.
+          </p>
+          <p>Отвечайте прямо в чате. Результаты сохранятся в вашем кабинете.</p>
+          <a class="create-signup" data-sheet="blue" href="/app/settings"
+            >Подключить бота в настройках</a
+          >
+        </div>
+        <figure class="messenger-example" aria-label="Пример повторения карточки в чате">
+          <div class="messenger-scene">
+            <img src="./messenger-phone.webp" width="1254" height="1254" loading="lazy" alt="" />
+            <div class="messenger-screen">
+              <strong class="messenger-name">Запоминальня</strong>
+              <ol class="messenger-dialogue" aria-label="Переписка с ботом">
+                <li class="outgoing" aria-label="Вы: Учить сегодня">Учить сегодня</li>
+                <li aria-label="Бот: Как переводится drizzle?">
+                  Как переводится <span lang="en">drizzle</span>?
+                </li>
+                <li class="outgoing" aria-label="Вы: Морось">Морось</li>
+                <li aria-label="Бот: Верно!">Верно!</li>
+              </ol>
+              <div class="messenger-compose" aria-hidden="true">Сообщение…</div>
+            </div>
+          </div>
+        </figure>
+      </section>
+      <section class="pricing" id="pricing" aria-labelledby="pricing-title">
+        <h2 id="pricing-title">Тарифы Запоминальни</h2>
+        <p class="pricing-intro">
+          Занимайтесь по карточкам бесплатно во всех пяти режимах. Если хотите превращать записи
+          лекций в конспекты и карточки, выберите тариф по тому, сколько часов лекций у вас в
+          неделю.
+        </p>
+        <div class="pricing-plans">
+          <article class="pricing-plan">
+            <h3 lang="en">Free</h3>
+            <div class="pricing-sheet">
+              <div class="pricing-rate">
+                <p><strong>0&nbsp;₽</strong></p>
+                <img src="./pricing-cards.webp" width="236" height="183" loading="lazy" alt="" />
+              </div>
+              <ul>
+                <li>Повторяйте карточки сколько угодно.</li>
+                <li>До 10 курсов и 20 наборов, включая свои и сохранённые.</li>
+                <li>Один класс до 30 учеников.</li>
+              </ul>
+            </div>
+          </article>
+          <article class="pricing-plan pricing-plus">
+            <h3 lang="en">Plus</h3>
+            <div class="pricing-sheet">
+              <div class="pricing-rate">
+                <p>
+                  <strong>299&nbsp;₽</strong> в&nbsp;месяц
+                  <span>или 2&nbsp;499&nbsp;₽ в&nbsp;год</span>
+                </p>
+                <img src="./pricing-notebook.webp" width="201" height="192" loading="lazy" alt="" />
+              </div>
+              <ul>
+                <li>До 5 часов лекций в неделю.</li>
+                <li>Конспекты и карточки из записей.</li>
+                <li>Курсы и наборы без лимита. Можно скрыть свои материалы.</li>
+                <li>Несколько классов и отчёты по частым ошибкам.</li>
+              </ul>
+            </div>
+          </article>
+          <article class="pricing-plan">
+            <h3 lang="en">Pro</h3>
+            <div class="pricing-sheet">
+              <div class="pricing-rate">
+                <p>
+                  <strong>999&nbsp;₽</strong> в&nbsp;месяц
+                  <span>или 9&nbsp;999&nbsp;₽ в&nbsp;год</span>
+                </p>
+                <img src="./pricing-books.webp" width="207" height="196" loading="lazy" alt="" />
+              </div>
+              <ul>
+                <li>Всё, что входит в Plus.</li>
+                <li>До 25 часов лекций в неделю.</li>
+                <li>
+                  Недельный лимит на создание конспектов и карточек из записей в пять раз выше, чем
+                  на Plus.
+                </li>
+              </ul>
+            </div>
+          </article>
+        </div>
+        <div class="pricing-actions">
+          <a href="/register" class="create-signup" data-sheet="blue">Создать бесплатный аккаунт</a>
+          <a href="/tarify" class="pricing-compare line-action"
+            ><span class="line-label">Сравнить тарифы</span></a
+          >
+        </div>
+        <p class="pricing-note">
+          5 и 25 часов — объём записей при отложенной расшифровке. В быстром режиме одна минута
+          записи расходует четыре минуты лимита.
+        </p>
+      </section>
+      <section id="faq" class="faq" aria-labelledby="faq-title">
+        <div class="faq-heading">
+          <h2 id="faq-title">Вопросы и ответы</h2>
+          <span class="ink-illustration faq-writing"
+            ><img src="./faq-pen.webp" width="485" height="514" loading="lazy" alt="" /><svg
+              class="art-strokes"
+              viewBox="0 0 330 350"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path pathLength="1" d="M154 325q-9 9-14 8t1-5q4-3 3 0t-13 9q-8 4-17 2" /></svg
+          ></span>
+        </div>
+        <div class="faq-list">
+          <details name="landing-faq">
+            <summary>Какие записи лекций можно загрузить?</summary>
+            <p>
+              Подойдёт аудио или видео размером до 1 ГБ. Например, можно загрузить запись с
+              диктофона в M4A, аудиофайл MP3 или видео в MP4. Расшифровка своих записей доступна на
+              тарифах Plus и Pro.
+            </p>
+          </details>
+          <details name="landing-faq" open>
+            <summary>Как сделать конспект лекции из аудиозаписи?</summary>
+            <p>
+              Загрузите запись и дождитесь расшифровки. Проверьте имена и термины, затем запустите
+              создание конспекта. Из готового конспекта можно собрать карточки для самопроверки.
+              Обработка записи доступна на Plus и Pro.
+            </p>
+          </details>
+          <details name="landing-faq">
+            <summary>Можно ли исправить ошибку в расшифровке?</summary>
+            <p>
+              Да. Если сервис неверно распознал фамилию преподавателя или термин, исправьте текст
+              перед созданием конспекта. Готовый конспект и карточки тоже можно редактировать.
+            </p>
+          </details>
+          <details name="landing-faq">
+            <summary>Кто увидит мою расшифровку и конспект?</summary>
+            <p>
+              Расшифровку видите только вы в личном кабинете. Готовые конспекты, наборы карточек и
+              курсы по умолчанию публичны. На Plus и Pro для каждого материала можно выбрать «Только
+              мне».
+            </p>
+          </details>
+          <details name="landing-faq">
+            <summary>Как перенести вопросы и ответы из таблицы в карточки?</summary>
+            <p>
+              Поместите вопросы в первый столбец, а ответы — во второй. Скопируйте оба столбца и
+              вставьте их в редактор набора. Каждая строка станет карточкой. Перед сохранением вы
+              увидите обе её стороны. Импорт из таблицы бесплатный.
+            </p>
+          </details>
+          <details name="landing-faq">
+            <summary>Как учить билеты к экзамену по карточкам?</summary>
+            <p>
+              Разбейте каждый билет на несколько коротких вопросов. Например, для билета о климате
+              Японии подойдёт вопрос «Почему зимой на западном побережье Хонсю выпадает много
+              снега?». Ответьте вслух по памяти, затем переверните карточку и сверьтесь. Когда
+              разберёте все вопросы, попробуйте рассказать билет целиком.
+            </p>
+          </details>
+          <details name="landing-faq">
+            <summary>Как работает интервальное повторение карточек?</summary>
+            <p>
+              Запоминальня подбирает дату следующего повторения для каждой карточки по вашим
+              ответам. Если вы забыли слово, оно вернётся в тренировку раньше. Если несколько раз
+              вспомнили его без труда, перерыв станет длиннее. Интервальное повторение доступно и на
+              бесплатном тарифе.
+            </p>
+          </details>
+          <details name="landing-faq">
+            <summary>Что будет с моими материалами после окончания подписки?</summary>
+            <p>
+              Ваши карточки, курсы и конспекты сохранятся. Вы сможете читать конспекты, повторять
+              карточки и проходить тесты. Скрытые материалы останутся закрытыми. Plus или Pro снова
+              понадобится, если вы захотите расшифровать новую запись или автоматически составить по
+              ней конспект и карточки.
+            </p>
+          </details>
+        </div>
+      </section>
+      <section class="news" id="news" aria-labelledby="news-title">
+        <h2 id="news-title">Что нового в Запоминальне</h2>
+        <ol class="news-timeline">
+          <li>
+            <time datetime="2026-10-30">30 октября 2026</time>
+            <div class="news-copy">
+              <h3>Конспект и карточки из одной записи лекции</h3>
+              <p>
+                Откройте расшифровку лекции и создайте по ней конспект. Из конспекта можно сразу
+                собрать карточки для повторения. Перед сохранением набора можно поправить ответы и
+                убрать лишние вопросы. Функция доступна на Plus и Pro.
+              </p>
+            </div>
+            <img src="./news-lecture.webp" alt="" loading="lazy" width="415" height="317" />
+          </li>
+          <li>
+            <time datetime="2026-09-18">18 сентября 2026</time>
+            <div class="news-copy">
+              <h3>Тесты для самопроверки в конце урока</h3>
+              <p>
+                Теперь в конце урока можно ответить на вопросы по пройденной теме и сразу увидеть
+                результат. Если что-то забылось, объяснение здесь же, выше на странице. Когда будете
+                готовы, переходите к следующему уроку.
+              </p>
+            </div>
+            <span class="ink-illustration news-checklist"
+              ><img src="./news-test.webp" alt="" loading="lazy" width="427" height="285" /><svg
+                class="art-strokes"
+                viewBox="0 0 350 234"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path pathLength="1" d="M77 162l4 4 10-14" /></svg
+            ></span>
+          </li>
+        </ol>
+        <a class="news-link" href="./updates.html">История обновлений</a>
+      </section>
+    </main>
+    <footer id="footer" class="site-footer">
+      <div class="footer-inner">
+        <div class="footer-columns">
+          <a class="footer-brand" href="./index.html">
+            <img src="./footer-logo.webp" width="256" height="256" loading="lazy" alt="" />
+            Запоминальня
+          </a>
+          <nav aria-labelledby="footer-materials">
+            <h2 id="footer-materials">Материалы</h2>
+            <ul>
+              <li><a href="/kursy">Каталог курсов</a></li>
+              <li><a href="/podborki">Подборки</a></li>
+              <li><a href="/blog">Блог</a></li>
+            </ul>
+          </nav>
+          <nav aria-labelledby="footer-service">
+            <h2 id="footer-service">Сервис</h2>
+            <ul>
+              <li><a href="/tarify">Тарифы</a></li>
+              <li><a href="#faq">Вопросы и ответы</a></li>
+              <li><a href="./updates.html">История обновлений</a></li>
+              <li><a href="/app/">Личный кабинет</a></li>
+            </ul>
+          </nav>
+          <div class="footer-contact">
+            <h2>Поддержка</h2>
+            <address><a href="mailto:support@zapominalnya.ru">support@zapominalnya.ru</a></address>
+            <p>Вопросы о сервисе, оплате и персональных данных.</p>
+          </div>
+        </div>
+        <div class="footer-legal">
+          <nav aria-label="Документы">
+            <ul>
+              <li><a href="/terms">Условия использования</a></li>
+              <li><a href="/privacy">Политика конфиденциальности</a></li>
+              <li><a href="/oplata-i-vozvrat">Условия оплаты и возврата</a></li>
+            </ul>
+          </nav>
+          <p>
+            <span>© 2026 Запоминальня</span> <span>ИНН 272201512193</span>
+            <span>ОГРНИП 323270000042428</span>
+          </p>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

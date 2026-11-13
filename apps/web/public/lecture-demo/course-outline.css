@@ -1,0 +1,199 @@
+.course-outline {
+  --note-paper: #fff0b8;
+  --note-rule: #e6dba9;
+  --outline-sheet: #fdfaf3;
+  width: min(90%, 66rem);
+  margin-inline: auto;
+  padding-block: 4rem;
+}
+.course-outline h2 {
+  margin: 0 0 1.45rem;
+  font:
+    400 1.75rem/1.17 Georgia,
+    'Times New Roman',
+    serif;
+  letter-spacing: -0.02em;
+}
+.course-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 2.5rem;
+}
+.course-lead {
+  max-width: 52ch;
+  margin: 0;
+  font-size: 1.125rem;
+  line-height: 1.5;
+}
+.course-desk {
+  display: flex;
+  align-items: end;
+  margin-top: 1.2rem;
+}
+.course-books {
+  width: 34%;
+}
+.course-books img {
+  display: block;
+  width: 100%;
+  height: auto;
+  mix-blend-mode: multiply;
+}
+.course-contents {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  margin: 0.5rem 0.55rem 0.4rem -0.2rem;
+  padding: 1.1rem 0.95rem;
+  border: 1px solid var(--blue);
+  border-radius: 0.75rem 0.35rem 0.5rem 0.35rem;
+  background: var(--outline-sheet);
+  box-shadow:
+    0.19rem 0.23rem 0 var(--side),
+    0.24rem 0.29rem 0 var(--blue),
+    0.43rem 0.49rem 0 var(--soft),
+    0.48rem 0.54rem 0 var(--blue);
+}
+.course-contents summary {
+  cursor: pointer;
+  padding: 0.6rem 0.7rem;
+  min-height: max(44px, 2.75rem);
+  line-height: 1.5;
+  color: var(--blue);
+}
+.course-contents summary:hover {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+.course-contents > details > summary {
+  background: var(--soft);
+  font-weight: 600;
+  border-radius: 0.25rem;
+}
+.course-contents > details + details {
+  margin-top: 0.55rem;
+}
+.course-contents details details {
+  margin-left: 0.7rem;
+}
+.course-contents details p {
+  margin: 0 0 0.5rem 1.2rem;
+  padding: 0.35rem 0.5rem 0.35rem 0.85rem;
+  border-left: 1px solid var(--line);
+}
+.course-note {
+  position: relative;
+  margin: 0;
+  padding: 2.8rem 1.5rem 1.65rem;
+  filter: drop-shadow(0 0.14rem 0.13rem var(--line));
+  isolation: isolate;
+  font-size: 1.125rem;
+  line-height: 1.56;
+}
+.course-note::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    repeating-linear-gradient(
+      transparent 0 calc(1.755rem - 1px),
+      var(--note-rule) calc(1.755rem - 1px) 1.755rem
+    ),
+    var(--note-paper);
+  mask: radial-gradient(circle at 0.7rem 0.56rem, transparent 0.19rem, black 0.23rem) left
+    top/1.35rem 100% repeat-x;
+  clip-path: polygon(
+    0 1.3%,
+    100% 0,
+    100% 98%,
+    96% 98.8%,
+    90% 98%,
+    84% 99%,
+    72% 98.4%,
+    58% 100%,
+    44% 99%,
+    32% 99.8%,
+    19% 99%,
+    8% 100%,
+    0 99%
+  );
+}
+.course-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-top: 2.15rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--blue);
+}
+.course-bottom p {
+  margin: 0;
+  max-width: 63ch;
+  line-height: 1.56;
+}
+.course-bottom a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: max(44px, 2.75rem);
+  white-space: nowrap;
+  color: var(--blue);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+@media (max-width: 1023px) {
+  .course-outline h2 {
+    font-size: 1.625rem;
+  }
+  .course-layout {
+    gap: 1.5rem;
+  }
+}
+@media (max-width: 760px) {
+  .course-layout {
+    grid-template-columns: 1fr;
+  }
+  .course-note {
+    max-width: 52ch;
+  }
+  .course-bottom {
+    align-items: start;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+}
+@media (max-width: 620px) {
+  .course-outline {
+    width: calc(100% - 2.5rem);
+    padding-block: 2.5rem;
+  }
+  .course-outline h2 {
+    font-size: 1.5rem;
+  }
+  .course-lead,
+  .course-note {
+    font-size: 1.0625rem;
+  }
+  .course-contents {
+    padding: 0.75rem 0.625rem;
+  }
+  .course-books {
+    width: 24%;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  .course-outline {
+    --note-paper: #393321;
+    --note-rule: #4c4836;
+    --outline-sheet: var(--side);
+  }
+  .course-desk img {
+    filter: invert(1) hue-rotate(180deg);
+    mix-blend-mode: screen;
+  }
+}

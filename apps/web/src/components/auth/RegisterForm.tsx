@@ -37,6 +37,16 @@ export function RegisterForm() {
         setError(getErrorMessage(response.error));
         return;
       }
+      // Письмо часто открывают в другой вкладке, поэтому привязываем продолжение к подтверждаемому адресу.
+      try {
+        const pending = sessionStorage.getItem('lecture-demo:continue');
+        if (pending) {
+          localStorage.setItem('lecture-demo:continue:' + email.trim().toLowerCase(), pending);
+          sessionStorage.removeItem('lecture-demo:continue');
+        }
+      } catch {
+        // Ограничения хранилища не должны прерывать уже состоявшуюся регистрацию.
+      }
       setSentTo(email);
     } catch (requestError) {
       setError(getErrorMessage(requestError));

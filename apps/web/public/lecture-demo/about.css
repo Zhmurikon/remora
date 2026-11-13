@@ -1,0 +1,264 @@
+.about {
+  width: min(90%, 66rem);
+  margin-inline: auto;
+  padding-block: 4rem;
+}
+
+.about h2 {
+  margin: 0 0 1.5rem;
+  font:
+    400 1.75rem/1.17 Georgia,
+    'Times New Roman',
+    serif;
+  letter-spacing: -0.02em;
+}
+
+.about-copy {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3rem;
+}
+
+.about-copy p {
+  max-width: 70ch;
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.56;
+}
+
+.about-sequence {
+  position: relative;
+  container-type: inline-size;
+  margin: 3rem 0 0;
+  color-scheme: light;
+  color: CanvasText;
+}
+
+.about-sequence picture,
+.about-sequence img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Границы средней карточки в горизонтальном рисунке и мобильной колонке. */
+.about-rain-card {
+  position: absolute;
+  left: 35%;
+  top: 5%;
+  width: 31%;
+  height: 88%;
+}
+
+.about-rain {
+  position: absolute;
+  left: 51.48%;
+  top: 42.3%;
+  width: 38.58%;
+  height: auto;
+  pointer-events: none;
+  fill: none;
+  stroke: var(--blue);
+  stroke-width: 0.95;
+  stroke-linecap: round;
+}
+
+.rain-strokes path {
+  opacity: 0;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .about-rain-card:hover .rain-strokes path {
+    animation: about-drizzle var(--duration, 0.65s) linear var(--delay, 0s) infinite;
+  }
+  .rain-strokes path:nth-child(2) {
+    --duration: 0.73s;
+    --delay: -0.35s;
+  }
+  .rain-strokes path:nth-child(3) {
+    --duration: 0.59s;
+    --delay: -0.49s;
+  }
+  .rain-strokes path:nth-child(4) {
+    --duration: 0.69s;
+    --delay: -0.17s;
+  }
+}
+
+@keyframes about-drizzle {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  18%,
+  74% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-19px, 38px);
+  }
+}
+
+.about-question,
+.about-answer {
+  position: absolute;
+  top: 57%;
+  transform: translate(-50%, -50%);
+  font:
+    400 min(2rem, 3cqi)/1.2 Georgia,
+    'Times New Roman',
+    serif;
+}
+
+.about-question {
+  left: 51.56%;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.about-question-card {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 32%;
+}
+
+.about-term {
+  position: relative;
+}
+
+.about-term::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 -0.09em;
+  height: 0.09em;
+  background: var(--blue);
+  border-radius: 80% 25% 70% 30%;
+  transform: rotate(-2deg) scaleX(0);
+  transform-origin: left;
+}
+
+.about-calendar-art {
+  position: absolute;
+  left: 69.62%;
+  top: 13.33%;
+  width: 28.71%;
+  height: auto;
+  fill: none;
+  stroke: var(--blue);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .about-question-card:hover .about-term::after {
+    transition: transform 360ms ease-out;
+    transform: rotate(-2deg) scaleX(1);
+  }
+
+  .about-calendar-art:hover {
+    opacity: 1;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 580ms ease-in-out;
+  }
+}
+
+.about-answer {
+  left: 35.48%;
+  top: 59.09%;
+}
+
+.about-calendar {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 1023px) {
+  .about h2 {
+    font-size: 1.625rem;
+  }
+}
+
+@media (max-width: 830px) {
+  .about-rain-card {
+    left: 2%;
+    top: 35%;
+    width: 96%;
+    height: 31%;
+  }
+
+  .about-rain {
+    left: 52%;
+    top: 42.26%;
+    width: 40.06%;
+  }
+
+  .about-copy {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .about-sequence {
+    max-width: 18rem;
+    margin: 2rem auto 0;
+  }
+
+  .about-question,
+  .about-answer {
+    font-size: min(1.75rem, 10cqi);
+  }
+
+  .about-question {
+    top: 53.33%;
+    left: 53%;
+  }
+
+  .about-question-card {
+    width: 100%;
+    height: 30%;
+  }
+
+  .about-calendar-art {
+    left: 3.08%;
+    top: 71.1%;
+    width: 92.31%;
+  }
+
+  .about-answer {
+    top: 61.29%;
+    left: 34.375%;
+  }
+}
+
+@media (max-width: 620px) {
+  .about {
+    width: calc(100% - 2.5rem);
+    padding-block: 2.5rem;
+  }
+
+  .about h2 {
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+  }
+
+  .about-sequence {
+    max-width: 15rem;
+  }
+
+  .about-question,
+  .about-answer {
+    font-size: min(1.5rem, 10cqi);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .about-sequence img {
+    border-radius: 0.75rem;
+  }
+}

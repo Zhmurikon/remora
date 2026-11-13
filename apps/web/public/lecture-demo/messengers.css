@@ -1,0 +1,133 @@
+.messengers {
+  width: min(90%, 66rem);
+  margin-inline: auto;
+  padding-block: 4rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.16fr);
+  align-items: center;
+  gap: 2rem;
+}
+.messenger-copy h2 {
+  font:
+    400 1.75rem/1.17 Georgia,
+    'Times New Roman',
+    serif;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  margin: 0 0 1.4rem;
+}
+.messenger-copy p {
+  margin: 0 0 1rem;
+  line-height: 1.56;
+}
+.messenger-copy a {
+  margin-top: 0.5rem;
+  max-width: 100%;
+  text-align: center;
+}
+.messenger-example {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.messenger-scene {
+  position: relative;
+  container-type: inline-size;
+}
+.messenger-scene img {
+  display: block;
+  width: 100%;
+  height: auto;
+  mix-blend-mode: multiply;
+}
+.messenger-screen {
+  position: absolute;
+  inset: 11.5% 29.8% 14% 29.6%;
+  display: flex;
+  flex-direction: column;
+  color: var(--ink);
+  font-size: max(0.875rem, 2.95cqi);
+  line-height: 1.28;
+}
+.messenger-name {
+  text-align: center;
+  padding: 0.55em 0.15em;
+  border-bottom: 1px solid var(--line);
+}
+.messenger-dialogue {
+  list-style: none;
+  margin: 0;
+  padding: 1.25em 0.45em;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75em;
+  background: var(--side);
+}
+.messenger-dialogue li {
+  align-self: flex-start;
+  max-width: 93%;
+  padding: 0.5em 0.65em;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 0.85em 0.85em 0.85em 0.15em;
+}
+.messenger-dialogue .outgoing {
+  align-self: flex-end;
+  border-radius: 0.85em 0.85em 0.15em 0.85em;
+  background: var(--soft);
+  color: var(--blue);
+}
+.messenger-compose {
+  border: 1px solid var(--line);
+  margin: 0.5em 0.65em 0.15em;
+  padding: 0.3em 0.7em;
+  border-radius: 2em;
+  color: var(--muted);
+  font-size: 0.88em;
+}
+@media (max-width: 1023px) {
+  .messenger-copy h2 {
+    font-size: 1.625rem;
+  }
+}
+@media (max-width: 920px) {
+  .messengers {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  .messenger-example {
+    width: 100%;
+    max-width: 32rem;
+    justify-self: center;
+  }
+  .messenger-copy p {
+    max-width: 60ch;
+  }
+}
+@media (max-width: 620px) {
+  .messengers {
+    width: calc(100% - 2.5rem);
+    padding-block: 2.5rem;
+  }
+  .messenger-copy h2 {
+    font-size: 1.5rem;
+  }
+  .messenger-example {
+    display: grid;
+    justify-items: center;
+  }
+  .messenger-scene {
+    width: max(100%, 26rem);
+    position: relative;
+    left: 50%;
+    justify-self: start;
+    transform: translateX(-50%);
+  }
+}
+@media (prefers-color-scheme: dark) {
+  .messenger-scene img {
+    filter: invert(1) hue-rotate(180deg);
+    mix-blend-mode: screen;
+  }
+}

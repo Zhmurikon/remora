@@ -14,3 +14,4 @@ export {
   type CardContentType,
 } from './components/CardContent';
 export { AudioPlayer, type AudioPlayerProps } from './components/AudioPlayer';
+export { StudyNotesPreview } from './components/StudyNotesPreview';

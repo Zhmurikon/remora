@@ -20,16 +20,14 @@ type Course = components['schemas']['CourseDetail'];
 type Material = components['schemas']['PublicSet'];
 type SearchCourse = components['schemas']['CourseSearchItem'];
 
-// `null` = курс недоступен. Это значение кэшируется наравне с успешным,
-// поэтому снятие с публикации доходит до страницы за срок кэша, а не «никогда».
-const readCourse = cachedPublicRead(['public-course'], async (slug: string) => {
+const readCourse = async (slug: string) => {
   const response = await fetch(`${API_URL}/api/v1/courses/public/${encodeURIComponent(slug)}`, {
     cache: 'no-store',
   });
   if (response.status === 404) return null;
   if (!response.ok) throw new Error('Не удалось загрузить курс');
   return (await response.json()) as Course;
-});
+};
 
 const loadCourse = cache(async (slug: string): Promise<Course> => {
   const course = await readCourse(slug);
@@ -37,18 +35,15 @@ const loadCourse = cache(async (slug: string): Promise<Course> => {
   return course;
 });
 
-const loadMaterial = cachedPublicRead(
-  ['public-course-article'],
-  async (slug: string, id: string): Promise<Material | null> => {
-    const response = await fetch(
-      `${API_URL}/api/v1/courses/public/${encodeURIComponent(slug)}/articles/${encodeURIComponent(id)}`,
-      { cache: 'no-store' },
-    );
-    if (response.status === 404) return null;
-    if (!response.ok) throw new Error('Не удалось загрузить материалы курса');
-    return (await response.json()) as Material;
-  },
-);
+const loadMaterial = cache(async (slug: string, id: string): Promise<Material | null> => {
+  const response = await fetch(
+    `${API_URL}/api/v1/courses/public/${encodeURIComponent(slug)}/articles/${encodeURIComponent(id)}`,
+    { cache: 'no-store' },
+  );
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error('Не удалось загрузить материалы курса');
+  return (await response.json()) as Material;
+});
 
 const loadRelated = cachedPublicRead(['public-course-related'], async (slug: string) => {
   try {

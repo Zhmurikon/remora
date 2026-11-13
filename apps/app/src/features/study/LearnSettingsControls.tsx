@@ -12,7 +12,7 @@ export interface LearnPreferences {
 }
 
 export const DEFAULT_LEARN_PREFERENCES: LearnPreferences = {
-  questionTypes: ['choice', 'typing', 'recall'],
+  questionTypes: ['choice', 'recall'],
   successesRequired: 1,
   sessionSize: 10,
   typingCheck: 'automatic',
@@ -34,7 +34,7 @@ const PRESETS: Array<{ label: string; value: LearnPreferences }> = [
   {
     label: 'Тщательно',
     value: {
-      questionTypes: ['choice', 'typing', 'recall'],
+      questionTypes: ['choice', 'recall'],
       successesRequired: 3,
       sessionSize: 10,
       typingCheck: 'automatic',
@@ -79,7 +79,7 @@ export function LearnSettingsControls({
           ))}
         </div>
         <p className="text-fg-subtle mt-2 text-sm">
-          «Быстро» — одно узнавание, «Обычно» — адаптивный режим, «Тщательно» — три успешных ответа.
+          Рекомендуем «Обычно»: выбор ответа и самооценка. Написание ответа можно включить отдельно.
         </p>
       </div>
 

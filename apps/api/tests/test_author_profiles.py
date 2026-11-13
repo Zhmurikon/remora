@@ -5,7 +5,7 @@ from sqlalchemy import update
 
 from app.db.session import get_engine
 from app.models.user import User, UserStatus
-from tests.test_courses import auth
+from tests.test_courses import allow_private, auth
 
 
 async def _course(client: AsyncClient, headers: dict[str, str], title: str, tags: list[str]):
@@ -29,6 +29,7 @@ async def _course(client: AsyncClient, headers: dict[str, str], title: str, tags
 
 async def test_public_profile_metrics_and_only_available_courses(client: AsyncClient) -> None:
     owner = await auth(client, "profile-author")
+    await allow_private(client, owner)
     reader = await auth(client, "profile-reader")
     private_user = await auth(client, "profile-private")
     private_me = (await client.get("/api/v1/auth/me", headers=private_user)).json()
@@ -40,7 +41,9 @@ async def test_public_profile_metrics_and_only_available_courses(client: AsyncCl
         await client.post("/api/v1/sets", headers=owner, json={"title": "Черновик"})
     ).json()
     await client.post(
-        "/api/v1/courses", headers=owner, json={"title": "Секрет", "set_id": draft_set["id"]}
+        "/api/v1/courses",
+        headers=owner,
+        json={"title": "Секрет", "set_id": draft_set["id"], "is_published": False},
     )
     assert (
         await client.post(f"/api/v1/courses/public/{course['slug']}/like", headers=reader)
@@ -84,6 +87,7 @@ async def test_public_profile_metrics_and_only_available_courses(client: AsyncCl
 
 async def test_related_courses_rank_shared_tags_and_hide_unpublished(client: AsyncClient) -> None:
     owner = await auth(client, "related-author")
+    await allow_private(client, owner)
     source, _ = await _course(client, owner, "Источник", ["математика", "экзамен"])
     closest, _ = await _course(client, owner, "Ближайший", ["математика", "экзамен"])
     partial, _ = await _course(client, owner, "Частичный", ["математика"])
@@ -101,6 +105,7 @@ async def test_related_courses_rank_shared_tags_and_hide_unpublished(client: Asy
 
 async def test_sitemap_contains_only_indexable_courses(client: AsyncClient) -> None:
     owner = await auth(client, "sitemap-author")
+    await allow_private(client, owner)
     me = (await client.get("/api/v1/auth/me", headers=owner)).json()
     visible, _ = await _course(client, owner, "В карте", ["математика"])
     hidden, _ = await _course(client, owner, "Скрытый", ["математика"])

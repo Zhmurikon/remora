@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex, nosnippet" />
+    <title>Карточки и конспект — Запоминальня</title>
+    <link rel="stylesheet" href="./hero.css" />
+    <link rel="stylesheet" href="./sheet-buttons.css" />
+    <script src="./sheet-buttons.js" defer></script>
+    <script src="./demo.js" defer></script>
+    <script src="./lecture.js" defer></script>
+  </head>
+  <body class="widget">
+    <section class="demo" aria-label="Попробовать обучение">
+      <aside>
+        <nav aria-label="Разделы демо">
+          <button type="button" class="mode" data-view="learn" data-sheet="tab">
+            <svg aria-hidden="true"><use href="#cards" /></svg
+            ><span class="line-label">Запоминание</span>
+          </button>
+          <button type="button" class="mode" data-view="notes" data-sheet="tab">
+            <svg aria-hidden="true"><use href="#notes" /></svg
+            ><span class="line-label">Конспекты</span>
+          </button>
+          <button type="button" class="mode" data-view="lecture" data-sheet="tab">
+            <svg aria-hidden="true"><use href="#lecture" /></svg
+            ><span class="line-label">Лекции</span>
+          </button>
+        </nav>
+      </aside>
+      <div class="workspace">
+        <div class="content" id="content">
+          <section data-panel="lecture" hidden>
+            <h2 tabindex="-1">Соберите конспект из записи</h2>
+            <p class="lecture-lead">
+              Из записи пары получится расшифровка. По ней можно собрать конспект и карточки к
+              зачёту.
+            </p>
+            <label class="dropzone" id="lecture-dropzone">
+              <span class="recording-art" aria-hidden="true"
+                ><span class="recording-sheet"
+                  ><svg viewBox="0 0 48 30">
+                    <path
+                      d="M3 13v4m5-9v14m5-17v20m5-14v8m5-18v28m5-20v12m5-17v22m5-16v10m5-7v4"
+                    /></svg></span
+                ><span class="upload-arrow">↑</span></span
+              >
+              <strong class="drop-title">Перетащите запись сюда</strong>
+              <span class="drop-formats" id="file-help">Аудио или видео · до 1 ГБ</span>
+              <span class="pick-file" data-sheet="blue">Выбрать файл</span>
+              <input
+                type="file"
+                id="lecture-file"
+                aria-label="Выбрать запись лекции"
+                aria-describedby="file-help"
+                accept="audio/*,video/*,.aac,.ac3,.aiff,.amr,.ape,.avi,.flac,.flv,.m2ts,.m4a,.m4v,.mkv,.mov,.mp3,.mp4,.mpeg,.mpg,.mts,.ogg,.opus,.ts,.vob,.wav,.webm,.wma,.wmv,.3gp"
+              />
+            </label>
+            <p class="lecture-plan">Расшифровка своей записи доступна на Plus и Pro.</p>
+            <p role="status" id="upload-status"></p>
+            <div id="registration" hidden>
+              <p>
+                Запись сохранена в этом браузере. Создайте аккаунт или войдите, чтобы продолжить в
+                кабинете.
+              </p>
+              <div class="actions">
+                <a class="primary-link" data-sheet="blue" href="/register" target="_top"
+                  >Зарегистрироваться</a
+                ><a class="login-link line-action" href="/app/transcriptions/new" target="_top"
+                  ><span class="line-label">Войти и продолжить</span></a
+                ><button class="secondary" id="discard" data-sheet="outline">Убрать файл</button>
+              </div>
+            </div>
+          </section>
+          <section data-panel="notes" hidden>
+            <h2 tabindex="-1">Как менялась температура в Токио</h2>
+            <article class="notes-scroll" tabindex="0" aria-label="Конспект о температуре в Токио">
+              <p class="note-intro">Найдём среднее и размах по четырём замерам. Данные учебные.</p>
+              <div class="weather-data">
+                <table>
+                  <caption>
+                    Замеры
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Время</th>
+                      <th scope="col">°C</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <th scope="row">06:00</th>
+                      <td>12</td>
+                    </tr>
+                    <tr>
+                      <th scope="row">10:00</th>
+                      <td>16</td>
+                    </tr>
+                    <tr>
+                      <th scope="row">14:00</th>
+                      <td>20</td>
+                    </tr>
+                    <tr>
+                      <th scope="row">18:00</th>
+                      <td>16</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <figure>
+                  <figcaption>Температура, °C</figcaption>
+                  <svg
+                    viewBox="0 0 250 135"
+                    role="img"
+                    aria-label="Температура выросла с 12 до 20 градусов к 14 часам, затем опустилась до 16"
+                  >
+                    <g class="gridlines"><path d="M29 20H234 M29 60H234 M29 100H234" /></g>
+                    <g class="axes">
+                      <text x="4" y="24">20</text>
+                      <text x="4" y="64">16</text>
+                      <text x="4" y="104">12</text>
+                      <text x="34" y="126">06</text>
+                      <text x="98" y="126">10</text>
+                      <text x="162" y="126">14</text>
+                      <text x="226" y="126">18 ч</text>
+                    </g>
+                    <path class="area" d="M40 100 104 60 168 20 232 60V100Z" />
+                    <path class="trace" pathLength="1" d="M40 100 104 60 168 20 232 60" />
+                    <g class="points">
+                      <circle cx="40" cy="100" r="3" />
+                      <circle cx="104" cy="60" r="3" />
+                      <circle cx="168" cy="20" r="3" />
+                      <circle cx="232" cy="60" r="3" />
+                    </g>
+                  </svg>
+                </figure>
+              </div>
+              <h3>Среднее четырёх замеров</h3>
+              <div
+                class="note-equation"
+                aria-label="Средняя температура равна сумме 12, 16, 20 и 16, делённой на 4. Результат — 16 градусов Цельсия"
+              >
+                <span aria-hidden="true"
+                  ><i>T̄</i> =
+                  <span class="fraction"><span>12 + 16 + 20 + 16</span><span>4</span></span> =
+                  <strong>16 °C</strong></span
+                >
+              </div>
+              <h3>Что видно на графике</h3>
+              <ul>
+                <li>С шести утра до двух часов дня стало теплее на 8 градусов.</li>
+                <li>В 10:00 и 18:00 термометр показывал одно и то же, хотя днём было теплее.</li>
+              </ul>
+              <details>
+                <summary>Чему равен размах измерений?</summary>
+                <p>Вычитаем минимум из максимума: 20 − 12 = 8 °C.</p>
+              </details>
+            </article>
+          </section>
+          <section data-panel="study" hidden>
+            <div class="meta">
+              <span id="counter"></span><span class="meter" aria-hidden="true"></span>
+            </div>
+            <h2 id="question" tabindex="-1"></h2>
+            <div>
+              <div class="options" role="group" aria-labelledby="question"></div>
+              <p class="feedback" role="status"></p>
+              <button type="button" class="primary" data-action="next" hidden data-sheet="blue">
+                Следующий вопрос
+              </button>
+            </div>
+          </section>
+          <section data-panel="result" hidden>
+            <h2 tabindex="-1"></h2>
+            <p></p>
+            <div class="actions">
+              <button type="button" class="primary" data-action="restart" data-sheet="blue">
+                Пройти ещё раз</button
+              ><button type="button" class="secondary" data-view="notes" data-sheet="outline">
+                Открыть конспект
+              </button>
+            </div>
+          </section>
+          <noscript>Для ответов на карточках и выбора записи включите JavaScript.</noscript>
+        </div>
+      </div>
+    </section>
+    <svg aria-hidden="true" width="0" height="0" style="position: absolute; width: 0; height: 0">
+      <defs>
+        <symbol id="cards" viewBox="0 0 24 24">
+          <path d="m4 15-1-9 13-2 1 3" />
+          <rect x="6" y="8" width="15" height="12" rx="2.5" />
+          <path d="M10 12h7m-7 4h4" />
+        </symbol>
+
+        <symbol id="notes" viewBox="0 0 24 24"><path d="M6 3h11l3 4v13H6zM9 10h8m-8 4h6" /></symbol>
+        <symbol id="lecture" viewBox="0 0 24 24">
+          <path d="M3 10v4m4-7v10m5-15v19m5-15v11m4-8v5" />
+        </symbol>
+      </defs>
+    </svg>
+  </body>
+</html>

@@ -314,7 +314,7 @@ export function BlogPage() {
           {editor.id && editor.state === 'published' ? (
             <a
               className="text-primary inline-flex min-h-11 items-center font-medium underline underline-offset-4"
-              href={`https://zapominalnya.ru/blog/${editor.slug}`}
+              href={`${import.meta.env.VITE_WEB_URL ?? 'https://zapominalnya.ru'}/blog/${editor.slug}`}
               target="_blank"
               rel="noreferrer"
             >

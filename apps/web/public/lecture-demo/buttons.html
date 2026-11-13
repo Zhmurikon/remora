@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Росчерк ручки — Запоминальня</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --paper: #fcfcfa;
+        --panel: #fff;
+        --ink: #172229;
+        --muted: #56627a;
+        --line: #d9dfec;
+        --blue: #284bb2;
+        --soft: #e9efff;
+        font:
+          100%/1.5 Inter,
+          'Segoe UI',
+          Arial,
+          sans-serif;
+        color: var(--ink);
+        background: var(--paper);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #151a20;
+          --panel: #1b222c;
+          --ink: #edf0f7;
+          --muted: #b0bbcd;
+          --line: #39445b;
+          --blue: #b2c7ff;
+          --soft: #24324f;
+        }
+      }
+      @media (min-width: 100rem) {
+        :root {
+          font-size: clamp(100%, min(1vw, 1.74svh), 212.5%);
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+      main {
+        width: min(92%, 76rem);
+        margin: 0 auto;
+        padding: 2.25rem 0 3rem;
+      }
+      .back {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        color: var(--blue);
+        text-underline-offset: 0.2em;
+        font-size: 0.9rem;
+      }
+      h1 {
+        margin: 1.3rem 0 0.4rem;
+        font:
+          400 clamp(2rem, 4vw, 3.4rem)/1.1 Georgia,
+          serif;
+        letter-spacing: -0.035em;
+      }
+      .lead {
+        margin: 0 0 2rem;
+        color: var(--muted);
+      }
+      ol {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        list-style: none;
+        padding: 0;
+        gap: 1rem;
+      }
+      li {
+        min-width: 0;
+        display: grid;
+        align-content: start;
+        justify-items: center;
+        row-gap: 2.25rem;
+        padding: 1.35rem 1rem 3rem;
+        border: 1px solid var(--line);
+        border-radius: 0.65rem;
+        background: var(--panel);
+      }
+      h2 {
+        justify-self: start;
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 600;
+      }
+      @media (max-width: 54rem) {
+        ol {
+          grid-template-columns: 1fr;
+        }
+        main {
+          max-width: 32rem;
+        }
+        li {
+          row-gap: 1.3rem;
+          padding-bottom: 2rem;
+        }
+      }
+    </style>
+    <link rel="stylesheet" href="./sheet-buttons.css" />
+
+    <script src="./sheet-buttons.js" defer></script>
+  </head>
+  <body>
+    <main data-sheet-preview>
+      <a class="back" href="./index.html">← К макету главной</a>
+      <h1>Стопка карточек</h1>
+      <p class="lead">
+        Наведите курсор, коснитесь кнопки или перейдите к ней клавишей Tab, чтобы увидеть росчерк
+        ручки на каждой заливке.
+      </p>
+      <ol>
+        <li id="sheets">
+          <h2 id="outline-title">1. Контурная со штриховкой</h2>
+          <button
+            class="sheets"
+            data-sheet="outline"
+            type="button"
+            aria-label="Попробовать бесплатно"
+            aria-describedby="outline-title"
+          >
+            Попробовать бесплатно
+          </button>
+        </li>
+        <li id="fine-grid">
+          <h2 id="fine-grid-title">5Б. Мелкая сетка</h2>
+          <button
+            class="sheets"
+            data-sheet="blue"
+            type="button"
+            aria-label="Попробовать бесплатно"
+            aria-describedby="fine-grid-title"
+          >
+            Попробовать бесплатно
+          </button>
+        </li>
+      </ol>
+    </main>
+  </body>
+</html>

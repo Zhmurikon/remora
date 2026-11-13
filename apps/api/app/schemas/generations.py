@@ -5,6 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.distractors import normalize_option
+from app.models.content import SetVisibility
 
 GenerationKind = Literal["notes", "cards"]
 
@@ -48,23 +49,37 @@ def card_issues(cards: list[GeneratedCard]) -> list[str]:
 
 
 class GenerationCreate(BaseModel):
+    is_public: bool = True
     request_id: UUID
     kind: GenerationKind
     parent_id: UUID | None = None
 
 
 class GenerationUpdate(BaseModel):
+    is_public: bool | None = None
     revision: datetime
     markdown: str | None = Field(default=None, min_length=1, max_length=100_000)
     cards: list[GeneratedCard] | None = Field(default=None, max_length=12)
 
 
+class NoteSitemapEntry(BaseModel):
+    id: UUID
+    updated_at: datetime
+
+
+class SharedNote(BaseModel):
+    title: str
+    markdown: str
+
+
 class GenerationSaveSet(BaseModel):
+    visibility: SetVisibility = SetVisibility.public
     revision: datetime
     title: str = Field(min_length=1, max_length=160)
 
 
 class GenerationPublic(BaseModel):
+    is_public: bool
     model_config = ConfigDict(from_attributes=True)
     id: UUID
     transcription_id: UUID

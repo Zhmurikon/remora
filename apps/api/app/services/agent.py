@@ -10,15 +10,17 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.article_media import extract_media_ids
 from app.core.errors import ConflictError
 from app.models.api_tokens import AgentRequest
-from app.models.content import Folder
+from app.models.content import Folder, SetVisibility
 from app.models.courses import Course, CourseArticle, CourseSection
 from app.models.user import User
 from app.repositories import api_tokens as token_repo
 from app.repositories import courses as course_repo
 from app.schemas.agent import (
     AgentArticleDetail,
+    AgentCourseCreate,
     AgentCourseDetail,
     AgentCourseUpdate,
     AgentCourseWrite,
@@ -43,6 +45,7 @@ from app.schemas.courses import CourseSummary
 from app.services.content import ContentService
 from app.services.courses import CourseService
 from app.services.entitlements import Entitlements
+from app.services.search_sync import queue_course
 
 
 def digest(value: object) -> str:
@@ -68,6 +71,17 @@ class AgentService:
         await token_repo.lock_request(self.db, user.id)
         # None — операция без тела: отпечаток определяется одним `operation`.
         payload = body.model_dump(mode="json") if body is not None else {}
+        if isinstance(body, AgentSetWrite) and "visibility" not in body.model_fields_set:
+            payload.pop("visibility", None)
+        if isinstance(body, AgentCourseWrite):
+            if "is_published" not in body.model_fields_set:
+                payload.pop("is_published", None)
+            for section, saved_section in zip(body.sections, payload["sections"], strict=True):
+                for article, saved_article in zip(
+                    section.articles, saved_section["articles"], strict=True
+                ):
+                    if "visibility" not in article.material.model_fields_set:
+                        saved_article["material"].pop("visibility", None)
         fingerprint = digest({"operation": operation, "body": payload})
         previous = await token_repo.previous_request(self.db, user.id, key)
         if previous is not None:
@@ -145,19 +159,10 @@ class AgentService:
         return await self.set_detail(user, set_id)
 
     async def _write_set(self, user: User, set_id: UUID, body: AgentSetWrite) -> None:
-        course = await course_repo.course_for_set(self.db, set_id)
-        if course and course.is_published:
-            raise ConflictError("Перед изменением агентом снимите курс с публикации")
         await self.content.update_set(
             user,
             set_id,
-            SetUpdate(
-                title=body.title,
-                description=body.description,
-                lang_term=body.lang_term,
-                lang_definition=body.lang_definition,
-                folder_id=body.folder_id,
-            ),
+            SetUpdate(**body.model_dump(exclude={"cards", "revision"}, exclude_unset=True)),
         )
         await self.content.sync_cards(user, set_id, CardBatch(cards=body.cards))
 
@@ -190,11 +195,15 @@ class AgentService:
         }
         return AgentCourseDetail(**data, revision=digest(data))
 
-    async def create_course(self, user: User, body: AgentCourseWrite) -> AgentCourseDetail:
+    async def create_course(self, user: User, body: AgentCourseCreate) -> AgentCourseDetail:
         await Entitlements(self.db).check_course_creation(user)
+        if not body.is_published:
+            await Entitlements(self.db).require_feature(user, "materials.private")
         course_id = uuid4()
         course = Course(
             id=course_id,
+            is_published=body.is_published,
+            published_at=datetime.now(UTC) if body.is_published else None,
             owner_id=user.id,
             title=body.title,
             description=body.description,
@@ -214,12 +223,19 @@ class AgentService:
                 "Курс изменился. Прочитайте его заново", details={"reason": "stale_revision"}
             )
         course = await self.courses.owned(user, course_id)
-        if course.is_published:
-            raise ConflictError("Перед изменением агентом снимите курс с публикации")
         await self._write_structure(user, course, body)
         return await self.course_detail(user, course_id)
 
     async def _write_structure(self, user: User, course: Course, body: AgentCourseWrite) -> None:
+        await self.content.validate_media_owned(
+            user,
+            {
+                asset_id
+                for section in body.sections
+                for article in section.articles
+                for asset_id in extract_media_ids(article.body)
+            },
+        )
         sections = {s.id: s for s in await course_repo.sections(self.db, course.id)}
         articles = {a.id: a for a in await course_repo.articles(self.db, course.id)}
         section_ids = [s.id for s in body.sections if s.id]
@@ -252,7 +268,12 @@ class AgentService:
                     article = articles[article_body.id]
                     await self._write_set(user, article.set_id, article_body.material)
                 else:
-                    material = await self.create_set(user, article_body.material)
+                    spec = article_body.material
+                    if course.is_published and spec.visibility != SetVisibility.public:
+                        raise ConflictError("В публичном курсе набор должен быть открытым")
+                    if not course.is_published and "visibility" not in spec.model_fields_set:
+                        spec = spec.model_copy(update={"visibility": SetVisibility.private})
+                    material = await self.create_set(user, spec)
                     article = CourseArticle(
                         id=uuid4(),
                         section_id=section.id,
@@ -266,3 +287,4 @@ class AgentService:
                 article.position = article_position
                 await self.db.flush()
         await self.db.refresh(course)
+        await queue_course(self.db, course.id)

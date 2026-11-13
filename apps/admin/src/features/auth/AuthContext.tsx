@@ -20,23 +20,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const controller = new AbortController();
-    void api.GET('/api/v1/auth/me', { signal: controller.signal }).then(async ({ data }) => {
-      if (controller.signal.aborted) return;
-      if (data?.role === 'admin') {
-        const security = await api.GET('/api/v1/admin/security/status', {
-          signal: controller.signal,
-        });
+    void api
+      .GET('/api/v1/auth/me', { signal: controller.signal })
+      .then(async ({ data }) => {
         if (controller.signal.aborted) return;
-        if (security.data?.enabled) {
-          setUser(data);
-          setStatus('authenticated');
-          return;
+        if (data?.role === 'admin') {
+          const security = await api.GET('/api/v1/admin/security/status', {
+            signal: controller.signal,
+          });
+          if (controller.signal.aborted) return;
+          if (security.data?.enabled) {
+            setUser(data);
+            setStatus('authenticated');
+            return;
+          }
         }
-      }
-      setAccessToken(null);
-      setUser(null);
-      setStatus('guest');
-    });
+        setAccessToken(null);
+        setUser(null);
+        setStatus('guest');
+      })
+      .catch((error: unknown) => {
+        // При повторном монтировании React отменяет первый запрос сессии.
+        if (!controller.signal.aborted) throw error;
+      });
     return () => controller.abort();
   }, []);
 

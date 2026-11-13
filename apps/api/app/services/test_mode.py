@@ -240,13 +240,15 @@ class TestModeService:
             questions.append(_single_question(kind, card, direction, study_set, pool, rng))
 
         # Недобранная группа сопоставления: одна пара — не задание, разворачиваем
-        # такие карточки в обычные вопросы с вводом.
+        # такие карточки в вопрос «верно или неверно».
         if len(matching_bucket) >= 2:
             questions.append(_matching_question(matching_bucket, rng))
         else:
             for card, direction in matching_bucket:
                 questions.append(
-                    _single_question(TestQuestionKind.typing, card, direction, study_set, [], rng)
+                    _single_question(
+                        TestQuestionKind.true_false, card, direction, study_set, [], rng
+                    )
                 )
         rng.shuffle(questions)
         return questions
@@ -386,7 +388,7 @@ def _pick_kind(
         )
         and (kind is not TestQuestionKind.true_false or can_ask_multiple_choice(pool))
     ]
-    return rng.choice(available or [TestQuestionKind.typing])
+    return rng.choice(available or [TestQuestionKind.true_false])
 
 
 def _single_question(

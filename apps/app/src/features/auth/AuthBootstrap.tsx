@@ -8,11 +8,17 @@ export function AuthBootstrap({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const controller = new AbortController();
-    void api.GET('/api/v1/auth/me', { signal: controller.signal }).then(({ data }) => {
-      if (controller.signal.aborted) return;
-      if (data) authenticate(data);
-      else becomeGuest();
-    });
+    void api
+      .GET('/api/v1/auth/me', { signal: controller.signal })
+      .then(({ data }) => {
+        if (controller.signal.aborted) return;
+        if (data) authenticate(data);
+        else becomeGuest();
+      })
+      .catch((error: unknown) => {
+        // При повторном монтировании React отменяет первый запрос сессии.
+        if (!controller.signal.aborted) throw error;
+      });
     return () => controller.abort();
   }, [authenticate, becomeGuest]);
 

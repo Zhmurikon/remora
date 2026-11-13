@@ -81,7 +81,9 @@ class ContentService:
             if asset.status == MediaStatus.ready and asset.owner_id == study_set.owner_id
         }
         return PublicSet(
-            course_url=f"/kurs/{course.slug}#article-{article.id}" if course and article else None,
+            course_url=f"/kurs/{course.slug}#article-{article.id}"
+            if course and course.is_published and article
+            else None,
             id=study_set.id,
             title=study_set.title,
             description=study_set.description,
@@ -182,6 +184,8 @@ class ContentService:
     async def create_set(self, user: User, body: SetCreate) -> StudySet:
         await lock_request(self.db, user.id)
         await Entitlements(self.db).check_set_creation(user)
+        if body.visibility != SetVisibility.public:
+            await Entitlements(self.db).require_feature(user, "materials.private")
         if body.folder_id is not None:
             await self.get_owned_folder(user, body.folder_id)
         study_set = StudySet(id=uuid4(), owner_id=user.id, slug="pending", **body.model_dump())
@@ -193,7 +197,16 @@ class ContentService:
         if body.folder_id is not None:
             await self.get_owned_folder(user, body.folder_id)
         study_set = await self.get_owned_set(user, set_id, with_cards=True)
-        for field, value in body.model_dump().items():
+        values = body.model_dump(exclude_unset=True)
+        if "visibility" in values and body.visibility not in (
+            study_set.visibility,
+            SetVisibility.public,
+        ):
+            await Entitlements(self.db).require_feature(user, "materials.private")
+            course = await course_repo.course_for_set(self.db, set_id)
+            if course and course.is_published:
+                raise ConflictError("Сначала скройте курс, в который входит набор")
+        for field, value in values.items():
             setattr(study_set, field, value)
         await self.db.flush()
         # PostgreSQL вычисляет updated_at при UPDATE. Загружаем значение в async-контексте,

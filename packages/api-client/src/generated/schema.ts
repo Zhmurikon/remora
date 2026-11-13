@@ -2431,6 +2431,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notes/public/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Public Note */
+        get: operations["public_note_api_v1_notes_public__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notes/sitemap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Note Sitemap */
+        get: operations["note_sitemap_api_v1_notes_sitemap_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/practice/python/progress": {
         parameters: {
             query?: never;
@@ -4982,6 +5016,23 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** AgentCourseCreate */
+        AgentCourseCreate: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Is Published
+             * @default true
+             */
+            is_published: boolean;
+            /** Sections */
+            sections?: components["schemas"]["AgentSectionWrite"][];
+            /** Title */
+            title: string;
+        };
         /** AgentCourseDetail */
         AgentCourseDetail: {
             /**
@@ -5047,18 +5098,6 @@ export interface components {
             description: string;
             /** Revision */
             revision: string;
-            /** Sections */
-            sections?: components["schemas"]["AgentSectionWrite"][];
-            /** Title */
-            title: string;
-        };
-        /** AgentCourseWrite */
-        AgentCourseWrite: {
-            /**
-             * Description
-             * @default
-             */
-            description: string;
             /** Sections */
             sections?: components["schemas"]["AgentSectionWrite"][];
             /** Title */
@@ -5254,6 +5293,8 @@ export interface components {
             revision: string;
             /** Title */
             title: string;
+            /** @default public */
+            visibility: components["schemas"]["SetVisibility"];
         };
         /** AgentSetWrite */
         AgentSetWrite: {
@@ -5278,6 +5319,8 @@ export interface components {
             lang_term: string;
             /** Title */
             title: string;
+            /** @default public */
+            visibility: components["schemas"]["SetVisibility"];
         };
         /** AgentStructureDelete */
         AgentStructureDelete: {
@@ -6658,6 +6701,11 @@ export interface components {
              * @default
              */
             description: string;
+            /**
+             * Is Published
+             * @default true
+             */
+            is_published: boolean;
             /** Set Id */
             set_id?: string | null;
             /** Title */
@@ -7034,6 +7082,11 @@ export interface components {
         /** GenerationCreate */
         GenerationCreate: {
             /**
+             * Is Public
+             * @default true
+             */
+            is_public: boolean;
+            /**
              * Kind
              * @enum {string}
              */
@@ -7062,6 +7115,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Is Public */
+            is_public: boolean;
             /** Issues */
             issues?: string[];
             /**
@@ -7104,11 +7159,15 @@ export interface components {
             revision: string;
             /** Title */
             title: string;
+            /** @default public */
+            visibility: components["schemas"]["SetVisibility"];
         };
         /** GenerationUpdate */
         GenerationUpdate: {
             /** Cards */
             cards?: components["schemas"]["GeneratedCard"][] | null;
+            /** Is Public */
+            is_public?: boolean | null;
             /** Markdown */
             markdown?: string | null;
             /**
@@ -7379,6 +7438,19 @@ export interface components {
          * @enum {string}
          */
         MediaStatus: "pending" | "ready" | "rejected";
+        /** NoteSitemapEntry */
+        NoteSitemapEntry: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** PasswordChangeRequest */
         PasswordChangeRequest: {
             /** Current Password */
@@ -8242,6 +8314,13 @@ export interface components {
          * @enum {string}
          */
         SetVisibility: "private" | "unlisted" | "public";
+        /** SharedNote */
+        SharedNote: {
+            /** Markdown */
+            markdown: string;
+            /** Title */
+            title: string;
+        };
         /** SpeakRequest */
         SpeakRequest: {
             /**
@@ -8508,8 +8587,7 @@ export interface components {
              * Kinds
              * @default [
              *       "choice",
-             *       "true_false",
-             *       "typing"
+             *       "true_false"
              *     ]
              */
             kinds: components["schemas"]["TestQuestionKind"][];
@@ -10544,7 +10622,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AgentCourseWrite"];
+                "application/json": components["schemas"]["AgentCourseCreate"];
             };
         };
         responses: {
@@ -14125,6 +14203,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    public_note_api_v1_notes_public__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharedNote"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    note_sitemap_api_v1_notes_sitemap_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteSitemapEntry"][];
                 };
             };
         };

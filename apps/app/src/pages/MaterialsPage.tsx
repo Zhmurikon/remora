@@ -305,8 +305,8 @@ export function MaterialsPage() {
     const { data } = await api.POST('/api/v1/sets', {
       body: {
         title: 'Новый набор',
+        visibility: 'public',
         description: '',
-        visibility: 'private',
         lang_term: 'ru',
         lang_definition: 'ru',
         folder_id: null,

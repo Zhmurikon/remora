@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.errors import ConflictError, NotFoundError, ValidationError
-from app.models.content import SetVisibility
 from app.models.generations import GenerationJob
 from app.models.transcriptions import TranscriptionStatus
 from app.models.user import User
@@ -19,6 +18,8 @@ from app.schemas.generations import (
     GenerationPublic,
     GenerationSaveSet,
     GenerationUpdate,
+    NoteSitemapEntry,
+    SharedNote,
     card_issues,
 )
 from app.services import generation_provider as provider
@@ -33,6 +34,18 @@ METRIC = "ai_generation_tokens"
 class GenerationService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
+
+    async def note_entries(self) -> list[NoteSitemapEntry]:
+        return [
+            NoteSitemapEntry(id=key, updated_at=updated)
+            for key, updated in await repo.public_note_entries(self.db)
+        ]
+
+    async def shared_note(self, job_id: UUID) -> SharedNote:
+        row = await repo.shared_note(self.db, job_id)
+        if row is None:
+            raise NotFoundError("Конспект не найден")
+        return SharedNote(title=row[0], markdown=row[1])
 
     async def get(self, user: User, job_id: UUID, *, lock: bool = False) -> GenerationJob:
         job = await repo.get(self.db, user.id, job_id, lock=lock)
@@ -49,10 +62,16 @@ class GenerationService:
         source = await TranscriptionService(self.db).get_for_user(user, source_id)
         previous = await repo.by_request(self.db, user.id, body.request_id)
         if previous:
-            if (previous.transcription_id, previous.kind, previous.parent_id) != (
+            if (
+                previous.transcription_id,
+                previous.kind,
+                previous.parent_id,
+                previous.is_public,
+            ) != (
                 source_id,
                 body.kind,
                 body.parent_id,
+                body.is_public,
             ):
                 raise ConflictError("Идентификатор запроса уже использован")
             return previous
@@ -60,6 +79,10 @@ class GenerationService:
             if active.status in {"queued", "processing"}:
                 raise ConflictError("Дождитесь завершения текущей генерации")
         await Entitlements(self.db).require_feature(user, "ai.generation")
+        if not body.is_public:
+            if body.kind != "notes":
+                raise ValidationError("Видимость карточек выбирается при сохранении набора")
+            await Entitlements(self.db).require_feature(user, "materials.private")
         key = get_settings().open_ai_api_key
         if not key or not key.get_secret_value():
             raise ValidationError("Генерация временно недоступна")
@@ -93,6 +116,7 @@ class GenerationService:
             transcription_id=source_id,
             request_id=body.request_id,
             kind=body.kind,
+            is_public=body.is_public,
             title=title,
             source_text=text,
             source_hash=hashlib.sha256(text.encode()).hexdigest(),
@@ -110,11 +134,25 @@ class GenerationService:
     async def update(self, user: User, job_id: UUID, body: GenerationUpdate) -> GenerationJob:
         job = await self.get(user, job_id, lock=True)
         self._editable(job, body.revision)
-        if job.kind == "notes" and body.markdown is not None and body.cards is None:
-            if not body.markdown.strip():
-                raise ValidationError("Конспект не может быть пустым")
-            job.markdown = body.markdown
-        elif job.kind == "cards" and body.cards is not None and body.markdown is None:
+        if (
+            job.kind == "notes"
+            and body.cards is None
+            and (body.markdown is not None or body.is_public is not None)
+        ):
+            if body.is_public is not None:
+                if job.is_public and not body.is_public:
+                    await Entitlements(self.db).require_feature(user, "materials.private")
+                job.is_public = body.is_public
+            if body.markdown is not None:
+                if not body.markdown.strip():
+                    raise ValidationError("Конспект не может быть пустым")
+                job.markdown = body.markdown
+        elif (
+            job.kind == "cards"
+            and body.cards is not None
+            and body.markdown is None
+            and body.is_public is None
+        ):
             job.cards = [card.model_dump() for card in body.cards]
         else:
             raise ValidationError("Изменение не соответствует виду материала")
@@ -138,7 +176,7 @@ class GenerationService:
             )
         content = ContentService(self.db)
         study_set = await content.create_set(
-            user, SetCreate(title=body.title, visibility=SetVisibility.private)
+            user, SetCreate(title=body.title, visibility=body.visibility)
         )
         await content.sync_cards(
             user, study_set.id, CardBatch(cards=[CardWrite(**card.model_dump()) for card in cards])

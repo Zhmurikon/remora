@@ -14,6 +14,7 @@ from app.models.billing import Entitlement, EntitlementSource
 from app.models.classes import ClassMemberRole
 from app.models.user import User
 from app.services.class_permissions import ClassAction, allows
+from tests.test_courses import allow_private
 
 
 async def _auth(client: pytest.fixture, suffix: str) -> dict[str, str]:
@@ -167,6 +168,7 @@ async def test_join_share_private_set_and_assignment(
     _mock_send: AsyncMock, client: pytest.fixture
 ) -> None:
     owner = await _auth(client, "flowowner")
+    await allow_private(client, owner)
     student = await _auth(client, "flowstudent")
     second_student = await _auth(client, "flowsecond")
     material = await client.post(
@@ -280,6 +282,7 @@ async def test_teacher_reports_real_progress_and_exports_xlsx(
     _mock_send: AsyncMock, client: pytest.fixture
 ) -> None:
     owner = await _auth(client, "reportowner")
+    await allow_private(client, owner)
     student = await _auth(client, "reportstudent")
     stranger = await _auth(client, "reportstranger")
     material = await client.post(

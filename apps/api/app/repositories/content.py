@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import exists, func, or_, select, update
+from sqlalchemy import exists, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -80,18 +80,6 @@ async def get_set_including_archived(db: AsyncSession, set_id: UUID) -> StudySet
 
 
 async def get_public_set_by_slug(db: AsyncSession, slug: str) -> tuple[StudySet, User] | None:
-    published_course = (
-        select(Course.id)
-        .join(CourseSection, CourseSection.course_id == Course.id)
-        .join(CourseArticle, CourseArticle.section_id == CourseSection.id)
-        .where(
-            CourseArticle.set_id == StudySet.id,
-            Course.is_published.is_(True),
-            Course.moderation_status != "blocked",
-            Course.owner_id == StudySet.owner_id,
-        )
-        .correlate(StudySet)
-    )
     blocked_course = (
         select(Course.id)
         .join(CourseSection, CourseSection.course_id == Course.id)
@@ -109,7 +97,7 @@ async def get_public_set_by_slug(db: AsyncSession, slug: str) -> tuple[StudySet,
         .where(
             StudySet.slug == slug,
             StudySet.deleted_at.is_(None),
-            or_(StudySet.visibility == SetVisibility.public, exists(published_course)),
+            StudySet.visibility.in_([SetVisibility.public, SetVisibility.unlisted]),
             ~exists(blocked_course),
             User.status == UserStatus.active,
             User.deleted_at.is_(None),

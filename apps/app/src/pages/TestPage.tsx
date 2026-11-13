@@ -105,7 +105,7 @@ function TestBuilder({
 }) {
   const navigate = useNavigate();
   const [count, setCount] = useState(20);
-  const [kinds, setKinds] = useState<QuestionKind[]>(['choice', 'true_false', 'typing']);
+  const [kinds, setKinds] = useState<QuestionKind[]>(['choice', 'true_false']);
   const [source, setSource] = useState<NonNullable<TestConfig['source']>>('all');
   const [direction, setDirection] = useState<NonNullable<TestConfig['direction']>>('term_to_def');
   const [writeToSchedule, setWriteToSchedule] = useState(true);
@@ -139,7 +139,8 @@ function TestBuilder({
       )}
       <h1 className="mt-5 text-2xl font-semibold tracking-tight">Тест</h1>
       <p className="text-fg-muted mt-2">
-        Выберите вопросы для проверки знаний. Результат и разбор появятся после завершения.
+        Рекомендуем выбор ответа и вопросы «Верно или неверно». Для письменных ответов включите
+        «Ввод ответа».
       </p>
 
       <Card className="mt-6 space-y-5 p-6">

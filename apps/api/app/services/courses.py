@@ -210,11 +210,15 @@ class CourseService:
         if course.moderation_status == "blocked":
             raise ForbiddenError("Курс заблокирован модератором")
         articles = await repo.articles(self.db, course_id)
-        if not articles:
+        if not articles and not course.is_published:
             raise ConflictError("Добавьте в курс набор карточек")
         for article in articles:
             study_set = await content_repo.get_set(self.db, article.set_id, with_cards=True)
-            if study_set is None or study_set.owner_id != user.id or not study_set.cards:
+            if (
+                study_set is None
+                or study_set.owner_id != user.id
+                or (not course.is_published and not study_set.cards)
+            ):
                 raise ConflictError("Каждая статья должна содержать доступный набор с карточками")
             study_set.visibility = SetVisibility.public
         await ContentService(self.db).validate_media_owned(
@@ -231,6 +235,8 @@ class CourseService:
     async def unpublish(self, user: User, course_id: UUID) -> CourseDetail:
         await lock_request(self.db, user.id)
         course = await self.owned(user, course_id)
+        if course.is_published:
+            await Entitlements(self.db).require_feature(user, "materials.private")
         course.is_published = False
         await self.db.flush()
         await self.db.refresh(course)
@@ -240,12 +246,24 @@ class CourseService:
     async def create(self, user: User, body: CourseCreate) -> CourseDetail:
         await lock_request(self.db, user.id)
         await Entitlements(self.db).check_course_creation(user)
+        if not body.is_published:
+            await Entitlements(self.db).require_feature(user, "materials.private")
         content = ContentService(self.db)
         study_set = (
             await content.get_owned_set(user, body.set_id)
             if body.set_id
-            else await content.create_set(user, SetCreate(title=body.title))
+            else await content.create_set(
+                user,
+                SetCreate(
+                    title=body.title,
+                    visibility=(
+                        SetVisibility.public if body.is_published else SetVisibility.private
+                    ),
+                ),
+            )
         )
+        if body.is_published and study_set.visibility != SetVisibility.public:
+            raise ConflictError("Чтобы добавить набор в публичный курс, откройте набор")
         if await repo.get_article_for_set(self.db, study_set.id) is not None:
             raise ConflictError("Набор уже связан со статьёй курса")
         course_id, section_id = uuid4(), uuid4()
@@ -254,6 +272,8 @@ class CourseService:
                 self.db.add(
                     Course(
                         id=course_id,
+                        is_published=body.is_published,
+                        published_at=datetime.now(UTC) if body.is_published else None,
                         owner_id=user.id,
                         title=body.title,
                         description=body.description,

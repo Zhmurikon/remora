@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.deps import current_user
+from app.api.v1.deps import current_user, public_read_limit
 from app.core.queue import enqueue_generation
 from app.db.session import get_db
 from app.models.user import User
@@ -13,11 +13,23 @@ from app.schemas.generations import (
     GenerationPublic,
     GenerationSaveSet,
     GenerationUpdate,
+    NoteSitemapEntry,
+    SharedNote,
 )
 from app.services.generations import GenerationService
 
 router = APIRouter(tags=["generations"])
 logger = logging.getLogger(__name__)
+
+
+@router.get("/notes/sitemap", dependencies=[Depends(public_read_limit)])
+async def note_sitemap(db: AsyncSession = Depends(get_db)) -> list[NoteSitemapEntry]:
+    return await GenerationService(db).note_entries()
+
+
+@router.get("/notes/public/{job_id}", dependencies=[Depends(public_read_limit)])
+async def public_note(job_id: UUID, db: AsyncSession = Depends(get_db)) -> SharedNote:
+    return await GenerationService(db).shared_note(job_id)
 
 
 @router.get("/transcriptions/{source_id}/generations", response_model=list[GenerationPublic])

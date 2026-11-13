@@ -40,7 +40,7 @@ MATCHING_GROUP_SIZE = 5
 class TestConfig(BaseModel):
     question_count: int = Field(default=20, ge=1, le=MAX_QUESTIONS)
     kinds: list[TestQuestionKind] = Field(
-        default=[TestQuestionKind.choice, TestQuestionKind.true_false, TestQuestionKind.typing],
+        default=[TestQuestionKind.choice, TestQuestionKind.true_false],
         min_length=1,
     )
     direction: DirectionMode = DirectionMode.term_to_def

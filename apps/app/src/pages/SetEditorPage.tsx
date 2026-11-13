@@ -1,3 +1,4 @@
+import { useCanHideMaterials } from '../components/MaterialVisibility';
 import type { components } from '@remora/api-client';
 import { defaultCardImportOptions, parseCardImport, type CardImportOptions } from '@remora/core';
 import {
@@ -50,7 +51,9 @@ export function SetEditorPage() {
   const queryClient = useQueryClient();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [visibility, setVisibility] = useState<Visibility>('private');
+  const canHide = useCanHideMaterials();
+  const [saveError, setSaveError] = useState('');
+  const [visibility, setVisibility] = useState<Visibility>('public');
   const [folderId, setFolderId] = useState<string | null>(null);
   const [cards, setCards] = useState<DraftCard[]>([]);
   const [ready, setReady] = useState(false);
@@ -122,41 +125,45 @@ export function SetEditorPage() {
     saving.current = true;
     setSaveState('saving');
     try {
-      const [metadata, content] = await Promise.all([
-        api.PATCH('/api/v1/sets/{set_id}', {
-          params: { path: { set_id: setId } },
-          body: {
-            title: snapshot.title || 'Без названия',
-            description: snapshot.description,
-            visibility: snapshot.visibility,
-            lang_term: 'ru',
-            lang_definition: 'ru',
-            folder_id: snapshot.folderId,
-          },
-        }),
-        api.PUT('/api/v1/sets/{set_id}/cards', {
-          params: { path: { set_id: setId } },
-          body: {
-            cards: snapshot.cards.map((card) => ({
-              ...card.source,
-              id: card.id,
-              wrong_term_answers: (card.wrongTermAnswers ?? [])
-                .map((value) => value.trim())
-                .filter(Boolean),
-              wrong_definition_answers: (card.wrongDefinitionAnswers ?? [])
-                .map((value) => value.trim())
-                .filter(Boolean),
-              term: card.term,
-              definition: card.definition,
-              content_type: card.contentType,
-              code_language: card.contentType === 'code' ? card.codeLanguage || 'text' : null,
-              term_image_id: card.termImageId,
-              definition_image_id: card.definitionImageId,
-            })),
-          },
-        }),
-      ]);
-      if (metadata.error || content.error || !content.data) throw new Error();
+      const metadata = await api.PATCH('/api/v1/sets/{set_id}', {
+        params: { path: { set_id: setId } },
+        body: {
+          title: snapshot.title || 'Без названия',
+          description: snapshot.description,
+          visibility: snapshot.visibility,
+          lang_term: 'ru',
+          lang_definition: 'ru',
+          folder_id: snapshot.folderId,
+        },
+      });
+      if (metadata.error)
+        throw new Error(
+          (metadata.error as { message?: string }).message ??
+            'Не удалось сохранить настройки набора',
+        );
+      const content = await api.PUT('/api/v1/sets/{set_id}/cards', {
+        params: { path: { set_id: setId } },
+        body: {
+          cards: snapshot.cards.map((card) => ({
+            ...card.source,
+            id: card.id,
+            wrong_term_answers: (card.wrongTermAnswers ?? [])
+              .map((value) => value.trim())
+              .filter(Boolean),
+            wrong_definition_answers: (card.wrongDefinitionAnswers ?? [])
+              .map((value) => value.trim())
+              .filter(Boolean),
+            term: card.term,
+            definition: card.definition,
+            content_type: card.contentType,
+            code_language: card.contentType === 'code' ? card.codeLanguage || 'text' : null,
+            term_image_id: card.termImageId,
+            definition_image_id: card.definitionImageId,
+          })),
+        },
+      });
+      if (content.error || !content.data) throw new Error('Не удалось сохранить карточки');
+      setSaveError('');
       if (snapshot.cards.some((card) => !card.id))
         setCards((current) =>
           current.map((card, index) => ({
@@ -166,7 +173,8 @@ export function SetEditorPage() {
         );
       setSaveState('saved');
       await queryClient.invalidateQueries({ queryKey: ['sets'] });
-    } catch {
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Не удалось сохранить набор');
       setSaveState('error');
     } finally {
       saving.current = false;
@@ -309,15 +317,24 @@ export function SetEditorPage() {
               </option>
             ))}
           </SelectField>
-          <p className="text-fg-muted text-sm">
-            Публикацией карточек можно управлять в настройках курса.{' '}
-            <Link
-              to="/courses"
-              className="text-primary inline-flex min-h-11 items-center underline"
-            >
-              Мои курсы
-            </Link>
-          </p>
+          <SelectField
+            label="Доступ к набору"
+            value={visibility}
+            onChange={(value) => setVisibility(value as Visibility)}
+          >
+            <option value="public">Публичный доступ (рекомендуем)</option>
+            <option value="unlisted" disabled={!canHide}>
+              По ссылке · Plus и Pro
+            </option>
+            <option value="private" disabled={!canHide}>
+              Только мне · Plus и Pro
+            </option>
+          </SelectField>
+          {saveError && (
+            <p role="alert" className="text-danger">
+              {saveError}
+            </p>
+          )}
         </div>
       </header>
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3">

@@ -25,6 +25,15 @@ import { ClassPage, ClassesPage, JoinClassPage, StudentReportPage } from './page
 import { BillingPage } from './pages/BillingPage';
 import { TranscriptionsPage } from './pages/TranscriptionsPage';
 
+import { useAuthStore } from './features/auth/auth-store';
+import { pendingLectureId } from './features/study/lecture-demo-draft';
+
+function DashboardEntry() {
+  const email = useAuthStore((state) => state.user?.email);
+  const draft = email ? pendingLectureId(email) : null;
+  return draft ? <Navigate to={'/transcriptions/new?draft=' + draft} replace /> : <DashboardPage />;
+}
+
 export function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
@@ -33,7 +42,7 @@ export function App() {
         <Routes>
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
-              <Route index element={<DashboardPage />} />
+              <Route index element={<DashboardEntry />} />
               <Route path="materials" element={<MaterialsPage />} />
               <Route path="sets" element={<MaterialsPage />} />
               <Route path="courses" element={<MaterialsPage />} />

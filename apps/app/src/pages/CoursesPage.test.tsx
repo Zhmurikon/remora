@@ -153,7 +153,16 @@ describe('Курсы в кабинете', () => {
   });
 
   it('публикует курс с тегами и снимает с публикации после подтверждения', async () => {
-    vi.mocked(api.GET).mockResolvedValue({ data: course, response: new Response() } as never);
+    vi.mocked(api.GET).mockImplementation(
+      async (path) =>
+        ({
+          data:
+            path === '/api/v1/billing/entitlements'
+              ? { features: { 'materials.private': true } }
+              : course,
+          response: new Response(),
+        }) as never,
+    );
     vi.mocked(api.POST)
       .mockResolvedValueOnce({
         data: { ...course, is_published: true, tags: ['математика'] },
@@ -219,7 +228,7 @@ describe('Курсы в кабинете', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Создать курс' }));
     expect(await screen.findByText('Материалы курса')).toBeTruthy();
     expect(api.POST).toHaveBeenCalledWith('/api/v1/courses', {
-      body: { title: 'Алгебра', description: '', set_id: 'set-1' },
+      body: { title: 'Алгебра', description: '', is_published: true, set_id: 'set-1' },
     });
     expect(screen.getByRole('link', { name: 'Редактировать карточки' }).getAttribute('href')).toBe(
       '/sets/set-1/edit',

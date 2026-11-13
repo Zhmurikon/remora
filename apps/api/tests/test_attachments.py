@@ -3,7 +3,7 @@
 from httpx import AsyncClient
 
 from app.services import attachments as attachment_module
-from tests.test_courses import auth
+from tests.test_courses import allow_private, auth
 
 
 class FakeStorage:
@@ -33,6 +33,7 @@ async def test_attachment_upload_download_delete_and_access(
     storage = FakeStorage()
     monkeypatch.setattr(attachment_module, "get_object_storage", lambda: storage)
     owner = await auth(client, "attachment-owner")
+    await allow_private(client, owner)
     reader = await auth(client, "attachment-reader")
     study_set = (
         await client.post("/api/v1/sets", headers=owner, json={"title": "Материал"})
@@ -46,7 +47,7 @@ async def test_attachment_upload_download_delete_and_access(
         await client.post(
             "/api/v1/courses",
             headers=owner,
-            json={"title": "Курс", "set_id": study_set["id"]},
+            json={"title": "Курс", "set_id": study_set["id"], "is_published": False},
         )
     ).json()
     article_id = course["sections"][0]["articles"][0]["id"]

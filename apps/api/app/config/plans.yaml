@@ -17,6 +17,7 @@ plans:
       ai.transcription_minutes_per_week: 0
       ai.generation_tokens_per_week: 0
     features:
+      materials.private: false
       ai.transcription: false
       ai.generation: false
       classes.dashboard: true
@@ -40,6 +41,7 @@ plans:
       ai.transcription_minutes_per_week: 300
       ai.generation_tokens_per_week: 500000
     features:
+      materials.private: true
       ai.transcription: true
       ai.generation: true
       classes.dashboard: true
@@ -63,6 +65,7 @@ plans:
       ai.transcription_minutes_per_week: 1500
       ai.generation_tokens_per_week: 2500000
     features:
+      materials.private: true
       ai.transcription: true
       ai.generation: true
       classes.dashboard: true

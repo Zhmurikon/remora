@@ -93,7 +93,7 @@ export function LearnPage() {
     : 0;
 
   const kind: QuestionKind = current
-    ? questionKind(current, pool, queue?.learn_question_types ?? ['choice', 'typing', 'recall'])
+    ? questionKind(current, pool, queue?.learn_question_types ?? ['choice', 'recall'])
     : 'choice';
   const options = useMemo(() => {
     if (!current || kind !== 'choice') return [];

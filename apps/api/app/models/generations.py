@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, true
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -20,6 +20,7 @@ class GenerationJob(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         ForeignKey("transcription_jobs.id", ondelete="CASCADE"), index=True
     )
     request_id: Mapped[UUID]
+    is_public: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
     kind: Mapped[str] = mapped_column(String(16))
     status: Mapped[str] = mapped_column(String(16), default="queued", index=True)
     title: Mapped[str] = mapped_column(String(255))

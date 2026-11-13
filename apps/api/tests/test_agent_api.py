@@ -134,7 +134,7 @@ async def test_course_atomic_create_update_and_access(client: AsyncClient) -> No
     response = await client.post("/api/v1/agent/courses", headers=headers, json=body)
     assert response.status_code == 201, response.text
     course = response.json()
-    assert not course["is_published"] and len(course["sections"]) == 2
+    assert course["is_published"] and len(course["sections"]) == 2
     assert course["sections"][0]["articles"][0]["material"]["cards"][0][
         "wrong_definition_answers"
     ] == ["Неверно"]
@@ -171,7 +171,8 @@ async def test_course_atomic_create_update_and_access(client: AsyncClient) -> No
         await client.post(url + "/publish", headers=pub, json={"tags": ["алгебра"]})
     ).status_code == 200
     update["revision"] = (await client.get(url, headers=headers)).json()["revision"]
-    assert (await client.put(url, headers=headers, json=update)).status_code == 409
+    headers["Idempotency-Key"] = str(uuid4())
+    assert (await client.put(url, headers=headers, json=update)).status_code == 200
 
 
 async def test_course_rollback_and_card_validation(client: AsyncClient) -> None:

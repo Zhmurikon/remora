@@ -30,12 +30,12 @@ it('повторяет POST с исходным телом и новым ток�
     onUnauthorized: refresh,
   });
   const result = await client.POST('/api/v1/courses', {
-    body: { title: 'Алгебра', description: '', set_id: 'set-id' },
+    body: { title: 'Алгебра', description: '', is_published: true, set_id: 'set-id' },
   });
   expect(result.response.status).toBe(201);
   expect(bodies).toEqual([
-    JSON.stringify({ title: 'Алгебра', description: '', set_id: 'set-id' }),
-    JSON.stringify({ title: 'Алгебра', description: '', set_id: 'set-id' }),
+    JSON.stringify({ title: 'Алгебра', description: '', is_published: true, set_id: 'set-id' }),
+    JSON.stringify({ title: 'Алгебра', description: '', is_published: true, set_id: 'set-id' }),
   ]);
   expect(tokens).toEqual(['Bearer expired', 'Bearer fresh']);
   expect(refresh).toHaveBeenCalledTimes(1);
@@ -54,7 +54,7 @@ it('не повторяет запрос, если refresh не удался', a
   expect(
     (
       await client.POST('/api/v1/courses', {
-        body: { title: 'Курс', description: '', set_id: 'set-id' },
+        body: { title: 'Курс', description: '', is_published: true, set_id: 'set-id' },
       })
     ).response.status,
   ).toBe(401);

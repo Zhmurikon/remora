@@ -422,7 +422,7 @@ async def test_settings_validation_rejects_impossible_values(
 
     defaults = await client.get("/api/v1/study/settings", headers=headers)
     assert defaults.json()["fsrs_desired_retention"] == 0.9
-    assert defaults.json()["learn_question_types"] == ["choice", "typing", "recall"]
+    assert defaults.json()["learn_question_types"] == ["choice", "recall"]
 
     updated = await client.patch(
         "/api/v1/study/settings",
@@ -500,7 +500,7 @@ async def test_set_learn_settings_override_global_and_are_private(
     assert reset.status_code == 204
     restored = await client.get(url, headers=owner)
     assert restored.json()["customized"] is False
-    assert restored.json()["question_types"] == ["choice", "typing", "recall"]
+    assert restored.json()["question_types"] == ["choice", "recall"]
 
 
 async def test_study_endpoints_require_authentication(client: pytest.fixture) -> None:

@@ -24,17 +24,19 @@ it('публикует подтверждение Яндекс Вебмасте�
 it('добавляет доступные курсы и уникальные профили авторов в sitemap', async () => {
   vi.stubGlobal(
     'fetch',
-    vi.fn(
-      async () =>
-        new Response(
-          JSON.stringify([
-            { slug: 'algebra', author_username: 'irina', updated_at: '2026-09-01T00:00:00Z' },
-            { slug: 'geometry', author_username: 'irina', updated_at: '2026-09-02T00:00:00Z' },
-          ]),
-        ),
+    vi.fn(async (url: string) =>
+      url.endsWith('/notes/sitemap')
+        ? Response.json([{ id: 'note-1', updated_at: '2026-11-12T00:00:00Z' }])
+        : new Response(
+            JSON.stringify([
+              { slug: 'algebra', author_username: 'irina', updated_at: '2026-09-01T00:00:00Z' },
+              { slug: 'geometry', author_username: 'irina', updated_at: '2026-09-02T00:00:00Z' },
+            ]),
+          ),
     ),
   );
   const urls = (await sitemap()).map((entry) => entry.url);
+  expect(urls).toContain('https://zapominalnya.ru/konspekt/note-1');
   expect(urls).toContain('https://zapominalnya.ru/kurs/algebra');
   expect(urls).toContain('https://zapominalnya.ru/kurs/geometry');
   expect(urls.filter((url) => url.endsWith('/avtor/irina'))).toHaveLength(1);

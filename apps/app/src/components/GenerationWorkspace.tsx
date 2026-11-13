@@ -1,10 +1,10 @@
 import type { components } from '@remora/api-client';
-import { Button } from '@remora/ui';
+import { Button, StudyNotesPreview } from '@remora/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
-import { StudyNotesPreview } from './StudyNotesPreview';
+import { MaterialVisibility } from './MaterialVisibility';
 
 type Job = components['schemas']['GenerationPublic'];
 type Card = components['schemas']['GeneratedCard'];
@@ -49,6 +49,8 @@ export function GenerationWorkspace({
 }) {
   const queryClient = useQueryClient();
   const queryKey = ['generations', source.id];
+  const [newNotePublic, setNewNotePublic] = useState(true);
+  const canHide = entitlements?.features['materials.private'] === true;
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // При неясном сетевом исходе повторяем тот же ключ, а не создаём новый платный запрос.
   const requestId = useRef<string | null>(null);
@@ -83,6 +85,7 @@ export function GenerationWorkspace({
           params: { path: { source_id: source.id } },
           body: {
             request_id: requestId.current,
+            is_public: kind !== 'notes' || newNotePublic,
             kind,
             parent_id: kind === 'cards' ? notes?.id : null,
           },
@@ -138,6 +141,15 @@ export function GenerationWorkspace({
       {!sourceReady && kind === 'notes' ? (
         <p className="text-warning mt-3 text-sm">Дождитесь сохранения расшифровки на шаге 1.</p>
       ) : null}
+      {kind === 'notes' && (
+        <MaterialVisibility
+          label="Доступ к новой версии"
+          isPublic={newNotePublic}
+          canHide={canHide}
+          onChange={setNewNotePublic}
+          disabled={active || create.isPending}
+        />
+      )}
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <Button
           disabled={
@@ -211,17 +223,25 @@ export function GenerationWorkspace({
         </p>
       ) : null}
       {selected?.status === 'completed' ? (
-        <ResultEditor key={selected.id} job={selected} onSaved={refresh} onNext={onNext} />
+        <ResultEditor
+          canHide={canHide}
+          key={selected.id}
+          job={selected}
+          onSaved={refresh}
+          onNext={onNext}
+        />
       ) : null}
     </section>
   );
 }
 
 function ResultEditor({
+  canHide,
   job,
   onSaved,
   onNext,
 }: {
+  canHide: boolean;
   job: Job;
   onSaved: () => Promise<void>;
   onNext: () => void;
@@ -234,6 +254,7 @@ function ResultEditor({
     JSON.stringify({ markdown: job.markdown ?? '', cards: job.cards ?? [] }),
   );
   const [editing, setEditing] = useState(false);
+  const [setPublic, setSetPublic] = useState(true);
   const [title, setTitle] = useState(job.title.slice(0, 160));
   const dirty = JSON.stringify({ markdown, cards }) !== baseline;
   useEffect(() => {
@@ -269,11 +290,22 @@ function ResultEditor({
       await onSaved();
     },
   });
+  const visibility = useMutation({
+    mutationFn: async (isPublic: boolean) => {
+      const { data, error } = await api.PATCH('/api/v1/generations/{job_id}', {
+        params: { path: { job_id: job.id } },
+        body: { revision, is_public: isPublic },
+      });
+      if (error || !data) throw new Error(message(error));
+      setRevision(data.updated_at);
+      await onSaved();
+    },
+  });
   const saveSet = useMutation({
     mutationFn: async () => {
       const { data, error } = await api.POST('/api/v1/generations/{job_id}/save-set', {
         params: { path: { job_id: job.id } },
-        body: { revision, title },
+        body: { revision, title, visibility: setPublic ? 'public' : 'private' },
       });
       if (error || !data) throw new Error(message(error));
       await onSaved();
@@ -281,7 +313,7 @@ function ResultEditor({
   });
   const fieldClass =
     'border-border bg-surface text-fg focus:ring-primary min-h-11 w-full rounded-lg border px-3 py-2 outline-none focus:ring-2';
-  const busy = save.isPending || saveSet.isPending;
+  const busy = save.isPending || saveSet.isPending || visibility.isPending;
   function changeCard(index: number, patch: Partial<Card>) {
     setCards((previous) => previous.map((card, i) => (i === index ? { ...card, ...patch } : card)));
   }
@@ -334,13 +366,30 @@ function ResultEditor({
           {dirty ? 'Есть несохранённые изменения' : 'Сохранено'}
         </span>
       </div>
-      {save.isError || saveSet.isError ? (
+      {save.isError || saveSet.isError || visibility.isError ? (
         <p role="alert" className="text-danger">
-          {message(save.error ?? saveSet.error)}
+          {message(save.error ?? saveSet.error ?? visibility.error)}
         </p>
       ) : null}
       {job.kind === 'notes' ? (
         <>
+          <MaterialVisibility
+            label="Доступ к этому конспекту"
+            isPublic={job.is_public}
+            canHide={canHide}
+            disabled={busy || dirty}
+            onChange={(value) => visibility.mutate(value)}
+          />
+          {job.is_public && (
+            <a
+              className="text-primary inline-flex min-h-11 items-center underline"
+              href={`${import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000'}/konspekt/${job.id}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Открыть публичный конспект
+            </a>
+          )}
           {editing ? (
             <textarea
               aria-label="Markdown конспекта"
@@ -358,6 +407,15 @@ function ResultEditor({
         </>
       ) : (
         <>
+          {!job.saved_set_id && (
+            <MaterialVisibility
+              label="Доступ к новому набору"
+              isPublic={setPublic}
+              canHide={canHide}
+              onChange={setSetPublic}
+              disabled={busy}
+            />
+          )}
           {!cards.length ? (
             <p className="text-fg-muted">В тексте не нашлось отдельных понятий для карточек.</p>
           ) : null}

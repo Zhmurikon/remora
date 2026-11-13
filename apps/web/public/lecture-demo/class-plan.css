@@ -1,0 +1,206 @@
+.class-plan {
+  width: min(90%, 66rem);
+  padding-block: 4rem;
+  margin-inline: auto;
+}
+.class-plan h2 {
+  margin: 0;
+  font:
+    400 1.75rem/1.17 Georgia,
+    'Times New Roman',
+    serif;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.class-scene {
+  display: grid;
+  grid-template-columns: 700fr 600fr 660fr;
+  align-items: end;
+  margin: 2rem 0 1.5rem;
+}
+.class-prop {
+  position: relative;
+  container-type: inline-size;
+  color: var(--blue);
+}
+.class-prop img {
+  width: 100%;
+  height: auto;
+  display: block;
+  mix-blend-mode: multiply;
+}
+.class-calendar strong,
+.class-calendar span {
+  position: absolute;
+  transform: translate(-50%, -50%) rotate(-5deg);
+  font-family: Georgia, serif;
+  line-height: 1.16;
+  text-align: center;
+}
+.class-calendar strong {
+  top: 31%;
+  left: 45%;
+  font-size: 6.3cqi;
+}
+.class-calendar span {
+  top: 72%;
+  left: 75%;
+  font-size: 5.5cqi;
+  font-style: italic;
+}
+.class-report-body {
+  position: absolute;
+  inset: 6% 15% 17% 14%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.52em;
+  font-size: 5.1cqi;
+  line-height: 1.42;
+}
+.class-report-body h3,
+.class-note h3 {
+  font:
+    600 1.38em/1.2 Georgia,
+    serif;
+  margin: 0;
+}
+.class-report-body dl,
+.class-report-body dd,
+.class-report-body p,
+.class-note p {
+  margin: 0;
+}
+.class-report-body dl > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.35em;
+  border-bottom: 1px solid var(--line);
+  padding: 0.2em 0;
+}
+.class-report-body dd {
+  white-space: nowrap;
+  font-weight: 600;
+}
+.class-report-body mark {
+  display: inline-block;
+  background: var(--class-marker, #ffe68a);
+  color: inherit;
+  padding-inline: 0.15em;
+}
+.class-note > div {
+  position: absolute;
+  inset: 24% 9% 17% 13%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.6em;
+  font:
+    italic 6.3cqi/1.45 Georgia,
+    serif;
+  transform: rotate(-3deg);
+}
+.class-copy {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.25rem;
+}
+.class-copy p,
+.class-terms p {
+  margin: 0;
+  line-height: 1.56;
+}
+.class-terms {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  border-top: 1px solid var(--line);
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+}
+.class-terms p {
+  font-size: 0.9375rem;
+  max-width: 68ch;
+}
+@media (max-width: 1023px) {
+  .class-plan h2 {
+    font-size: 1.625rem;
+  }
+}
+@media (max-width: 890px) {
+  .class-scene {
+    grid-template-columns: minmax(0, 24rem);
+    justify-content: center;
+    gap: 0.75rem;
+  }
+  .class-terms {
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+}
+@media (max-width: 620px) {
+  .class-plan {
+    width: calc(100% - 2.5rem);
+    padding-block: 2.5rem;
+  }
+  .class-plan h2 {
+    font-size: 1.5rem;
+  }
+  .class-scene {
+    margin-top: 1.4rem;
+  }
+  .class-copy {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+  .class-terms .create-signup {
+    max-width: 100%;
+    text-align: center;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  .class-prop img {
+    filter: invert(1) hue-rotate(180deg) saturate(0.75);
+    mix-blend-mode: screen;
+  }
+  .class-report-body {
+    --class-marker: #49422a;
+  }
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .class-report-body mark {
+    background: linear-gradient(var(--class-marker, #ffe68a) 0 0) left / 100% 100% no-repeat;
+  }
+  .class-report:hover mark {
+    animation: class-marker-sweep 440ms ease-out;
+  }
+  .class-note p i {
+    position: relative;
+  }
+  .class-note p i::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0;
+    height: 0.07em;
+    background: currentColor;
+    border-radius: 50%;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 280ms ease-out;
+  }
+  .class-note:hover p i::after {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes class-marker-sweep {
+  from {
+    background-size: 0% 100%;
+  }
+  to {
+    background-size: 100% 100%;
+  }
+}

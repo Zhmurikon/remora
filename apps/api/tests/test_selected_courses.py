@@ -2,11 +2,12 @@ from uuid import uuid4
 
 import pytest
 
-from tests.test_courses import auth
+from tests.test_courses import allow_private, auth
 
 
 async def test_selected_order_duplicates_missing_and_unpublished(client):
     headers = await auth(client, "curator")
+    await allow_private(client, headers)
     ids = []
     for title in ("Первый", "Второй"):
         response = await client.post("/api/v1/sets", headers=headers, json={"title": title})

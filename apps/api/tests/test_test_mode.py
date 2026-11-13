@@ -398,3 +398,14 @@ async def test_test_endpoints_require_authentication(client: pytest.fixture) -> 
     assert (
         await client.post(f"/api/v1/study/sets/{uuid4()}/tests", json={"question_count": 5})
     ).status_code == 401
+
+
+@patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
+async def test_small_default_test_never_requires_typing(_mock_send, client):
+    owner = await _auth(client, "small")
+    material = await _set_with_cards(client, owner, count=1)
+    path = f"/api/v1/study/sets/{material['id']}/tests"
+    for body in ({}, {"kinds": ["choice"]}, {"kinds": ["matching"]}):
+        response = await client.post(path, headers=owner, json=body)
+        assert response.status_code == 201
+        assert [q["kind"] for q in response.json()["questions"]] == ["true_false"]

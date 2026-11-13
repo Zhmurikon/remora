@@ -60,13 +60,13 @@ LEARN_PRESETS = {
         80,
     ),
     "normal": (
-        [LearnQuestionType.choice, LearnQuestionType.typing, LearnQuestionType.recall],
+        [LearnQuestionType.choice, LearnQuestionType.recall],
         1,
         LearnTypingCheck.automatic,
         90,
     ),
     "thorough": (
-        [LearnQuestionType.choice, LearnQuestionType.typing, LearnQuestionType.recall],
+        [LearnQuestionType.choice, LearnQuestionType.recall],
         3,
         LearnTypingCheck.automatic,
         95,
@@ -295,8 +295,7 @@ class BotService:
             ]
         )
         return BotReply(
-            "Запоминальня подключена. Прогресс синхронизируется с кабинетом."
-            "\n\nЧто будем делать?",
+            "Запоминальня подключена. Прогресс синхронизируется с кабинетом.\n\nЧто будем делать?",
             keyboard,
         )
 
@@ -409,7 +408,7 @@ class BotService:
         keyboard = [
             [
                 _button("Быстро", action("p", "fast")),
-                _button("Обычно", action("p", "normal")),
+                _button("Рекомендуем", action("p", "normal")),
                 _button("Тщательно", action("p", "thorough")),
             ],
             *exercise_rows,
@@ -923,9 +922,7 @@ class BotService:
     def _question_kind(self, session: StudySession, current: QueueItem) -> str:
         if session.mode != StudyMode.learn:
             return "typing"
-        enabled = list(
-            session.config.get("bot_learn_question_types", ["choice", "typing", "recall"])
-        )
+        enabled = list(session.config.get("bot_learn_question_types", ["choice", "recall"]))
         stability = current.state.stability or 0
         preferred = (
             "recall"

@@ -37,7 +37,8 @@ class CourseEditorService:
         self.content = ContentService(db)
 
     async def detail(self, user: User, course_id: UUID) -> CourseEditorDetail:
-        detail = await self.courses.detail(user, course_id)
+        course = await self.courses.owned(user, course_id)
+        detail = await self.courses.detail(user, course.id)
         data = detail.model_dump(mode="json")
         return CourseEditorDetail(**data, revision=digest(data))
 
@@ -86,8 +87,6 @@ class CourseEditorService:
             raise ConflictError(
                 "Курс изменился в другой вкладке", details={"reason": "stale_revision"}
             )
-        if course.is_published:
-            raise ConflictError("Перед изменением структуры снимите курс с публикации")
         sections = {s.id: s for s in await repo.sections(self.db, course_id)}
         articles = {a.id: a for a in await repo.articles(self.db, course_id)}
         section_ids = [s.id for s in body.sections if s.id]
@@ -102,7 +101,9 @@ class CourseEditorService:
                 if article_input.id and article_input.set_id != articles[article_input.id].set_id:
                     raise ConflictError("Нельзя заменить набор существующей статьи")
                 if article_input.set_id:
-                    await self.content.get_owned_set(user, article_input.set_id)
+                    material = await self.content.get_owned_set(user, article_input.set_id)
+                    if course.is_published and material.visibility != SetVisibility.public:
+                        raise ConflictError("Чтобы добавить набор в публичный курс, откройте набор")
                     linked = await repo.get_article_for_set(self.db, article_input.set_id)
                     if article_input.set_id in used_sets or (
                         linked and linked.id != article_input.id
@@ -126,9 +127,6 @@ class CourseEditorService:
             article.position = -index
         for article in articles.values():
             if article.id not in article_ids:
-                material = await content_repo.get_set(self.db, article.set_id)
-                if material:
-                    material.visibility = SetVisibility.private
                 await self.db.delete(article)
         removed_article_ids = set(articles) - set(article_ids)
         if removed_article_ids:
@@ -153,7 +151,17 @@ class CourseEditorService:
                 else:
                     set_id = entry.set_id
                     if set_id is None:
-                        material = await self.content.create_set(user, SetCreate(title=entry.title))
+                        material = await self.content.create_set(
+                            user,
+                            SetCreate(
+                                title=entry.title,
+                                visibility=(
+                                    SetVisibility.public
+                                    if course.is_published
+                                    else SetVisibility.private
+                                ),
+                            ),
+                        )
                         set_id = material.id
                     article = CourseArticle(
                         set_id=set_id,
@@ -268,7 +276,7 @@ class CourseEditorService:
         return new_set
 
     async def copy_set(self, user: User, set_id: UUID) -> SetDetail:
-        """Копия набора из доступного публичного курса становится отдельным приватным набором."""
+        """Копия набора из доступного публичного курса становится отдельным публичным набором."""
         material = await content_repo.get_set(self.db, set_id, with_cards=True)
         if material is None:
             raise NotFoundError("Набор не найден")
@@ -319,6 +327,7 @@ class CourseEditorService:
         title = articles[0].title if article_id else source.title
         copied = Course(
             id=copied_id,
+            published_at=datetime.now(UTC),
             owner_id=user.id,
             title=f"Копия — {title}"[:160],
             description=source.description,
@@ -360,6 +369,7 @@ class CourseEditorService:
                         )
                     )
                     await self.db.flush()
+            await queue_course(self.db, copied_id)
             return await self.detail(user, copied_id)
         except Exception:
             for key in uploaded:

@@ -6,7 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { components } from '@remora/api-client';
 import { GenerationWorkspace } from './GenerationWorkspace';
-import { StudyNotesPreview } from './StudyNotesPreview';
+import { StudyNotesPreview } from '@remora/ui';
 
 const get = vi.fn();
 const post = vi.fn();
@@ -28,13 +28,14 @@ const entitlements = {
   limits: {},
   usage: {},
   resets_at: {},
-  features: { 'ai.generation': true },
+  features: { 'ai.generation': true, 'materials.private': true },
   remaining: { 'ai.generation_tokens_per_week': 500000 },
 } as components['schemas']['EntitlementsPublic'];
 const note: Job = {
   id: 'note-id',
   transcription_id: source.id,
   kind: 'notes',
+  is_public: true,
   status: 'completed',
   title: 'Лекция',
   parent_id: null,
@@ -82,6 +83,27 @@ describe('Генерация учебных материалов', () => {
       (screen.getByRole('button', { name: 'Создать новую версию' }) as HTMLButtonElement).disabled,
     ).toBe(true);
     expect(screen.getByRole('button', { name: 'Скачать .md' })).toBeTruthy();
+  });
+  it('скрывает готовый конспект по подписке и убирает публичную ссылку', async () => {
+    const hidden = { ...note, is_public: false, updated_at: '2026-10-30T11:00:00Z' };
+    patch.mockImplementation(async () => {
+      get.mockResolvedValue({ data: [hidden] });
+      return { data: hidden };
+    });
+    mount();
+    const link = await screen.findByRole('link', { name: 'Открыть публичный конспект' });
+    expect(link.getAttribute('href')).toContain('/konspekt/note-id');
+    expect((screen.getByLabelText('Доступ к новой версии') as HTMLSelectElement).value).toBe(
+      'public',
+    );
+    await userEvent.selectOptions(screen.getByLabelText('Доступ к этому конспекту'), 'private');
+    await waitFor(() =>
+      expect(screen.queryByRole('link', { name: 'Открыть публичный конспект' })).toBeNull(),
+    );
+    expect(patch).toHaveBeenCalledWith('/api/v1/generations/{job_id}', {
+      params: { path: { job_id: note.id } },
+      body: { revision: note.updated_at, is_public: false },
+    });
   });
   it('запускает карточки по готовому конспекту и показывает фоновую обработку', async () => {
     let rows: Job[] = [note];

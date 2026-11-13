@@ -139,7 +139,7 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
           error?.details?.reason === 'stale_revision'
             ? 'Курс изменился в другой вкладке или агентом. Скопируйте свой текст перед загрузкой актуальной версии.'
             : error?.code === 'CONFLICT'
-              ? 'Проверьте, что курс снят с публикации, а выбранные наборы не входят в другие статьи.'
+              ? 'Проверьте видимость наборов и их привязку к другим статьям.'
               : 'Не удалось сохранить. Ваш текст остаётся в редакторе. Повторите попытку.',
         );
       }
@@ -215,11 +215,6 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
             : 'Соберите разделы и уроки в нужном порядке. Теория каждого урока редактируется отдельно.'}
         </p>
       </header>
-      {base.is_published && (
-        <p role="alert">
-          Для редактирования структуры снимите курс с публикации в настройках курса.
-        </p>
-      )}
       {articleId && (
         <label className="block max-w-xl space-y-2">
           <span className="text-fg-muted text-sm">Материал курса</span>
@@ -254,12 +249,7 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
         className={articleId ? 'max-w-4xl space-y-6' : 'space-y-6'}
       >
         <div className="border-border bg-bg sticky top-16 z-10 flex flex-wrap items-center gap-3 border-b py-3 lg:top-0">
-          <Button
-            className="min-h-11"
-            type="submit"
-            loading={save.isPending}
-            disabled={!dirty || base.is_published}
-          >
+          <Button className="min-h-11" type="submit" loading={save.isPending} disabled={!dirty}>
             {articleId ? 'Сохранить материал' : 'Сохранить структуру'}
           </Button>
           {articleId && (
@@ -297,7 +287,7 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
             </Button>
           </div>
         )}
-        <fieldset disabled={save.isPending || base.is_published} className="min-w-0 space-y-6">
+        <fieldset disabled={save.isPending} className="min-w-0 space-y-6">
           {sections.length === 0 && (
             <Card>В курсе пока нет разделов. Добавьте первый раздел и статью.</Card>
           )}

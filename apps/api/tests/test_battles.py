@@ -6,6 +6,8 @@ from uuid import uuid4
 
 import pytest
 
+from tests.test_courses import allow_private
+
 
 async def _auth(client: pytest.fixture, suffix: str) -> dict[str, str]:
     await client.post(
@@ -91,6 +93,7 @@ async def test_battle_keeps_snapshot_and_hides_answers(
 @patch("app.services.auth.send_verification_email", new_callable=AsyncMock)
 async def test_battle_rejects_private_set(_mock_send: AsyncMock, client: pytest.fixture) -> None:
     owner = await _auth(client, "private")
+    await allow_private(client, owner)
     material = await _set_with_cards(client, owner)
     updated = await client.patch(
         f"/api/v1/sets/{material['id']}",

@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex, nosnippet" />
+    <title>Пять режимов обучения · Запоминальня</title>
+    <link rel="stylesheet" href="./hero.css" />
+    <link rel="stylesheet" href="./study-modes.css" />
+    <link rel="stylesheet" href="./sheet-buttons.css" />
+    <script src="./sheet-buttons.js" defer></script>
+    <script defer src="./practice.js"></script>
+  </head>
+  <body>
+    <main class="practice">
+      <div class="practice-tabs" role="tablist" aria-label="Режимы обучения">
+        <button
+          id="tab-cards"
+          role="tab"
+          aria-controls="cards"
+          aria-selected="false"
+          tabindex="-1"
+          data-sheet="tab"
+        >
+          <span class="line-label">Карточки</span>
+        </button>
+        <button
+          id="tab-learn"
+          role="tab"
+          aria-controls="learn"
+          aria-selected="false"
+          tabindex="-1"
+          data-sheet="tab"
+        >
+          <span class="line-label">Заучивание</span>
+        </button>
+        <button
+          id="tab-write"
+          role="tab"
+          aria-controls="write"
+          aria-selected="true"
+          data-sheet="tab"
+        >
+          <span class="line-label">Письмо</span>
+        </button>
+        <button
+          id="tab-listen"
+          role="tab"
+          aria-controls="listen"
+          aria-selected="false"
+          tabindex="-1"
+          data-sheet="tab"
+        >
+          <span class="line-label">Аудирование</span>
+        </button>
+        <button
+          id="tab-test"
+          role="tab"
+          aria-controls="test"
+          aria-selected="false"
+          tabindex="-1"
+          data-sheet="tab"
+        >
+          <span class="line-label">Тест</span>
+        </button>
+      </div>
+      <div class="practice-sheet">
+        <div class="practice-drawing">
+          <img src="./study-rooftops.webp" alt="" width="654" height="612" />
+          <video
+            data-src="./study-rooftops-heavy-rain.webm"
+            preload="none"
+            muted
+            loop
+            playsinline
+            aria-hidden="true"
+          ></video>
+        </div>
+        <div class="practice-work">
+          <section role="tabpanel" id="cards" aria-labelledby="tab-cards" hidden>
+            <h2 lang="en" aria-live="polite">drizzle</h2>
+            <p>Вспомните перевод. Переверните карточку и сверьтесь.</p>
+            <button id="flip" class="primary" data-sheet="blue">Перевернуть карточку</button>
+          </section>
+          <section role="tabpanel" id="learn" aria-labelledby="tab-learn" hidden>
+            <h2 lang="en" tabindex="-1"></h2>
+            <p>Выберите перевод. Если ошибётесь, слово встретится ещё раз в этой тренировке.</p>
+            <div class="practice-choices"></div>
+            <p class="practice-feedback" role="status"></p>
+            <button class="primary advance" hidden data-sheet="blue"></button>
+          </section>
+          <section role="tabpanel" id="write" aria-labelledby="tab-write">
+            <h2>морось</h2>
+            <p>
+              Напишите слово по-английски и проверьте, вспомнили ли вы обе буквы <i lang="en">z</i>.
+            </p>
+            <form class="practice-form">
+              <input
+                aria-label="Перевод на английский"
+                placeholder="Ваш ответ"
+                lang="en"
+                dir="ltr"
+                spellcheck="false"
+                autocomplete="off"
+                autocapitalize="none"
+                required
+              />
+              <button class="primary" data-sheet="blue">Проверить</button>
+              <p class="practice-feedback" role="status"></p>
+            </form>
+          </section>
+          <section role="tabpanel" id="listen" aria-labelledby="tab-listen" hidden>
+            <h2>Что вы услышали?</h2>
+            <p>Прослушайте слово и запишите, что услышали. Озвучку можно включить ещё раз.</p>
+            <audio preload="none" src="./drizzle.wav"></audio>
+            <button class="secondary" id="play" data-sheet="outline">
+              <span aria-hidden="true">▶</span> Прослушать слово
+            </button>
+            <form class="practice-form">
+              <input
+                aria-label="Слово на слух"
+                placeholder="Ваш ответ"
+                lang="en"
+                dir="ltr"
+                spellcheck="false"
+                autocomplete="off"
+                autocapitalize="none"
+                required
+              />
+              <button class="primary" data-sheet="blue">Проверить</button>
+              <p class="practice-feedback" role="status"></p>
+            </form>
+          </section>
+          <section role="tabpanel" id="test" aria-labelledby="tab-test" hidden>
+            <h2 tabindex="-1"></h2>
+            <p class="test-instruction">
+              Проверьте себя по словам из набора. После теста можно разобрать ошибки и ответить ещё
+              раз.
+            </p>
+            <div class="practice-choices"></div>
+            <p class="practice-feedback" role="status"></p>
+            <button class="primary advance" hidden data-sheet="blue"></button>
+          </section>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

@@ -34,7 +34,7 @@ class Course(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     title: Mapped[str] = mapped_column(String(160))
     description: Mapped[str] = mapped_column(Text, default="", server_default=text("''"))
     slug: Mapped[str] = mapped_column(String(200), unique=True)
-    is_published: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
+    is_published: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text("true"))
     is_listed: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text("true"))
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     moderation_status: Mapped[str] = mapped_column(

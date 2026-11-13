@@ -17,7 +17,7 @@ it('не загружает счётчик до согласия и отменя
   expect(scripts()).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Отказаться' }));
   expect(scripts()).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Разрешить аналитику' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Разрешить' }));
   const script = scripts();
   expect(script).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Отказаться' }));
@@ -33,7 +33,7 @@ it('не загружает счётчик до согласия и отменя
   await Promise.resolve();
   expect(hit).not.toHaveBeenCalled();
 
-  fireEvent.click(screen.getByRole('button', { name: 'Разрешить аналитику' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Разрешить' }));
   await waitFor(() => expect(hit).toHaveBeenCalledTimes(1));
   expect(hit.mock.calls[0]?.[0]).toBe('https://zapominalnya.ru/privacy');
   rerender(<PublicAnalytics path="/tarify" settings />);

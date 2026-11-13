@@ -11,9 +11,9 @@ from app.core.rate_limit import enforce_rate_limit
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.agent import (
+    AgentCourseCreate,
     AgentCourseDetail,
     AgentCourseUpdate,
-    AgentCourseWrite,
     AgentFolderCreate,
     AgentFolderDelete,
     AgentFolderDetail,
@@ -399,7 +399,7 @@ async def get_course(
 
 @router.post("/courses", response_model=AgentCourseDetail, status_code=201)
 async def create_course(
-    body: AgentCourseWrite,
+    body: AgentCourseCreate,
     key: RequestKey,
     user: User = Depends(write_user),
     db: AsyncSession = Depends(get_db),

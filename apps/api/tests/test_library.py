@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from httpx import AsyncClient
 
-from tests.test_courses import auth
+from tests.test_courses import allow_private, auth
 
 
 async def _published_course(client: AsyncClient, owner: dict[str, str]) -> dict:
@@ -30,6 +30,7 @@ async def test_course_save_grants_study_but_not_edit_and_revokes_on_unpublish(
     client: AsyncClient,
 ) -> None:
     owner = await auth(client, "library-owner")
+    await allow_private(client, owner)
     learner = await auth(client, "library-learner")
     stranger = await auth(client, "library-stranger")
     course = await _published_course(client, owner)
@@ -140,7 +141,7 @@ async def test_course_save_grants_study_but_not_edit_and_revokes_on_unpublish(
                     "duration_ms": 1500,
                     "reviewed_at": datetime.now(tz=UTC).isoformat(),
                 }
-            ]
+            ],
         },
     )
     assert len(reviewed.json()["accepted"]) == 1
