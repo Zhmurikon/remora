@@ -77,6 +77,18 @@
   border: 1px solid rgb(var(--rm-lecture-line));
   pointer-events: none;
 }
+.article-sheet-fold {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 6.25rem;
+  height: 6.25rem;
+  overflow: visible;
+  transform: scale(0);
+  transform-origin: bottom right;
+  filter: drop-shadow(-1px 3px 2px rgb(var(--rm-lecture-ink) / 0.28));
+  pointer-events: none;
+}
 .article-category {
   display: flex;
   align-items: center;
