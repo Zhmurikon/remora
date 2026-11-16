@@ -1,16 +1,18 @@
 import { PublicAnalytics } from '../../components/analytics/PublicAnalytics';
 import type { Metadata } from 'next';
 import { JsonLd } from '../../components/JsonLd';
-import { PublicAuthLink } from '../../components/auth/PublicSession';
-import { HomeNav } from '../../components/home/HomeNav';
+import { LandingHeader } from '../../components/landing/LandingHeader';
+import { readLandingChrome } from '../../components/landing/readLandingChrome';
 import { HomeTheme } from '../../components/home/HomeTheme';
 import Image from 'next/image';
+import { PricingMotion } from '../../components/pricing/PricingMotion';
 import { PricingPlans } from '../../components/pricing/PricingPlans';
 import { absoluteUrl, DEFAULT_OG_IMAGE } from '../../lib/seo';
 import { publicPlans } from '../../lib/pricing';
 import '../home.css';
 import './pricing.css';
 import './pricing-motion.css';
+import '../../components/landing/chrome.css';
 
 const title = 'Тарифы Free, Plus и Pro';
 const description =
@@ -65,11 +67,9 @@ const faqs = [
 ] as const;
 
 export default function PricingPage() {
-  const mark = (
-    <Image src="/lecture-demo/remora-icon.png" width={38} height={38} alt="" unoptimized />
-  );
+  const { header, footer } = readLandingChrome();
   return (
-    <div className="home pricing-page">
+    <PricingMotion>
       <PublicAnalytics path="/tarify" />
       <a className="home-skip" href="#main-content">
         Перейти к содержимому
@@ -89,11 +89,8 @@ export default function PricingPage() {
           })),
         }}
       />
-      <div className="home-shell home-nav-shell">
-        <HomeNav mark={mark} />
-      </div>
-
-      <main id="main-content">
+      <LandingHeader html={header} />
+      <main id="main-content" className="home pricing-page">
         <header className="pricing-hero">
           <div className="home-shell">
             <h1>
@@ -166,28 +163,11 @@ export default function PricingPage() {
             ))}
           </div>
         </section>
-      </main>
-
-      <footer className="pricing-footer">
-        <div className="home-footer home-shell">
-          <a className="home-brand" href="/" aria-label="Запоминальня, главная">
-            {mark}
-            Запоминальня
-          </a>
-          <span>Учиться в своём темпе.</span>
+        <div className="pricing-theme home-shell">
           <HomeTheme />
-          <nav aria-label="Навигация в подвале">
-            <a href="/kursy">Каталог</a>
-            <a href="/blog">Блог</a>
-            <a href="/podborki">Подборки</a>
-            <a href="/tarify">Тарифы</a>
-            <a href="/#questions">Вопросы и ответы</a>
-            <a href="/privacy">Конфиденциальность</a>
-            <a href="/terms">Условия использования</a>
-            <PublicAuthLink />
-          </nav>
         </div>
-      </footer>
-    </div>
+      </main>
+      <div className="landing-chrome" dangerouslySetInnerHTML={{ __html: footer }} />
+    </PricingMotion>
   );
 }

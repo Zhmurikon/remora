@@ -212,3 +212,90 @@
     stroke-dashoffset: 0;
   }
 }
+
+@keyframes pricing-heading-enter {
+  from {
+    opacity: 0.55;
+    transform: translateY(0.18em);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pricing-route .pricing-heading-enter {
+    animation: pricing-heading-enter 280ms ease-out;
+  }
+
+  /* У текстовых ссылок линия следует за переносами, в том числе в узком меню. */
+  .pricing-route :is(.header-sections a, .site-footer a, aside a, .home-skip) {
+    text-decoration-line: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 0.42em;
+    transition:
+      text-decoration-color 160ms ease-out,
+      text-underline-offset 160ms ease-out;
+  }
+  .pricing-route :is(.footer-contact, aside) a {
+    text-decoration-color: currentColor;
+  }
+  .pricing-route
+    :is(.header-sections a, .site-footer a, aside a, .home-skip):is(:hover, :focus-visible) {
+    text-decoration-color: currentColor;
+    text-underline-offset: 0.2em;
+  }
+
+  .pricing-route :is(button, .pricing-button, .signup, select) {
+    transition:
+      scale 120ms ease-out,
+      background-color 150ms ease-out;
+  }
+  .pricing-route :is(button, .pricing-button, .signup, select):active:not(:disabled) {
+    scale: 0.97;
+  }
+  .pricing-route
+    :is(.pricing-period button:not([aria-pressed='true']), aside button, select):focus-visible {
+    scale: 1.025;
+  }
+  .pricing-route .home-skip:focus-visible {
+    animation: pricing-heading-enter 160ms ease-out;
+  }
+
+  .pricing-faq summary {
+    transition: color 150ms ease-out;
+  }
+  .pricing-faq summary:is(:hover, :focus-visible) {
+    color: rgb(var(--rm-primary));
+  }
+  .pricing-faq summary::after {
+    transition: transform 180ms ease-out;
+  }
+  .pricing-faq details[open] summary::after {
+    content: '−';
+    transform: rotate(180deg);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .pricing-route :is(h1, h2, h3, h4, h5, h6) {
+    transition: translate 160ms ease-out;
+  }
+  .pricing-route :is(h1, h2, h3, h4, h5, h6):hover {
+    translate: 0 -0.045em;
+  }
+
+  .pricing-route
+    :is(.pricing-period button:not([aria-pressed='true']), aside button, select):hover {
+    scale: 1.025;
+  }
+  .pricing-route :is(.pricing-period button, aside button, select):active {
+    scale: 0.97;
+  }
+}
+
+/* В Firefox касание по подписи display: contents должно попадать в саму кнопку. */
+.pricing-route .site-header [data-sheet] > .sheet-label {
+  pointer-events: none;
+}

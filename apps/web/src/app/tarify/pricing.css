@@ -11,23 +11,6 @@
 .pricing-page .home-shell {
   width: min(90%, 69em);
 }
-.pricing-page .home-header {
-  justify-content: space-between;
-  min-height: 4.75em;
-}
-.pricing-page .home-brand {
-  font-family: Georgia, 'Times New Roman', serif;
-}
-.pricing-page .home-nav-actions {
-  margin-left: 0;
-}
-.pricing-page .home-menu-toggle {
-  margin-left: auto;
-}
-.pricing-page .home-button {
-  background: rgb(var(--rm-reading-button));
-  color: white;
-}
 .pricing-hero {
   padding-block: 3.4em 2em;
   text-align: center;
@@ -301,24 +284,10 @@
 .pricing-page .pricing-faq details p {
   margin: 0 0 1.2em;
 }
-.pricing-footer {
-  background: rgb(var(--rm-lecture-footer));
-  color: white;
-}
-.pricing-footer .home-footer {
-  flex-wrap: wrap;
-  padding-block: 2em;
-}
-.pricing-footer .home-theme,
-.pricing-footer .home-footer > span {
-  color: inherit;
-}
-.pricing-footer .home-footer a:hover {
-  color: inherit;
-  text-decoration: underline;
-}
-.pricing-footer .home-footer nav {
-  gap: 0.95em;
+.pricing-theme {
+  display: flex;
+  justify-content: flex-end;
+  padding-bottom: 1.5em;
 }
 :root[data-theme='dark'] .pricing-page :is(.pricing-art img, .pricing-hero img) {
   filter: brightness(2.35) saturate(0.7);
@@ -366,9 +335,6 @@
   .pricing-plan,
   .pricing-guarantee {
     padding: 1.35em;
-  }
-  .pricing-footer .home-footer nav a {
-    min-height: 44px;
   }
 }
 
