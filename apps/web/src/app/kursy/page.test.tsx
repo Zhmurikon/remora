@@ -21,6 +21,7 @@ it('передаёт фильтры, преобразует дату и сохр
   const url = String(fetcher.mock.calls[0]?.[0]);
   expect(url).toContain('updated_after=2026-09-01T00%3A00%3A00Z');
   expect(url).not.toContain('secret');
+  expect(html).toMatch(/<details[^>]* open[= >]/);
   expect(html).toContain('cursor=20');
   expect(html).toContain('Курсы не найдены');
 });
@@ -69,6 +70,7 @@ it('рендерит курс и ссылку фильтра по автору �
   expect(html).not.toContain('<script>');
   expect(html).toContain('Карточек: 12');
   expect(html).toContain('Сохранений: 7');
+  expect(html).toMatch(/<details class="catalog-advanced">/);
   expect(html).toContain('Сначала популярные');
 });
 

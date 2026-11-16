@@ -1,48 +1,32 @@
 import type { ReactNode } from 'react';
-import Image from 'next/image';
-import { PublicAuthLink } from '../../components/auth/PublicSession';
 import { HomeTheme } from '../../components/home/HomeTheme';
+import { BlogMotion } from '../../components/blog/BlogMotion';
+import { LandingHeader } from '../../components/landing/LandingHeader';
+import { readLandingChrome } from '../../components/landing/readLandingChrome';
+import '../../components/landing/chrome.css';
 import '../home.css';
 import './blog.css';
+import './blog-motion.css';
 
 export default function BlogLayout({ children }: { children: ReactNode }) {
+  const { header, footer } = readLandingChrome();
   return (
-    <div className="home blog">
+    <BlogMotion>
       <a className="home-skip" href="#main-content">
         Перейти к содержимому
       </a>
-      <header className="blog-header home-shell">
-        <a className="home-brand" href="/" aria-label="Запоминальня — главная">
-          <Image src="/lecture-demo/remora-icon.png" width={40} height={40} alt="" />
-          Запоминальня
-        </a>
-        <nav aria-label="Основная навигация">
-          <a href="/kursy">Каталог</a>
-          <a href="/podborki">Подборки</a>
-          <a href="/blog" aria-current="location">
-            Блог
-          </a>
-          <a className="home-button home-button-small" href="/#demo">
-            Попробовать
-          </a>
-        </nav>
-      </header>
-      <main className="home-shell" id="main-content">
-        {children}
-      </main>
-      <footer className="home-footer home-shell">
-        <a className="home-brand" href="/" aria-label="Запоминальня — главная">
-          <Image src="/lecture-demo/remora-icon.png" width={40} height={40} alt="" />
-          Запоминальня
-        </a>
-        <span>Учиться в своём темпе.</span>
-        <HomeTheme />
-        <nav aria-label="Навигация в подвале">
-          <a href="/blog">Все статьи</a>
-          <a href="/kursy">Каталог</a>
-          <PublicAuthLink />
-        </nav>
-      </footer>
-    </div>
+      <LandingHeader
+        html={header.replace('href="/blog"', 'href="/blog" aria-current="location"')}
+      />
+      <div className="home blog">
+        <main className="home-shell" id="main-content">
+          {children}
+        </main>
+        <div className="blog-theme home-shell">
+          <HomeTheme />
+        </div>
+      </div>
+      <div className="landing-chrome" dangerouslySetInnerHTML={{ __html: footer }} />
+    </BlogMotion>
   );
 }

@@ -1,0 +1,61 @@
+.course-article .rm-table-scroll {
+  border-radius: 0.4rem;
+}
+.course-article .rm-table-scroll :is(th, td) {
+  padding: 0.65em 0.85em;
+  border: 1px solid rgb(var(--rm-border));
+  min-width: 8ch;
+  vertical-align: top;
+  line-height: 1.5;
+  overflow-wrap: normal;
+}
+.course-article .rm-table-scroll th {
+  background: rgb(var(--rm-surface-muted));
+  font-weight: 600;
+}
+.course-article .rm-table-scroll tbody tr:nth-child(even) {
+  background: rgb(var(--rm-surface-muted) / 0.48);
+}
+.course-article .rm-study-note {
+  border-inline-start: 0.2rem solid rgb(var(--rm-lecture-action));
+  background: rgb(var(--rm-lecture-action) / 0.055);
+  padding: 0.85rem 1rem;
+  border-radius: 0 0.4rem 0.4rem 0;
+}
+.course-article .rm-study-note[data-kind='warning'] {
+  border-color: rgb(var(--rm-warning));
+  background: rgb(var(--rm-warning) / 0.08);
+}
+.course-article .rm-study-note > * + * {
+  margin-top: 0.5rem;
+}
+.course-article .rm-study-note > strong {
+  display: block;
+}
+.course-article .rm-study-question {
+  border: 1px solid rgb(var(--rm-border));
+  border-radius: 0.5rem;
+  padding-inline: 1rem;
+  background: rgb(var(--rm-surface));
+}
+.course-article .rm-study-question summary {
+  min-height: 44px;
+  padding-block: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.course-article .rm-study-question summary:focus-visible {
+  outline: 2px solid rgb(var(--rm-lecture-action));
+  outline-offset: 2px;
+}
+.course-article .rm-study-question[open] {
+  padding-bottom: 0.9rem;
+}
+.course-article .rm-study-question[open] > * + * {
+  margin-top: 0.5rem;
+}
+.course-article .rm-study-question summary code {
+  background: rgb(var(--rm-surface-muted));
+  padding: 0.05em 0.25em;
+  border-radius: 0.2em;
+}

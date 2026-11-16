@@ -3,6 +3,8 @@
   --panel: rgb(var(--rm-lecture-surface));
   --ink: rgb(var(--rm-lecture-ink));
   --muted: rgb(var(--rm-lecture-muted));
+  --secondary: rgb(var(--rm-fg-muted));
+  --section-gap: clamp(2em, 4vw, 4em);
   --blue: rgb(var(--rm-lecture-blue));
   --line: rgb(var(--rm-lecture-line));
   --action: rgb(var(--rm-lecture-action));
@@ -19,29 +21,6 @@
 .catalog-wrap {
   width: min(calc(100% - 2rem), 73.75em);
   margin-inline: auto;
-}
-.catalog-nav {
-  background: var(--panel);
-  border-bottom: 1px solid var(--line);
-}
-.catalog-nav .catalog-wrap,
-.catalog-brand {
-  display: flex;
-  align-items: center;
-}
-.catalog-nav .catalog-wrap {
-  min-height: 4.5em;
-  justify-content: space-between;
-  gap: 1em;
-}
-.catalog-brand {
-  gap: 0.5em;
-  font-size: 1.375em;
-  font-weight: 650;
-  min-height: 44px;
-}
-.catalog-brand img {
-  width: 1.82em;
 }
 .catalog-link {
   display: inline-flex;
@@ -124,7 +103,8 @@
   background: var(--panel);
 }
 .catalog-form {
-  padding: 1.2em 1.5em 0.5em;
+  margin-top: var(--section-gap);
+  padding: 1.5em 1.5em 0.75em;
   box-shadow: 0.18em 0.24em 0 var(--line);
 }
 .catalog-form label {
@@ -171,51 +151,78 @@
 .catalog-search button:hover {
   background: var(--blue);
 }
+.catalog-advanced {
+  margin-top: 0.5em;
+}
+.catalog-advanced summary {
+  width: fit-content;
+  min-height: 44px;
+  padding: 0.8em 0.35em 0.8em 0;
+  font-size: 0.875em;
+  color: var(--secondary);
+  cursor: pointer;
+}
 .catalog-filters {
   display: grid;
   grid-template-columns: 1fr 0.8fr 1fr 1fr 1fr 1.55fr;
   gap: 0.8em;
   margin-block: 1em 0.2em;
 }
-.catalog-form > .catalog-link {
+.catalog-foot .catalog-link,
+.catalog-advanced > .catalog-link {
+  color: var(--secondary);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 50%, transparent);
+}
+.catalog-advanced > .catalog-link {
   font-size: 0.875em;
 }
 .catalog-results {
-  padding-block: 1.5em 4em;
+  padding-block: var(--section-gap) 4em;
 }
 .catalog-results h2 {
   font: 400 1.8em/1.2 var(--serif);
-  margin-bottom: 0.55em;
+  margin-bottom: 0.85em;
 }
 .catalog-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.25em;
+  gap: 1.75em;
 }
 .catalog-course,
 .catalog-notice {
-  padding: 1.2em 1.5em 0.45em;
+  padding: 1.5em 1.5em 0.5em;
   overflow-wrap: anywhere;
 }
 .catalog-course {
   display: flex;
   flex-direction: column;
-  gap: 0.55em;
+  gap: 0.825em;
   border-radius: 0.25em;
-  border-top: 3px solid color-mix(in srgb, var(--action) 46%, var(--line));
+  border-color: rgb(var(--rm-border));
 }
 .catalog-tags {
   display: flex;
   flex-wrap: wrap;
-  column-gap: 1em;
-  font-size: 0.8125em;
-  color: var(--blue);
+  gap: 0.4em 0.55em;
+  /* Подписи не должны расти вместе с крупной типографикой каталога на 4K. */
+  font-size: 12px;
+  color: var(--secondary);
+}
+.catalog-tags > span {
+  max-width: 100%;
+  padding: 0.15em 0.65em;
+  border-radius: 1em;
+  background: rgb(var(--rm-surface-muted));
 }
 .catalog-tags:empty {
   display: none;
 }
 .catalog-results h3 {
   font: 400 1.55em/1.18 var(--serif);
+}
+.catalog-course h3 {
+  font-weight: 700;
 }
 .catalog-course h3 a {
   display: inline-flex;
@@ -224,10 +231,11 @@
 }
 .catalog-description,
 .catalog-meta {
-  color: var(--muted);
-  font-size: 0.9375em;
+  color: var(--secondary);
+  font-size: 0.875em;
 }
 .catalog-meta {
+  font-size: 13px;
   margin-top: auto;
   padding-top: 0.35em;
 }
@@ -237,16 +245,20 @@
   align-items: center;
   justify-content: space-between;
   column-gap: 0.75em;
-  border-top: 1px solid var(--line);
-  font-size: 0.85em;
-  color: var(--muted);
+  border-top: 1px solid rgb(var(--rm-border));
+  font-size: 13px;
+  color: var(--secondary);
 }
 .catalog-notice {
   padding-bottom: 1em;
 }
 @media (min-width: 100rem) {
-  .course-catalog {
-    font-size: clamp(1rem, min(1vw, 1.62vh), 2.125rem);
+  .catalog-tags {
+    font-size: 15px;
+  }
+  .catalog-meta,
+  .catalog-foot {
+    font-size: 16px;
   }
   .catalog-search input[name='q'],
   .catalog-search button {
@@ -276,12 +288,6 @@
   }
 }
 @media (max-width: 36rem) {
-  .catalog-nav .catalog-wrap {
-    min-height: 3.75em;
-  }
-  .catalog-brand {
-    font-size: 1.1em;
-  }
   .catalog-intro {
     padding-block: 1.5em 0.75em;
   }

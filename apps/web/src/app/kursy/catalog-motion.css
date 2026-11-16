@@ -1,0 +1,101 @@
+.catalog-search-stroke {
+  display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .catalog-route :is(h1, h2, h3) {
+    animation: catalog-heading-in 320ms ease-out;
+  }
+  @keyframes catalog-heading-in {
+    from {
+      opacity: 0.65;
+      translate: 0 0.18em;
+    }
+    to {
+      opacity: 1;
+      translate: 0 0;
+    }
+  }
+
+  /* На длинной выдаче заголовок проявляется у края окна, когда до него доскроллили. */
+  @supports (animation-timeline: view()) {
+    .catalog-route :is(h2, h3) {
+      animation-timeline: view();
+      animation-range: entry 0% entry 100%;
+      animation-duration: auto;
+    }
+  }
+
+  .catalog-route :is(main a, .header-sections a, .site-footer a, .catalog-advanced summary) {
+    text-decoration-line: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 0.4em;
+    transition:
+      text-decoration-color 180ms ease-out,
+      text-underline-offset 180ms ease-out;
+  }
+  .catalog-route
+    :is(.catalog-intro a, .catalog-foot a, .catalog-advanced a, .footer-contact a, aside a) {
+    text-decoration-color: color-mix(in srgb, currentColor 55%, transparent);
+  }
+  .catalog-route
+    :is(main a, .header-sections a, .site-footer a, .catalog-advanced summary):is(
+      :hover,
+      :focus-visible,
+      :active
+    ) {
+    text-decoration-line: underline;
+    text-decoration-color: currentColor;
+    text-underline-offset: 0.15em;
+  }
+
+  .catalog-route main button {
+    transition:
+      background-color 160ms ease-out,
+      scale 120ms ease-out,
+      box-shadow 160ms ease-out;
+  }
+  .catalog-route main button:focus-visible {
+    box-shadow: 0 0 0 0.16em rgb(var(--rm-lecture-action) / 0.25);
+  }
+  @media (hover: hover) {
+    .catalog-route main button:hover {
+      scale: 1.025;
+    }
+  }
+  .catalog-route main button:active {
+    scale: 0.97;
+  }
+
+  .catalog-search button {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+  .catalog-search-stroke {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-opacity: 0.14;
+    stroke-width: 17;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    transition: stroke-dashoffset 520ms ease-out;
+  }
+  .catalog-search button:is(:focus-visible, :active) .catalog-search-stroke {
+    stroke-dashoffset: 0;
+  }
+  @media (hover: hover) {
+    .catalog-search button:hover .catalog-search-stroke {
+      stroke-dashoffset: 0;
+    }
+  }
+}

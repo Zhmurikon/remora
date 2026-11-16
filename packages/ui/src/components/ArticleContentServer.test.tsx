@@ -30,3 +30,33 @@ it('оборачивает широкую таблицу в область го�
   expect(html).toContain('<table');
   expect(html).toContain('<th');
 });
+
+it('восстанавливает разделитель таблицы и сохраняет оператор внутри кода', () => {
+  const value = '| Оператор | Описание | Результат |\n|---|---|\n| `|` | Или | **Да** |';
+  const html = renderToStaticMarkup(<ArticleContentServer value={value} />);
+  expect(html.match(/<th>/g)).toHaveLength(3);
+  expect(html.match(/<td>/g)).toHaveLength(3);
+  expect(html).toContain('>|</code>');
+  expect(html).toContain('<strong>Да</strong>');
+});
+
+it('оставляет Markdown внутри выноски и ответа, а код в вопросе выводит безопасно', () => {
+  const value =
+    '> [!warning] Пример\n> - **Проверка**\n\n<details>\n<summary>Что делает <code>print()</code>?</summary>\n\nОтвет со *ссылкой* и <img src=x onerror=bad>.\n\n</details>';
+  const html = renderToStaticMarkup(<ArticleContentServer value={value} />);
+  expect(html).toContain('data-kind="warning"><strong>Пример</strong>');
+  expect(html).toContain('<strong>Проверка</strong>');
+  expect(html).toContain('<summary>Что делает <code>print()</code>?</summary>');
+  expect(html).toContain('<em>ссылкой</em>');
+  expect(html).toContain('&lt;img src=x onerror=bad&gt;');
+});
+
+it('не превращает примеры разметки, произвольный HTML и непарные теги в элементы', () => {
+  const value =
+    '\x60\x60\x60html\n<details><summary>Вопрос</summary>\n> [!info]\n</details>\n\x60\x60\x60\n\n<details onclick="bad()"><summary>HTML</summary>\n\n</details>\n\n<details><summary>Незакрытый вопрос</summary>';
+  const html = renderToStaticMarkup(<ArticleContentServer value={value} />);
+  expect(html).not.toContain('<details');
+  expect(html).not.toContain('<summary');
+  expect(html).toContain('[!info]');
+  expect(html).toContain('Незакрытый вопрос');
+});

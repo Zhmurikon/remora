@@ -1,11 +1,9 @@
 import { PublicAnalytics } from '../../components/analytics/PublicAnalytics';
 import type { components } from '@remora/api-client';
-import Image from 'next/image';
 import './catalog.css';
 import { CatalogDrawer } from './CatalogDrawer';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { PublicAuthLink } from '../../components/auth/PublicSession';
 import { JsonLd } from '../../components/JsonLd';
 import { absoluteUrl, DEFAULT_OG_IMAGE } from '../../lib/seo';
 
@@ -101,15 +99,6 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
           }}
         />
       )}
-      <nav aria-label="Основная навигация" className="catalog-nav">
-        <div className="catalog-wrap">
-          <Link href="/" className="catalog-brand">
-            <Image src="/lecture-demo/remora-icon.png" alt="" width={40} height={40} />
-            Запоминальня
-          </Link>
-          <PublicAuthLink className="catalog-link" />
-        </div>
-      </nav>
       <header className="catalog-hero">
         <div className="catalog-wrap">
           <div className="catalog-intro">
@@ -139,7 +128,21 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
                 placeholder="Например, линейная алгебра"
               />
             </label>
-            <button type="submit">Найти курсы</button>
+            <button type="submit">
+              <svg
+                className="catalog-search-stroke"
+                viewBox="0 0 220 48"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path
+                  pathLength="1"
+                  d="M-10 7L230 -3L-10 20L230 9L-10 32L230 21L-10 44L230 33L-10 57L230 45"
+                />
+              </svg>
+              <span>Найти курсы</span>
+            </button>
           </div>
           {params.get('author_id') && (
             <div className="text-fg-muted text-sm">
@@ -147,68 +150,79 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
               <input type="hidden" name="author_id" value={params.get('author_id')!} />
             </div>
           )}
-          <div className="catalog-filters">
-            <label>
-              Тег
-              <input
-                name="tag"
-                maxLength={60}
-                defaultValue={params.get('tag') ?? ''}
-                placeholder="математика"
-              />
-            </label>
-            <label>
-              Язык
-              <select name="language" defaultValue={params.get('language') ?? ''}>
-                <option value="">Любой</option>
-                <option value="ru">Русский</option>
-                <option value="en">Английский</option>
-                <option value="de">Немецкий</option>
-                <option value="fr">Французский</option>
-                <option value="es">Испанский</option>
-                <option value="zh">Китайский</option>
-              </select>
-            </label>
-            <label>
-              Обновлены после
-              <input
-                type="date"
-                name="updated_after"
-                defaultValue={params.get('updated_after') ?? ''}
-              />
-            </label>
-            <label>
-              Минимум карточек
-              <input
-                type="number"
-                min={0}
-                name="min_cards"
-                defaultValue={params.get('min_cards') ?? ''}
-              />
-            </label>
-            <label>
-              Максимум карточек
-              <input
-                type="number"
-                min={0}
-                name="max_cards"
-                defaultValue={params.get('max_cards') ?? ''}
-              />
-            </label>
-            <label>
-              Порядок
-              <select name="sort" defaultValue={params.get('sort') ?? 'relevance'}>
-                <option value="relevance">По соответствию запросу</option>
-                <option value="popular">Сначала популярные</option>
-                <option value="updated">Недавно обновлённые</option>
-                <option value="cards">Больше карточек</option>
-              </select>
-            </label>
-          </div>
-          {/* Полная навигация очищает и ещё не отправленные значения полей. */}
-          <a href="/kursy" className="catalog-link">
-            Сбросить поиск и фильтры
-          </a>
+          <details
+            className="catalog-advanced"
+            open={
+              ['tag', 'language', 'min_cards', 'max_cards', 'updated_after', 'author_id'].some(
+                (key) => params.has(key),
+              ) ||
+              (params.has('sort') && params.get('sort') !== 'relevance')
+            }
+          >
+            <summary>Фильтры</summary>
+            <div className="catalog-filters">
+              <label>
+                Тег
+                <input
+                  name="tag"
+                  maxLength={60}
+                  defaultValue={params.get('tag') ?? ''}
+                  placeholder="математика"
+                />
+              </label>
+              <label>
+                Язык
+                <select name="language" defaultValue={params.get('language') ?? ''}>
+                  <option value="">Любой</option>
+                  <option value="ru">Русский</option>
+                  <option value="en">Английский</option>
+                  <option value="de">Немецкий</option>
+                  <option value="fr">Французский</option>
+                  <option value="es">Испанский</option>
+                  <option value="zh">Китайский</option>
+                </select>
+              </label>
+              <label>
+                Обновлены после
+                <input
+                  type="date"
+                  name="updated_after"
+                  defaultValue={params.get('updated_after') ?? ''}
+                />
+              </label>
+              <label>
+                Минимум карточек
+                <input
+                  type="number"
+                  min={0}
+                  name="min_cards"
+                  defaultValue={params.get('min_cards') ?? ''}
+                />
+              </label>
+              <label>
+                Максимум карточек
+                <input
+                  type="number"
+                  min={0}
+                  name="max_cards"
+                  defaultValue={params.get('max_cards') ?? ''}
+                />
+              </label>
+              <label>
+                Порядок
+                <select name="sort" defaultValue={params.get('sort') ?? 'relevance'}>
+                  <option value="relevance">По соответствию запросу</option>
+                  <option value="popular">Сначала популярные</option>
+                  <option value="updated">Недавно обновлённые</option>
+                  <option value="cards">Больше карточек</option>
+                </select>
+              </label>
+            </div>
+            {/* Полная навигация очищает и ещё не отправленные значения полей. */}
+            <a href="/kursy" className="catalog-link">
+              Сбросить поиск и фильтры
+            </a>
+          </details>
         </form>
         <section aria-label="Результаты поиска" className="catalog-results">
           <h2>Курсы</h2>
@@ -231,14 +245,14 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
           <div className="catalog-list">
             {result?.items.map((course) => (
               <article key={course.id} className="catalog-course">
+                <h3>
+                  <Link href={`/kurs/${course.slug}`}>{course.title}</Link>
+                </h3>
                 <div className="catalog-tags">
                   {course.tags.map((tag) => (
                     <span key={tag}>#{tag}</span>
                   ))}
                 </div>
-                <h3>
-                  <Link href={`/kurs/${course.slug}`}>{course.title}</Link>
-                </h3>
                 {course.description && (
                   <p className="catalog-description line-clamp-3">{course.description}</p>
                 )}

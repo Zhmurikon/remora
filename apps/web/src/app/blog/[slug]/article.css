@@ -8,7 +8,13 @@
   --rm-primary-hover: var(--rm-lecture-blue);
   --rm-primary-fg: var(--rm-lecture-surface);
   --article-serif: Georgia, 'Times New Roman', serif;
+  --article-reading-width: min(40rem, 1080px);
   font-family: Inter, 'Segoe UI', Arial, sans-serif;
+}
+@media (min-width: 100rem) {
+  .blog:has(.article-jacket) {
+    --article-reading-width: min(37rem, 1000px);
+  }
 }
 .blog:has(.article-jacket) .home-shell {
   width: min(calc(100% - 3rem), 78.75rem);
@@ -121,12 +127,13 @@
 .blog-article .blog-article-grid {
   margin-top: 2rem;
   grid-template-areas: 'header rail' 'prose rail';
-  grid-template-columns: minmax(0, 1fr) minmax(17rem, 22.625rem);
-  column-gap: clamp(2rem, 7.5vw, 6.75rem);
+  grid-template-columns: minmax(0, var(--article-reading-width)) minmax(17rem, 22.625rem);
+  column-gap: clamp(2rem, 6vw, 5rem);
+  justify-content: center;
 }
 .article-byline {
   grid-area: header;
-  max-width: 46rem;
+  max-width: var(--article-reading-width);
   min-width: 0;
 }
 .article-byline .blog-meta {
@@ -146,20 +153,45 @@
   margin-top: 0.25rem;
 }
 .article-byline .article-lead {
-  font-size: 1.1875rem;
-  color: rgb(var(--rm-fg-muted));
-  line-height: 1.52;
-  margin: 1.35rem 0 1.45rem;
+  margin: 1.65rem 0 2.25rem;
+  padding-inline-start: 1.1rem;
+  border-inline-start: 2px solid rgb(var(--rm-lecture-blue));
+  color: rgb(var(--rm-fg));
+  font: 400 min(1.375rem, 33px) / 1.45 var(--article-serif);
+  text-wrap: pretty;
 }
 .blog-article .blog-prose {
   width: 100%;
-  padding-top: 1.45rem;
-  border-top: 1px solid rgb(var(--rm-lecture-muted) / 0.6);
-  font-size: 1.0625rem;
+  max-width: var(--article-reading-width);
+  font-size: min(1.09375rem, 26px);
   line-height: 1.8;
 }
+.blog-article .blog-rich-text {
+  line-height: inherit;
+}
+/* Обычный перенос в Markdown — пробел. Явный разрыв строки остаётся элементом br. */
+.blog-article .blog-rich-text p {
+  white-space: normal;
+}
+.blog-article .blog-prose p {
+  text-wrap: pretty;
+}
+.blog-article .blog-prose p + p {
+  margin-top: 1.05em;
+}
+.blog-article .blog-prose :not(pre) > code {
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  font-family: var(--rm-font-mono), monospace;
+  font-size: 0.89em;
+}
 .blog-article .blog-prose > section {
-  margin-bottom: 2.75rem;
+  margin-bottom: 1.5rem;
+}
+.blog-article .blog-prose > section + section {
+  padding-top: 1.25rem;
+  border-top: 1px solid rgb(var(--rm-border));
 }
 .blog-article .blog-prose :is(h2, h3),
 .blog-article .blog-toc h2,
@@ -171,10 +203,24 @@
   line-height: 1.15;
 }
 .blog-article .blog-prose h2 {
-  font-size: 2.06rem;
+  margin: 0 0 0.7em;
+  font-size: 1.72em;
+  line-height: 1.16;
 }
 .blog-article .blog-prose h3 {
-  font-size: 1.6rem;
+  font-size: 1.33em;
+}
+.blog-article .blog-rich-text :is(h3, h4, h5, h6) {
+  margin: 1.65em 0 0.45em;
+  padding-top: 0;
+}
+.blog-article .blog-rich-text :is(h4, h5) {
+  font-size: 1.15em;
+  line-height: 1.35;
+  font-weight: 600;
+}
+.blog-article .blog-rich-text > :first-child {
+  margin-top: 0;
 }
 .blog-article .blog-article-rail {
   padding: 0;
@@ -271,12 +317,6 @@
   margin-top: 3rem;
   padding-top: 2rem;
 }
-@media (min-width: 1680px) {
-  .blog-article .blog-prose,
-  .article-byline {
-    max-width: min(51rem, 1080px);
-  }
-}
 @media (max-width: 960px) {
   .blog-article .blog-article-grid {
     grid-template-areas: 'header' 'rail' 'prose';
@@ -346,7 +386,12 @@
     margin-top: 1.35rem;
   }
   .article-byline .article-lead {
-    font-size: 1.0625rem;
+    font-size: 1.1875rem;
+    margin-block: 1.25rem 1.75rem;
+    padding-inline-start: 0.85rem;
+  }
+  .blog-article .blog-prose {
+    font-size: 1.03125rem;
   }
   .blog-article .blog-prose h2 {
     font-size: 1.65rem;

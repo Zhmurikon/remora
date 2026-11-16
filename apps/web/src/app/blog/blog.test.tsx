@@ -107,6 +107,24 @@ it('добавляет опубликованную агентом статью 
   expect(article).toContain('<h1>Публикация из API</h1>');
 });
 
+it.each([
+  ['2026-09-15T09:00:00.001Z', false],
+  ['2026-09-16T09:00:00.000Z', true],
+])('показывает дату правки %s только при смене дня публикации', async (updatedAt, showUpdate) => {
+  const post = {
+    ...publishedPosts()[0]!,
+    publishedAt: '2026-09-15T09:00:00.000Z',
+    updatedAt,
+  };
+  vi.stubGlobal('fetch', async (url: string) =>
+    Response.json(url.includes(`/posts/${post.slug}`) ? post : [post]),
+  );
+  const html = renderToStaticMarkup(
+    await BlogPostPage({ params: Promise.resolve({ slug: post.slug }) }),
+  );
+  expect(html.includes('class="article-updated"')).toBe(showUpdate);
+});
+
 it('загружает все страницы API, когда публикаций больше ста', async () => {
   const source = publishedPosts()[0]!;
   const remote = Array.from({ length: 101 }, (_, index) => ({

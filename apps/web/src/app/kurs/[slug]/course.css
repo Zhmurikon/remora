@@ -171,13 +171,16 @@
   }
 }
 .course-reader {
+  --course-body-size: clamp(1.0625rem, 1rem + 0.15vw, 1.125rem);
+  --course-reading-width: 42rem;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: clamp(2rem, 4vw, 4.5rem);
   margin-block: 2.75rem;
 }
 .course-reader:has(.course-index) {
-  grid-template-columns: minmax(12rem, 18.75rem) minmax(0, 1fr);
+  grid-template-columns: minmax(12rem, 18.75rem) minmax(0, var(--course-reading-width));
+  justify-content: center;
 }
 .course-index {
   align-self: start;
@@ -219,7 +222,7 @@
 .course-pages {
   min-width: 0;
   width: 100%;
-  max-width: 52rem;
+  max-width: var(--course-reading-width);
 }
 .course-reader:not(:has(.course-index)) .course-pages {
   margin: auto;
@@ -233,18 +236,79 @@
 }
 .course-section-name {
   font:
-    italic 1.125rem/1.4 Georgia,
+    italic 1.125em/1.4 Georgia,
     serif;
   color: var(--muted);
   margin-bottom: 0.45rem;
 }
 .course-material-title {
   font:
-    400 2.15rem/1.16 Georgia,
+    400 2.15em/1.16 Georgia,
     serif;
+  text-wrap: balance;
 }
 .course-material .course-article {
-  max-width: 72ch;
+  max-width: none;
+  font-size: var(--course-body-size);
+  line-height: 1.68;
+}
+@media (min-width: 100rem) {
+  .course-reader {
+    --course-body-size: min(1rem, 26px);
+    /* Пропорция сохраняет длину строки, когда кегль достигает предела на 4K. */
+    --course-reading-width: calc(35 * var(--course-body-size));
+  }
+  .course-pages {
+    font-size: var(--course-body-size);
+  }
+}
+.course-material .course-article p {
+  white-space: normal;
+  text-wrap: pretty;
+}
+.course-material .course-article :is(h3, h4, h5, h6) {
+  padding-top: 0;
+  line-height: 1.28;
+  text-wrap: balance;
+}
+.course-material .course-article :is(h3, h4) {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+}
+.course-material .course-article h3 {
+  font-size: 1.6em;
+}
+.course-material .course-article h4 {
+  font-size: 1.4em;
+}
+.course-material .course-article :is(h5, h6) {
+  font-size: 1.08em;
+}
+.course-reader .course-material .course-article > * + :is(h3, h4, h5, h6) {
+  margin-top: 1.5em;
+}
+.course-reader .course-material .course-article > :is(h3, h4, h5, h6) + * {
+  margin-top: 0.6em;
+}
+.course-material .course-article :is(ul, ol) {
+  padding-inline-start: 1.45em;
+}
+.course-reader .course-material .course-article li + li {
+  margin-top: 0.3em;
+}
+.course-material .course-article li > p + p {
+  margin-top: 0.6em;
+}
+.course-material .course-article :is(pre, code) {
+  font-family: var(--rm-font-mono), monospace;
+}
+.course-material .course-article :not(pre) > code {
+  font-size: 0.9em;
+}
+.course-material .course-article :is(pre, table) {
+  font-size: 0.9em;
+  line-height: 1.55;
 }
 .course-card-list > h3 {
   font-weight: 600;

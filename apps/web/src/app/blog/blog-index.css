@@ -14,28 +14,10 @@
 .blog:has(.blog-desk) .home-shell {
   width: var(--blog-shell);
 }
-.blog:has(.blog-desk) .blog-header {
-  padding-block: 0.55rem;
-  min-height: 4.625rem;
-  border: 0;
-}
-.blog:has(.blog-desk) .home-brand {
-  font: 1.5rem var(--blog-serif);
-  letter-spacing: -0.035em;
-}
-.blog:has(.blog-desk) .blog-header nav {
-  flex: 1;
-  gap: 1.5rem;
-}
-.blog:has(.blog-desk) .blog-header nav > :first-child,
-.blog:has(.blog-desk) .blog-header nav > :last-child {
-  margin-inline-start: auto;
-}
 .blog:has(.blog-desk) a:focus-visible {
   outline: 2px solid rgb(var(--rm-primary));
   outline-offset: 3px;
 }
-.blog:has(.blog-desk) .blog-header a[aria-current],
 .blog-topic-index a:is(:hover, :focus-visible),
 .blog-list-link:is(:hover, :focus-visible) h4 {
   text-decoration: underline;
@@ -184,10 +166,17 @@
   border-top: 0;
 }
 .blog-list-link {
+  align-items: start;
   grid-template-columns: 9.25rem minmax(0, 1fr) 2rem;
   gap: 1.56rem;
   padding-block: 1.44rem;
   min-height: 0;
+}
+.blog-list-arrow {
+  align-self: center;
+}
+.blog-list-copy {
+  overflow-wrap: anywhere;
 }
 .blog-list-link:hover {
   background: transparent;
@@ -213,7 +202,7 @@
   margin-top: 0.75rem;
 }
 .blog-list-media {
-  align-self: center;
+  align-self: start;
   aspect-ratio: 4/3;
   min-height: 0;
   border-radius: 0.45rem;
@@ -248,11 +237,6 @@
   margin-left: auto;
   flex: none;
 }
-@media (min-width: 100rem) {
-  html:has(.blog-desk) {
-    font-size: clamp(1rem, min(1vw, 1.8vh), 2.125rem);
-  }
-}
 @media (max-width: 800px) {
   .blog-desk {
     min-height: 20rem;
@@ -285,20 +269,6 @@
 @media (max-width: 600px) {
   .blog:has(.blog-desk) {
     --blog-shell: calc(100% - 2rem);
-  }
-  .blog:has(.blog-desk) .blog-header {
-    gap: 0;
-  }
-  .blog:has(.blog-desk) .blog-header nav {
-    flex: 0 0 100%;
-    gap: 0.35rem 0.65rem;
-    justify-content: space-between;
-  }
-  .blog:has(.blog-desk) .blog-header nav > :is(:first-child, :last-child) {
-    margin: 0;
-  }
-  .blog:has(.blog-desk) .blog-header .home-button {
-    padding: 0.45rem 0.65rem;
   }
   .blog-desk {
     width: calc(100vw - 1rem);

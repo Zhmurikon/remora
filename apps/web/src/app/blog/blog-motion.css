@@ -1,0 +1,93 @@
+.blog-theme {
+  display: flex;
+  justify-content: flex-end;
+  padding-block: 1.5rem;
+}
+
+.blog-page :focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+.blog-page .blog-list-link:focus-visible h4 {
+  color: rgb(var(--rm-lecture-blue));
+}
+@media (prefers-reduced-motion: no-preference) {
+  .blog-page .blog-heading-enter {
+    animation: blog-heading-enter 250ms ease-out;
+  }
+  @keyframes blog-heading-enter {
+    from {
+      opacity: 0.55;
+      translate: 0 0.25em;
+    }
+    to {
+      opacity: 1;
+      translate: 0 0;
+    }
+  }
+
+  /* Подчёркивание следует за переносами строки, в том числе внутри текста статьи. */
+  .blog-page
+    :is(main a:not(:where(.blog-list-link, .home-button)), .site-footer a, .header-sections a),
+  .blog-page .blog-list-link h4 {
+    text-decoration-line: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 0.38em;
+    transition:
+      text-decoration-color 160ms ease-out,
+      text-underline-offset 160ms ease-out,
+      color 160ms;
+  }
+  .blog-page
+    :is(main a:not(:where(.blog-list-link, .home-button)), .site-footer a, .header-sections a):is(
+      :hover,
+      :focus-visible
+    ),
+  .blog-page .blog-list-link:is(:hover, :focus-visible) h4 {
+    text-decoration-color: currentColor;
+    text-underline-offset: 0.2em;
+  }
+  .blog-page .blog-prose a,
+  .blog-page .footer-contact a {
+    text-decoration-color: currentColor;
+  }
+
+  .blog-page :is(button, .home-button, .home-skip, .blog-theme select) {
+    transition:
+      transform 140ms ease-out,
+      background-color 160ms,
+      box-shadow 160ms;
+  }
+  .blog-page
+    :is(button, .home-button, .blog-theme select):is(:hover, :focus-visible):not(:disabled) {
+    transform: translateY(-2px);
+  }
+  .blog-page :is(button, .home-button, .blog-theme select):active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  .blog-page .home-skip:focus-visible {
+    animation: blog-heading-enter 160ms ease-out;
+  }
+  .blog-page .blog-list-link:is(:hover, :focus-visible) .blog-list-arrow {
+    transform: translateX(0.2em);
+  }
+  .blog-page .site-footer a {
+    transition:
+      translate 160ms ease-out,
+      color 160ms,
+      text-underline-offset 160ms;
+  }
+  .blog-page .site-footer a:is(:hover, :focus-visible) {
+    translate: 0.15em 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .blog-page :is(a, button, select, .blog-list-arrow),
+  .blog-page .home-button::after {
+    transition: none;
+  }
+  .blog-page .home-button:is(:hover, :active),
+  .blog-page .blog-list-link:hover .blog-list-arrow {
+    transform: none;
+  }
+}

@@ -35,6 +35,8 @@ export default async function BlogPostPage({ params }: Props) {
   const { slug } = await params;
   const [post, posts] = await Promise.all([loadPost(slug), loadPublishedPosts()]);
   if (!post) notFound();
+  const publishedDate = formatBlogDate(post.publishedAt);
+  const updatedDate = formatBlogDate(post.updatedAt);
   return (
     <>
       <PublicAnalytics path={`/blog/${encodeURIComponent(post.slug)}`} />
@@ -58,12 +60,12 @@ export default async function BlogPostPage({ params }: Props) {
           <div className="article-byline">
             <div className="blog-meta">
               <span>{BLOG_AUTHOR}</span>
-              <time dateTime={post.publishedAt}>{formatBlogDate(post.publishedAt)}</time>
+              <time dateTime={post.publishedAt}>{publishedDate}</time>
               <span>≈ {readingMinutes(post)} мин чтения</span>
             </div>
-            {post.updatedAt !== post.publishedAt && (
+            {updatedDate !== publishedDate && (
               <p className="article-updated">
-                Обновлено <time dateTime={post.updatedAt}>{formatBlogDate(post.updatedAt)}</time>
+                Обновлено <time dateTime={post.updatedAt}>{updatedDate}</time>
               </p>
             )}
             <p className="article-lead">{post.description}</p>
@@ -107,7 +109,7 @@ export default async function BlogPostPage({ params }: Props) {
                 {section.richText && (
                   <BlogRichText value={section.richText} media={section.media} />
                 )}
-                {section.steps && (
+                {!!section.steps?.length && (
                   <ol>
                     {section.steps.map((step) => (
                       <li key={step}>{step}</li>
@@ -127,7 +129,7 @@ export default async function BlogPostPage({ params }: Props) {
                 )}
               </section>
             ))}
-            {post.sources && (
+            {!!post.sources?.length && (
               <section className="blog-sources" aria-labelledby="sources-title">
                 <h2 id="sources-title">Источники</h2>
                 <ul>

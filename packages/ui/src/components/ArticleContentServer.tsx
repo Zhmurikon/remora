@@ -1,5 +1,7 @@
 import katex from 'katex';
 import MarkdownIt from 'markdown-it';
+import { articleStudyBlocks } from './article-study-blocks';
+import './article-study.css';
 import { markdownMath } from './markdown-math';
 import { mediaId } from './article-markdown';
 import type { ArticleMedia } from './ArticleContent';
@@ -18,7 +20,9 @@ function createRenderer(media: Record<string, ArticleMedia>, headingLevel: 2 | 3
     linkify: true,
     typographer: false,
     breaks: false,
-  }).use(markdownMath);
+  })
+    .use(markdownMath)
+    .use(articleStudyBlocks);
   const links: boolean[] = [];
 
   renderer.renderer.rules.heading_open = (tokens, index) => {
