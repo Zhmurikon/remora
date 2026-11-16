@@ -264,3 +264,49 @@
     font-size: 1.75rem;
   }
 }
+.course-index nav {
+  position: relative;
+}
+.course-index-marker {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: var(--marker-height, 0px);
+  transform: translateY(var(--marker-y, 0px));
+  background: var(--blue);
+  pointer-events: none;
+}
+.course-index a[aria-current='location'] {
+  color: var(--blue);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .course-index-marker {
+    transition:
+      transform 220ms ease-out,
+      height 220ms ease-out;
+  }
+  .course-detail :is(a, button, summary) {
+    transition:
+      color 160ms ease-out,
+      background-color 160ms ease-out,
+      text-underline-offset 160ms ease-out;
+  }
+  .course-detail a:is(:hover, :focus-visible) {
+    text-underline-offset: 0.32em;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .course-index-marker {
+    transition-property: none;
+  }
+}
+@media (min-width: 48.001rem) {
+  .course-index {
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
+  }
+}
