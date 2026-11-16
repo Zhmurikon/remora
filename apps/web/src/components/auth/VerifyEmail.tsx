@@ -8,7 +8,7 @@ import { ReadingHeading, ReadingResult } from './reading-room/ReadingForm';
 type Status = { kind: 'loading' } | { kind: 'success' } | { kind: 'error'; message: string };
 
 export function VerifyEmail() {
-  const token = useSearchParams().get('token');
+  const token = useSearchParams()?.get('token');
   if (!token) {
     return (
       <ReadingResult title="Ссылка не сработала" action="Перейти ко входу">

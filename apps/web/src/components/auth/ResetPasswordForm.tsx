@@ -7,7 +7,7 @@ import { FormError, PasswordField } from './AuthFields';
 import { ReadingHeading, ReadingResult, ReadingSubmit } from './reading-room/ReadingForm';
 
 export function ResetPasswordForm() {
-  const token = useSearchParams().get('token');
+  const token = useSearchParams()?.get('token');
   if (!token) {
     return (
       <ReadingResult title="В ссылке нет кода" href="/forgot-password" action="Запросить ссылку">

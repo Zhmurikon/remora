@@ -84,6 +84,7 @@
           </p>
         </div>
         <iframe
+          id="demo"
           class="demo-frame"
           src="./widget.html"
           title="Карточки, конспект и загрузка лекции"
@@ -156,7 +157,7 @@
         </figure>
       </section>
       <section class="create-cards" id="create-cards" aria-labelledby="create-title">
-        <div class="create-intro">
+        <div class="create-intro" id="features">
           <h2 id="create-title">Как создать карточки по своим материалам</h2>
           <a class="create-signup" data-sheet="blue" href="/register">Создать бесплатный аккаунт</a>
         </div>
@@ -199,7 +200,9 @@
               Открытый API доступен бесплатно. Для помощников с поддержкой MCP есть готовый
               коннектор. На бесплатном тарифе — до 500 операций записи в неделю.
             </p>
-            <a class="folio-help" href="https://github.com/Zhmurikon/remora-ai-integrations#readme"
+            <a
+              class="folio-help"
+              href="https://github.com/Zhmurikon/remora-ai-integrations/blob/main/README.md"
               >Как подключить помощника</a
             >
           </div>
@@ -239,7 +242,27 @@
             </label>
             <button type="submit" data-sheet="blue">Найти курс</button>
           </form>
-          <img src="./catalog-drawer.webp" width="380" height="288" alt="" loading="lazy" />
+          <div class="drawer-scene" aria-hidden="true">
+            <img src="./catalog-drawer.webp" width="380" height="288" alt="" loading="lazy" />
+            <svg viewBox="0 0 380 288" focusable="false">
+              <defs>
+                <clipPath id="drawer-slot"><path d="M20 0H240V130L59 114H20Z" /></clipPath>
+              </defs>
+              <g clip-path="url(#drawer-slot)">
+                <g class="drawer-index">
+                  <path
+                    class="drawer-index-paper"
+                    d="M60 120 Q60 115 65 116 L75 117 L78 111 L109 114 L111 120 L170 125 Q174 125 174 130 L172 180 L59 169Z"
+                  />
+                  <g transform="translate(72 129) rotate(5)">
+                    <circle cx="12" cy="11" r="9" />
+                    <path d="m8 16 2-8 7-3-3 8Z M33 4h43 M33 11h34 M33 18h22" />
+                    <path class="drawer-index-rule" d="M1 30h82" />
+                  </g>
+                </g>
+              </g>
+            </svg>
+          </div>
         </div>
         <ul class="catalog-links">
           <li>
@@ -417,7 +440,10 @@
                 <li class="outgoing" aria-label="Вы: Морось">Морось</li>
                 <li aria-label="Бот: Верно!">Верно!</li>
               </ol>
-              <div class="messenger-compose" aria-hidden="true">Сообщение…</div>
+              <div class="messenger-compose" aria-hidden="true">
+                <span class="compose-placeholder">Сообщение…</span>
+                <span class="compose-draft">Морось</span>
+              </div>
             </div>
           </div>
         </figure>
@@ -435,7 +461,22 @@
             <div class="pricing-sheet">
               <div class="pricing-rate">
                 <p><strong>0&nbsp;₽</strong></p>
-                <img src="./pricing-cards.webp" width="236" height="183" loading="lazy" alt="" />
+                <div class="plan-art" aria-hidden="true">
+                  <img src="./pricing-cards.webp" width="236" height="183" loading="lazy" alt="" />
+                  <svg viewBox="0 0 236 183" preserveAspectRatio="xMaxYMid meet" focusable="false">
+                    <g transform="matrix(1 .176 -.216 .985 74 46)">
+                      <g class="flip-answer">
+                        <rect class="answer-paper" width="151" height="99" rx="5" />
+                        <g class="answer-weather">
+                          <path
+                            d="M50 51c-10 0-11-16 1-17 0-16 23-20 28-7 11-8 24 1 22 10 11 1 11 14 0 14Z"
+                          />
+                          <path class="answer-drizzle" d="m63 59-3 7m15-7-3 7m15-7-3 7" />
+                        </g>
+                      </g>
+                    </g>
+                  </svg>
+                </div>
               </div>
               <ul>
                 <li>Повторяйте карточки сколько угодно.</li>
@@ -452,7 +493,27 @@
                   <strong>299&nbsp;₽</strong> в&nbsp;месяц
                   <span>или 2&nbsp;499&nbsp;₽ в&nbsp;год</span>
                 </p>
-                <img src="./pricing-notebook.webp" width="201" height="192" loading="lazy" alt="" />
+                <div class="plan-art" aria-hidden="true">
+                  <img
+                    src="./pricing-notebook.webp"
+                    width="201"
+                    height="192"
+                    loading="lazy"
+                    alt=""
+                  />
+                  <svg viewBox="0 0 201 192" preserveAspectRatio="xMaxYMid meet" focusable="false">
+                    <defs>
+                      <path
+                        id="plus-curve"
+                        pathLength="1"
+                        d="M77 98C88 89 99 66 106 73S111 101 123 96Q130 94 145 79"
+                      />
+                    </defs>
+                    <use class="chart-trace" href="#plus-curve" />
+                    <use class="chart-tip" href="#plus-curve" />
+                    <g class="chart-caption"><path d="m63 116 31 6m-35 3 20 4" /></g>
+                  </svg>
+                </div>
               </div>
               <ul>
                 <li>До 5 часов лекций в неделю.</li>
@@ -470,7 +531,16 @@
                   <strong>999&nbsp;₽</strong> в&nbsp;месяц
                   <span>или 9&nbsp;999&nbsp;₽ в&nbsp;год</span>
                 </p>
-                <img src="./pricing-books.webp" width="207" height="196" loading="lazy" alt="" />
+                <div class="plan-art" aria-hidden="true">
+                  <img src="./pricing-books.webp" width="207" height="196" loading="lazy" alt="" />
+                  <svg viewBox="0 0 207 196" preserveAspectRatio="xMaxYMid meet" focusable="false">
+                    <g class="book-ribbons">
+                      <g transform="matrix(1 .22 0 1 45 128)"><path d="M0 0h15v27l-7-6-8 5Z" /></g>
+                      <g transform="matrix(1 .22 0 1 69 106)"><path d="M0 0h14v26l-7-6-7 5Z" /></g>
+                      <g transform="matrix(1 .22 0 1 94 86)"><path d="M0 0h14v25l-7-6-7 5Z" /></g>
+                    </g>
+                  </svg>
+                </div>
               </div>
               <ul>
                 <li>Всё, что входит в Plus.</li>
@@ -495,7 +565,7 @@
         </p>
       </section>
       <section id="faq" class="faq" aria-labelledby="faq-title">
-        <div class="faq-heading">
+        <div class="faq-heading" id="questions">
           <h2 id="faq-title">Вопросы и ответы</h2>
           <span class="ink-illustration faq-writing"
             ><img src="./faq-pen.webp" width="485" height="514" loading="lazy" alt="" /><svg
@@ -589,7 +659,26 @@
                 убрать лишние вопросы. Функция доступна на Plus и Pro.
               </p>
             </div>
-            <img src="./news-lecture.webp" alt="" loading="lazy" width="415" height="317" />
+            <div class="lecture-sketch" aria-hidden="true">
+              <img src="./news-lecture.webp" alt="" loading="lazy" width="415" height="317" />
+              <svg viewBox="0 0 415 317" focusable="false">
+                <defs>
+                  <clipPath id="lecture-wave-area"><path d="M69 67h230v84H69z" /></clipPath>
+                </defs>
+                <g clip-path="url(#lecture-wave-area)">
+                  <g class="lecture-playhead">
+                    <path class="lecture-scan-band" d="M60 68h13v81H60z" />
+                    <path d="M73 68v81" />
+                  </g>
+                </g>
+                <path class="lecture-transfer" pathLength="1" d="M299 109q28-1 23 23t-23 32" />
+                <g class="lecture-card-lines">
+                  <path pathLength="1" d="m242 221 111-9" />
+                  <path pathLength="1" d="m239 243 112-10" />
+                  <path pathLength="1" d="m235 265 113-10" />
+                </g>
+              </svg>
+            </div>
           </li>
           <li>
             <time datetime="2026-09-18">18 сентября 2026</time>
@@ -601,15 +690,29 @@
                 готовы, переходите к следующему уроку.
               </p>
             </div>
-            <span class="ink-illustration news-checklist"
-              ><img src="./news-test.webp" alt="" loading="lazy" width="427" height="285" /><svg
-                class="art-strokes"
-                viewBox="0 0 350 234"
-                aria-hidden="true"
-                focusable="false"
-              >
-                <path pathLength="1" d="M77 162l4 4 10-14" /></svg
-            ></span>
+            <div class="news-checklist" aria-hidden="true">
+              <img src="./news-test.webp" alt="" loading="lazy" width="427" height="285" />
+              <svg viewBox="0 0 427 285" focusable="false">
+                <defs>
+                  <clipPath id="checklist-pencil">
+                    <path d="M148 264 204 237 376 198 Q393 192 396 212 L398 225 215 269 151 272Z" />
+                  </clipPath>
+                </defs>
+                <g class="checklist-ink">
+                  <path class="checklist-box" pathLength="1" d="m96 182 23-5 5 20-24 5Z" />
+                  <path class="checklist-tick" pathLength="1" d="m101 187 7 5 14-18" />
+                  <path class="checklist-line" pathLength="1" d="M138 181q20-5 43-6" />
+                </g>
+                <g class="checklist-writer">
+                  <image
+                    href="./news-test.webp"
+                    width="427"
+                    height="285"
+                    clip-path="url(#checklist-pencil)"
+                  />
+                </g>
+              </svg>
+            </div>
           </li>
         </ol>
         <a class="news-link" href="./updates.html">История обновлений</a>
@@ -650,7 +753,7 @@
             <ul>
               <li><a href="/terms">Условия использования</a></li>
               <li><a href="/privacy">Политика конфиденциальности</a></li>
-              <li><a href="/oplata-i-vozvrat">Условия оплаты и возврата</a></li>
+              <li><a href="/tarify#pricing-faq-title">Вопросы об оплате</a></li>
             </ul>
           </nav>
           <p>

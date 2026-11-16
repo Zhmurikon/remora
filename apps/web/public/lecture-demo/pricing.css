@@ -182,3 +182,136 @@
     filter: brightness(2.35) saturate(0.7);
   }
 }
+
+.plan-art {
+  position: relative;
+}
+.plan-art svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  visibility: hidden;
+  pointer-events: none;
+  fill: none;
+  stroke: var(--blue);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.answer-paper {
+  fill: var(--paper);
+}
+.flip-answer {
+  transform-origin: 0 49px;
+}
+.answer-drizzle,
+.chart-tip,
+.book-ribbons path {
+  stroke: var(--accent);
+}
+.chart-tip {
+  stroke-width: 5;
+  stroke-dasharray: 0.025 0.975;
+}
+.book-ribbons path {
+  fill: var(--tab-paper);
+  transform-origin: 0 0;
+  stroke-width: 1.2;
+}
+.book-ribbons g:nth-child(2) path {
+  fill: var(--soft);
+  --ribbon-delay: 220ms;
+}
+.book-ribbons g:nth-child(3) path {
+  --ribbon-delay: 440ms;
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .pricing-plan:hover .plan-art svg {
+    visibility: visible;
+  }
+  .pricing-plan:hover .flip-answer {
+    animation: plan-reveal-answer 2.5s ease-in-out both;
+  }
+  .pricing-plan:hover .answer-drizzle {
+    animation: plan-drizzle 550ms ease-out 650ms 2 both;
+  }
+  .pricing-plan:hover .chart-trace {
+    stroke-dasharray: 1;
+    animation: plan-trace 1.4s ease-in-out both;
+  }
+  .pricing-plan:hover .chart-tip {
+    animation: plan-trace 1.4s ease-in-out both;
+  }
+  .pricing-plan:hover .chart-caption {
+    animation: plan-annotate 400ms ease-out 1.25s both;
+  }
+  .pricing-plan:hover .book-ribbons path {
+    animation: plan-unfold-ribbon 2.1s ease-in-out var(--ribbon-delay, 0ms) both;
+  }
+}
+@keyframes plan-reveal-answer {
+  0%,
+  100% {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  7%,
+  92% {
+    opacity: 1;
+  }
+  30%,
+  72% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+@keyframes plan-drizzle {
+  from {
+    opacity: 0;
+    transform: translate(1px, -3px);
+  }
+  35%,
+  75% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translate(-1px, 4px);
+  }
+}
+@keyframes plan-trace {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes plan-annotate {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes plan-unfold-ribbon {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+  27% {
+    opacity: 1;
+    transform: skewX(-8deg) scaleY(1.06);
+  }
+  40%,
+  78% {
+    opacity: 1;
+    transform: none;
+  }
+}

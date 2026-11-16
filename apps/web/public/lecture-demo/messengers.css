@@ -131,3 +131,63 @@
     mix-blend-mode: screen;
   }
 }
+
+.messenger-compose {
+  display: grid;
+  align-items: center;
+}
+.messenger-compose span {
+  grid-area: 1 / 1;
+}
+.compose-draft {
+  visibility: hidden;
+  justify-self: start;
+  color: var(--ink);
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .messenger-scene:hover .messenger-dialogue li {
+    animation: chat-delivery 320ms cubic-bezier(0.2, 0.75, 0.25, 1) var(--delivery, 0s) both;
+  }
+  .messenger-scene li:nth-child(2) {
+    --delivery: 0.53s;
+  }
+  .messenger-scene li:nth-child(3) {
+    --delivery: 2s;
+  }
+  .messenger-scene li:nth-child(4) {
+    --delivery: 2.48s;
+  }
+  .messenger-scene:hover .compose-placeholder {
+    animation: chat-placeholder 1s step-end 1s;
+  }
+  .messenger-scene:hover .compose-draft {
+    animation: chat-type 1s steps(6, end) 1s;
+  }
+}
+@keyframes chat-delivery {
+  from {
+    opacity: 0;
+    transform: translateY(0.45em) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes chat-placeholder {
+  from,
+  to {
+    opacity: 0;
+  }
+}
+@keyframes chat-type {
+  from {
+    visibility: visible;
+    clip-path: inset(0 100% 0 0);
+  }
+  78%,
+  to {
+    visibility: visible;
+    clip-path: inset(0);
+  }
+}

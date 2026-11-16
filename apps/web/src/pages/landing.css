@@ -1,0 +1,8 @@
+@import '@remora/ui/styles/tokens.css';
+
+/* Сброс для баннера согласия не должен менять типографику самостоятельного HTML-демо. */
+:where(#__next aside, #__next button, #__next p) {
+  border: 0 solid;
+  margin: 0;
+}
+@tailwind utilities;
