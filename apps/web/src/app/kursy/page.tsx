@@ -1,8 +1,10 @@
 import { PublicAnalytics } from '../../components/analytics/PublicAnalytics';
 import type { components } from '@remora/api-client';
-import { Badge, Button, Card, Input } from '@remora/ui';
+import Image from 'next/image';
+import './catalog.css';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { PublicAuthLink } from '../../components/auth/PublicSession';
 import { JsonLd } from '../../components/JsonLd';
 import { absoluteUrl, DEFAULT_OG_IMAGE } from '../../lib/seo';
 
@@ -76,9 +78,8 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
   }
   const next = new URLSearchParams(params);
   if (result?.next_cursor != null) next.set('cursor', String(result.next_cursor));
-  const field = 'grid min-w-0 gap-2 text-sm font-medium';
   return (
-    <main className="mx-auto min-h-dvh max-w-6xl px-4 py-6 sm:px-8">
+    <main className="course-catalog">
       <PublicAnalytics path="/kursy" />
       {params.size === 0 && result && (
         <JsonLd
@@ -99,45 +100,53 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
           }}
         />
       )}
-      <nav aria-label="Основная навигация" className="flex items-center justify-between">
-        <Link
-          href="/"
-          className="text-primary inline-flex min-h-11 items-center text-xl font-semibold"
-        >
-          Запоминальня
-        </Link>
-        <PublicAuthLink className="text-primary inline-flex min-h-11 items-center underline" />
+      <nav aria-label="Основная навигация" className="catalog-nav">
+        <div className="catalog-wrap">
+          <Link href="/" className="catalog-brand">
+            <Image src="/lecture-demo/remora-icon.png" alt="" width={40} height={40} />
+            Запоминальня
+          </Link>
+          <PublicAuthLink className="catalog-link" />
+        </div>
       </nav>
-      <header className="py-10 sm:py-12">
-        <p className="text-primary text-sm font-medium">Учебные материалы сообщества</p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">
-          Найдите свою тему
-        </h1>
-        <p className="text-fg-muted mt-4 max-w-prose text-lg">
-          Курсы и карточки для следующего занятия, зачёта или нового интереса.
-        </p>
-        <Link
-          href="/podborki"
-          className="text-primary mt-4 inline-flex min-h-11 items-center underline"
-        >
-          Подборки редакции →
-        </Link>
+      <header className="catalog-hero">
+        <div className="catalog-wrap">
+          <div className="catalog-intro">
+            <p className="catalog-eyebrow">Учебные материалы сообщества</p>
+            <h1>
+              Найдите <em>свою тему</em>
+            </h1>
+            <p className="catalog-lead">
+              Курсы и карточки для следующего занятия, зачёта или нового интереса.
+            </p>
+            <Link href="/podborki" className="catalog-link">
+              Подборки редакции →
+            </Link>
+          </div>
+          <div className="catalog-drawer" aria-hidden="true">
+            <Image
+              src="/lecture-demo/catalog-drawer.webp"
+              width={380}
+              height={288}
+              alt=""
+              unoptimized
+            />
+          </div>
+        </div>
       </header>
-      <Card>
-        <form action="/kursy" method="get" role="search" className="space-y-5 [&_input]:min-h-11">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <label className={`${field} flex-1`}>
+      <div className="catalog-wrap">
+        <form action="/kursy" method="get" role="search" className="catalog-form">
+          <div className="catalog-search">
+            <label>
               Что хотите изучить?
-              <Input
+              <input
                 name="q"
                 defaultValue={params.get('q') ?? ''}
                 maxLength={200}
                 placeholder="Например, линейная алгебра"
               />
             </label>
-            <Button type="submit" className="min-h-11">
-              Найти курсы
-            </Button>
+            <button type="submit">Найти курсы</button>
           </div>
           {params.get('author_id') && (
             <div className="text-fg-muted text-sm">
@@ -145,23 +154,19 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
               <input type="hidden" name="author_id" value={params.get('author_id')!} />
             </div>
           )}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <label className={field}>
+          <div className="catalog-filters">
+            <label>
               Тег
-              <Input
+              <input
                 name="tag"
                 maxLength={60}
                 defaultValue={params.get('tag') ?? ''}
                 placeholder="математика"
               />
             </label>
-            <label className={field}>
+            <label>
               Язык
-              <select
-                name="language"
-                defaultValue={params.get('language') ?? ''}
-                className="border-border bg-surface min-h-11 rounded-xl border px-3"
-              >
+              <select name="language" defaultValue={params.get('language') ?? ''}>
                 <option value="">Любой</option>
                 <option value="ru">Русский</option>
                 <option value="en">Английский</option>
@@ -171,39 +176,35 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
                 <option value="zh">Китайский</option>
               </select>
             </label>
-            <label className={field}>
+            <label>
               Обновлены после
-              <Input
+              <input
                 type="date"
                 name="updated_after"
                 defaultValue={params.get('updated_after') ?? ''}
               />
             </label>
-            <label className={field}>
+            <label>
               Минимум карточек
-              <Input
+              <input
                 type="number"
                 min={0}
                 name="min_cards"
                 defaultValue={params.get('min_cards') ?? ''}
               />
             </label>
-            <label className={field}>
+            <label>
               Максимум карточек
-              <Input
+              <input
                 type="number"
                 min={0}
                 name="max_cards"
                 defaultValue={params.get('max_cards') ?? ''}
               />
             </label>
-            <label className={field}>
+            <label>
               Порядок
-              <select
-                name="sort"
-                defaultValue={params.get('sort') ?? 'relevance'}
-                className="border-border bg-surface min-h-11 rounded-xl border px-3"
-              >
+              <select name="sort" defaultValue={params.get('sort') ?? 'relevance'}>
                 <option value="relevance">По соответствию запросу</option>
                 <option value="popular">Сначала популярные</option>
                 <option value="updated">Недавно обновлённые</option>
@@ -211,77 +212,65 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
               </select>
             </label>
           </div>
-          <Link href="/kursy" className="text-primary inline-flex min-h-11 items-center underline">
+          <Link href="/kursy" className="catalog-link">
             Сбросить поиск и фильтры
           </Link>
         </form>
-      </Card>
-      <section aria-label="Результаты поиска" className="py-8">
-        {error && (
-          <Card>
-            <p role="alert">{error}</p>
-            <Link
-              className="text-primary mt-3 inline-flex min-h-11 items-center underline"
-              href={`/kursy?${params}`}
-            >
-              Попробовать ещё раз
-            </Link>
-          </Card>
-        )}
-        {result?.items.length === 0 && (
-          <Card>
-            <h2 className="text-xl font-semibold">Курсы не найдены</h2>
-            <p className="text-fg-muted mt-2">Попробуйте другую тему или уберите часть фильтров.</p>
-          </Card>
-        )}
-        <div className="grid gap-5 sm:grid-cols-2">
-          {result?.items.map((course) => (
-            <Card key={course.id} className="flex min-w-0 flex-col gap-4">
-              <div className="flex flex-wrap gap-2">
-                {course.tags.map((tag) => (
-                  <Badge key={tag}>#{tag}</Badge>
-                ))}
-              </div>
-              <h2 className="break-words text-2xl font-semibold">
-                <Link
-                  href={`/kurs/${course.slug}`}
-                  className="inline-flex min-h-11 items-center hover:underline"
-                >
-                  {course.title}
-                </Link>
-              </h2>
-              {course.description && (
-                <p className="text-fg-muted line-clamp-3 break-words">{course.description}</p>
-              )}
-              <p className="text-fg-muted mt-auto text-sm">
-                Карточек: {course.cards_count} · Сохранений: {course.saves_count} ·{' '}
-                {course.languages.join(', ').toUpperCase()}
+        <section aria-label="Результаты поиска" className="catalog-results">
+          <h2>Курсы</h2>
+          {error && (
+            <div className="catalog-notice">
+              <p role="alert">{error}</p>
+              <Link className="catalog-link" href={`/kursy?${params}`}>
+                Попробовать ещё раз
+              </Link>
+            </div>
+          )}
+          {result?.items.length === 0 && (
+            <div className="catalog-notice">
+              <h3>Курсы не найдены</h3>
+              <p className="text-fg-muted mt-2">
+                Попробуйте другую тему или уберите часть фильтров.
               </p>
-              <div className="border-border flex flex-wrap items-center justify-between gap-2 border-t pt-2 text-sm">
-                <Link
-                  className="text-primary inline-flex min-h-11 max-w-full items-center break-words underline"
-                  href={`/kursy?author_id=${course.author_id}`}
-                >
-                  {course.author}
-                </Link>
-                <span className="text-fg-muted">
-                  Обновлён{' '}
-                  {new Date(course.updated_at).toLocaleDateString('ru-RU', { timeZone: 'UTC' })}
-                </span>
-              </div>
-            </Card>
-          ))}
-        </div>
-        {result?.next_cursor != null && (
-          <Link
-            href={`/kursy?${next}`}
-            className="border-border bg-surface mt-6 inline-flex min-h-11 items-center rounded-xl border px-5"
-          >
-            Следующие курсы →
-          </Link>
-        )}
-      </section>
+            </div>
+          )}
+          <div className="catalog-list">
+            {result?.items.map((course) => (
+              <article key={course.id} className="catalog-course">
+                <div className="catalog-tags">
+                  {course.tags.map((tag) => (
+                    <span key={tag}>#{tag}</span>
+                  ))}
+                </div>
+                <h3>
+                  <Link href={`/kurs/${course.slug}`}>{course.title}</Link>
+                </h3>
+                {course.description && (
+                  <p className="catalog-description line-clamp-3">{course.description}</p>
+                )}
+                <p className="catalog-meta">
+                  Карточек: {course.cards_count} · Сохранений: {course.saves_count} ·{' '}
+                  {course.languages.join(', ').toUpperCase()}
+                </p>
+                <div className="catalog-foot">
+                  <Link className="catalog-link" href={`/kursy?author_id=${course.author_id}`}>
+                    {course.author}
+                  </Link>
+                  <span>
+                    Обновлён{' '}
+                    {new Date(course.updated_at).toLocaleDateString('ru-RU', { timeZone: 'UTC' })}
+                  </span>
+                </div>
+              </article>
+            ))}
+          </div>
+          {result?.next_cursor != null && (
+            <Link href={`/kursy?${next}`} className="catalog-link">
+              Следующие курсы →
+            </Link>
+          )}
+        </section>
+      </div>
     </main>
   );
 }
-import { PublicAuthLink } from '../../components/auth/PublicSession';

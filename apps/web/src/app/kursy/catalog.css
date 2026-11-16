@@ -1,0 +1,310 @@
+.course-catalog {
+  --paper: rgb(var(--rm-lecture-paper));
+  --panel: rgb(var(--rm-lecture-surface));
+  --ink: rgb(var(--rm-lecture-ink));
+  --muted: rgb(var(--rm-lecture-muted));
+  --blue: rgb(var(--rm-lecture-blue));
+  --line: rgb(var(--rm-lecture-line));
+  --action: rgb(var(--rm-lecture-action));
+  --serif: Georgia, 'Times New Roman', serif;
+  min-height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+  font:
+    1rem/1.5 Inter,
+    'Segoe UI',
+    Arial,
+    sans-serif;
+}
+.catalog-wrap {
+  width: min(calc(100% - 2rem), 73.75em);
+  margin-inline: auto;
+}
+.catalog-nav {
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+.catalog-nav .catalog-wrap,
+.catalog-brand {
+  display: flex;
+  align-items: center;
+}
+.catalog-nav .catalog-wrap {
+  min-height: 4.5em;
+  justify-content: space-between;
+  gap: 1em;
+}
+.catalog-brand {
+  gap: 0.5em;
+  font-size: 1.375em;
+  font-weight: 650;
+  min-height: 44px;
+}
+.catalog-brand img {
+  width: 1.82em;
+}
+.catalog-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--blue);
+  text-underline-offset: 0.2em;
+}
+.catalog-link:hover,
+.catalog-link:focus-visible,
+.catalog-course h3 a:hover {
+  text-decoration: underline;
+}
+.course-catalog :focus-visible {
+  outline: 2px solid var(--action);
+  outline-offset: 3px;
+}
+.catalog-hero {
+  background-image: radial-gradient(rgb(var(--rm-lecture-muted) / 0.22) 0.65px, transparent 0.8px);
+  background-size: 0.625em 0.625em;
+}
+.catalog-hero .catalog-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 16.25em;
+  gap: 1.5em;
+}
+.catalog-intro {
+  padding-block: 1.7em 1.1em;
+}
+.catalog-eyebrow {
+  color: var(--muted);
+  font-size: 0.875em;
+  margin-bottom: 0.8em;
+}
+.catalog-intro h1 {
+  font: 400 4.0625em/0.99 var(--serif);
+  letter-spacing: -0.036em;
+}
+.catalog-intro em {
+  color: var(--action);
+}
+.catalog-lead {
+  font-size: 1.125em;
+  line-height: 1.5;
+  max-width: 31em;
+  margin-top: 0.8em;
+  color: var(--muted);
+}
+.catalog-intro .catalog-link {
+  text-decoration: underline;
+}
+.catalog-drawer {
+  position: relative;
+  width: 21.44em;
+  max-width: 33%;
+  margin-right: 7%;
+  flex: none;
+}
+.catalog-drawer img {
+  width: 100%;
+  height: auto;
+  mix-blend-mode: multiply;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .catalog-drawer img {
+    filter: invert(1) hue-rotate(178deg);
+    mix-blend-mode: screen;
+  }
+}
+:is(.dark, [data-theme='dark']) .catalog-drawer img {
+  filter: invert(1) hue-rotate(178deg);
+  mix-blend-mode: screen;
+}
+.catalog-form,
+.catalog-course,
+.catalog-notice {
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+.catalog-form {
+  padding: 1.2em 1.5em 0.5em;
+  box-shadow: 0.18em 0.24em 0 var(--line);
+}
+.catalog-form label {
+  display: grid;
+  gap: 0.4em;
+  min-width: 0;
+  font-size: 0.875em;
+}
+.catalog-form :is(input:not([type='hidden']), select) {
+  appearance: auto;
+  min-width: 0;
+  width: 100%;
+  height: 2.8em;
+  min-height: 44px;
+  padding-inline: 0.75em;
+  border: 1px solid color-mix(in srgb, var(--line) 78%, var(--muted));
+  border-radius: 0.45em;
+  background-color: var(--panel);
+  color: var(--ink);
+  font-size: 1.07em;
+}
+.catalog-form input::placeholder {
+  color: var(--muted);
+}
+.catalog-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.65em;
+}
+.catalog-search input[name='q'],
+.catalog-search button {
+  min-height: 3em;
+  font-size: 1rem;
+}
+.catalog-search button {
+  background: var(--action);
+  color: var(--panel);
+  font-weight: 600;
+  border-radius: 0.45em;
+  padding: 0.5em 1.5em;
+  box-shadow: 2px 2px 0 var(--line);
+}
+.catalog-search button:hover {
+  background: var(--blue);
+}
+.catalog-filters {
+  display: grid;
+  grid-template-columns: 1fr 0.8fr 1fr 1fr 1fr 1.55fr;
+  gap: 0.8em;
+  margin-block: 1em 0.2em;
+}
+.catalog-form > .catalog-link {
+  font-size: 0.875em;
+}
+.catalog-results {
+  padding-block: 1.5em 4em;
+}
+.catalog-results h2 {
+  font: 400 1.8em/1.2 var(--serif);
+  margin-bottom: 0.55em;
+}
+.catalog-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25em;
+}
+.catalog-course,
+.catalog-notice {
+  padding: 1.2em 1.5em 0.45em;
+  overflow-wrap: anywhere;
+}
+.catalog-course {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55em;
+  border-radius: 0.25em;
+  border-top: 3px solid color-mix(in srgb, var(--action) 46%, var(--line));
+}
+.catalog-tags {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 1em;
+  font-size: 0.8125em;
+  color: var(--blue);
+}
+.catalog-tags:empty {
+  display: none;
+}
+.catalog-results h3 {
+  font: 400 1.55em/1.18 var(--serif);
+}
+.catalog-course h3 a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.catalog-description,
+.catalog-meta {
+  color: var(--muted);
+  font-size: 0.9375em;
+}
+.catalog-meta {
+  margin-top: auto;
+  padding-top: 0.35em;
+}
+.catalog-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: 0.75em;
+  border-top: 1px solid var(--line);
+  font-size: 0.85em;
+  color: var(--muted);
+}
+.catalog-notice {
+  padding-bottom: 1em;
+}
+@media (min-width: 100rem) {
+  .course-catalog {
+    font-size: clamp(1rem, min(1vw, 1.62vh), 2.125rem);
+  }
+  .catalog-search input[name='q'],
+  .catalog-search button {
+    font-size: inherit;
+  }
+}
+@media (max-width: 68rem) {
+  .catalog-filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .catalog-drawer {
+    margin-right: 2%;
+  }
+}
+@media (max-width: 48rem) {
+  .catalog-intro h1 {
+    font-size: 3.25em;
+  }
+  .catalog-hero .catalog-wrap {
+    min-height: auto;
+  }
+  .catalog-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .catalog-form {
+    padding-inline: 1em;
+  }
+}
+@media (max-width: 36rem) {
+  .catalog-nav .catalog-wrap {
+    min-height: 3.75em;
+  }
+  .catalog-brand {
+    font-size: 1.1em;
+  }
+  .catalog-intro {
+    padding-block: 1.5em 0.75em;
+  }
+  .catalog-intro h1 {
+    font-size: 2.65em;
+  }
+  .catalog-lead {
+    font-size: 1em;
+  }
+  .catalog-drawer {
+    display: none;
+  }
+  .catalog-search {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .catalog-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .catalog-filters label:nth-child(3),
+  .catalog-filters label:last-child {
+    grid-column: 1 / -1;
+  }
+  .catalog-course {
+    padding-inline: 1em;
+  }
+}
