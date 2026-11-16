@@ -47,7 +47,7 @@ export function ForgotPasswordForm() {
         title="Восстановить пароль"
         description="Укажите email аккаунта — отправим одноразовую ссылку для смены пароля."
       />
-      <form className="reading-fields" onSubmit={handleSubmit}>
+      <form method="post" className="reading-fields" onSubmit={handleSubmit}>
         <Input
           label="Email"
           name="email"

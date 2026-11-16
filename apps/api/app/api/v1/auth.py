@@ -104,8 +104,11 @@ def _safe_oauth_next(candidate: str | None) -> str:
     settings = get_settings()
     if not candidate:
         return settings.app_url
-    target = urljoin(settings.app_url, candidate)
-    parsed = urlsplit(target)
+    try:
+        target = urljoin(settings.app_url, candidate)
+        parsed = urlsplit(target)
+    except ValueError:
+        return settings.app_url
     allowed_origins = {
         (urlsplit(settings.web_url).scheme, urlsplit(settings.web_url).netloc),
         (urlsplit(settings.app_url).scheme, urlsplit(settings.app_url).netloc),
@@ -281,7 +284,8 @@ async def verify_email(
         user_agent=user_agent,
         ip=ip,
     )
-    _set_refresh_cookie(response, refresh_raw, expires_at)
+    if is_mobile:
+        _set_refresh_cookie(response, refresh_raw, expires_at)
     return TokenResponse(
         access_token=access,
         refresh_token=refresh_raw if is_mobile else None,

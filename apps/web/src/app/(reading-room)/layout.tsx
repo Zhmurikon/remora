@@ -23,7 +23,14 @@ export default function ReadingRoomLayout({ children }: { children: ReactNode })
         </Link>
       </header>
       <div className="reading-spread">
-        <div className="reading-form">{children}</div>
+        <div className="reading-form">
+          <noscript>
+            <p className="reading-intro">
+              Чтобы продолжить, включите JavaScript в браузере и обновите страницу.
+            </p>
+          </noscript>
+          {children}
+        </div>
         <ReadingRoom />
       </div>
     </main>

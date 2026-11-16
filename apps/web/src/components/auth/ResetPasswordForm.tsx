@@ -79,7 +79,7 @@ function NewPassword({ token }: { token: string }) {
         title="Придумайте новый пароль"
         description="Используйте не менее 8 символов, буквы и цифры."
       />
-      <form className="reading-fields" onSubmit={handleSubmit}>
+      <form method="post" className="reading-fields" onSubmit={handleSubmit}>
         <PasswordField
           name="password"
           autoComplete="new-password"

@@ -274,12 +274,18 @@ async def test_google_oauth_rejects_invalid_state_and_external_next(
     assert "evil.example" not in location
 
 
-async def test_google_oauth_unavailable_redirects_to_login(client: pytest.fixture) -> None:
+@pytest.mark.parametrize("next_url", [None, "http://["])
+async def test_google_oauth_unavailable_redirects_to_login(
+    client: pytest.fixture, next_url: str | None
+) -> None:
     settings = get_settings()
     settings.google_oauth_client_id = None
     settings.google_oauth_client_secret = None
 
-    response = await client.get("/api/v1/auth/oauth/google/start")
+    response = await client.get(
+        "/api/v1/auth/oauth/google/start", params={"next": next_url} if next_url else {}
+    )
 
     assert response.status_code == 303
     assert "oauth_error=unavailable" in response.headers["location"]
+    assert parse_qs(urlparse(response.headers["location"]).query)["next"] == [settings.app_url]

@@ -8,10 +8,28 @@ import { FormDivider, FormError, PasswordField, SocialButtons } from './AuthFiel
 import { ReadingHeading, ReadingSubmit } from './reading-room/ReadingForm';
 import { usePublicSession } from './PublicSession';
 
+function loginDestination(): string {
+  const next = new URLSearchParams(window.location.search).get('next');
+  if (!next) return APP_URL;
+  try {
+    const target = new URL(next, APP_URL);
+    const publicOrigin = window.location.origin;
+    const allowedOrigin =
+      target.origin === publicOrigin || target.origin === new URL(APP_URL).origin;
+    const returnsToLogin = target.origin === publicOrigin && /^\/login\/?$/.test(target.pathname);
+    if (['http:', 'https:'].includes(target.protocol) && allowedOrigin && !returnsToLogin) {
+      return target.href;
+    }
+  } catch {
+    // Повреждённая ссылка возврата не должна прерывать успешный вход.
+  }
+  return APP_URL;
+}
+
 export function LoginForm() {
   const session = usePublicSession();
   useEffect(() => {
-    if (session === 'authenticated') window.location.replace(APP_URL);
+    if (session === 'authenticated') window.location.replace(loginDestination());
   }, [session]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,10 +62,7 @@ export function LoginForm() {
         setError(getErrorMessage(response.error));
         return;
       }
-      const next = new URLSearchParams(window.location.search).get('next');
-      const target = new URL(next ?? APP_URL, APP_URL);
-      const allowedOrigins = new Set([window.location.origin, new URL(APP_URL).origin]);
-      window.location.assign(allowedOrigins.has(target.origin) ? target.href : APP_URL);
+      window.location.assign(loginDestination());
     } catch (requestError) {
       setError(getErrorMessage(requestError));
     } finally {
@@ -67,7 +82,7 @@ export function LoginForm() {
         description="Ваши карточки и прогресс уже ждут."
       />
 
-      <form className="reading-fields" onSubmit={handleSubmit}>
+      <form method="post" className="reading-fields" onSubmit={handleSubmit}>
         <Input
           label="Email"
           name="email"

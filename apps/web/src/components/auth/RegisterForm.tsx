@@ -70,7 +70,7 @@ export function RegisterForm() {
         title="Начните запоминать"
         description="Создание аккаунта займёт меньше минуты."
       />
-      <form className="reading-fields reading-enrollment" onSubmit={handleSubmit}>
+      <form method="post" className="reading-fields reading-enrollment" onSubmit={handleSubmit}>
         <div className="reading-enrollment-fields">
           <Input
             label="Email"

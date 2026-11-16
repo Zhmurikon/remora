@@ -454,10 +454,23 @@ async def test_verify_email(mock_send: AsyncMock, client: pytest.fixture) -> Non
     )
     assert service_call.status_code == 201
 
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "verify@example.com", "password": "Str0ngP@ss!"},
+    )
+    assert login.status_code == 200
     token = mock_send.await_args.args[1]
     resp = await client.post("/api/v1/auth/verify-email", json={"token": token})
     assert resp.status_code == 200
     assert resp.json()["user"]["email_verified"] is True
+    assert "set-cookie" not in resp.headers
+    refreshed = await client.post("/api/v1/auth/refresh")
+    assert refreshed.status_code == 200
+    profile = await client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {refreshed.json()['access_token']}"},
+    )
+    assert profile.json()["email"] == "verify@example.com"
 
     reused = await client.post("/api/v1/auth/verify-email", json={"token": token})
     assert reused.status_code == 401

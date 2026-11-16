@@ -2,7 +2,7 @@
 
 import { Button } from '@remora/ui';
 import Link from 'next/link';
-import { Fragment, useEffect, useRef, type ReactNode } from 'react';
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 
 export function ReadingHeading({ title, description }: { title: string; description: string }) {
   return (
@@ -42,8 +42,19 @@ function PenStroke() {
 }
 
 export function ReadingSubmit({ loading, children }: { loading: boolean; children: ReactNode }) {
+  const [ready, setReady] = useState(false);
+  // В HTML до гидратации обработчик отправки ещё не подключён.
+  useEffect(() => setReady(true), []);
+
   return (
-    <Button type="submit" size="lg" loading={loading} fullWidth className="reading-submit">
+    <Button
+      type="submit"
+      size="lg"
+      loading={loading}
+      disabled={!ready || loading}
+      fullWidth
+      className="reading-submit"
+    >
       <PenStroke />
       {children}
     </Button>

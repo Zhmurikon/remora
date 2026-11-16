@@ -65,7 +65,20 @@ it('объясняет безопасный отказ в автоматичес
   );
 });
 
-it('перенаправляет вошедшего пользователя без формы пароля', async () => {
+it.each([
+  [null, APP_URL],
+  [
+    '/app/settings?section=profile#email',
+    new URL('/app/settings?section=profile#email', APP_URL).href,
+  ],
+  [
+    new URL('/kurs/test', window.location.origin).href,
+    new URL('/kurs/test', window.location.origin).href,
+  ],
+  ['https://example.org/private', APP_URL],
+  ['http://[', APP_URL],
+  [new URL('/login', window.location.origin).href, APP_URL],
+])('возвращает вошедшего пользователя по адресу next=%s', async (next, expected) => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
   const replace = vi.fn();
   const original = window;
@@ -73,7 +86,13 @@ it('перенаправляет вошедшего пользователя б�
     'window',
     new Proxy(original, {
       get(target, key) {
-        if (key === 'location') return { replace };
+        if (key === 'location') {
+          return {
+            replace,
+            origin: original.location.origin,
+            search: next ? '?' + new URLSearchParams({ next }) : '',
+          };
+        }
         const value: unknown = Reflect.get(target, key);
         return typeof value === 'function' ? value.bind(target) : value;
       },
@@ -84,7 +103,7 @@ it('перенаправляет вошедшего пользователя б�
       <LoginForm />
     </PublicSessionProvider>,
   );
-  await waitFor(() => expect(replace).toHaveBeenCalledWith(APP_URL));
+  await waitFor(() => expect(replace).toHaveBeenCalledWith(expected));
   expect(screen.queryByRole('button', { name: 'Войти' })).toBeNull();
 });
 
