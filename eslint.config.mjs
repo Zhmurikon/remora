@@ -6,6 +6,7 @@ import prettier from 'eslint-config-prettier';
 export default tseslint.config(
   {
     ignores: [
+      '.private/**',
       '**/node_modules/**',
       '**/dist/**',
       '**/build/**',

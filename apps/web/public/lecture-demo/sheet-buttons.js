@@ -1,8 +1,8 @@
-/* global document, location, setTimeout, clearTimeout, getComputedStyle */
+/* global document, location, URLSearchParams, setTimeout, clearTimeout, getComputedStyle */
 'use strict';
 
 // Разметка SVG общая; каждой кнопке нужен свой id маски, чтобы росчерки были независимыми.
-const SheetButton = (() => {
+globalThis.SheetButton = (() => {
   let sequence = 0;
   const frozen =
     document.querySelector('[data-sheet-preview]') &&
