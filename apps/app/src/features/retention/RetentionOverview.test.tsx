@@ -81,3 +81,18 @@ it('даёт повторить загрузку сводки после оши�
   await userEvent.click(screen.getByRole('button', { name: 'Повторить' }));
   await waitFor(() => expect(screen.getByText('Дневная цель')).toBeTruthy());
 });
+
+it('сохраняет сводку, когда календарь временно недоступен', async () => {
+  vi.mocked(api.GET)
+    .mockResolvedValueOnce({ data: summary } as never)
+    .mockResolvedValueOnce({ error: {} } as never)
+    .mockResolvedValueOnce({ data: [] } as never);
+  renderOverview();
+  await screen.findByText('Не удалось загрузить календарь активности.');
+  expect(screen.getByText('250 / 300 XP')).toBeTruthy();
+  await userEvent.click(screen.getByRole('button', { name: 'Повторить' }));
+  expect(
+    await screen.findByRole('list', { name: 'Календарь учебной активности за 16 недель' }),
+  ).toBeTruthy();
+  expect(screen.queryByRole('alert')).toBeNull();
+});

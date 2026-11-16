@@ -60,8 +60,8 @@ function RetentionContent({ summary }: { summary: RetentionSummary }) {
       <div>
         <h2>Дневная цель</h2>
         <p className="dashboard-goal-count">
-          <strong>{summary.reviews_today}</strong> из {summary.daily_goal}{' '}
-          {cardWord(summary.daily_goal)}
+          <strong>{summary.reviews_today}</strong> из{' '}
+          {pluralWithCount(summary.daily_goal, ['карточки', 'карточек', 'карточек'])}
         </p>
         <div
           className="dashboard-ruler"

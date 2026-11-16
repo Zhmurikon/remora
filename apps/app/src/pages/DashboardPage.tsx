@@ -1,15 +1,35 @@
 import { plural, pluralWithCount } from '@remora/core';
-import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../features/auth/auth-store';
 import { RetentionOverview } from '../features/retention/RetentionOverview';
 import drawerImage from '../../../web/public/lecture-demo/catalog-drawer.webp';
 import './dashboard.css';
 import { api } from '../lib/api';
+import { createEmptySet } from '../features/materials/create-empty-set';
 
 export function DashboardPage() {
   const user = useAuthStore((state) => state.user);
   const name = user?.display_name || user?.username || 'друг';
+
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const createSet = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await createEmptySet();
+      if (!data || error)
+        throw new Error(
+          error && 'message' in error && typeof error.message === 'string'
+            ? error.message
+            : 'Не удалось создать набор',
+        );
+      return data;
+    },
+    onSuccess: (set) => {
+      void queryClient.invalidateQueries({ queryKey: ['sets'] });
+      navigate(`/sets/${set.id}/edit`);
+    },
+  });
 
   const sets = useQuery({
     queryKey: ['sets'],
@@ -160,9 +180,14 @@ export function DashboardPage() {
               <div className="dashboard-message">
                 <h3>Здесь появятся ваши наборы</h3>
                 <p>Создайте первый набор, чтобы начать обучение.</p>
-                <Link className="dashboard-primary" to="/sets">
-                  Создать набор
-                </Link>
+                <button
+                  className="dashboard-primary"
+                  disabled={createSet.isPending}
+                  onClick={() => createSet.mutate()}
+                >
+                  {createSet.isPending ? 'Создаём набор…' : 'Создать набор'}
+                </button>
+                {createSet.isError && <p role="alert">{createSet.error.message}</p>}
               </div>
             )
           )}

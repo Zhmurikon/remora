@@ -3,6 +3,7 @@ import { Badge, Button, FishMark, Input } from '@remora/ui';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState, type HTMLAttributes, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { createEmptySet } from '../features/materials/create-empty-set';
 import { LibraryUpdateControl } from '../features/library/LibraryUpdateControl';
 import {
   DropIndicator,
@@ -302,16 +303,7 @@ export function MaterialsPage() {
   }
 
   async function createSet() {
-    const { data } = await api.POST('/api/v1/sets', {
-      body: {
-        title: 'Новый набор',
-        visibility: 'public',
-        description: '',
-        lang_term: 'ru',
-        lang_definition: 'ru',
-        folder_id: null,
-      },
-    });
+    const { data } = await createEmptySet();
     if (!data) return;
     await queryClient.invalidateQueries({ queryKey: ['sets'] });
     navigate(`/sets/${data.id}/edit`);

@@ -59,7 +59,7 @@ export function AppLayout() {
       </header>
 
       <aside
-        className={`${menuOpen ? 'flex' : 'hidden'} border-border bg-surface fixed inset-x-0 bottom-0 top-16 z-20 flex-col border-r p-5 lg:sticky lg:top-0 lg:flex lg:h-dvh`}
+        className={`${menuOpen ? 'flex max-lg:z-[55]' : 'hidden'} border-border bg-surface fixed inset-x-0 bottom-0 top-16 z-20 flex-col border-r p-5 lg:sticky lg:top-0 lg:flex lg:h-dvh`}
       >
         <div className="hidden px-2 py-2 lg:block">
           <Brand dashboard={isDashboard} />
