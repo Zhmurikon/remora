@@ -2,6 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, expect, it } from 'vitest';
+import { APP_URL } from '../../lib/auth-api';
 import { HomePricing } from '../home/HomePricing';
 import { PricingPlans } from './PricingPlans';
 
@@ -32,6 +33,18 @@ it('для месяца убирает сравнение со скидкой и
   expect(screen.getByText('999 ₽').tagName).toBe('STRONG');
   expect((screen.getByText('Разовая оплата 2 499 ₽ за год') as HTMLElement).hidden).toBe(true);
   expect(screen.queryByText('208 ₽')).toBeNull();
+  expect(screen.getByText('Разовая оплата 299 ₽ за месяц')).toBeTruthy();
+  expect(screen.getByText('Разовая оплата 999 ₽ за месяц')).toBeTruthy();
+
+  await user.click(screen.getByRole('button', { name: 'Год' }));
+  expect(screen.getByText('208 ₽')).toBeTruthy();
+  expect(screen.queryByText('Разовая оплата 299 ₽ за месяц')).toBeNull();
+  for (const name of ['Выбрать Plus', 'Выбрать Pro']) {
+    expect(screen.getByRole('link', { name }).getAttribute('href')).toBe(`${APP_URL}/billing`);
+  }
+  expect(screen.getByRole('link', { name: 'Начать бесплатно' }).getAttribute('href')).toBe(
+    '/register',
+  );
 });
 
 it('связывает компактный блок с полной страницей тарифов', () => {

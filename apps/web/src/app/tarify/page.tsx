@@ -100,8 +100,7 @@ export default function PricingPage() {
               Выучить своё <em>можно бесплатно</em>
             </h1>
             <p>
-              Тарифы отличаются объёмом, автоматизацией и ИИ.
-              <br />
+              Тарифы отличаются объёмом, автоматизацией и ИИ. <br />
               Занятия и повторения бесплатны на каждом тарифе.
             </p>
             <Image src="/lecture-demo/faq-pen.webp" alt="" width={165} height={165} unoptimized />
@@ -126,6 +125,7 @@ export default function PricingPage() {
 
         <section className="pricing-compare home-shell" aria-labelledby="compare-title">
           <h2 id="compare-title">Сравнение тарифов</h2>
+          <p className="pricing-table-hint">Прокрутите таблицу вправо, чтобы увидеть все тарифы.</p>
           <div
             className="pricing-table-scroll"
             role="region"
@@ -146,12 +146,7 @@ export default function PricingPage() {
                   <tr key={feature}>
                     <th scope="row">{feature}</th>
                     {[free, plus, pro].map((value, index) => (
-                      <td
-                        key={`${feature}-${index}`}
-                        className={value === 'Без лимита' ? 'is-unlimited' : undefined}
-                      >
-                        {value}
-                      </td>
+                      <td key={`${feature}-${index}`}>{value}</td>
                     ))}
                   </tr>
                 ))}

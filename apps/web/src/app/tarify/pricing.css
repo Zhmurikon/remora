@@ -382,3 +382,15 @@
     height: 4.2em;
   }
 }
+
+.pricing-table-hint {
+  display: none;
+}
+@media (max-width: 43.3rem) {
+  .pricing-page .pricing-table-hint {
+    display: block;
+    margin-top: 0.7em;
+    color: rgb(var(--rm-fg-muted));
+    font-size: 0.875em;
+  }
+}
