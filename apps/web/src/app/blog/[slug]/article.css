@@ -32,8 +32,11 @@
 }
 .article-jacket-media {
   position: absolute;
-  inset: 0 0 0 30%;
+  inset: 0;
   z-index: -1;
+}
+.article-jacket-media:has(.blog-diagram) {
+  inset-inline-start: 30%;
 }
 .article-jacket-media > img {
   width: 100%;
@@ -312,6 +315,10 @@
     position: relative;
     inset: auto;
     aspect-ratio: 2.2;
+  }
+  .article-jacket-media:has(.blog-diagram) {
+    inset-inline-start: auto;
+    min-height: 9rem;
   }
   .article-jacket-media .blog-diagram {
     min-height: 0;
