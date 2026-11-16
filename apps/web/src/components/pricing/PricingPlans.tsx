@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
 import { APP_URL } from '../../lib/auth-api';
 import {
@@ -15,17 +16,24 @@ export function PricingPlans() {
 
   return (
     <>
-      <div className="pricing-period" aria-label="Период оплаты">
-        <PeriodButton active={interval === 'month'} onClick={() => setInterval('month')}>
-          Месяц
-        </PeriodButton>
-        <PeriodButton active={interval === 'year'} onClick={() => setInterval('year')}>
-          Год
-        </PeriodButton>
+      <div className="pricing-controls">
+        <div
+          className="pricing-period"
+          role="group"
+          data-period={interval}
+          aria-label="Период оплаты"
+        >
+          <PeriodButton active={interval === 'month'} onClick={() => setInterval('month')}>
+            Месяц
+          </PeriodButton>
+          <PeriodButton active={interval === 'year'} onClick={() => setInterval('year')}>
+            Год
+          </PeriodButton>
+        </div>
+        <p className="pricing-payment-note">
+          Разовая оплата · без автопродления и неожиданных списаний
+        </p>
       </div>
-      <p className="pricing-payment-note">
-        Разовая оплата · без автопродления и неожиданных списаний
-      </p>
 
       <section className="pricing-plans" aria-label="Тарифы «Запоминальни»">
         {publicPlans.map((plan) => (
@@ -53,13 +61,25 @@ function PeriodButton({
 }
 
 function PlanColumn({ plan, interval }: { plan: PublicPlan; interval: BillingInterval }) {
+  const art = { free: 'cards', plus: 'notebook', pro: 'books' }[plan.code];
   const free = plan.code === 'free';
   const yearly = interval === 'year';
   return (
-    <article className={plan.code === 'plus' ? 'pricing-plan is-recommended' : 'pricing-plan'}>
+    <article
+      data-plan={plan.code}
+      className={plan.code === 'plus' ? 'pricing-plan is-recommended' : 'pricing-plan'}
+    >
       <div className="pricing-plan-name">
         <h2>{plan.name}</h2>
-        {plan.code === 'plus' && <span>Для регулярной учёбы</span>}
+        <div className="pricing-art" aria-hidden="true">
+          <Image
+            src={`/lecture-demo/pricing-${art}.webp`}
+            alt=""
+            width={112}
+            height={96}
+            unoptimized
+          />
+        </div>
       </div>
 
       <div className="pricing-price">
@@ -73,13 +93,18 @@ function PlanColumn({ plan, interval }: { plan: PublicPlan; interval: BillingInt
           </>
         )}
       </div>
-      {!free && (
-        <p className="pricing-year-total" hidden={!yearly}>
-          Разовая оплата {formatRubles(plan.yearPrice)} за год
-        </p>
-      )}
-
-      <p className="pricing-plan-description">{plan.description}</p>
+      <div className="pricing-payment">
+        {free ? (
+          'Регистрация без карты'
+        ) : (
+          <>
+            <p className="pricing-year-total" hidden={!yearly}>
+              Разовая оплата {formatRubles(plan.yearPrice)} за год
+            </p>
+            {!yearly && <p>Разовая оплата {formatRubles(plan.monthPrice)} за месяц</p>}
+          </>
+        )}
+      </div>
       <ul>
         {plan.features.map((feature) => (
           <li key={feature}>
@@ -96,7 +121,7 @@ function PlanColumn({ plan, interval }: { plan: PublicPlan; interval: BillingInt
         >
           {free ? 'Начать бесплатно' : `Выбрать ${plan.name}`}
         </a>
-        <small>{free ? 'Регистрация без карты' : 'Оформление продолжится в приложении'}</small>
+        {!free && <small>Оформление продолжится в приложении</small>}
       </div>
     </article>
   );

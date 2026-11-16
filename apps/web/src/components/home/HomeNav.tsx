@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { FishMark } from '@remora/ui';
 import { PublicAuthLink } from '../auth/PublicSession';
 
-export function HomeNav() {
+export function HomeNav({ mark = <FishMark /> }: { mark?: ReactNode }) {
   const [open, setOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
 
@@ -24,7 +25,7 @@ export function HomeNav() {
   return (
     <header className="home-header">
       <a className="home-brand" href="/" aria-label="Запоминальня, главная">
-        <FishMark />
+        {mark}
         Запоминальня
       </a>
       <nav className="home-desktop-nav" aria-label="Основная навигация">

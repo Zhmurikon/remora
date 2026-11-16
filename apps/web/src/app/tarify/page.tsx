@@ -1,11 +1,10 @@
 import { PublicAnalytics } from '../../components/analytics/PublicAnalytics';
 import type { Metadata } from 'next';
-import { FishMark } from '@remora/ui';
 import { JsonLd } from '../../components/JsonLd';
 import { PublicAuthLink } from '../../components/auth/PublicSession';
 import { HomeNav } from '../../components/home/HomeNav';
 import { HomeTheme } from '../../components/home/HomeTheme';
-import { CheckIcon } from '../../components/pricing/CheckIcon';
+import Image from 'next/image';
 import { PricingPlans } from '../../components/pricing/PricingPlans';
 import { absoluteUrl, DEFAULT_OG_IMAGE } from '../../lib/seo';
 import { publicPlans } from '../../lib/pricing';
@@ -44,6 +43,7 @@ const comparison = [
   ['MCP-записи в неделю', '500', 'Без лимита', 'Без лимита'],
   ['ИИ-расшифровка в неделю', '—', '300 минут', '1 500 минут'],
   ['ИИ-генерация в неделю', '—', '500 000 токенов', '2,5 млн токенов'],
+  ['Закрытые материалы', '—', 'Да', 'Да'],
   ['Обучение и повторения', 'Без лимита', 'Без лимита', 'Без лимита'],
 ] as const;
 
@@ -64,6 +64,9 @@ const faqs = [
 ] as const;
 
 export default function PricingPage() {
+  const mark = (
+    <Image src="/lecture-demo/remora-icon.png" width={38} height={38} alt="" unoptimized />
+  );
   return (
     <div className="home pricing-page">
       <PublicAnalytics path="/tarify" />
@@ -86,54 +89,48 @@ export default function PricingPage() {
         }}
       />
       <div className="home-shell home-nav-shell">
-        <HomeNav />
+        <HomeNav mark={mark} />
       </div>
 
       <main id="main-content">
-        <header className="pricing-hero home-shell">
-          <h1>
-            Выучить своё можно <span>бесплатно</span>
-          </h1>
-          <p>
-            Тарифы отличаются объёмом, автоматизацией и ИИ. Повторения, режимы обучения и доступ к
-            уже созданным материалам не заканчиваются вместе с оплатой.
-          </p>
-          <PricingPlans />
+        <header className="pricing-hero">
+          <div className="home-shell">
+            <h1>
+              Выучить своё <em>можно бесплатно</em>
+            </h1>
+            <p>
+              Тарифы отличаются объёмом, автоматизацией и ИИ.
+              <br />
+              Занятия и повторения бесплатны на каждом тарифе.
+            </p>
+            <Image src="/lecture-demo/faq-pen.webp" alt="" width={165} height={165} unoptimized />
+          </div>
         </header>
+        <div className="home-shell">
+          <PricingPlans />
+        </div>
 
         <section className="pricing-guarantee home-shell" aria-labelledby="guarantee-title">
-          <div>
-            <h2 id="guarantee-title">
-              Оплата заканчивается.
-              <br />
-              Знания остаются.
-            </h2>
-            <p>Это не сноска под тарифами, а главный контракт продукта.</p>
-          </div>
-          <ul>
-            {[
-              'Все режимы обучения и число повторений — без лимита',
-              'Созданные и сохранённые материалы остаются доступны',
-              'Свои данные можно экспортировать на любом тарифе',
-              'Рекламы нет даже на Free',
-            ].map((item) => (
-              <li key={item}>
-                <CheckIcon />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
+          <h2 id="guarantee-title">
+            Оплата заканчивается.
+            <br />
+            <em>Знания остаются.</em>
+          </h2>
+          <p>
+            Все режимы и повторения доступны бесплатно. После окончания тарифа вы сохраните доступ к
+            созданным и сохранённым материалам и сможете экспортировать свои данные. На Free тоже
+            нет рекламы.
+          </p>
         </section>
 
         <section className="pricing-compare home-shell" aria-labelledby="compare-title">
-          <div className="pricing-section-head">
-            <h2 id="compare-title">Сравните то, что действительно меняется</h2>
-            <p>
-              Здесь собраны решающие границы тарифов. Обучение вынесено отдельной строкой, чтобы
-              бесплатный доступ не терялся среди квот.
-            </p>
-          </div>
-          <div className="pricing-table-scroll" tabIndex={0} aria-label="Прокручиваемая таблица">
+          <h2 id="compare-title">Сравнение тарифов</h2>
+          <div
+            className="pricing-table-scroll"
+            role="region"
+            tabIndex={0}
+            aria-labelledby="compare-title"
+          >
             <table>
               <thead>
                 <tr>
@@ -163,13 +160,10 @@ export default function PricingPage() {
         </section>
 
         <section className="pricing-faq home-shell" aria-labelledby="pricing-faq-title">
+          <h2 id="pricing-faq-title">Вопросы об оплате</h2>
           <div>
-            <h2 id="pricing-faq-title">Вопросы об оплате</h2>
-            <p>Критические условия отвечаем здесь, а не прячем в процессе оформления.</p>
-          </div>
-          <div>
-            {faqs.map(([question, answer], index) => (
-              <details key={question} open={index === 0}>
+            {faqs.map(([question, answer]) => (
+              <details key={question}>
                 <summary>{question}</summary>
                 <p>{answer}</p>
               </details>
@@ -178,23 +172,25 @@ export default function PricingPage() {
         </section>
       </main>
 
-      <footer className="home-footer home-shell">
-        <a className="home-brand" href="/" aria-label="Запоминальня, главная">
-          <FishMark />
-          Запоминальня
-        </a>
-        <span>Учиться в своём темпе.</span>
-        <HomeTheme />
-        <nav aria-label="Навигация в подвале">
-          <a href="/kursy">Каталог</a>
-          <a href="/blog">Блог</a>
-          <a href="/podborki">Подборки</a>
-          <a href="/tarify">Тарифы</a>
-          <a href="/#questions">Вопросы и ответы</a>
-          <a href="/privacy">Конфиденциальность</a>
-          <a href="/terms">Условия использования</a>
-          <PublicAuthLink />
-        </nav>
+      <footer className="pricing-footer">
+        <div className="home-footer home-shell">
+          <a className="home-brand" href="/" aria-label="Запоминальня, главная">
+            {mark}
+            Запоминальня
+          </a>
+          <span>Учиться в своём темпе.</span>
+          <HomeTheme />
+          <nav aria-label="Навигация в подвале">
+            <a href="/kursy">Каталог</a>
+            <a href="/blog">Блог</a>
+            <a href="/podborki">Подборки</a>
+            <a href="/tarify">Тарифы</a>
+            <a href="/#questions">Вопросы и ответы</a>
+            <a href="/privacy">Конфиденциальность</a>
+            <a href="/terms">Условия использования</a>
+            <PublicAuthLink />
+          </nav>
+        </div>
       </footer>
     </div>
   );
