@@ -1,0 +1,335 @@
+.blog:has(.article-jacket) {
+  --rm-bg: var(--rm-lecture-surface);
+  --rm-surface: var(--rm-lecture-surface);
+  --rm-fg: var(--rm-lecture-ink);
+  --rm-fg-muted: var(--rm-lecture-muted);
+  --rm-border: var(--rm-lecture-line);
+  --rm-primary: var(--rm-lecture-action);
+  --rm-primary-hover: var(--rm-lecture-blue);
+  --rm-primary-fg: var(--rm-lecture-surface);
+  --article-serif: Georgia, 'Times New Roman', serif;
+  font-family: Inter, 'Segoe UI', Arial, sans-serif;
+}
+.blog:has(.article-jacket) .home-shell {
+  width: min(calc(100% - 3rem), 78.75rem);
+}
+.blog:has(.article-jacket) .blog-breadcrumbs {
+  padding-block: 0.5rem;
+  line-height: 1.3;
+}
+.blog:has(.article-jacket) .blog-breadcrumbs [aria-current] {
+  max-width: 100%;
+}
+.article-jacket {
+  display: grid;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 24.375rem;
+  padding: 1.375rem;
+  border-radius: 0.25rem;
+  background: rgb(var(--rm-lecture-blue));
+}
+.article-jacket-media {
+  position: absolute;
+  inset: 0 0 0 30%;
+  z-index: -1;
+}
+.article-jacket-media > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 64% 49%;
+}
+.article-jacket-media .blog-diagram {
+  height: 100%;
+  align-items: flex-end;
+  padding-inline: 1rem;
+}
+.article-jacket-media .blog-diagram-step {
+  width: min(52%, 18rem);
+}
+.article-sheet {
+  position: relative;
+  display: grid;
+  width: min(60%, 45.3rem);
+  background: rgb(var(--rm-lecture-line));
+  transform: rotate(-0.55deg);
+  box-shadow:
+    0.25rem 0.44rem 0 rgb(var(--rm-lecture-line)),
+    0.375rem 0.5rem 0 rgb(var(--rm-lecture-muted));
+}
+.article-sheet-face {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1.75rem 2.8rem 2.25rem;
+  border: 1px solid rgb(var(--rm-lecture-line));
+  background:
+    radial-gradient(rgb(var(--rm-lecture-muted) / 0.17) 0.7px, transparent 0.8px) 0 0/0.5rem 0.5rem,
+    rgb(var(--rm-lecture-cream));
+}
+.article-sheet-face::before {
+  content: '';
+  position: absolute;
+  inset: 0.5rem;
+  border: 1px solid rgb(var(--rm-lecture-line));
+  pointer-events: none;
+}
+.article-category {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: rgb(var(--rm-lecture-blue));
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.article-category::before {
+  content: '';
+  width: 2.2rem;
+  height: 2px;
+  background: currentColor;
+  flex: none;
+}
+.article-sheet h1 {
+  margin: 0.94rem 0 0;
+  font: 400 clamp(2.5rem, 4.1vw, 3.69rem)/1.025 var(--article-serif);
+  letter-spacing: -0.042em;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+.article-sheet h1 em {
+  color: rgb(var(--rm-lecture-blue));
+  font-weight: inherit;
+}
+.blog-article .blog-article-grid {
+  margin-top: 2rem;
+  grid-template-areas: 'header rail' 'prose rail';
+  grid-template-columns: minmax(0, 1fr) minmax(17rem, 22.625rem);
+  column-gap: clamp(2rem, 7.5vw, 6.75rem);
+}
+.article-byline {
+  grid-area: header;
+  max-width: 46rem;
+  min-width: 0;
+}
+.article-byline .blog-meta {
+  gap: 0.6rem;
+  font-size: 0.8125rem;
+}
+.article-byline .blog-meta > :first-child {
+  color: rgb(var(--rm-lecture-blue));
+}
+.article-byline .blog-meta > * + *::before {
+  content: '·';
+  margin-right: 0.6rem;
+}
+.article-byline .article-updated {
+  color: rgb(var(--rm-fg-muted));
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+.article-byline .article-lead {
+  font-size: 1.1875rem;
+  color: rgb(var(--rm-fg-muted));
+  line-height: 1.52;
+  margin: 1.35rem 0 1.45rem;
+}
+.blog-article .blog-prose {
+  width: 100%;
+  padding-top: 1.45rem;
+  border-top: 1px solid rgb(var(--rm-lecture-muted) / 0.6);
+  font-size: 1.0625rem;
+  line-height: 1.8;
+}
+.blog-article .blog-prose > section {
+  margin-bottom: 2.75rem;
+}
+.blog-article .blog-prose :is(h2, h3),
+.blog-article .blog-toc h2,
+.article-practice h2,
+.blog-article + .blog-related :is(h2, h3) {
+  font-family: var(--article-serif);
+  font-weight: 400;
+  letter-spacing: -0.027em;
+  line-height: 1.15;
+}
+.blog-article .blog-prose h2 {
+  font-size: 2.06rem;
+}
+.blog-article .blog-prose h3 {
+  font-size: 1.6rem;
+}
+.blog-article .blog-article-rail {
+  padding: 0;
+  gap: 1.6rem;
+  top: 1rem;
+  max-height: calc(100svh - 2rem);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.blog-article .blog-toc {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+}
+.blog-article .blog-toc h2 {
+  font-size: 1.8125rem;
+  padding-bottom: 0.625rem;
+  border-bottom: 1px solid rgb(var(--rm-lecture-muted));
+}
+.blog-article .blog-toc ol {
+  padding: 0.65rem 0 0;
+}
+.blog-article .blog-toc a {
+  grid-template-columns: 1.625rem 1fr;
+  gap: 0.625rem;
+  align-items: baseline;
+  min-height: 44px;
+  padding: 0.5rem 0.125rem;
+  border-bottom: 1px solid rgb(var(--rm-border));
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+.blog-article .blog-toc li a > span {
+  display: inline;
+  width: auto;
+  height: auto;
+  background: none;
+  color: rgb(var(--rm-lecture-blue));
+  font: italic 1.125rem var(--article-serif);
+}
+.article-practice {
+  padding: 1.125rem 1.375rem;
+  border: 1px solid rgb(var(--rm-border));
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, rgb(var(--rm-lecture-selected)) 50%, rgb(var(--rm-surface)));
+}
+.article-paper-cards {
+  position: relative;
+  height: 4.7rem;
+  margin-bottom: 0.45rem;
+}
+.article-paper-cards span {
+  position: absolute;
+  top: 0.3rem;
+  left: 0.3rem;
+  min-width: 6.5rem;
+  padding: 0.5rem 0.75rem;
+  text-align: center;
+  font: italic 1.15rem/1.1 var(--article-serif);
+  color: rgb(var(--rm-lecture-blue));
+  border: 1px solid rgb(var(--rm-border));
+  border-radius: 0.25rem;
+  background: rgb(var(--rm-lecture-selected));
+  transform: rotate(-6deg);
+  box-shadow: 1px 2px 0 rgb(var(--rm-border));
+}
+.article-paper-cards span + span {
+  left: 38%;
+  top: 1.6rem;
+  transform: rotate(4deg);
+  background: rgb(var(--rm-lecture-cream));
+}
+.article-practice h2 {
+  font-size: 1.55rem;
+}
+.article-demo-action,
+.article-end-links {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.article-demo-action {
+  justify-content: space-between;
+  margin: 1rem 0 0.35rem;
+}
+.article-practice small {
+  color: rgb(var(--rm-fg-muted));
+  font-size: 0.8125rem;
+}
+.article-end-links {
+  flex-wrap: wrap;
+}
+.blog-article + .blog-related {
+  margin-top: 3rem;
+  padding-top: 2rem;
+}
+@media (min-width: 1680px) {
+  .blog-article .blog-prose,
+  .article-byline {
+    max-width: min(51rem, 1080px);
+  }
+}
+@media (max-width: 960px) {
+  .blog-article .blog-article-grid {
+    grid-template-areas: 'header' 'rail' 'prose';
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .blog-article .blog-article-rail {
+    max-height: none;
+    overflow: visible;
+    position: static;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .blog-article .blog-prose {
+    margin-inline: 0;
+  }
+  .article-jacket {
+    min-height: 20rem;
+  }
+  .article-sheet {
+    width: 65%;
+  }
+}
+@media (max-width: 640px) {
+  .blog:has(.article-jacket) .home-shell {
+    width: calc(100% - 2rem);
+  }
+  .blog-article .blog-article-rail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .article-jacket {
+    display: block;
+    min-height: 0;
+    padding: 0.7rem 0.7rem 1rem;
+  }
+  .article-jacket-media {
+    position: relative;
+    inset: auto;
+    aspect-ratio: 2.2;
+  }
+  .article-jacket-media .blog-diagram {
+    min-height: 0;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.3rem;
+  }
+  .article-jacket-media .blog-diagram-step {
+    width: 70%;
+    min-height: 0;
+    padding: 0.15rem 0.4rem;
+  }
+  .article-sheet {
+    width: 96%;
+    margin: -1.2rem auto 0;
+    min-height: 9rem;
+  }
+  .article-sheet-face {
+    padding: 1.25rem 1.15rem 1.65rem;
+  }
+  .article-sheet h1 {
+    font-size: clamp(1.9rem, 6.7vw, 2.55rem);
+  }
+  .blog-article .blog-article-grid {
+    margin-top: 1.35rem;
+  }
+  .article-byline .article-lead {
+    font-size: 1.0625rem;
+  }
+  .blog-article .blog-prose h2 {
+    font-size: 1.65rem;
+  }
+}

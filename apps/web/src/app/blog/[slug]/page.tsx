@@ -1,6 +1,8 @@
 import { PublicAnalytics } from '../../../components/analytics/PublicAnalytics';
 import { notFound } from 'next/navigation';
 import { JsonLd } from '../../../components/JsonLd';
+import { ArticleJacket } from '../../../components/blog/ArticleJacket';
+import './article.css';
 import { BlogDiagram } from '../../../components/blog/BlogCards';
 import { BlogRichText } from '../../../components/blog/BlogRichText';
 import {
@@ -45,28 +47,26 @@ export default async function BlogPostPage({ params }: Props) {
         <span aria-current="page">{post.title}</span>
       </nav>
       <article className="blog-article">
+        <ArticleJacket title={post.title} category={post.category}>
+          {post.cover ? (
+            <img src={post.cover.src} alt={post.cover.alt} width="1672" height="941" />
+          ) : (
+            <BlogDiagram post={post} />
+          )}
+        </ArticleJacket>
         <div className="blog-article-grid">
-          <header className="blog-article-header">
-            <span className="home-kicker">{post.category}</span>
+          <div className="article-byline">
             <div className="blog-meta">
+              <span>{BLOG_AUTHOR}</span>
               <time dateTime={post.publishedAt}>{formatBlogDate(post.publishedAt)}</time>
               <span>≈ {readingMinutes(post)} мин чтения</span>
-              <span>{BLOG_AUTHOR}</span>
             </div>
-            <h1>{post.title}</h1>
-            <p>{post.description}</p>
             {post.updatedAt !== post.publishedAt && (
-              <p className="blog-updated">
+              <p className="article-updated">
                 Обновлено <time dateTime={post.updatedAt}>{formatBlogDate(post.updatedAt)}</time>
               </p>
             )}
-          </header>
-          <div className="blog-article-cover">
-            {post.cover ? (
-              <img src={post.cover.src} alt={post.cover.alt} width="1672" height="941" />
-            ) : (
-              <BlogDiagram post={post} />
-            )}
+            <p className="article-lead">{post.description}</p>
           </div>
           <aside className="blog-article-rail">
             <nav className="blog-toc" aria-label="Оглавление статьи">
@@ -82,23 +82,18 @@ export default async function BlogPostPage({ params }: Props) {
                 ))}
               </ol>
             </nav>
-            <div className="blog-practice">
-              <div className="blog-practice-visual" aria-hidden="true">
-                <div className="blog-practice-mini-card blog-practice-mini-question">
-                  <span>Вопрос</span>
-                  <strong>Столица Японии?</strong>
-                </div>
-                <img src="/icon.svg" alt="" width="104" height="104" />
-                <div className="blog-practice-mini-card blog-practice-mini-answer">
-                  <span>Ответ</span>
-                  <strong>Токио</strong>
-                </div>
+            <div className="article-practice">
+              <div className="article-paper-cards" aria-hidden="true">
+                <span lang="en">borrow</span>
+                <span>брать взаймы</span>
               </div>
               <h2>Проверьте, как работают карточки</h2>
-              <p>Пройдите пять коротких вопросов и сразу увидьте свой результат.</p>
-              <a className="home-button" href="/#demo">
-                Пройти демо <span aria-hidden="true">→</span>
-              </a>
+              <div className="article-demo-action">
+                <a className="home-button" href="/#demo">
+                  Пройти демо <span aria-hidden="true">→</span>
+                </a>
+                <img src="/lecture-demo/remora-icon.png" width="32" height="32" alt="" />
+              </div>
               <small>Бесплатно · без регистрации</small>
             </div>
           </aside>
@@ -144,6 +139,14 @@ export default async function BlogPostPage({ params }: Props) {
                 </ul>
               </section>
             )}
+            <div className="article-end-links">
+              <a className="home-button" href="/#demo">
+                Пройти демо
+              </a>
+              <a className="home-link" href="/register">
+                Создать аккаунт
+              </a>
+            </div>
           </div>
         </div>
       </article>
