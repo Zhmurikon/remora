@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { FishMark } from '@remora/ui';
+import Image from 'next/image';
+import { PublicAuthLink } from '../../components/auth/PublicSession';
 import { HomeTheme } from '../../components/home/HomeTheme';
 import '../home.css';
 import './blog.css';
@@ -12,7 +13,7 @@ export default function BlogLayout({ children }: { children: ReactNode }) {
       </a>
       <header className="blog-header home-shell">
         <a className="home-brand" href="/" aria-label="Запоминальня — главная">
-          <FishMark />
+          <Image src="/lecture-demo/remora-icon.png" width={40} height={40} alt="" />
           Запоминальня
         </a>
         <nav aria-label="Основная навигация">
@@ -31,7 +32,7 @@ export default function BlogLayout({ children }: { children: ReactNode }) {
       </main>
       <footer className="home-footer home-shell">
         <a className="home-brand" href="/" aria-label="Запоминальня — главная">
-          <FishMark />
+          <Image src="/lecture-demo/remora-icon.png" width={40} height={40} alt="" />
           Запоминальня
         </a>
         <span>Учиться в своём темпе.</span>
@@ -45,4 +46,3 @@ export default function BlogLayout({ children }: { children: ReactNode }) {
     </div>
   );
 }
-import { PublicAuthLink } from '../../components/auth/PublicSession';

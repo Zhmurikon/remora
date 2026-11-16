@@ -56,7 +56,7 @@ afterEach(() => {
 
 it('показывает список и полный текст с серверной загрузкой публикаций', async () => {
   const html = renderToStaticMarkup(await BlogPage());
-  expect(html).toContain('Блог об учёбе и запоминании');
+  expect(html.replace(/<[^>]+>/g, '')).toContain('Блог об учёбе и запоминании');
   expect(html).toContain('aria-label="Темы блога"');
   expect(html).not.toContain('Секретный черновик');
   expect(html).not.toContain('future-post');

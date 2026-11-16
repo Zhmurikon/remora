@@ -52,7 +52,6 @@ export function BlogCards({ posts }: { posts: BlogCardPost[] }) {
     <div className="blog-browser">
       <aside className="blog-topic-index">
         <h2>Темы</h2>
-        <p>Рубрики появляются здесь автоматически, когда редакция публикует новые материалы.</p>
         <nav aria-label="Темы блога">
           <a href="#all-articles">Все статьи</a>
           {groups.map(([category], index) => (
@@ -66,7 +65,6 @@ export function BlogCards({ posts }: { posts: BlogCardPost[] }) {
       <div className="blog-results" id="all-articles">
         <header className="blog-results-header">
           <h2>Все статьи</h2>
-          <p>Практические материалы редакции — от свежих к более ранним.</p>
         </header>
 
         {groups.map(([category, categoryPosts], index) => {
@@ -78,13 +76,18 @@ export function BlogCards({ posts }: { posts: BlogCardPost[] }) {
               aria-labelledby={headingId}
               key={category}
             >
-              <h3 id={headingId}>{category}</h3>
+              <h3 id={headingId} className="sr-only">
+                {category}
+              </h3>
               <div className="blog-topic-posts">
                 {categoryPosts.map((post) => (
                   <article className="blog-list-item" key={post.slug}>
                     <a href={`/blog/${post.slug}`} className="blog-list-link">
                       <BlogListCover post={post} />
                       <div className="blog-list-copy">
+                        <span className="blog-list-category" aria-hidden="true">
+                          {category}
+                        </span>
                         <h4>{post.title}</h4>
                         <p>{post.description}</p>
                         <div className="blog-meta">

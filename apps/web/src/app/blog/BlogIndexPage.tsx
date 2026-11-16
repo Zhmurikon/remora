@@ -1,5 +1,7 @@
 import { PublicAnalytics } from '../../components/analytics/PublicAnalytics';
 import { JsonLd } from '../../components/JsonLd';
+import { BlogDesk } from '../../components/blog/BlogDesk';
+import './blog-index.css';
 import { BlogCards } from '../../components/blog/BlogCards';
 import type { BlogPost, BlogPostSummary } from '../../content/blog';
 import { blogPageCount, blogPagePosts, blogStructuredData } from '../../lib/blog';
@@ -76,21 +78,27 @@ export function BlogIndexPage({
     <>
       <PublicAnalytics path={blogPageHref(currentPage)} />
       {includeStructuredData ? <JsonLd data={blogStructuredData(undefined, posts)} /> : null}
-      <header className="blog-intro">
-        <h1>Блог об учёбе и запоминании</h1>
-        <p>
-          Практические статьи о подготовке к экзаменам, работе с конспектами и способах запоминать
-          сложное. Выберите тему или читайте новые материалы по порядку.
-        </p>
+      <header className="blog-desk">
+        <div className="blog-desk-copy">
+          <h1>
+            Блог об учёбе <em>и запоминании</em>
+          </h1>
+          <p>
+            Практические статьи о подготовке к экзаменам, работе с конспектами и способах запоминать
+            сложное. Выберите тему или читайте новые материалы по порядку.
+          </p>
+        </div>
+        <BlogDesk />
       </header>
       <section className="blog-feed" aria-label="Публикации редакции">
         <BlogCards posts={pagePosts} />
         <BlogPagination currentPage={currentPage} totalPages={totalPages} />
       </section>
-      <aside className="blog-cta">
+      <aside className="blog-desk-cta">
+        <img src="/lecture-demo/flashcards.webp" width="110" height="80" alt="" loading="lazy" />
         <div>
           <h2>Попробуйте учиться по карточкам</h2>
-          <p>Пять вопросов на разные темы. Без регистрации.</p>
+          <p>Три карточки о температуре. Без регистрации.</p>
         </div>
         <a href="/#demo" className="home-button">
           Пройти демо <span aria-hidden="true">→</span>
