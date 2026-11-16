@@ -1,6 +1,6 @@
 import { PublicAnalytics } from '../../../components/analytics/PublicAnalytics';
 import type { components } from '@remora/api-client';
-import { ArticleContentServer, Badge } from '@remora/ui';
+import { ArticleContentServer } from '@remora/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -12,7 +12,9 @@ import { SaveOriginalButton } from './SaveOriginalButton';
 import { JsonLd } from '../../../components/JsonLd';
 import { absoluteUrl, DEFAULT_OG_IMAGE } from '../../../lib/seo';
 import { cachedPublicRead } from '../../../lib/cache';
-import { PublicAuthLink } from '../../../components/auth/PublicSession';
+import Image from 'next/image';
+import { pluralWithCount } from '@remora/core';
+import { CourseReader } from './CourseReader';
 
 const API_URL = process.env.API_INTERNAL_URL ?? 'http://localhost:8000';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:5173';
@@ -93,6 +95,18 @@ export default async function PublicCoursePage({ params }: { params: Promise<{ s
       .map(async (article) => [article.id, await loadMaterial(course.slug, article.id)] as const),
   );
   const materials = new Map(entries);
+  const sections = course.sections.map((section) => ({
+    ...section,
+    articles: section.articles.filter((article) => materials.get(article.id)),
+  }));
+  const outline = sections
+    .filter((section) => section.articles.length)
+    .map((section) => ({
+      id: section.id,
+      title: section.title,
+      articles: section.articles.map(({ id, title }) => ({ id, title })),
+    }));
+  const articleCount = outline.reduce((total, section) => total + section.articles.length, 0);
   const courseUrl = absoluteUrl(`/kurs/${course.slug}`);
   const authorName = course.author.display_name || `@${course.author.username}`;
   const structuredData = {
@@ -114,7 +128,7 @@ export default async function PublicCoursePage({ params }: { params: Promise<{ s
           name: authorName,
           url: absoluteUrl(`/avtor/${course.author.username}`),
         },
-        hasPart: course.sections.flatMap((section) =>
+        hasPart: outline.flatMap((section) =>
           section.articles.map((article) => ({
             '@type': 'LearningResource',
             name: article.title,
@@ -133,125 +147,142 @@ export default async function PublicCoursePage({ params }: { params: Promise<{ s
     ],
   };
   return (
-    <main className="mx-auto min-h-dvh max-w-6xl px-4 py-6 sm:px-8">
+    <main className="course-detail">
       {course.is_listed && <PublicAnalytics path={`/kurs/${encodeURIComponent(course.slug)}`} />}
       <JsonLd data={structuredData} />
-      <nav
-        className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2"
-        aria-label="Основная навигация"
-      >
-        <Link
-          href={APP_URL}
-          aria-label="Запоминальня — приложение"
-          className="text-primary inline-flex min-h-11 items-center text-xl font-semibold"
-        >
-          Запоминальня
-        </Link>
-        <Link href="/" className="text-primary inline-flex min-h-11 items-center underline">
-          Главная
-        </Link>
-        <Link href="/kursy" className="text-primary inline-flex min-h-11 items-center underline">
-          Каталог курсов
-        </Link>
-        <PublicAuthLink className="text-primary inline-flex min-h-11 items-center underline" />
-      </nav>
-      <header className="max-w-3xl py-12">
-        <p className="text-primary text-sm font-medium">Учебный курс</p>
-        <h1 className="mt-3 break-words text-4xl font-semibold tracking-tight sm:text-5xl">
-          {course.title}
-        </h1>
-        {course.description && (
-          <p className="text-fg-muted mt-5 whitespace-pre-wrap break-words text-lg leading-relaxed">
-            {course.description}
-          </p>
-        )}
-        <div className="mt-5 flex flex-wrap gap-2">
-          {course.tags.map((tag) => (
-            <Badge key={tag}>#{tag}</Badge>
-          ))}
+      <header className="course-cover">
+        <div className="course-width">
+          <Link className="course-back" href="/kursy">
+            ← Каталог курсов
+          </Link>
+          <div className="course-cover-grid">
+            <div>
+              <p className="course-label">Учебный курс</p>
+              <h1>{course.title}</h1>
+              {course.description && <p className="course-intro">{course.description}</p>}
+              <div className="course-byline">
+                <Link href={`/avtor/${course.author.username}`}>{authorName}</Link>
+                {!!outline.length && (
+                  <span>{pluralWithCount(outline.length, ['раздел', 'раздела', 'разделов'])}</span>
+                )}
+                {!!articleCount && (
+                  <span>{pluralWithCount(articleCount, ['статья', 'статьи', 'статей'])}</span>
+                )}
+              </div>
+              {!!course.tags.length && (
+                <div className="course-topic-tags">
+                  {course.tags.map((tag) => (
+                    <span key={tag}>#{tag}</span>
+                  ))}
+                </div>
+              )}
+              <div className="course-actions">
+                <a className="course-primary" href={`${APP_URL}/courses/copy/${course.slug}`}>
+                  Скопировать курс и учиться
+                </a>
+                <SaveOriginalButton
+                  targetType="course"
+                  targetId={course.id}
+                  label="Сохранить курс"
+                />
+              </div>
+              <div className="course-reactions">
+                <CourseLikeButton
+                  slug={course.slug}
+                  initialCount={course.likes_count}
+                  initialLiked={course.liked_by_me}
+                />
+                <span>Сохранений: {course.saves_count}</span>
+                <ReportCourseButton slug={course.slug} />
+              </div>
+            </div>
+            <Image
+              className="course-illustration"
+              src="/lecture-demo/course-books.webp"
+              width={360}
+              height={320}
+              unoptimized
+              alt=""
+            />
+          </div>
         </div>
-        <CourseLikeButton
-          slug={course.slug}
-          initialCount={course.likes_count}
-          initialLiked={course.liked_by_me}
-        />
-        <div className="mt-3">
-          <SaveOriginalButton targetType="course" targetId={course.id} label="Сохранить курс" />
-        </div>
-        <p className="text-fg-muted mt-3 text-sm">Сохранений: {course.saves_count}</p>
-        <Link
-          className="text-primary mt-2 inline-flex min-h-11 items-center underline"
-          href={`/avtor/${course.author.username}`}
-        >
-          Автор: {course.author.display_name || `@${course.author.username}`}
-        </Link>
-        <a
-          className="text-primary mt-4 inline-flex min-h-11 items-center underline"
-          href={`${APP_URL}/courses/copy/${course.slug}`}
-        >
-          Скопировать курс и учиться
-        </a>
-        <ReportCourseButton slug={course.slug} />
       </header>
-      <div className="space-y-10 pb-12">
-        {course.sections.map((section) => (
-          <section key={section.id} className="space-y-6">
-            <h2 className="text-2xl font-semibold">{section.title}</h2>
-            {section.articles.map((article) => {
-              const material = materials.get(article.id);
-              if (!material) return null;
-              return (
-                <article key={article.id} id={`article-${article.id}`} className="space-y-4">
-                  <header>
-                    <h3 className="break-words text-xl font-semibold">{article.title}</h3>
-                    <p className="text-fg-muted mt-2 text-sm">
-                      Автор: {material.author.display_name || material.author.username} · Карточек:{' '}
-                      {material.cards_count}
-                    </p>
-                  </header>
-                  {article.body && (
-                    <ArticleContentServer
-                      value={article.body}
-                      media={Object.fromEntries(
-                        (article.media ?? []).map((item) => [item.id, item]),
-                      )}
-                    />
-                  )}
-                  <div className="flex flex-wrap gap-3">
-                    <SaveOriginalButton
-                      targetType="article"
-                      targetId={article.id}
-                      label="Сохранить статью"
-                    />
-                    <SaveOriginalButton
-                      targetType="set"
-                      targetId={article.set_id}
-                      label="Сохранить набор"
-                    />
-                  </div>
-                  <div className="flex flex-wrap gap-4">
-                    <a
-                      className="text-primary inline-flex min-h-11 items-center underline"
-                      href={`${APP_URL}/courses/copy/${course.slug}?article=${article.id}`}
-                    >
-                      Скопировать статью с карточками
-                    </a>
-                    <a
-                      className="text-primary inline-flex min-h-11 items-center underline"
-                      href={`${APP_URL}/courses/copy/${course.slug}?set=${article.set_id}`}
-                    >
-                      Скопировать только набор
-                    </a>
-                  </div>
-                  <PublicCourseCards initial={material} slug={course.slug} articleId={article.id} />
-                </article>
-              );
-            })}
-          </section>
-        ))}
-      </div>
+      {articleCount > 0 && (
+        <CourseReader key={course.id} sections={outline}>
+          {sections.map((section) => (
+            <div key={section.id}>
+              {section.articles.map((article) => {
+                const material = materials.get(article.id);
+                if (!material) return null;
+                return (
+                  <article
+                    key={article.id}
+                    id={`article-${article.id}`}
+                    className="course-material"
+                  >
+                    <header>
+                      <p className="course-section-name">{section.title}</p>
+                      <h2 className="course-material-title" tabIndex={-1}>
+                        {article.title}
+                      </h2>
+                      <p className="text-fg-muted mt-2 text-sm">
+                        Автор: {material.author.display_name || material.author.username} ·
+                        Карточек: {material.cards_count}
+                      </p>
+                    </header>
+                    {article.body && (
+                      <ArticleContentServer
+                        value={article.body}
+                        media={Object.fromEntries(
+                          (article.media ?? []).map((item) => [item.id, item]),
+                        )}
+                      />
+                    )}
+                    {material.cards_count > 0 && (
+                      <section className="course-card-list">
+                        <h3>Карточки к статье</h3>
+                        <PublicCourseCards
+                          initial={material}
+                          slug={course.slug}
+                          articleId={article.id}
+                        />
+                      </section>
+                    )}
+                    <div className="flex flex-wrap gap-3">
+                      <SaveOriginalButton
+                        targetType="article"
+                        targetId={article.id}
+                        label="Сохранить статью"
+                      />
+                      <SaveOriginalButton
+                        targetType="set"
+                        targetId={article.set_id}
+                        label="Сохранить набор"
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-4">
+                      <a
+                        className="text-primary inline-flex min-h-11 items-center underline"
+                        href={`${APP_URL}/courses/copy/${course.slug}?article=${article.id}`}
+                      >
+                        Скопировать статью с карточками
+                      </a>
+                      <a
+                        className="text-primary inline-flex min-h-11 items-center underline"
+                        href={`${APP_URL}/courses/copy/${course.slug}?set=${article.set_id}`}
+                      >
+                        Скопировать только набор
+                      </a>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ))}
+        </CourseReader>
+      )}
       {related.length > 0 && (
-        <section aria-labelledby="related-title" className="border-border border-t py-10">
+        <section aria-labelledby="related-title" className="course-related course-width">
           <h2 id="related-title" className="text-2xl font-semibold">
             Похожие курсы
           </h2>
