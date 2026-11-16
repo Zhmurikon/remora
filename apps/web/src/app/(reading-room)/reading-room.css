@@ -325,6 +325,12 @@
   color: rgb(var(--rm-reading-muted));
   font-size: 0.82rem;
 }
+.reading-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 0.75rem;
+}
 .reading-register {
   font-size: 1rem;
   margin-top: clamp(1rem, 2.3svh, 1.8rem);

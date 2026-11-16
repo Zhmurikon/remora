@@ -2,9 +2,9 @@
 
 import { Input } from '@remora/ui';
 import Link from 'next/link';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { authApi, getErrorMessage } from '../../lib/auth-api';
-import { PenStroke, ReadingHeading, ReadingSubmit } from './reading-room/ReadingForm';
+import { ReadingHeading, ReadingResult, ReadingSubmit } from './reading-room/ReadingForm';
 import { FormDivider, FormError, PasswordField, SocialButtons } from './AuthFields';
 
 export function RegisterForm() {
@@ -57,7 +57,11 @@ export function RegisterForm() {
   }
 
   if (sentTo) {
-    return <EmailSent email={sentTo} />;
+    return (
+      <ReadingResult title="Проверьте почту" action="Перейти ко входу">
+        Отправили ссылку для подтверждения на <strong>{sentTo}</strong>. Она действует 24 часа.
+      </ReadingResult>
+    );
   }
 
   return (
@@ -156,26 +160,5 @@ export function RegisterForm() {
         </Link>
       </p>
     </>
-  );
-}
-
-function EmailSent({ email }: { email: string }) {
-  const heading = useRef<HTMLHeadingElement>(null);
-  useEffect(() => {
-    heading.current?.focus();
-  }, []);
-  return (
-    <div className="reading-confirmation">
-      <h1 className="reading-title" ref={heading} tabIndex={-1}>
-        <span>Проверьте почту</span>
-      </h1>
-      <p className="reading-intro">
-        Отправили ссылку для подтверждения на <strong>{email}</strong>. Она действует 24 часа.
-      </p>
-      <Link href="/login" className="reading-submit">
-        <PenStroke />
-        Перейти ко входу
-      </Link>
-    </div>
   );
 }

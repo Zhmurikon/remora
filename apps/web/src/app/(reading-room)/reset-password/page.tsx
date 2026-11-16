@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { ResetPasswordForm } from '../../../components/auth/ResetPasswordForm';
+import { ReadingLegal } from '../../../components/auth/reading-room/ReadingLegal';
 
 export const metadata: Metadata = {
   title: 'Новый пароль',
@@ -9,8 +10,11 @@ export const metadata: Metadata = {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense>
-      <ResetPasswordForm />
-    </Suspense>
+    <>
+      <Suspense>
+        <ResetPasswordForm />
+      </Suspense>
+      <ReadingLegal />
+    </>
   );
 }

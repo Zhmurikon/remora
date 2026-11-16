@@ -1,5 +1,8 @@
+'use client';
+
 import { Button } from '@remora/ui';
-import { Fragment, type ReactNode } from 'react';
+import Link from 'next/link';
+import { Fragment, useEffect, useRef, type ReactNode } from 'react';
 
 export function ReadingHeading({ title, description }: { title: string; description: string }) {
   return (
@@ -21,7 +24,7 @@ export function ReadingHeading({ title, description }: { title: string; descript
   );
 }
 
-export function PenStroke() {
+function PenStroke() {
   return (
     <svg
       className="reading-submit-ink"
@@ -44,5 +47,36 @@ export function ReadingSubmit({ loading, children }: { loading: boolean; childre
       <PenStroke />
       {children}
     </Button>
+  );
+}
+
+export function ReadingResult({
+  title,
+  children,
+  href = '/login',
+  action,
+}: {
+  title: string;
+  children: ReactNode;
+  href?: string;
+  action: string;
+}) {
+  const heading = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    heading.current?.focus({ preventScroll: true });
+  }, [title]);
+
+  return (
+    <div className="reading-confirmation">
+      <h1 className="reading-title" ref={heading} tabIndex={-1}>
+        <span>{title}</span>
+      </h1>
+      <p className="reading-intro">{children}</p>
+      <Link href={href} className="reading-submit">
+        <PenStroke />
+        {action}
+      </Link>
+    </div>
   );
 }

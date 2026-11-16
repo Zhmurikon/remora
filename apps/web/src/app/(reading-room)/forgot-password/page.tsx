@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { ForgotPasswordForm } from '../../../components/auth/ForgotPasswordForm';
+import { ReadingLegal } from '../../../components/auth/reading-room/ReadingLegal';
 
 export const metadata: Metadata = {
   title: 'Восстановление пароля',
@@ -7,5 +8,10 @@ export const metadata: Metadata = {
 };
 
 export default function ForgotPasswordPage() {
-  return <ForgotPasswordForm />;
+  return (
+    <>
+      <ForgotPasswordForm />
+      <ReadingLegal />
+    </>
+  );
 }

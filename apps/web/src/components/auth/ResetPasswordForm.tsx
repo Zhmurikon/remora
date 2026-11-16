@@ -1,18 +1,27 @@
 'use client';
 
-import { Button } from '@remora/ui';
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { authApi, getErrorMessage } from '../../lib/auth-api';
 import { FormError, PasswordField } from './AuthFields';
-import { CheckIcon } from './Icons';
+import { ReadingHeading, ReadingResult, ReadingSubmit } from './reading-room/ReadingForm';
 
 export function ResetPasswordForm() {
   const token = useSearchParams().get('token');
+  if (!token) {
+    return (
+      <ReadingResult title="В ссылке нет кода" href="/forgot-password" action="Запросить ссылку">
+        Чтобы сменить пароль, запросите письмо и откройте ссылку из него.
+      </ReadingResult>
+    );
+  }
+  return <NewPassword key={token} token={token} />;
+}
+
+function NewPassword({ token }: { token: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
+  const [status, setStatus] = useState<'form' | 'invalid-link' | 'done'>('form');
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -22,10 +31,6 @@ export function ResetPasswordForm() {
       setError('Пароли не совпадают');
       return;
     }
-    if (!token) {
-      setError('В ссылке отсутствует токен восстановления');
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
@@ -33,10 +38,14 @@ export function ResetPasswordForm() {
         body: { token, new_password: password },
       });
       if (response.error) {
+        if ('code' in response.error && response.error.code === 'UNAUTHORIZED') {
+          setStatus('invalid-link');
+          return;
+        }
         setError(getErrorMessage(response.error));
         return;
       }
-      setDone(true);
+      setStatus('done');
     } catch (requestError) {
       setError(getErrorMessage(requestError));
     } finally {
@@ -44,34 +53,33 @@ export function ResetPasswordForm() {
     }
   }
 
-  if (done) {
+  if (status === 'invalid-link') {
     return (
-      <div className="text-center">
-        <span className="bg-success-subtle text-success mx-auto grid h-16 w-16 place-items-center rounded-3xl">
-          <CheckIcon className="h-8 w-8" />
-        </span>
-        <h1 className="mt-7 text-3xl font-semibold tracking-[-0.035em]">Пароль изменён</h1>
-        <p className="text-fg-muted mt-4">Теперь можно войти с новым паролем.</p>
-        <Link
-          href="/login"
-          className="bg-primary text-primary-fg hover:bg-primary-hover mt-8 inline-flex h-12 items-center justify-center rounded-xl px-6 font-medium"
-        >
-          Войти в «Запоминальню»
-        </Link>
-      </div>
+      <ReadingResult
+        title="Ссылка больше не действует"
+        href="/forgot-password"
+        action="Запросить новую ссылку"
+      >
+        Запросите новое письмо для смены пароля.
+      </ReadingResult>
+    );
+  }
+
+  if (status === 'done') {
+    return (
+      <ReadingResult title="Пароль изменён" action="Войти в «Запоминальню»">
+        Теперь можно войти с новым паролем.
+      </ReadingResult>
     );
   }
 
   return (
     <>
-      <p className="text-primary text-sm font-medium">Новый пароль</p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">
-        Придумайте новый пароль
-      </h1>
-      <p className="text-fg-muted mt-3 leading-7">
-        Используйте не менее 8 символов, буквы и цифры.
-      </p>
-      <form className="mt-9 space-y-5" onSubmit={handleSubmit}>
+      <ReadingHeading
+        title="Придумайте новый пароль"
+        description="Используйте не менее 8 символов, буквы и цифры."
+      />
+      <form className="reading-fields" onSubmit={handleSubmit}>
         <PasswordField
           name="password"
           autoComplete="new-password"
@@ -90,15 +98,7 @@ export function ResetPasswordForm() {
           required
         />
         {error && <FormError>{error}</FormError>}
-        <Button
-          type="submit"
-          size="lg"
-          loading={loading}
-          fullWidth
-          className="h-12 rounded-xl text-base"
-        >
-          Сохранить пароль
-        </Button>
+        <ReadingSubmit loading={loading}>Сохранить пароль</ReadingSubmit>
       </form>
     </>
   );
