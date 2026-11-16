@@ -48,6 +48,14 @@
   --rm-materials-danger: 193 82 70;
   --rm-materials-danger-subtle: 250 233 230;
 
+  --rm-reading-paper: 250 247 241;
+  --rm-reading-ink: 23 35 56;
+  --rm-reading-muted: 73 81 97;
+  --rm-reading-rule: 162 170 187;
+  --rm-reading-link: 37 61 147;
+  --rm-reading-button: 38 66 155;
+  --rm-reading-button-hover: 28 50 126;
+
   color-scheme: light;
 }
 
@@ -92,6 +100,14 @@
   --rm-materials-danger: 218 123 111;
   --rm-materials-danger-subtle: 70 40 38;
 
+  --rm-reading-paper: 24 28 38;
+  --rm-reading-ink: 237 236 231;
+  --rm-reading-muted: 190 194 206;
+  --rm-reading-rule: 99 111 137;
+  --rm-reading-link: 173 192 255;
+  --rm-reading-button: 58 81 164;
+  --rm-reading-button-hover: 69 95 185;
+
   color-scheme: dark;
 }
 
@@ -134,6 +150,14 @@
     --rm-materials-primary-subtle: 37 63 63;
     --rm-materials-danger: 218 123 111;
     --rm-materials-danger-subtle: 70 40 38;
+
+    --rm-reading-paper: 24 28 38;
+    --rm-reading-ink: 237 236 231;
+    --rm-reading-muted: 190 194 206;
+    --rm-reading-rule: 99 111 137;
+    --rm-reading-link: 173 192 255;
+    --rm-reading-button: 58 81 164;
+    --rm-reading-button-hover: 69 95 185;
 
     color-scheme: dark;
   }

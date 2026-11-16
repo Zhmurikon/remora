@@ -1,0 +1,135 @@
+.reading-stage .scene {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.reading-stage #rain {
+  position: absolute;
+  left: 27.5%;
+  top: 5%;
+  width: 45%;
+  height: 66.25%;
+  pointer-events: none;
+}
+.reading-stage #warm-light {
+  opacity: var(--light, 1);
+  transition: opacity var(--fade, 330ms) ease-out;
+}
+.reading-stage[data-lit='false'] {
+  --light: 0;
+  --fade: 210ms;
+}
+.reading-stage[data-moving='false'] {
+  --fade: 0ms;
+}
+.reading-stage .effect {
+  display: none;
+}
+.reading-stage .effect.active {
+  display: inline;
+}
+.reading-stage .hotspot {
+  appearance: none;
+  position: absolute;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.reading-stage #lamp {
+  left: 10.2%;
+  top: 50.7%;
+  width: 18.7%;
+  height: 31%;
+  clip-path: polygon(
+    2% 31%,
+    18% 17%,
+    23% 8%,
+    42% 2%,
+    55% 0,
+    62% 9%,
+    80% 15%,
+    100% 34%,
+    64% 43%,
+    69% 66%,
+    52% 69%,
+    49% 45%,
+    37% 44%,
+    40% 84%,
+    64% 90%,
+    64% 98%,
+    0 100%,
+    0 87%,
+    24% 83%,
+    23% 46%,
+    0 42%
+  );
+}
+.reading-stage #ivy {
+  left: 6.1%;
+  top: 1.4%;
+  width: 24%;
+  height: 49.6%;
+  clip-path: polygon(
+    0 36%,
+    7% 18%,
+    29% 4%,
+    49% 5%,
+    63% 0,
+    78% 1%,
+    70% 14%,
+    100% 21%,
+    97% 33%,
+    79% 36%,
+    87% 52%,
+    74% 60%,
+    83% 100%,
+    51% 98%,
+    33% 94%,
+    34% 75%,
+    39% 62%,
+    25% 60%,
+    33% 44%,
+    11% 42%
+  );
+}
+.reading-stage #book-layer {
+  position: absolute;
+  left: 17%;
+  top: 65%;
+  width: 81%;
+  height: 24%;
+  pointer-events: none;
+}
+.reading-stage #shelf {
+  left: 80.5%;
+  top: 20.5%;
+  width: 18%;
+  height: 60%;
+  clip-path: polygon(0 13%, 100% 0, 100% 100%, 0 93%);
+}
+.reading-stage #open-book {
+  left: 18.6%;
+  top: 76.1%;
+  width: 35.8%;
+  height: 11.8%;
+  clip-path: polygon(0 51%, 11% 23%, 34% 7%, 44% 15%, 54% 0, 77% 9%, 99% 73%, 100% 85%, 13% 100%);
+}
+.reading-stage:has(#shelf:focus-visible) #shelf-focus,
+.reading-stage:has(#open-book:focus-visible) #book-focus {
+  opacity: 1;
+}
+.reading-stage .focus-ring {
+  opacity: 0;
+  pointer-events: none;
+  fill: none;
+  stroke: rgb(var(--rm-reading-link));
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+}
+.reading-stage:has(#lamp:focus-visible) #lamp-focus,
+.reading-stage:has(#ivy:focus-visible) #ivy-focus {
+  opacity: 1;
+}

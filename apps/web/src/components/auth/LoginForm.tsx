@@ -62,14 +62,11 @@ export function LoginForm() {
   return (
     <>
       <div>
-        <p className="text-primary text-sm font-medium">С возвращением</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">
-          Войдите в «Запоминальню»
-        </h1>
-        <p className="text-fg-muted mt-3">Ваши карточки и прогресс уже ждут.</p>
+        <h1 className="reading-title">Войдите в «Запоминальню»</h1>
+        <p className="reading-intro">Ваши карточки и прогресс уже ждут.</p>
       </div>
 
-      <form className="mt-9 space-y-5" onSubmit={handleSubmit}>
+      <form className="reading-fields" onSubmit={handleSubmit}>
         <Input
           label="Email"
           name="email"
@@ -80,38 +77,27 @@ export function LoginForm() {
           className="h-12 rounded-xl"
         />
         <div>
-          <div className="mb-1 flex justify-end">
-            <Link
-              href="/forgot-password"
-              className="text-primary hover:text-primary-hover text-sm font-medium"
-            >
-              Забыли пароль?
-            </Link>
-          </div>
           <PasswordField
             name="password"
             autoComplete="current-password"
             placeholder="Введите пароль"
             required
           />
+          <Link href="/forgot-password" className="reading-forgot">
+            Забыли пароль?
+          </Link>
         </div>
         {error && <FormError>{error}</FormError>}
-        <Button
-          type="submit"
-          size="lg"
-          loading={loading}
-          fullWidth
-          className="h-12 rounded-xl text-base"
-        >
+        <Button type="submit" size="lg" loading={loading} fullWidth className="reading-submit">
           Войти
         </Button>
       </form>
 
-      <div className="my-7">
+      <div className="reading-divider">
         <FormDivider />
       </div>
-      <SocialButtons />
-      <p className="text-fg-muted mt-8 text-center text-sm">
+      <SocialButtons compact />
+      <p className="reading-register">
         Ещё нет аккаунта?{' '}
         <Link href="/register" className="text-primary hover:text-primary-hover font-semibold">
           Создать

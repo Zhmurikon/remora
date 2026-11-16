@@ -31,7 +31,7 @@ export function PasswordField({
   );
 }
 
-export function SocialButtons() {
+export function SocialButtons({ compact = false }: { compact?: boolean }) {
   function continueWithGoogle(event: MouseEvent<HTMLAnchorElement>) {
     const next = new URLSearchParams(window.location.search).get('next');
     if (!next) return;
@@ -48,16 +48,41 @@ export function SocialButtons() {
         onClick={continueWithGoogle}
         className="border-border bg-surface text-fg hover:bg-surface-muted focus-visible:ring-primary flex h-12 w-full items-center justify-center gap-3 rounded-xl border text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
       >
-        <span aria-hidden="true" className="text-base font-bold">
-          G
-        </span>
+        {compact ? (
+          <svg viewBox="0 0 18 18" width="21" height="21" aria-hidden="true">
+            <path
+              fill="#4285F4"
+              d="M17.64 9.205c0-.638-.057-1.252-.164-1.841H9v3.482h4.844a4.14 4.14 0 0 1-1.796 2.716v2.258h2.909c1.702-1.568 2.683-3.878 2.683-6.615Z"
+            />
+            <path
+              fill="#34A853"
+              d="M9 18c2.43 0 4.468-.806 5.957-2.18l-2.909-2.258c-.806.54-1.838.859-3.048.859-2.345 0-4.33-1.584-5.04-3.711H.953v2.331A9 9 0 0 0 9 18Z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M3.96 10.71A5.4 5.4 0 0 1 3.678 9c0-.593.102-1.17.282-1.71V4.959H.953A9 9 0 0 0 0 9c0 1.452.348 2.827.953 4.041l3.007-2.331Z"
+            />
+            <path
+              fill="#EA4335"
+              d="M9 3.58c1.321 0 2.507.454 3.44 1.346l2.582-2.582C13.464.891 11.425 0 9 0A9 9 0 0 0 .953 4.959L3.96 7.29C4.67 5.163 6.655 3.58 9 3.58Z"
+            />
+          </svg>
+        ) : (
+          <span aria-hidden="true" className="text-base font-bold">
+            G
+          </span>
+        )}
         Продолжить с Google
       </a>
-      <div className="grid grid-cols-3 gap-3" aria-label="Другие сервисы">
-        <SocialButton label="VK ID" mark="VK" />
-        <SocialButton label="Яндекс ID" mark="Я" />
-        <SocialButton label="Telegram" mark="TG" />
-      </div>
+      {compact ? (
+        <p className="reading-providers">Скоро: VK ID, Яндекс ID, Telegram</p>
+      ) : (
+        <div className="grid grid-cols-3 gap-3" aria-label="Другие сервисы">
+          <SocialButton label="VK ID" mark="VK" />
+          <SocialButton label="Яндекс ID" mark="Я" />
+          <SocialButton label="Telegram" mark="TG" />
+        </div>
+      )}
     </div>
   );
 }
