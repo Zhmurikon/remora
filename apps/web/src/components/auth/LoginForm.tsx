@@ -1,10 +1,11 @@
 'use client';
 
-import { Button, Input } from '@remora/ui';
+import { Input } from '@remora/ui';
 import Link from 'next/link';
 import { useEffect, useState, type FormEvent } from 'react';
 import { APP_URL, authApi, getErrorMessage } from '../../lib/auth-api';
 import { FormDivider, FormError, PasswordField, SocialButtons } from './AuthFields';
+import { ReadingHeading, ReadingSubmit } from './reading-room/ReadingForm';
 import { usePublicSession } from './PublicSession';
 
 export function LoginForm() {
@@ -61,10 +62,10 @@ export function LoginForm() {
 
   return (
     <>
-      <div>
-        <h1 className="reading-title">Войдите в «Запоминальню»</h1>
-        <p className="reading-intro">Ваши карточки и прогресс уже ждут.</p>
-      </div>
+      <ReadingHeading
+        title="Войдите в «Запоминальню»"
+        description="Ваши карточки и прогресс уже ждут."
+      />
 
       <form className="reading-fields" onSubmit={handleSubmit}>
         <Input
@@ -88,9 +89,7 @@ export function LoginForm() {
           </Link>
         </div>
         {error && <FormError>{error}</FormError>}
-        <Button type="submit" size="lg" loading={loading} fullWidth className="reading-submit">
-          Войти
-        </Button>
+        <ReadingSubmit loading={loading}>Войти</ReadingSubmit>
       </form>
 
       <div className="reading-divider">

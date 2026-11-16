@@ -11,7 +11,8 @@
   height: 66.25%;
   pointer-events: none;
 }
-.reading-stage #warm-light {
+/* Внутри копии <use> селектор видит слой света, а переменные наследуются от сцены. */
+#warm-light {
   opacity: var(--light, 1);
   transition: opacity var(--fade, 330ms) ease-out;
 }

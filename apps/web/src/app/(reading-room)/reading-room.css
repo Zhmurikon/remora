@@ -29,16 +29,25 @@
 .reading-header a {
   min-height: 44px;
 }
-.reading-header a:first-child {
-  gap: 0.55rem;
+.reading-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32em;
+  font: 400 clamp(1.4rem, 2vw, 2.15rem)/1.15 var(--reading-serif);
+  letter-spacing: -0.03em;
 }
-.reading-header a:first-child svg {
-  width: clamp(35px, 3vw, 52px);
+.reading-wordmark {
+  white-space: nowrap;
+}
+.reading-wordmark > span,
+.reading-word {
+  display: inline-block;
+}
+.reading-brand img {
+  width: 1.78em;
   height: auto;
-}
-.reading-header a:first-child span {
-  font: 600 clamp(1.4rem, 2vw, 2.15rem)/1.15 var(--reading-serif);
-  letter-spacing: -0.045em;
+  background-color: light-dark(transparent, rgb(var(--rm-reading-ink)));
+  border-radius: 0.28em;
 }
 .reading-home {
   display: inline-flex;
@@ -62,7 +71,7 @@
   padding: 0.5rem clamp(1rem, 2.45vw, 4rem) clamp(1rem, 2.2svh, 2rem);
 }
 .reading-form {
-  width: min(100%, clamp(23rem, 30vw, 36rem));
+  width: min(100%, var(--form-width, clamp(23rem, 30vw, 36rem)));
   margin-inline: auto;
   padding-block: clamp(1rem, 2svh, 2rem);
 }
@@ -81,13 +90,13 @@
   gap: clamp(0.9rem, 1.8svh, 1.35rem);
   margin-top: clamp(1.5rem, 3.5svh, 2.75rem);
 }
-.reading-form input,
+.reading-form input:not([type='checkbox']),
 .reading-form a[href*='/oauth/google/start'] {
   height: clamp(3rem, 3.85vw, 3.8rem);
   border-radius: 0.5rem;
   background: color-mix(in srgb, rgb(var(--rm-surface)) 45%, rgb(var(--rm-reading-paper)));
 }
-.reading-form input {
+.reading-form input:not([type='checkbox']) {
   padding-left: 1rem;
 }
 .reading-form input[type='password'],
@@ -114,6 +123,45 @@
 .reading-home:hover {
   text-decoration: underline;
 }
+.reading-form:has(.reading-enrollment) {
+  --form-width: clamp(26rem, 34vw, 39rem);
+}
+.reading-enrollment {
+  container-type: inline-size;
+}
+.reading-enrollment-fields {
+  display: grid;
+  align-items: start;
+  gap: 1rem;
+}
+.reading-enrollment-fields > * {
+  min-width: 0;
+}
+@container (min-width: 26rem) {
+  .reading-enrollment-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.reading-fields .reading-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-height: 44px;
+  cursor: pointer;
+  color: rgb(var(--rm-reading-muted));
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.reading-confirmation strong {
+  overflow-wrap: anywhere;
+}
+.reading-form .reading-confirmation a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1.7rem;
+  text-decoration: none;
+}
 .reading-forgot {
   display: inline-flex;
   align-items: center;
@@ -122,6 +170,9 @@
   font-size: 0.92rem;
 }
 .reading-form .reading-submit {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   width: 100%;
   height: clamp(3.05rem, 4vw, 3.9rem);
   border-radius: 0.52rem;
@@ -133,8 +184,126 @@
   color: white;
   font: 600 clamp(1.18rem, 1.55vw, 1.55rem)/1 var(--reading-serif);
 }
-.reading-form .reading-submit:hover {
-  background-color: rgb(var(--rm-reading-button-hover));
+.reading-submit-ink {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+  fill: none;
+  stroke: color-mix(in srgb, rgb(var(--rm-reading-button)) 48%, black);
+  stroke-width: 17;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+}
+.reading-submit:not(:disabled):is(:focus-visible, :active) .reading-submit-ink {
+  --reading-ink-motion: reading-pen-fill;
+  opacity: 0.8;
+}
+@media (hover: hover) {
+  .reading-submit:not(:disabled):hover .reading-submit-ink {
+    --reading-ink-motion: reading-pen-fill;
+    opacity: 0.8;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .reading-brand:focus-visible {
+    --brand-wave: reading-letter-wave;
+    --brand-dive: reading-fish-dive;
+  }
+  .reading-brand img {
+    animation: var(--brand-dive, none) 560ms ease-in-out;
+  }
+  .reading-wordmark > span {
+    animation: var(--brand-wave, none) 270ms ease-in-out;
+  }
+  @media (hover: hover) {
+    .reading-brand:hover {
+      --brand-wave: reading-letter-wave;
+      --brand-dive: reading-fish-dive;
+    }
+    .reading-title > span {
+      background: linear-gradient(
+          to right,
+          rgb(var(--rm-reading-link)),
+          rgb(var(--rm-reading-link)) 85%,
+          transparent
+        )
+        left bottom / 0 0.055em no-repeat;
+      box-decoration-break: clone;
+      -webkit-box-decoration-break: clone;
+      transition:
+        background-size 380ms ease-out,
+        color 260ms;
+    }
+    .reading-title:hover > span {
+      background-size: 100% 0.055em;
+      color: rgb(var(--rm-reading-link));
+    }
+    .reading-intro:hover .reading-word {
+      animation-name: reading-word-rise;
+      animation-duration: 370ms;
+      animation-timing-function: ease-in-out;
+    }
+  }
+  @keyframes reading-fish-dive {
+    20% {
+      transform: translateY(0.09em) rotate(-8deg);
+    }
+    55% {
+      transform: translate(0.12em, -0.16em) rotate(7deg);
+    }
+  }
+  @keyframes reading-letter-wave {
+    50% {
+      transform: translateY(-0.18em) rotate(-3deg);
+      color: rgb(var(--rm-reading-link));
+    }
+  }
+  @keyframes reading-word-rise {
+    45% {
+      transform: translateY(-0.17em);
+      color: rgb(var(--rm-reading-link));
+    }
+  }
+  .reading-title,
+  .reading-intro,
+  .reading-fields label {
+    animation: reading-copy-in 440ms cubic-bezier(0.2, 0.7, 0.24, 1) backwards;
+  }
+  .reading-intro {
+    animation-delay: 65ms;
+  }
+  .reading-fields label {
+    animation-delay: 115ms;
+  }
+  .reading-fields > :nth-child(2) label {
+    animation-delay: 155ms;
+  }
+  .reading-submit-ink path {
+    animation: var(--reading-ink-motion, none) 520ms ease-out both;
+  }
+  @keyframes reading-pen-fill {
+    from {
+      stroke-dashoffset: 1;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  @keyframes reading-copy-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.28em);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 .reading-divider {
   margin: clamp(0.85rem, 1.7svh, 1.35rem) 0;
@@ -254,7 +423,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .reading-home span,
-  .reading-stage #warm-light {
+  #warm-light {
     transition: none;
   }
 }
