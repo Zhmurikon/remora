@@ -1,5 +1,5 @@
+import { pluralWithCount } from '@remora/core';
 import type { components } from '@remora/api-client';
-import { Card } from '@remora/ui';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 
@@ -21,7 +21,7 @@ export function RetentionOverview() {
   if (summary.isPending) return <RetentionSkeleton />;
   if (summary.isError) {
     return (
-      <Card className="mt-6 p-6" role="alert">
+      <section className="dashboard-retention" role="alert">
         <h2 className="text-lg font-semibold">Учебная активность недоступна</h2>
         <p className="text-fg-muted mt-2 text-sm">Попробуйте загрузить данные ещё раз.</p>
         <button
@@ -31,7 +31,7 @@ export function RetentionOverview() {
         >
           Повторить
         </button>
-      </Card>
+      </section>
     );
   }
 
@@ -51,73 +51,37 @@ function RetentionContent({ summary }: { summary: RetentionSummary }) {
     },
   });
 
+  const percent = Math.min(
+    100,
+    Math.round((100 * summary.reviews_today) / Math.max(1, summary.daily_goal)),
+  );
   return (
-    <section className="mt-6" aria-labelledby="retention-title">
-      <h2 id="retention-title" className="sr-only">
-        Учебная активность
-      </h2>
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(18rem,1fr)]">
-        <Card className="p-5 sm:p-6">
-          <div className="grid items-center gap-6 sm:grid-cols-[9rem_1fr]">
-            <GoalRing summary={summary} />
-            <div>
-              <p className="text-primary text-sm font-medium">Дневная цель</p>
-              <p className="mt-2 text-2xl font-semibold tracking-tight">
-                {summary.goal_completed ? 'Цель выполнена' : 'Продолжайте в том же темпе'}
-              </p>
-              <p className="text-fg-muted mt-2 text-sm">
-                {summary.goal_completed
-                  ? `Сегодня вы повторили ${summary.reviews_today} карточек.`
-                  : `Осталось ${Math.max(0, summary.daily_goal - summary.reviews_today)} из ${summary.daily_goal} карточек.`}
-              </p>
-              <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm">
-                <Metric label="XP сегодня" value={`+${summary.xp_today}`} />
-                <Metric label="Верных ответов" value={String(summary.correct_today)} />
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="grid grid-cols-2 gap-4 p-5 sm:p-6">
-          <MetricCard
-            label="Текущая серия"
-            value={`${summary.current_streak_days}`}
-            suffix={dayWord(summary.current_streak_days)}
-            hint={`Рекорд: ${summary.longest_streak_days} ${dayWord(summary.longest_streak_days)}`}
-          />
-          <MetricCard
-            label="Уровень"
-            value={`${summary.level}`}
-            suffix="уровень"
-            hint={`${summary.total_xp} XP всего`}
-          />
-          <div className="border-border col-span-2 border-t pt-4">
-            <div className="flex items-center justify-between gap-4 text-sm">
-              <span className="text-fg-muted">До следующего уровня</span>
-              <span className="font-medium">
-                {summary.current_level_xp} / {summary.next_level_xp} XP
-              </span>
-            </div>
-            <Progress
-              value={summary.current_level_xp}
-              max={summary.next_level_xp}
-              label={`Прогресс уровня ${summary.level}`}
-            />
-            <p className="text-fg-subtle mt-3 text-xs">
-              Доступно заморозок серии: {summary.freezes_left} из 2
-            </p>
-          </div>
-        </Card>
-      </div>
-
-      <Card className="mt-4 p-5 sm:p-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h3 className="text-lg font-semibold">Активность за 16 недель</h3>
-            <p className="text-fg-muted mt-1 text-sm">Каждая клетка — один учебный день.</p>
-          </div>
-          <HeatmapLegend />
+    <section className="dashboard-retention" aria-label="Учебная активность">
+      <div>
+        <h2>Дневная цель</h2>
+        <p className="dashboard-goal-count">
+          <strong>{summary.reviews_today}</strong> из {summary.daily_goal}{' '}
+          {cardWord(summary.daily_goal)}
+        </p>
+        <div
+          className="dashboard-ruler"
+          role="img"
+          aria-label={`Дневная цель выполнена на ${percent}%`}
+        >
+          <span style={{ width: percent + '%' }} />
         </div>
+        {summary.goal_completed && <p>Цель выполнена</p>}
+        <small>
+          +{summary.xp_today} XP сегодня ·{' '}
+          {pluralWithCount(summary.correct_today, [
+            'верный ответ',
+            'верных ответа',
+            'верных ответов',
+          ])}
+        </small>
+      </div>
+      <div>
+        <h2>Активность за 16 недель</h2>
         {activity.isPending ? (
           <div
             className="bg-surface-muted mt-5 h-28 animate-pulse rounded-lg"
@@ -137,47 +101,39 @@ function RetentionContent({ summary }: { summary: RetentionSummary }) {
         ) : (
           <ActivityHeatmap from={range.from} to={range.to} activity={activity.data} />
         )}
-      </Card>
-    </section>
-  );
-}
-
-function GoalRing({ summary }: { summary: RetentionSummary }) {
-  const progress = Math.min(1, summary.reviews_today / Math.max(1, summary.daily_goal));
-  const radius = 54;
-  const circumference = 2 * Math.PI * radius;
-  return (
-    <div
-      className="relative mx-auto h-36 w-36"
-      role="img"
-      aria-label={`Дневная цель выполнена на ${Math.round(progress * 100)}%`}
-    >
-      <svg className="h-full w-full -rotate-90" viewBox="0 0 128 128" aria-hidden="true">
-        <circle
-          className="stroke-surface-muted"
-          cx="64"
-          cy="64"
-          r={radius}
-          fill="none"
-          strokeWidth="10"
-        />
-        <circle
-          className="stroke-primary transition-all duration-300"
-          cx="64"
-          cy="64"
-          r={radius}
-          fill="none"
-          strokeWidth="10"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={circumference * (1 - progress)}
-        />
-      </svg>
-      <div className="absolute inset-0 grid place-content-center text-center">
-        <span className="text-2xl font-semibold">{summary.reviews_today}</span>
-        <span className="text-fg-subtle text-xs">из {summary.daily_goal}</span>
+        <HeatmapLegend />
       </div>
-    </div>
+      <div>
+        <dl className="dashboard-pair">
+          <div>
+            <dt>Текущая серия</dt>
+            <dd>
+              {summary.current_streak_days} {dayWord(summary.current_streak_days)}
+            </dd>
+            <dd>
+              Рекорд · {summary.longest_streak_days} {dayWord(summary.longest_streak_days)}
+            </dd>
+          </div>
+          <div>
+            <dt>Уровень</dt>
+            <dd>{summary.level}</dd>
+            <dd>{summary.total_xp.toLocaleString('ru-RU')} XP всего</dd>
+          </div>
+        </dl>
+        <div className="dashboard-level">
+          <span>До уровня {summary.level + 1}</span>
+          <span>
+            {summary.current_level_xp} / {summary.next_level_xp} XP
+          </span>
+        </div>
+        <Progress
+          value={summary.current_level_xp}
+          max={summary.next_level_xp}
+          label={`Прогресс уровня ${summary.level}`}
+        />
+        <small>Заморозки серии · {summary.freezes_left} из 2</small>
+      </div>
+    </section>
   );
 }
 
@@ -200,36 +156,6 @@ function Progress({ value, max, label }: { value: number; max: number; label: st
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <p>
-      <span className="font-semibold">{value}</span>{' '}
-      <span className="text-fg-muted">{label.toLocaleLowerCase('ru')}</span>
-    </p>
-  );
-}
-
-function MetricCard({
-  label,
-  value,
-  suffix,
-  hint,
-}: {
-  label: string;
-  value: string;
-  suffix: string;
-  hint: string;
-}) {
-  return (
-    <div>
-      <p className="text-fg-muted text-sm">{label}</p>
-      <p className="mt-2 text-3xl font-semibold">{value}</p>
-      <p className="text-fg-subtle text-xs">{suffix}</p>
-      <p className="text-fg-muted mt-2 text-xs">{hint}</p>
-    </div>
-  );
-}
-
 function ActivityHeatmap({
   from,
   to,
@@ -242,9 +168,15 @@ function ActivityHeatmap({
   const byDate = new Map(activity.map((day) => [day.date, day]));
   const days = datesBetween(from, to);
   return (
-    <div className="mt-5 overflow-x-auto pb-2">
+    <div className="dashboard-calendar">
+      <div className="dashboard-weekdays" aria-hidden="true">
+        <span>Пн</span>
+        <span>Ср</span>
+        <span>Пт</span>
+        <span>Вс</span>
+      </div>
       <div
-        className="grid w-max grid-flow-col grid-rows-7 gap-1"
+        className="dashboard-days"
         role="list"
         aria-label="Календарь учебной активности за 16 недель"
       >
@@ -255,7 +187,7 @@ function ActivityHeatmap({
             <span
               key={date}
               role="listitem"
-              className={`h-3 w-3 rounded-sm ${activityColor(day)}`}
+              className={`rounded-sm ${activityColor(day)}`}
               title={label}
               aria-label={label}
             />
@@ -285,9 +217,9 @@ function HeatmapLegend() {
 
 function RetentionSkeleton() {
   return (
-    <section className="mt-6 grid gap-4 lg:grid-cols-2" aria-label="Загрузка учебной активности">
-      <div className="bg-surface-muted h-56 animate-pulse rounded-lg" />
-      <div className="bg-surface-muted h-56 animate-pulse rounded-lg" />
+    <section className="dashboard-retention space-y-4" aria-label="Загрузка учебной активности">
+      <div className="bg-surface-muted h-32 animate-pulse rounded-lg" />
+      <div className="bg-surface-muted h-32 animate-pulse rounded-lg" />
     </section>
   );
 }

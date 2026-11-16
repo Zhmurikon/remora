@@ -59,7 +59,7 @@ it('показывает дневную цель, серию, уровень и 
 
   renderOverview();
 
-  expect(await screen.findByText('Продолжайте в том же темпе')).toBeTruthy();
+  expect(await screen.findByText('Дневная цель')).toBeTruthy();
   expect(screen.getByLabelText('Дневная цель выполнена на 60%')).toBeTruthy();
   expect(screen.getByText('Текущая серия')).toBeTruthy();
   expect(screen.getByText('250 / 300 XP')).toBeTruthy();
@@ -79,5 +79,5 @@ it('даёт повторить загрузку сводки после оши�
 
   expect(await screen.findByText('Учебная активность недоступна')).toBeTruthy();
   await userEvent.click(screen.getByRole('button', { name: 'Повторить' }));
-  await waitFor(() => expect(screen.getByText('Продолжайте в том же темпе')).toBeTruthy());
+  await waitFor(() => expect(screen.getByText('Дневная цель')).toBeTruthy());
 });

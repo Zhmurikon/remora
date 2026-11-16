@@ -1,14 +1,14 @@
-import { pluralWithCount } from '@remora/core';
-import { Button, Card } from '@remora/ui';
+import { plural, pluralWithCount } from '@remora/core';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuthStore } from '../features/auth/auth-store';
 import { RetentionOverview } from '../features/retention/RetentionOverview';
+import drawerImage from '../../../web/public/lecture-demo/catalog-drawer.webp';
+import './dashboard.css';
 import { api } from '../lib/api';
 
 export function DashboardPage() {
   const user = useAuthStore((state) => state.user);
-  const navigate = useNavigate();
   const name = user?.display_name || user?.username || 'друг';
 
   const sets = useQuery({
@@ -40,85 +40,155 @@ export function DashboardPage() {
     },
   });
 
-  const dueToday = forecast.data?.[0]?.count ?? 0;
-  const dueWeek = (forecast.data ?? []).reduce((sum, day) => sum + day.count, 0);
   const availableSets = mergeRecentSets(sets.data ?? [], savedSets.data ?? []);
-  const recent = availableSets.slice(0, 5);
+  const [latest, ...others] = availableSets.slice(0, 5);
+  const loadingSets = sets.isPending || savedSets.isPending;
+  const failedSets = sets.isError || savedSets.isError;
+  const count = sets.data && savedSets.data ? availableSets.length : undefined;
+  const today = forecast.data ? (forecast.data[0]?.count ?? 0) : undefined;
+  const week = forecast.data?.reduce((sum, day) => sum + day.count, 0);
+  const date = new Intl.DateTimeFormat('ru-RU', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).format(new Date());
 
   return (
-    <div>
-      <header className="flex flex-wrap items-start justify-between gap-5">
-        <div>
-          <p className="text-primary text-sm font-medium">Ваш кабинет</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-            Привет, {name}!
-          </h1>
-          <p className="text-fg-muted mt-3 max-w-xl">
-            {dueToday > 0
-              ? `Сегодня к повторению ${pluralWithCount(dueToday, ['карточка', 'карточки', 'карточек'])}.`
-              : 'Сегодня повторять нечего — можно взяться за новый набор.'}
-          </p>
+    <div className="dashboard">
+      <header>
+        <div className="dashboard-context">
+          <span>Главная</span>
+          <span>{date}</span>
         </div>
-        <Button size="lg" onClick={() => navigate('/sets')}>
-          Перейти к наборам
-        </Button>
-      </header>
-
-      <section className="mt-10 grid gap-4 sm:grid-cols-3" aria-label="Статистика">
-        <Stat label="Наборов" value={availableSets.length} />
-        <Stat label="К повторению сегодня" value={dueToday} />
-        <Stat label="За неделю" value={dueWeek} />
-      </section>
-
-      <RetentionOverview />
-
-      <Card className="mt-6 p-6">
-        <h2 className="text-lg font-semibold">Продолжить обучение</h2>
-        {recent.length === 0 ? (
-          <div className="grid min-h-60 place-items-center px-6 py-10 text-center">
-            <div>
-              <span
-                className="bg-primary-subtle text-primary mx-auto grid h-16 w-16 place-items-center rounded-2xl text-3xl"
-                aria-hidden="true"
-              >
-                ＋
-              </span>
-              <h3 className="mt-5 text-xl font-semibold">Здесь появятся ваши наборы</h3>
-              <p className="text-fg-muted mx-auto mt-2 max-w-md">
-                Создайте первый набор — и Запоминальня начнёт возвращать карточки ровно тогда, когда
-                вы готовы их забыть.
-              </p>
-              <Button className="mt-6" onClick={() => navigate('/sets')}>
-                Создать набор
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <ul className="mt-4 space-y-2">
-            {recent.map((item) => (
-              <li
-                key={item.id}
-                className="border-border flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4"
-              >
-                <div className="min-w-0">
-                  <Link to={`/sets/${item.id}`} className="truncate font-medium">
-                    {item.title}
-                  </Link>
-                  <p className="text-fg-subtle text-sm">
-                    {pluralWithCount(item.cards_count, ['карточка', 'карточки', 'карточек'])}
-                  </p>
-                </div>
-                <Link to={`/sets/${item.id}/learn`}>
-                  <Button size="sm" disabled={item.cards_count === 0}>
-                    Учить
-                  </Button>
-                </Link>
-              </li>
-            ))}
-          </ul>
+        <h1>
+          Привет, <em>{name}!</em>
+        </h1>
+        <div className="dashboard-stats">
+          <dl aria-label="Статистика">
+            <Stat
+              value={count}
+              label={
+                count === undefined ? 'наборов' : plural(count, ['набор', 'набора', 'наборов'])
+              }
+            />
+            <Stat value={today} label="к повторению сегодня" />
+            <Stat value={week} label="к повторению в ближайшие 7 дней" />
+          </dl>
+          <Link to="/sets">
+            Все наборы <span aria-hidden="true">→</span>
+          </Link>
+        </div>
+        {forecast.isError && (
+          <p role="alert">
+            Не удалось загрузить прогноз.{' '}
+            <button onClick={() => void forecast.refetch()}>Повторить</button>
+          </p>
         )}
-      </Card>
+      </header>
+      <div className="dashboard-columns">
+        <section aria-labelledby="dashboard-study">
+          <h2 id="dashboard-study">Продолжить обучение</h2>
+          {failedSets && (
+            <p role="alert">
+              Не удалось загрузить все наборы.{' '}
+              <button
+                onClick={() => {
+                  if (sets.isError) void sets.refetch();
+                  if (savedSets.isError) void savedSets.refetch();
+                }}
+              >
+                Повторить
+              </button>
+            </p>
+          )}
+          {latest ? (
+            <>
+              <article className="dashboard-card">
+                <span className="dashboard-tab">Последний набор</span>
+                <small>{cardCount(latest)}</small>
+                <h3>
+                  <Link to={`/sets/${latest.id}`}>{latest.title}</Link>
+                </h3>
+                <LearnLink item={latest} primary />
+                <div className="dashboard-drawer" aria-hidden="true">
+                  <img src={drawerImage} width="380" height="288" alt="" />
+                  <svg viewBox="0 0 380 288" focusable="false">
+                    <defs>
+                      <clipPath id="dashboard-drawer-slot">
+                        <path d="M0 0H380V138L170 125 57 114 0 110Z" />
+                      </clipPath>
+                    </defs>
+                    <g clipPath="url(#dashboard-drawer-slot)">
+                      <g className="dashboard-drawer-sheet">
+                        <path
+                          fill="rgb(var(--rm-lecture-cream))"
+                          d="M59 129Q59 127 61 127L70 127 73 122 101 124 104 129 169 134Q172 134 172 136L170 191 58 182Z"
+                        />
+                        <path
+                          fill="none"
+                          d="M68 143v18l29 2m-27-5 6-5 6 2 7-9 6 2m11-3 52 4m-52 2 47 4m-47 2 42 4"
+                        />
+                      </g>
+                    </g>
+                  </svg>
+                </div>
+              </article>
+              {others.length > 0 && (
+                <>
+                  <h3 className="dashboard-recent-title">Другие недавние наборы</h3>
+                  <ul className="dashboard-list">
+                    {others.map((item) => (
+                      <li key={item.id}>
+                        <i aria-hidden="true" className="dashboard-stack" />
+                        <div>
+                          <Link to={`/sets/${item.id}`}>{item.title}</Link>
+                          <small>{cardCount(item)}</small>
+                        </div>
+                        <LearnLink item={item} />
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </>
+          ) : loadingSets ? (
+            <p role="status" className="dashboard-message">
+              Загружаем наборы…
+            </p>
+          ) : (
+            !failedSets && (
+              <div className="dashboard-message">
+                <h3>Здесь появятся ваши наборы</h3>
+                <p>Создайте первый набор, чтобы начать обучение.</p>
+                <Link className="dashboard-primary" to="/sets">
+                  Создать набор
+                </Link>
+              </div>
+            )
+          )}
+        </section>
+        <RetentionOverview />
+      </div>
     </div>
+  );
+}
+
+function cardCount(item: RecentSet) {
+  return pluralWithCount(item.cards_count, ['карточка', 'карточки', 'карточек']);
+}
+
+function LearnLink({ item, primary = false }: { item: RecentSet; primary?: boolean }) {
+  const className = primary ? 'dashboard-primary' : 'dashboard-learn';
+  if (!item.cards_count)
+    return (
+      <button disabled className={className} title="В наборе пока нет карточек">
+        Учить
+      </button>
+    );
+  return (
+    <Link to={`/sets/${item.id}/learn`} className={className} aria-label={`Учить: ${item.title}`}>
+      Учить <span aria-hidden="true">{primary ? '→' : '›'}</span>
+    </Link>
   );
 }
 
@@ -145,11 +215,11 @@ export function mergeRecentSets(
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({ value, label }: { value: number | undefined; label: string }) {
   return (
-    <Card className="p-5">
-      <p className="text-fg-muted text-sm">{label}</p>
-      <p className="mt-2 text-3xl font-semibold">{value}</p>
-    </Card>
+    <div>
+      <dt>{label}</dt>
+      <dd>{value ?? '—'}</dd>
+    </div>
   );
 }

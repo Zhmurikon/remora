@@ -52,7 +52,7 @@ it('показывает сохранённые наборы, когда соб�
 
   const setLink = await screen.findByRole('link', { name: 'Сохранённый набор' });
   expect(setLink.getAttribute('href')).toBe('/sets/saved-set');
-  expect(screen.getByText('Наборов').parentElement?.textContent).toBe('Наборов1');
+  expect(screen.getByText('набор').nextElementSibling?.textContent).toBe('1');
   expect(screen.queryByText('Здесь появятся ваши наборы')).toBeNull();
 });
 

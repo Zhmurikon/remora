@@ -2,6 +2,7 @@ import { Button, FishMark } from '@remora/ui';
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../features/auth/auth-store';
+import lectureMark from '../../../web/public/lecture-demo/remora-icon.png';
 import { api, clearAccessToken } from '../lib/api';
 
 const navigation = [
@@ -24,6 +25,7 @@ export function AppLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const location = useLocation();
+  const isDashboard = location.pathname === '/';
   const user = useAuthStore((state) => state.user);
   const becomeGuest = useAuthStore((state) => state.becomeGuest);
 
@@ -40,9 +42,11 @@ export function AppLayout() {
   const name = user?.display_name || user?.username || 'Пользователь';
 
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[260px_1fr]">
+    <div
+      className={`min-h-dvh lg:grid lg:grid-cols-[260px_1fr] ${isDashboard ? 'dashboard-shell' : ''}`}
+    >
       <header className="border-border bg-surface sticky top-0 z-30 flex h-16 items-center justify-between border-b px-4 lg:hidden">
-        <Brand />
+        <Brand dashboard={isDashboard} />
         <button
           type="button"
           className="hover:bg-surface-muted grid h-11 w-11 place-items-center rounded-xl text-2xl"
@@ -58,7 +62,7 @@ export function AppLayout() {
         className={`${menuOpen ? 'flex' : 'hidden'} border-border bg-surface fixed inset-x-0 bottom-0 top-16 z-20 flex-col border-r p-5 lg:sticky lg:top-0 lg:flex lg:h-dvh`}
       >
         <div className="hidden px-2 py-2 lg:block">
-          <Brand />
+          <Brand dashboard={isDashboard} />
         </div>
         <nav className="mt-5 space-y-1" aria-label="Основная навигация">
           {navigation.map(({ to, label, icon, end, matches }) => (
@@ -115,7 +119,15 @@ export function AppLayout() {
   );
 }
 
-function Brand() {
+function Brand({ dashboard }: { dashboard: boolean }) {
+  if (dashboard) {
+    return (
+      <div className="dashboard-brand">
+        <img src={lectureMark} width="40" height="40" alt="" />
+        <span>Запоминальня</span>
+      </div>
+    );
+  }
   return (
     <div
       className="flex items-center gap-2.5 font-semibold tracking-tight"
