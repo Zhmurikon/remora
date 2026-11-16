@@ -124,11 +124,13 @@
   transform: rotate(-6deg);
 }
 [data-theme='dark'] :is(.blog-desk-books, .blog-desk-workbook, .blog-desk-cta img) {
+  --blog-pencil-ink: var(--rm-lecture-footer);
   mix-blend-mode: screen;
   filter: invert(1) hue-rotate(180deg);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) :is(.blog-desk-books, .blog-desk-workbook, .blog-desk-cta img) {
+    --blog-pencil-ink: var(--rm-lecture-footer);
     mix-blend-mode: screen;
     filter: invert(1) hue-rotate(180deg);
   }
@@ -342,4 +344,11 @@
   .blog-desk-copy {
     transform: translateY(-1.25rem);
   }
+}
+.blog-desk-workbook {
+  overflow: visible;
+  color: rgb(var(--blog-pencil-ink, var(--rm-lecture-blue)));
+}
+.blog-desk-pencil {
+  transform-origin: 155px 264px;
 }
