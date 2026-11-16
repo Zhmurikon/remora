@@ -10,6 +10,7 @@ import { absoluteUrl, DEFAULT_OG_IMAGE } from '../../lib/seo';
 import { publicPlans } from '../../lib/pricing';
 import '../home.css';
 import './pricing.css';
+import './pricing-motion.css';
 
 const title = 'Тарифы Free, Plus и Pro';
 const description =

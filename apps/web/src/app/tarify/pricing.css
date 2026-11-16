@@ -2,7 +2,7 @@
   --rm-bg: var(--rm-lecture-surface);
   --rm-fg: var(--rm-lecture-ink);
   --rm-fg-muted: var(--rm-lecture-muted);
-  --rm-primary: var(--rm-lecture-blue);
+  --rm-primary: var(--rm-lecture-action);
   --rm-border: var(--rm-lecture-line);
   min-height: 100vh;
   font-size: clamp(1rem, min(1vw, 1.75vh), 2.125rem);
@@ -369,5 +369,16 @@
   }
   .pricing-footer .home-footer nav a {
     min-height: 44px;
+  }
+}
+
+.pricing-plan {
+  container-type: inline-size;
+}
+
+@container (max-width: 17rem) {
+  .pricing-art {
+    width: 4.8em;
+    height: 4.2em;
   }
 }

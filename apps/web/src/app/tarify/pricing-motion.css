@@ -1,0 +1,214 @@
+.pricing-art svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  visibility: hidden;
+  pointer-events: none;
+  fill: none;
+  stroke: rgb(var(--rm-primary));
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.pricing-art .answer-paper {
+  fill: rgb(var(--folder));
+}
+.pricing-art .flip-answer {
+  transform-origin: 0 49px;
+}
+.pricing-art .answer-drizzle,
+.pricing-art .chart-tip,
+.pricing-art .book-ribbons path {
+  stroke: rgb(var(--rm-primary));
+}
+.pricing-art .chart-tip {
+  stroke-width: 5;
+  stroke-dasharray: 0.025 0.975;
+}
+.pricing-art .book-ribbons path {
+  fill: rgb(var(--rm-lecture-cream));
+  transform-origin: 0 0;
+  stroke-width: 1.2;
+}
+.pricing-art .book-ribbons g:nth-child(2) path {
+  fill: rgb(var(--rm-lecture-selected));
+  --ribbon-delay: 220ms;
+}
+.pricing-art .book-ribbons g:nth-child(3) path {
+  --ribbon-delay: 440ms;
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .pricing-plan:hover .pricing-art svg {
+    visibility: visible;
+  }
+  .pricing-plan:hover .flip-answer {
+    animation: plan-reveal-answer 2.5s ease-in-out both;
+  }
+  .pricing-plan:hover .answer-drizzle {
+    animation: plan-drizzle 550ms ease-out 650ms 2 both;
+  }
+  .pricing-plan:hover .chart-trace {
+    stroke-dasharray: 1;
+    animation: plan-trace 1.4s ease-in-out both;
+  }
+  .pricing-plan:hover .chart-tip {
+    animation: plan-trace 1.4s ease-in-out both;
+  }
+  .pricing-plan:hover .chart-caption {
+    animation: plan-annotate 400ms ease-out 1.25s both;
+  }
+  .pricing-plan:hover .book-ribbons path {
+    animation: plan-unfold-ribbon 2.1s ease-in-out var(--ribbon-delay, 0ms) both;
+  }
+}
+@keyframes plan-reveal-answer {
+  0%,
+  100% {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  7%,
+  92% {
+    opacity: 1;
+  }
+  30%,
+  72% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+@keyframes plan-drizzle {
+  from {
+    opacity: 0;
+    transform: translate(1px, -3px);
+  }
+  35%,
+  75% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translate(-1px, 4px);
+  }
+}
+@keyframes plan-trace {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes plan-annotate {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes plan-unfold-ribbon {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+  27% {
+    opacity: 1;
+    transform: skewX(-8deg) scaleY(1.06);
+  }
+  40%,
+  78% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.pricing-period::before {
+  content: '';
+  position: absolute;
+  inset: 0.2em auto 0.2em 0.2em;
+  width: calc(50% - 0.2em);
+  border-radius: 0.35em;
+  background: rgb(var(--rm-reading-button));
+}
+.pricing-period[data-period='year']::before {
+  transform: translateX(100%);
+}
+.pricing-page .pricing-period button {
+  background: transparent;
+}
+.pricing-button {
+  position: relative;
+  overflow: hidden;
+  background-image:
+    linear-gradient(115deg, transparent, rgb(var(--rm-bg)) 32% 68%, transparent),
+    repeating-linear-gradient(44deg, transparent 0 4px, rgb(var(--rm-border) / 0.45) 4px 5px),
+    repeating-linear-gradient(-44deg, transparent 0 4px, rgb(var(--rm-border) / 0.45) 4px 5px);
+}
+.pricing-button.is-primary {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0 4px,
+    rgb(var(--rm-border) / 0.12) 4px 5px
+  );
+}
+.pricing-button .pricing-action-ink {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+}
+.pricing-action-ink rect {
+  fill: rgb(var(--rm-reading-button-hover));
+}
+.pricing-action-ink .ink-label {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: white;
+}
+.pricing-action-ink path {
+  fill: none;
+  stroke: white;
+  stroke-width: 17;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+.pricing-button:focus-visible .pricing-action-ink {
+  opacity: 1;
+}
+@media (hover: hover) and (pointer: fine) {
+  .pricing-button:hover .pricing-action-ink {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pricing-period::before {
+    transition: transform 160ms ease-out;
+  }
+  .pricing-button:focus-visible .pricing-action-ink path {
+    animation: pricing-action-stroke 520ms ease-out both;
+  }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .pricing-button:hover .pricing-action-ink path {
+    animation: pricing-action-stroke 520ms ease-out both;
+  }
+}
+@keyframes pricing-action-stroke {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}

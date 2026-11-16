@@ -1,6 +1,7 @@
 'use client';
 
-import Image from 'next/image';
+import { PlanIllustration } from './PlanIllustration';
+import { PricingActionInk } from './PricingActionInk';
 import { useState } from 'react';
 import { APP_URL } from '../../lib/auth-api';
 import {
@@ -61,9 +62,9 @@ function PeriodButton({
 }
 
 function PlanColumn({ plan, interval }: { plan: PublicPlan; interval: BillingInterval }) {
-  const art = { free: 'cards', plus: 'notebook', pro: 'books' }[plan.code];
   const free = plan.code === 'free';
   const yearly = interval === 'year';
+  const action = free ? 'Начать бесплатно' : `Выбрать ${plan.name}`;
   return (
     <article
       data-plan={plan.code}
@@ -71,15 +72,7 @@ function PlanColumn({ plan, interval }: { plan: PublicPlan; interval: BillingInt
     >
       <div className="pricing-plan-name">
         <h2>{plan.name}</h2>
-        <div className="pricing-art" aria-hidden="true">
-          <Image
-            src={`/lecture-demo/pricing-${art}.webp`}
-            alt=""
-            width={112}
-            height={96}
-            unoptimized
-          />
-        </div>
+        <PlanIllustration plan={plan.code} />
       </div>
 
       <div className="pricing-price">
@@ -119,7 +112,8 @@ function PlanColumn({ plan, interval }: { plan: PublicPlan; interval: BillingInt
           className={plan.code === 'plus' ? 'pricing-button is-primary' : 'pricing-button'}
           href={free ? '/register' : `${APP_URL}/billing`}
         >
-          {free ? 'Начать бесплатно' : `Выбрать ${plan.name}`}
+          {action}
+          <PricingActionInk label={action} />
         </a>
         {!free && <small>Оформление продолжится в приложении</small>}
       </div>

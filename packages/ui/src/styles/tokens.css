@@ -48,12 +48,6 @@
   --rm-materials-danger: 193 82 70;
   --rm-materials-danger-subtle: 250 233 230;
 
-  --rm-lecture-surface: 255 255 255;
-  --rm-lecture-paper: 251 251 249;
-  --rm-lecture-ink: 23 34 41;
-  --rm-lecture-muted: 86 98 122;
-  --rm-lecture-blue: 40 75 178;
-  --rm-lecture-line: 217 223 236;
   --rm-lecture-selected: 233 239 255;
   --rm-lecture-cream: 251 249 239;
   --rm-lecture-footer: 25 31 37;
@@ -117,12 +111,6 @@
   --rm-materials-danger: 218 123 111;
   --rm-materials-danger-subtle: 70 40 38;
 
-  --rm-lecture-surface: 25 31 35;
-  --rm-lecture-paper: 20 25 28;
-  --rm-lecture-ink: 235 240 239;
-  --rm-lecture-muted: 171 185 187;
-  --rm-lecture-blue: 170 193 255;
-  --rm-lecture-line: 54 65 88;
   --rm-lecture-selected: 37 52 82;
   --rm-lecture-cream: 48 45 37;
   --rm-lecture-footer: 25 31 37;
@@ -185,12 +173,6 @@
     --rm-materials-danger: 218 123 111;
     --rm-materials-danger-subtle: 70 40 38;
 
-    --rm-lecture-surface: 25 31 35;
-    --rm-lecture-paper: 20 25 28;
-    --rm-lecture-ink: 235 240 239;
-    --rm-lecture-muted: 171 185 187;
-    --rm-lecture-blue: 170 193 255;
-    --rm-lecture-line: 54 65 88;
     --rm-lecture-selected: 37 52 82;
     --rm-lecture-cream: 48 45 37;
     --rm-lecture-footer: 25 31 37;
