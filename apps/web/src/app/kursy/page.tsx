@@ -2,6 +2,7 @@ import { PublicAnalytics } from '../../components/analytics/PublicAnalytics';
 import type { components } from '@remora/api-client';
 import Image from 'next/image';
 import './catalog.css';
+import { CatalogDrawer } from './CatalogDrawer';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PublicAuthLink } from '../../components/auth/PublicSession';
@@ -123,15 +124,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
               Подборки редакции →
             </Link>
           </div>
-          <div className="catalog-drawer" aria-hidden="true">
-            <Image
-              src="/lecture-demo/catalog-drawer.webp"
-              width={380}
-              height={288}
-              alt=""
-              unoptimized
-            />
-          </div>
+          <CatalogDrawer />
         </div>
       </header>
       <div className="catalog-wrap">
