@@ -77,3 +77,14 @@ it('не индексирует комбинации фильтров', async ()
     (await generateMetadata({ searchParams: Promise.resolve({ tag: 'математика' }) })).robots,
   ).toEqual({ index: false, follow: true });
 });
+
+it('сохраняет автора и поисковый запрос в форме и ссылке повтора при обрыве связи', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('fetch failed')));
+  const html = renderToStaticMarkup(
+    await CatalogPage({ searchParams: Promise.resolve({ author_id: 'author', q: 'Git' }) }),
+  );
+  expect(html).toContain('Поиск временно недоступен');
+  expect(html).toContain('name="author_id" value="author"');
+  expect(html).toContain('value="Git"');
+  expect(html).toContain('href="/kursy?q=Git&amp;author_id=author"');
+});

@@ -205,18 +205,19 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
               </select>
             </label>
           </div>
-          <Link href="/kursy" className="catalog-link">
+          {/* Полная навигация очищает и ещё не отправленные значения полей. */}
+          <a href="/kursy" className="catalog-link">
             Сбросить поиск и фильтры
-          </Link>
+          </a>
         </form>
         <section aria-label="Результаты поиска" className="catalog-results">
           <h2>Курсы</h2>
           {error && (
             <div className="catalog-notice">
               <p role="alert">{error}</p>
-              <Link className="catalog-link" href={`/kursy?${params}`}>
+              <a className="catalog-link" href={`/kursy?${params}`}>
                 Попробовать ещё раз
-              </Link>
+              </a>
             </div>
           )}
           {result?.items.length === 0 && (
