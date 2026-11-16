@@ -18,7 +18,7 @@
   overflow-wrap: anywhere;
 }
 .course-width {
-  width: min(calc(100% - 2rem), 73.75rem);
+  width: min(calc(100% - 2rem), 73.75em);
   margin-inline: auto;
 }
 .course-detail a {
@@ -32,6 +32,7 @@
   outline-offset: 3px;
 }
 .course-cover {
+  font-size: min(1rem, 22px);
   border-bottom: 1px solid var(--line);
   background-image: radial-gradient(rgb(var(--rm-lecture-muted) / 0.18) 0.65px, transparent 0.8px);
   background-size: 0.6rem 0.6rem;
@@ -43,9 +44,9 @@
   min-height: 44px;
 }
 .course-back {
-  margin-top: 0.75rem;
+  margin-top: 0.75em;
   color: var(--muted);
-  font-size: 0.875rem;
+  font-size: 0.875em;
 }
 .course-cover-grid {
   display: grid;
@@ -56,10 +57,10 @@
 }
 .course-label {
   color: var(--muted);
-  font-size: 0.8125rem;
+  font-size: 0.8125em;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.9em;
 }
 .course-cover h1 {
   font:
@@ -69,12 +70,11 @@
   text-wrap: balance;
 }
 .course-intro {
-  max-width: 66ch;
+  max-width: 72ch;
   line-height: 1.55;
-  font-size: 1.125rem;
   white-space: pre-line;
   color: var(--muted);
-  margin-top: 1.1rem;
+  margin-top: 1em;
 }
 .course-illustration {
   width: min(100%, 20rem);
@@ -104,7 +104,7 @@
 .course-byline,
 .course-reactions {
   color: var(--muted);
-  font-size: 0.875rem;
+  font-size: 0.875em;
 }
 .course-byline {
   margin-top: 0.55rem;
@@ -123,11 +123,11 @@
   background: rgb(var(--rm-surface-muted));
   border-radius: 1rem;
   padding: 0.12rem 0.55rem;
-  font-size: 0.8125rem;
+  font-size: 0.8125em;
   color: var(--muted);
 }
 .course-actions {
-  margin-top: 1.2rem;
+  margin-top: 1.2em;
 }
 .course-primary {
   display: inline-flex;
@@ -137,7 +137,7 @@
   color: var(--panel);
   font-weight: 600;
   border-radius: 0.45rem;
-  padding: 0.65rem 1rem;
+  padding: 0.65em 1em;
   box-shadow: 2px 2px var(--line);
 }
 .course-detail button {
@@ -148,6 +148,27 @@
 }
 .course-reactions > div {
   margin-top: 0;
+}
+@media (min-width: 100rem) {
+  .course-cover-grid {
+    gap: 2.25em;
+    padding-block: 0.5em 1.5em;
+  }
+  .course-cover h1 {
+    font-size: 3.5em;
+  }
+  .course-illustration {
+    width: min(100%, 17.5em);
+  }
+  .course-actions button,
+  .course-reactions > div > button {
+    font-size: inherit;
+    line-height: 1.5;
+    height: auto;
+  }
+  .course-actions button {
+    padding: 0.65em 1em;
+  }
 }
 .course-reader {
   display: grid;
