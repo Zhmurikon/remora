@@ -12,13 +12,17 @@ import {
   type ReactNode,
 } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  materialSortLabels,
+  sortMaterials,
+  useMaterialSort,
+} from '../features/materials/material-sort';
 import { createEmptySet } from '../features/materials/create-empty-set';
 import { SavedMaterialSource, SavedSetSource } from '../features/library/SavedMaterialSource';
 import {
   DropIndicator,
   moveCustomItem,
   moveCustomItemTo,
-  sortItems,
   useCustomOrder,
   useDragOrder,
   type DropEdge,
@@ -56,6 +60,7 @@ type CourseItem = {
   saveId?: string;
   slug: string;
   author?: string;
+  addedAt: string;
   orderDate: string;
 };
 
@@ -69,6 +74,7 @@ type SetItem = {
   folderId: string | null;
   saveId?: string;
   source?: SavedSet;
+  addedAt: string;
   orderDate: string;
 };
 
@@ -92,6 +98,8 @@ export function MaterialsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
+  const [courseSort, selectCourseSort] = useMaterialSort('courses');
+  const [setSort, selectSetSort] = useMaterialSort('sets');
   const [courseOrder, setCourseOrder] = useCustomOrder('remora:order:courses');
   const [setOrder, setSetOrder] = useCustomOrder('remora:order:sets');
 
@@ -237,42 +245,20 @@ export function MaterialsPage() {
   }, [setItems, statsBySetId]);
 
   const orderedCourses = useMemo(
-    () =>
-      sortItems(
-        courseItems,
-        'custom',
-        (item) => ({ id: item.id, title: item.title, date: item.orderDate }),
-        courseOrder,
-      ),
-    [courseItems, courseOrder],
+    () => sortMaterials(courseItems, courseSort, courseOrder, courseProgress),
+    [courseItems, courseSort, courseOrder, courseProgress],
   );
   const orderedSets = useMemo(
-    () =>
-      sortItems(
-        setItems,
-        'custom',
-        (item) => ({
-          id: item.id,
-          title: item.title,
-          date: item.orderDate,
-          size: item.cardsCount,
-        }),
-        setOrder,
-      ),
-    [setItems, setOrder],
+    () => sortMaterials(setItems, setSort, setOrder, setProgress),
+    [setItems, setSort, setOrder, setProgress],
   );
   const filteredCourses = filterBySearch(orderedCourses, search);
   const filteredSets = filterBySearch(orderedSets, search);
   const filteredArchive = filterBySearch(archiveItems, search);
-  const selectedCourse = courseItems.find((item) => item.id === selectedId);
-  const selectedSet = [...setItems, ...archiveItems].find((item) => item.id === selectedId);
-
-  useEffect(() => {
-    if (selectedId) return;
-    if (view === 'courses' && filteredCourses[0]) setSelectedId(filteredCourses[0].id);
-    if (view === 'sets' && filteredSets[0]) setSelectedId(filteredSets[0].id);
-    if (view === 'archive' && filteredArchive[0]) setSelectedId(filteredArchive[0].id);
-  }, [filteredArchive, filteredCourses, filteredSets, selectedId, view]);
+  const selectedCourse =
+    filteredCourses.find((item) => item.id === selectedId) ?? filteredCourses[0];
+  const visibleSets = view === 'archive' ? filteredArchive : filteredSets;
+  const selectedSet = visibleSets.find((item) => item.id === selectedId) ?? visibleSets[0];
 
   const allCourseIds = orderedCourses.map((item) => item.id);
   const visibleCourseIds = filteredCourses.map((item) => item.id);
@@ -427,15 +413,29 @@ export function MaterialsPage() {
             )}
             {!loading && view === 'courses' && (
               <>
-                <TreeGroup title="Мои курсы" count={filteredCourses.length}>
+                <TreeGroup
+                  title="Мои курсы"
+                  count={filteredCourses.length}
+                  sortControl={
+                    <QuickSort
+                      label="Сортировка курсов"
+                      mode={courseSort}
+                      onChange={selectCourseSort}
+                    />
+                  }
+                >
                   {filteredCourses.map((course) => (
                     <MaterialTreeItem
                       key={course.id}
                       title={course.title}
                       meta={course.saved ? 'Сохранённый курс' : 'Ваш курс'}
                       progress={courseProgress.get(course.id) ?? emptyProgress}
-                      active={selectedId === course.id}
-                      dragProps={courseDrag.getDragProps(course.id, course.title)}
+                      active={selectedCourse?.id === course.id}
+                      dragProps={
+                        courseSort === 'custom'
+                          ? courseDrag.getDragProps(course.id, course.title)
+                          : undefined
+                      }
                       dragging={courseDrag.draggedId === course.id}
                       dropEdge={
                         courseDrag.dropTarget?.id === course.id
@@ -457,15 +457,23 @@ export function MaterialsPage() {
             )}
             {!loading && view === 'sets' && (
               <>
-                <TreeGroup title="Все наборы" count={filteredSets.length}>
+                <TreeGroup
+                  title="Все наборы"
+                  count={filteredSets.length}
+                  sortControl={
+                    <QuickSort label="Сортировка наборов" mode={setSort} onChange={selectSetSort} />
+                  }
+                >
                   {filteredSets.map((set) => (
                     <MaterialTreeItem
                       key={set.id}
                       title={set.title}
                       meta={folderName(folders.data, set.folderId, set.saved)}
                       progress={setProgress.get(set.id) ?? emptyProgress}
-                      active={selectedId === set.id}
-                      dragProps={setDrag.getDragProps(set.id, set.title)}
+                      active={selectedSet?.id === set.id}
+                      dragProps={
+                        setSort === 'custom' ? setDrag.getDragProps(set.id, set.title) : undefined
+                      }
                       dragging={setDrag.draggedId === set.id}
                       dropEdge={
                         setDrag.dropTarget?.id === set.id ? setDrag.dropTarget.edge : undefined
@@ -494,7 +502,7 @@ export function MaterialsPage() {
                     title={set.title}
                     meta="Удалённый набор"
                     progress={emptyProgress}
-                    active={selectedId === set.id}
+                    active={selectedSet?.id === set.id}
                     onClick={() => {
                       setSelectedId(set.id);
                       setMobileDetailOpen(true);
@@ -567,7 +575,7 @@ export function MaterialsPage() {
               }}
             />
           )}
-          {!loading && !selectedCourse && !selectedSet && (
+          {!loading && !(view === 'courses' ? selectedCourse : selectedSet) && (
             <EmptyMaterials view={view} onCreateSet={() => void createSet()} />
           )}
         </div>
@@ -1194,13 +1202,40 @@ function ProgressBar({
   );
 }
 
+function QuickSort({
+  label,
+  mode,
+  onChange,
+}: {
+  label: string;
+  mode: keyof typeof materialSortLabels;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <select
+      className="material-quick-sort"
+      value={mode}
+      aria-label={label}
+      onChange={(event) => onChange(event.target.value)}
+    >
+      {Object.entries(materialSortLabels).map(([value, text]) => (
+        <option key={value} value={value}>
+          {text}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 function TreeGroup({
   title,
   count,
+  sortControl,
   children,
 }: {
   title: string;
   count: number;
+  sortControl?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -1208,6 +1243,7 @@ function TreeGroup({
       <div className="materials-group-heading flex items-center gap-2 px-2 py-3">
         <span>{title}</span>
         <span>{count}</span>
+        {sortControl}
       </div>
       {count === 0 ? (
         <p className="text-fg-muted px-3 py-5 text-sm">Ничего не найдено</p>
@@ -1393,6 +1429,7 @@ function ownedCourseItem(course: CourseSummary): CourseItem {
     saved: false,
     hasUpdates: false,
     slug: course.slug,
+    addedAt: course.created_at,
     orderDate: course.updated_at,
   };
 }
@@ -1407,6 +1444,7 @@ function savedCourseItem(course: SavedCourse): CourseItem {
     saveId: course.save_id,
     slug: course.slug,
     author: course.author.display_name || `@${course.author.username}`,
+    addedAt: course.saved_at,
     orderDate: course.saved_at,
   };
 }
@@ -1420,6 +1458,7 @@ function ownedSetItem(set: SetSummary, archived: boolean): SetItem {
     saved: false,
     archived,
     folderId: set.folder_id ?? null,
+    addedAt: set.created_at,
     orderDate: set.updated_at,
   };
 }
@@ -1435,6 +1474,7 @@ function savedSetItem(set: SavedSet): SetItem {
     folderId: set.folder_id ?? null,
     saveId: set.save_id,
     source: set,
+    addedAt: set.saved_at,
     orderDate: set.saved_at,
   };
 }

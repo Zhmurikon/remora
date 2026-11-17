@@ -379,3 +379,29 @@
   white-space: nowrap;
   padding-inline: 4px;
 }
+
+.materials-group-heading:has(.material-quick-sort) {
+  flex-wrap: wrap;
+  row-gap: 0;
+  padding-block: 4px;
+}
+.material-quick-sort {
+  max-width: 100%;
+  min-height: 44px;
+  margin-inline-start: auto;
+  border: 0;
+  background: transparent;
+  color: rgb(var(--rm-fg-muted));
+  font:
+    400 0.875rem/1.4 var(--rm-font-sans),
+    sans-serif;
+  cursor: pointer;
+}
+.material-quick-sort:focus-visible {
+  outline: 2px solid rgb(var(--rm-primary));
+  outline-offset: 1px;
+}
+.material-quick-sort option {
+  color: rgb(var(--rm-fg));
+  background: rgb(var(--rm-surface));
+}

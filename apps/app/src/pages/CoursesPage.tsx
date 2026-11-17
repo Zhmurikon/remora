@@ -10,7 +10,6 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { ListSort, sortItems, useCustomOrder, useListSort } from '../features/library/ListSort';
-import { LibraryUpdateControl } from '../features/library/LibraryUpdateControl';
 
 const WEB_URL = import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000';
 function failure(error: unknown): Error {
@@ -163,17 +162,6 @@ export function CoursesPage() {
                         Оригинал курса
                       </a>
                     </p>
-                    <div className="manage-inline">
-                      <Link to={'/courses/' + course.id + '/learn'}>Учить весь курс</Link>
-                      <Link to={'/courses/' + course.id}>Открыть курс</Link>
-                    </div>
-                    {course.has_updates && (
-                      <LibraryUpdateControl
-                        saveId={course.save_id}
-                        title={course.title}
-                        targetType="course"
-                      />
-                    )}
                   </>
                 )}
               </OrderedRows>

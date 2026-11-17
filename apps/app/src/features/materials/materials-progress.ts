@@ -38,7 +38,7 @@ export function aggregateStats(stats: Array<SetStats | undefined>): MaterialProg
     available
       .map((item) => item.last_studied_at)
       .filter((value): value is string => Boolean(value))
-      .sort()
+      .sort((a, b) => Date.parse(a) - Date.parse(b))
       .at(-1) ?? null;
   return {
     cardsTotal,

@@ -80,19 +80,15 @@ describe('Курсы в кабинете', () => {
     mount();
     expect(await screen.findByText('Алгебра')).toBeTruthy();
     expect(await screen.findByText('Физика')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Учить весь курс' }).getAttribute('href')).toBe(
-      '/courses/saved-course/learn',
-    );
-    expect(screen.getByRole('link', { name: 'Открыть курс' }).getAttribute('href')).toBe(
-      '/courses/saved-course',
-    );
+    expect(screen.queryByRole('link', { name: 'Учить весь курс' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Открыть курс' })).toBeNull();
     expect(screen.getByRole('link', { name: /Физика Механика/ }).getAttribute('href')).toBe(
       '/courses/saved-course',
     );
     expect(screen.getByRole('link', { name: 'Публичная страница' }).getAttribute('href')).toBe(
       'http://localhost:3000/kurs/fizika-saved',
     );
-    expect(screen.getByRole('button', { name: 'Обновить «Физика»' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Обновить «Физика»' })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Свои' }));
     expect(screen.queryByText('Физика')).toBeNull();
     expect(screen.getByText('Алгебра')).toBeTruthy();

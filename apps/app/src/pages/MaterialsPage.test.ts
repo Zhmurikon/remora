@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { sortMaterials } from '../features/materials/material-sort';
 import { aggregateStats, learningStatus } from '../features/materials/materials-progress';
 
 const stats = (overrides: Record<string, unknown> = {}) => ({
@@ -86,4 +87,28 @@ describe('индикатор освоения материалов', () => {
     expect(result.masteryPercent).toBe(0);
     expect(learningStatus(result)).toEqual({ kind: 'learning', label: 'Закрепляем' });
   });
+});
+
+it('сортирует по последнему занятию, добавлению или ручному порядку', () => {
+  const items = [
+    { id: 'a', title: 'Первый', addedAt: '2026-01-01', orderDate: '2026-06-01' },
+    { id: 'b', title: 'Второй', addedAt: '2026-02-01', orderDate: '2026-02-01' },
+    { id: 'c', title: 'Третий', addedAt: '2026-03-01', orderDate: '2026-03-01' },
+  ];
+  const progress = new Map([
+    [
+      'a',
+      aggregateStats([
+        stats({ last_studied_at: '2026-04-01T18:00:00+10:00' }),
+        stats({ last_studied_at: '2026-04-01T10:00:00Z' }),
+      ]),
+    ],
+    ['c', aggregateStats([stats({ last_studied_at: '2026-04-01T09:00:00Z' })])],
+  ]);
+  const ordered = (mode: Parameters<typeof sortMaterials>[1]) =>
+    sortMaterials(items, mode, ['b', 'a', 'c'], progress).map((item) => item.id);
+  expect(ordered('recent')).toEqual(['a', 'c', 'b']);
+  expect(ordered('custom')).toEqual(['b', 'a', 'c']);
+  expect(ordered('updated_desc')).toEqual(['c', 'b', 'a']);
+  expect(ordered('updated_asc')).toEqual(['a', 'b', 'c']);
 });
