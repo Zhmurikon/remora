@@ -129,6 +129,7 @@ class PublicSet(BaseModel):
 
 
 class CardBatch(BaseModel):
+    expected_updated_at: datetime | None = None
     # Технический потолок синхронизации; тарифные квоты позже проверяет только Entitlements.
     cards: list[CardWrite] = Field(max_length=5000)
 

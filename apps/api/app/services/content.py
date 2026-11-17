@@ -276,6 +276,11 @@ class ContentService:
     async def sync_cards(self, user: User, set_id: UUID, body: CardBatch) -> StudySet:
         await lock_request(self.db, user.id)
         study_set = await self.get_owned_set(user, set_id, with_cards=True)
+        if (
+            body.expected_updated_at is not None
+            and body.expected_updated_at != study_set.updated_at
+        ):
+            raise ConflictError("Набор изменился. Откройте карточку заново перед сохранением.")
         existing = {card.id: card for card in study_set.cards}
         for temporary_position, card in enumerate(existing.values(), start=1):
             card.position = -temporary_position

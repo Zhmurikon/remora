@@ -359,12 +359,12 @@
   }
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) :is(.material-cover, .material-empty-cover) {
+  :root:not([data-theme='light']) :is(.material-cover, .material-empty-cover, .set-mode-grid img) {
     filter: invert(1) hue-rotate(178deg);
     mix-blend-mode: screen;
   }
 }
-[data-theme='dark'] :is(.material-cover, .material-empty-cover) {
+[data-theme='dark'] :is(.material-cover, .material-empty-cover, .set-mode-grid img) {
   filter: invert(1) hue-rotate(178deg);
   mix-blend-mode: screen;
 }

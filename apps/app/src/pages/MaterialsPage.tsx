@@ -30,6 +30,7 @@ import {
 } from '../features/materials/materials-progress';
 import { api } from '../lib/api';
 import { SettingsIcon } from '../components/SettingsIcon';
+import { SetCardBrowser, SetModes } from '../features/materials/SetCardBrowser';
 import { MaterialDescription } from '../features/materials/MaterialDescription';
 import cardsImage from '../../../web/public/lecture-demo/pricing-cards.webp';
 import bookImage from '../../../web/public/lecture-demo/course-books.webp';
@@ -854,6 +855,7 @@ function SetNavigator({
           )}
         </MaterialDescription>
       </section>
+      {!item.archived && <SetModes setId={item.id} />}
       {item.archived ? (
         <section className="mt-8">
           <h3 className="text-xl font-semibold">Набор находится в архиве</h3>
@@ -897,6 +899,7 @@ function SetNavigator({
           </p>
         </section>
       )}
+      {!item.archived && <SetCardBrowser setId={item.id} owned={!item.saved} />}
       <DangerZone
         title={
           item.archived

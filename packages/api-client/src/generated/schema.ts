@@ -6204,6 +6204,8 @@ export interface components {
         CardBatch: {
             /** Cards */
             cards: components["schemas"]["CardWrite"][];
+            /** Expected Updated At */
+            expected_updated_at?: string | null;
         };
         /** CardErrorOut */
         CardErrorOut: {

@@ -52,11 +52,18 @@ async def test_set_lifecycle_and_card_batch(mock_send: AsyncMock, client: pytest
     assert saved.status_code == 200
     assert saved.json()["cards_count"] == 2
     first, second = saved.json()["cards"]
+    stale = await client.put(
+        f"/api/v1/sets/{set_id}/cards",
+        headers=headers,
+        json={"expected_updated_at": created.json()["updated_at"], "cards": []},
+    )
+    assert stale.status_code == 409
 
     reordered = await client.put(
         f"/api/v1/sets/{set_id}/cards",
         headers=headers,
         json={
+            "expected_updated_at": saved.json()["updated_at"],
             "cards": [
                 {"id": second["id"], "term": second["term"], "definition": "изучать"},
                 {"id": first["id"], "term": first["term"], "definition": first["definition"]},
