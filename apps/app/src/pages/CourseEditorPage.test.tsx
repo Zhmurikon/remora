@@ -140,12 +140,14 @@ it('переносит статью в другой раздел и оставл
   await screen.findByLabelText('Название раздела 1');
   await userEvent.click(screen.getByRole('button', { name: 'Добавить раздел' }));
   await userEvent.click(screen.getByRole('button', { name: 'Действия с уроком 1.1' }));
-  const select = screen.getByLabelText('Раздел статьи 1.1') as HTMLSelectElement;
-  await userEvent.selectOptions(select, select.options[1]!.value);
+  await userEvent.click(screen.getByRole('menuitem', { name: 'Перенести в раздел…' }));
+  await userEvent.click(screen.getByRole('menuitem', { name: 'Новый раздел' }));
   expect(screen.getByLabelText('Статья 2.1')).toBeTruthy();
-  expect(screen.getByRole('link', { name: 'Редактировать карточки' }).getAttribute('href')).toBe(
-    '/sets/set/edit',
-  );
+  expect(screen.queryByRole('menu')).toBeNull();
+  await userEvent.click(screen.getByRole('button', { name: 'Действия с уроком 2.1' }));
+  expect(
+    screen.getByRole('menuitem', { name: 'Редактировать карточки' }).getAttribute('href'),
+  ).toBe('/sets/set/edit');
 });
 
 it('отменяет перенос с клавиатуры и сохраняет урок в выбранном разделе по команде', async () => {
@@ -232,11 +234,30 @@ it('разделяет структуру и текст и подтвержда�
   mount();
   await screen.findByLabelText('Статья 1.1');
   expect(screen.queryByLabelText(/Теория статьи/)).toBeNull();
+it('открывает меню строки с клавиатуры, пропускает недоступные действия и возвращает фокус', async () => {
+  const user = userEvent.setup();
+  mount();
+  const trigger = await screen.findByRole('button', { name: 'Действия с уроком 1.1' });
+  trigger.focus();
+  await user.keyboard('[ArrowDown]');
+  expect(document.activeElement).toBe(
+    screen.getByRole('menuitem', { name: 'Редактировать карточки' }),
+  );
+  await user.keyboard('[ArrowDown]');
+  expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Удалить урок' }));
+  await user.keyboard('[Escape]');
+  expect(screen.queryByRole('menu')).toBeNull();
+  expect(document.activeElement).toBe(trigger);
+  await user.click(trigger);
+  await user.click(screen.getByLabelText('Статья 1.1'));
+  expect(screen.queryByRole('menu')).toBeNull();
+});
+
   expect(screen.getByRole('link', { name: 'Редактировать материал' }).getAttribute('href')).toBe(
     `/courses/${course.id}/materials/article/edit`,
   );
   await userEvent.click(screen.getByRole('button', { name: 'Действия с уроком 1.1' }));
-  await userEvent.click(screen.getByRole('button', { name: 'Удалить статью' }));
+  await userEvent.click(screen.getByRole('menuitem', { name: 'Удалить урок' }));
   await userEvent.click(screen.getByRole('button', { name: 'Отмена' }));
   expect(screen.getByLabelText('Статья 1.1')).toBeTruthy();
 });

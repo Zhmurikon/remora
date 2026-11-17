@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 
 const strokes = {
+  folder: 'M3 6h7l2 3h9v11H3z',
+  cancel: 'm6 6 12 12M18 6 6 18',
   grip: 'M9 5h.2m5.8 0h.2M9 12h.2m5.8 0h.2M9 19h.2m5.8 0h.2',
   more: 'M5 12h.5m6.25 0h.5m6.25 0h.5',
   chevron: 'm9 5 7 7-7 7',

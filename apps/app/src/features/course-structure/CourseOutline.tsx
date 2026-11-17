@@ -5,6 +5,7 @@ import { Button } from '@remora/ui';
 import { CourseAction, CourseIcon } from '../../components/CourseAction';
 import type { OutlineSection, Position } from './order';
 import { placeItem, samePosition } from './order';
+import { OutlineMenu } from './OutlineMenu';
 import { useOutlineDrag } from './useOutlineDrag';
 import './outline.css';
 
@@ -69,8 +70,6 @@ export function CourseOutline({
   saveTarget?: HTMLElement | null;
 }) {
   const [expanded, setExpanded] = useState(() => new Set(sections.slice(0, 2).map((s) => s.key)));
-  const [actions, setActions] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<string | null>(null);
   const expand = useCallback(
     (index: number) => {
       const key = sections[index]?.key;
@@ -118,50 +117,38 @@ export function CourseOutline({
       <div className="outline-insert" aria-hidden="true" />
     ) : null;
   }
-  function more(key: string, label: string) {
+  function actions(from: Position) {
+    const group = sections[from.section]!;
+    const article = from.lesson === undefined ? undefined : group.articles[from.lesson];
+    function focusMenu(key?: string) {
+      requestAnimationFrame(() => {
+        const button = key
+          ? root.current?.querySelector<HTMLButtonElement>(`[data-item="${key}"] .outline-more`)
+          : root.current?.querySelector<HTMLButtonElement>('.outline-tools button');
+        button?.focus();
+      });
+    }
     return (
-      <button
-        className="outline-more"
-        type="button"
-        aria-label={label}
-        title={label}
-        aria-expanded={actions === key}
-        onClick={() => {
-          setConfirm(null);
-          setActions(actions === key ? null : key);
+      <OutlineMenu
+        sections={sections}
+        position={from}
+        onMove={(to) => {
+          if (article) expand(to.section);
+          change(placeItem(sections, from, to));
+          focusMenu(article?.key ?? group.key);
         }}
-      >
-        <CourseIcon name="more" />
-      </button>
-    );
-  }
-  function removePrompt(key: string, lesson: boolean, remove: () => void) {
-    const label = lesson ? 'Удалить статью' : 'Удалить раздел';
-    return confirm === key ? (
-      <div className="outline-confirm">
-        <p>
-          {lesson
-            ? 'Удалить текст урока? Набор карточек останется.'
-            : 'Удалить раздел и тексты его уроков? Наборы карточек останутся.'}{' '}
-          Изменение применится после сохранения.
-        </p>
-        <Button
-          type="button"
-          variant="danger"
-          onClick={() => {
-            remove();
-            setActions(null);
-            setConfirm(null);
-          }}
-        >
-          {lesson ? 'Подтвердить удаление статьи' : 'Подтвердить удаление раздела'}
-        </Button>
-        <Button type="button" variant="ghost" onClick={() => setConfirm(null)}>
-          Отмена
-        </Button>
-      </div>
-    ) : (
-      <CourseAction icon="trash" label={label} onClick={() => setConfirm(key)} />
+        onRemove={() => {
+          if (article && from.lesson !== undefined) {
+            const rest = group.articles.filter((a) => a.key !== article.key);
+            update(from.section, { ...group, articles: rest });
+            focusMenu((rest[from.lesson] ?? rest[from.lesson - 1])?.key ?? group.key);
+          } else {
+            const rest = sections.filter((s) => s.key !== group.key);
+            change(rest);
+            focusMenu((rest[from.section] ?? rest[from.section - 1])?.key);
+          }
+        }}
+      />
     );
   }
   const saveButton = (
@@ -244,27 +231,8 @@ export function CourseOutline({
                 onChange={(title) => update(si, { ...s, title })}
               />
               <small>{lessonCount(s.articles.length)}</small>
-              {more(s.key, `Действия с разделом ${si + 1}`)}
+              {actions({ section: si })}
             </div>
-            {actions === s.key && (
-              <div className="outline-options">
-                <CourseAction
-                  icon="up"
-                  label="Раздел выше"
-                  disabled={!si}
-                  onClick={() => change(placeItem(sections, { section: si }, { section: si - 1 }))}
-                />
-                <CourseAction
-                  icon="down"
-                  label="Раздел ниже"
-                  disabled={si === sections.length - 1}
-                  onClick={() => change(placeItem(sections, { section: si }, { section: si + 1 }))}
-                />
-                {removePrompt(s.key, false, () =>
-                  change(sections.filter((item) => item.key !== s.key)),
-                )}
-              </div>
-            )}
             {expanded.has(s.key) && (
               <div className="outline-branch">
                 {s.articles.map((a, ai) => {
@@ -301,7 +269,7 @@ export function CourseOutline({
                             to={`/courses/${courseId}/materials/${a.id}/edit`}
                           />
                         )}
-                        {more(a.key, `Действия с уроком ${si + 1}.${ai + 1}`)}
+                        {actions(from)}
                       </div>
                       {!a.id && (
                         <label className="outline-set">
@@ -318,63 +286,6 @@ export function CourseOutline({
                             ))}
                           </select>
                         </label>
-                      )}
-                      {actions === a.key && (
-                        <div className="outline-options">
-                          {a.id && (
-                            <CourseAction
-                              label="Редактировать карточки"
-                              icon="cards"
-                              to={`/sets/${a.set_id}/edit`}
-                            />
-                          )}
-                          <CourseAction
-                            icon="up"
-                            label="Статья выше"
-                            disabled={!ai}
-                            onClick={() =>
-                              change(placeItem(sections, from, { section: si, lesson: ai - 1 }))
-                            }
-                          />
-                          <CourseAction
-                            icon="down"
-                            label="Статья ниже"
-                            disabled={ai === s.articles.length - 1}
-                            onClick={() =>
-                              change(placeItem(sections, from, { section: si, lesson: ai + 1 }))
-                            }
-                          />
-                          <label className="course-move-action" data-tip="Перенести в раздел">
-                            <CourseIcon name="move" />
-                            <select
-                              aria-label={`Раздел статьи ${si + 1}.${ai + 1}`}
-                              title="Перенести в раздел"
-                              value={si}
-                              onChange={(e) => {
-                                const idx = Number(e.target.value);
-                                expand(idx);
-                                change(
-                                  placeItem(sections, from, {
-                                    section: idx,
-                                    lesson: sections[idx]!.articles.length,
-                                  }),
-                                );
-                              }}
-                            >
-                              {sections.map((sec, i) => (
-                                <option key={sec.key} value={i}>
-                                  {sec.title}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          {removePrompt(a.key, true, () =>
-                            update(si, {
-                              ...s,
-                              articles: s.articles.filter((v) => v.key !== a.key),
-                            }),
-                          )}
-                        </div>
                       )}
                     </Fragment>
                   );

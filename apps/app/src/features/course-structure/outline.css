@@ -1,8 +1,6 @@
 .outline-heading,
 .outline-tools,
-.outline-row,
-.outline-options,
-.outline-confirm {
+.outline-row {
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -123,21 +121,8 @@
 .outline-doc {
   color: rgb(var(--rm-fg-muted));
 }
-.outline-destination > .outline-chapter,
-.outline-options {
+.outline-destination > .outline-chapter {
   background: rgb(var(--rm-primary-subtle));
-}
-.outline-options {
-  flex-wrap: wrap;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.55rem;
-}
-.outline-confirm {
-  flex-wrap: wrap;
-  padding: 0.5rem;
-}
-.outline-confirm p {
-  width: 100%;
 }
 .outline-set {
   display: flex;
@@ -253,4 +238,69 @@
   .course-settings-pane .outline-title {
     min-height: 44px;
   }
+}
+
+.outline-menu-anchor {
+  position: relative;
+  flex: none;
+}
+.outline-more[aria-expanded='true'] {
+  background: rgb(var(--rm-primary-subtle));
+  color: rgb(var(--rm-primary));
+}
+.outline-menu {
+  position: absolute;
+  z-index: 15;
+  width: min(16rem, calc(100vw - 1rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.25rem;
+  background: rgb(var(--rm-bg));
+  border: 1px solid rgb(var(--rm-border));
+  border-radius: 0.75rem;
+  box-shadow: 0 5px 18px rgb(var(--rm-fg) / 0.12);
+  font-size: 0.9rem;
+  color: rgb(var(--rm-fg));
+}
+.outline-menu :is(button, a) {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.45rem;
+  text-align: start;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.outline-menu svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+.outline-menu :is(button, a):is(:hover, :focus-visible):not(:disabled) {
+  background: rgb(var(--rm-primary-subtle));
+  color: rgb(var(--rm-primary));
+}
+.course-settings .outline-menu :is(button, a):focus-visible {
+  outline-offset: -2px;
+}
+.outline-menu button:disabled {
+  color: rgb(var(--rm-fg-muted));
+  opacity: 0.55;
+}
+.outline-menu .outline-menu-danger {
+  color: rgb(var(--rm-danger));
+}
+.outline-menu .outline-menu-danger:is(:hover, :focus-visible):not(:disabled) {
+  background: rgb(var(--rm-danger-subtle));
+  color: rgb(var(--rm-danger));
+}
+.outline-menu p {
+  padding: 0.5rem 0.65rem;
+  line-height: 1.5;
+}
+.outline-menu-back svg {
+  transform: rotate(180deg);
 }
