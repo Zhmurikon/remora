@@ -1,5 +1,5 @@
 import type { components } from '@remora/api-client';
-import { Badge, Button, FishMark, Input } from '@remora/ui';
+import { Badge, Button, Input } from '@remora/ui';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState, type HTMLAttributes, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -20,6 +20,9 @@ import {
   type MaterialProgress,
 } from '../features/materials/materials-progress';
 import { api } from '../lib/api';
+import { MaterialDescription } from '../features/materials/MaterialDescription';
+import bookImage from '../../../web/public/lecture-demo/course-books.webp';
+import './materials.css';
 
 type CourseSummary = components['schemas']['CourseSummary'];
 type CourseDetail = components['schemas']['CourseDetail'];
@@ -374,30 +377,36 @@ export function MaterialsPage() {
   );
 
   return (
-    <div className="materials-page min-h-[calc(100dvh-4rem)] lg:min-h-dvh">
-      <div className="grid min-h-[inherit] lg:grid-cols-[318px_minmax(0,1fr)]">
-        <aside
-          className={`${mobileDetailOpen ? 'hidden lg:block' : 'block'} border-border bg-surface border-b lg:border-b-0 lg:border-r`}
-        >
-          <div className="border-border flex items-center justify-between gap-3 border-b px-5 py-5">
-            <div>
-              <p className="text-fg-subtle text-xs font-semibold uppercase tracking-[0.14em]">
-                Навигатор знаний
-              </p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight">Материалы</h1>
+    <div className="materials-page">
+      <header className="materials-heading">
+        <h1>Материалы</h1>
+        <CreateMenu onCreateSet={() => void createSet()} />
+      </header>
+      <div className="materials-columns">
+        <aside className={`materials-index ${mobileDetailOpen ? 'hidden lg:block' : 'block'}`}>
+          <div>
+            <div className="relative">
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                className="text-fg-muted pointer-events-none absolute left-3 top-3.5 h-4 w-4"
+              >
+                <circle cx="10" cy="10" r="6.5" />
+                <path d="m15 15 5 5" />
+              </svg>
+              <Input
+                type="search"
+                aria-label="Поиск по материалам"
+                placeholder="Найти курс или набор"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                className="h-11 pl-9"
+              />
             </div>
-            <CreateMenu onCreateSet={() => void createSet()} />
-          </div>
-          <div className="p-4">
-            <Input
-              type="search"
-              aria-label="Поиск по материалам"
-              placeholder="Найти курс или набор"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              className="h-11"
-            />
-            <nav className="mt-4 grid grid-cols-3 gap-1" aria-label="Разделы материалов">
+            <nav className="materials-views mt-4" aria-label="Разделы материалов">
               <ViewButton active={view === 'courses'} onClick={() => switchView('courses')}>
                 Курсы
               </ViewButton>
@@ -410,7 +419,7 @@ export function MaterialsPage() {
             </nav>
           </div>
 
-          <div className="max-h-[44dvh] overflow-y-auto px-3 pb-4 lg:max-h-[calc(100dvh-206px)]">
+          <div className="materials-index-list">
             {loading && <TreeSkeleton />}
             {failed && (
               <p className="text-danger px-3 py-6 text-sm" role="alert">
@@ -503,8 +512,8 @@ export function MaterialsPage() {
           </div>
         </aside>
 
-        <main className={`${mobileDetailOpen ? 'block' : 'hidden lg:block'} min-w-0`}>
-          {mobileDetailOpen && view !== 'library' && (
+        <div className={`${mobileDetailOpen ? 'block' : 'hidden lg:block'} min-w-0`}>
+          {mobileDetailOpen && (
             <button
               type="button"
               onClick={() => setMobileDetailOpen(false)}
@@ -515,6 +524,7 @@ export function MaterialsPage() {
           )}
           {view === 'courses' && selectedCourse && (
             <CourseNavigator
+              key={selectedCourse.id}
               course={selectedCourse}
               detail={courseDetailById.get(selectedCourse.id)}
               progress={
@@ -539,6 +549,7 @@ export function MaterialsPage() {
           )}
           {(view === 'sets' || view === 'archive') && selectedSet && (
             <SetNavigator
+              key={selectedSet.id}
               item={selectedSet}
               progress={setProgress.get(selectedSet.id) ?? emptyProgress}
               onRestored={() => {
@@ -573,7 +584,7 @@ export function MaterialsPage() {
           {!loading && view !== 'library' && !selectedCourse && !selectedSet && (
             <EmptyMaterials view={view} onCreateSet={() => void createSet()} />
           )}
-        </main>
+        </div>
       </div>
     </div>
   );
@@ -599,148 +610,116 @@ function CourseNavigator({
   const sections = detail?.sections ?? [];
   const weakestSection = weakestSectionIndex(sections, statsBySetId);
   return (
-    <div>
-      <div className="border-border flex min-h-16 items-center border-b px-5 text-sm sm:px-8">
-        <span className="text-fg-muted">Материалы</span>
-        <span className="text-fg-subtle px-2" aria-hidden="true">
-          /
-        </span>
-        <span className="truncate font-medium">{course.title}</span>
-      </div>
-      <div className="mx-auto max-w-5xl px-5 py-7 sm:px-8 sm:py-10">
-        <section className="grid gap-6 sm:grid-cols-[168px_1fr]">
-          <div className="materials-course-cover border-border grid aspect-[1.25] place-items-center overflow-hidden rounded-2xl border sm:aspect-square">
-            <FishMark className="h-28 w-28 opacity-90 sm:h-32 sm:w-32" />
-          </div>
-          <div className="min-w-0 self-center">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge>{course.saved ? 'Сохранённый курс' : 'Ваш курс'}</Badge>
-              {course.hasUpdates && <Badge tone="warning">Есть обновление</Badge>}
-            </div>
-            <Link
-              to={`/courses/${course.id}/read`}
-              className="focus-visible:outline-primary group mt-4 inline-block rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
-              aria-label={`Читать курс «${course.title}»`}
-            >
-              <h2 className="group-hover:text-primary text-3xl font-semibold tracking-tight sm:text-4xl">
-                {course.title}
-              </h2>
-              <span className="text-primary mt-2 inline-flex text-sm font-semibold">
-                Читать курс →
-              </span>
+    <div className="material-course">
+      <section className="material-folder">
+        <span className="material-tab">{course.saved ? 'Сохранённый курс' : 'Ваш курс'}</span>
+        <img className="material-cover" src={bookImage} width="90" height="100" alt="" />
+        <h2>
+          <Link to={`/courses/${course.id}/read`}>{course.title}</Link>
+        </h2>
+        {course.author && <p className="text-fg-muted mt-2 text-sm">Автор: {course.author}</p>}
+        <div className="material-actions">
+          <Link className="material-primary" to={`/courses/${course.id}/learn`}>
+            Продолжить курс <span aria-hidden="true">→</span>
+          </Link>
+          <Link to={`/courses/${course.id}/read`}>
+            Читать курс <span aria-hidden="true">→</span>
+          </Link>
+          {!course.saved && (
+            <Link className="material-settings" to={`/courses/${course.id}/edit`}>
+              Настроить
             </Link>
-            <p className="text-fg-muted mt-3 max-w-2xl">
-              {course.description || 'Описание пока не добавлено.'}
-            </p>
-            {course.author && <p className="text-fg-subtle mt-2 text-sm">Автор: {course.author}</p>}
+          )}
+        </div>
+        {course.hasUpdates && course.saveId && (
+          <div className="mt-2">
+            <Badge tone="warning">Есть обновление</Badge>
+            <LibraryUpdateControl saveId={course.saveId} title={course.title} />
           </div>
-        </section>
+        )}
+        <MaterialDescription description={course.description} />
+      </section>
+      <section className="material-study-stats">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-3">
+            <h3>Прогресс курса</h3>
+            <strong>{progress.loading ? '—' : `${Math.round(progress.studiedPercent)}%`}</strong>
+          </div>
+          <ProgressBar progress={progress} className="my-2" />
+          <p className="text-fg-muted text-sm">
+            Изучено {progress.studiedCount} из {progress.cardsTotal} карточек · Закреплено{' '}
+            {progress.masteredCount}
+          </p>
+        </div>
+        <LearningStatus progress={progress} compact />
+      </section>
 
-        <section className="border-border mt-8 grid gap-5 border-y py-6 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div>
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <p className="text-fg-muted text-sm">Прогресс курса</p>
-                <p className="mt-1 text-3xl font-semibold tabular-nums">
-                  {progress.loading ? '—' : `${Math.round(progress.studiedPercent)}%`}
-                </p>
-              </div>
-              <LearningStatus progress={progress} />
-            </div>
-            <ProgressBar progress={progress} className="mt-4" />
-            <p className="text-fg-muted mt-2 text-sm">
-              {progress.studiedCount} из {progress.cardsTotal} карточек изучались ·{' '}
-              {progress.masteredCount} закреплено
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2 lg:justify-end">
-            {course.hasUpdates && course.saveId && (
-              <LibraryUpdateControl saveId={course.saveId} title={course.title} />
-            )}
-            <Link to={`/courses/${course.id}/learn`} className="inline-flex">
-              <Button size="lg">Продолжить курс</Button>
-            </Link>
-            {!course.saved && (
-              <Link to={`/courses/${course.id}/edit`} className="inline-flex">
-                <Button size="lg" variant="secondary">
-                  Настроить
-                </Button>
-              </Link>
-            )}
-          </div>
-        </section>
-
-        <section className="mt-8">
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <p className="text-fg-subtle text-xs font-semibold uppercase tracking-[0.14em]">
-                Структура
-              </p>
-              <h3 className="mt-1 text-2xl font-semibold">Разделы курса</h3>
-            </div>
-            <p className="text-fg-muted text-sm">Сначала показан проседающий раздел</p>
-          </div>
-          {!detail && <CourseStructureSkeleton />}
-          {detail && sections.length === 0 && <EmptyBlock>В курсе пока нет разделов.</EmptyBlock>}
-          <div className="mt-5 space-y-3">
-            {sections.map((section, sectionIndex) => {
-              const sectionProgress = aggregateStats(
-                section.articles.map((article) => statsBySetId.get(article.set_id)),
-              );
-              return (
-                <details
-                  key={section.id}
-                  open={sectionIndex === weakestSection}
-                  className="border-border bg-surface group rounded-2xl border"
-                >
-                  <summary className="hover:bg-surface-muted flex min-h-16 cursor-pointer list-none items-center gap-4 rounded-2xl px-4 py-3 sm:px-5">
-                    <span className="text-fg-subtle w-6 text-center text-sm tabular-nums">
-                      {String(sectionIndex + 1).padStart(2, '0')}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="font-semibold">{section.title}</span>
-                        <LearningStatus progress={sectionProgress} compact />
-                      </div>
-                      <ProgressBar progress={sectionProgress} className="mt-2" />
+      <section className="material-sections">
+        <h3>Разделы курса</h3>
+        {!detail && <CourseStructureSkeleton />}
+        {detail && sections.length === 0 && <EmptyBlock>В курсе пока нет разделов.</EmptyBlock>}
+        <div className="mt-5 space-y-3">
+          {sections.map((section, sectionIndex) => {
+            const sectionProgress = aggregateStats(
+              section.articles.map((article) => statsBySetId.get(article.set_id)),
+            );
+            return (
+              <details
+                key={section.id}
+                open={sectionIndex === weakestSection}
+                className="border-border bg-surface group rounded-2xl border"
+              >
+                <summary className="hover:bg-surface-muted flex min-h-16 cursor-pointer list-none items-center gap-3 rounded-2xl px-4 py-3">
+                  <span className="text-fg-subtle w-6 text-center text-sm tabular-nums">
+                    {String(sectionIndex + 1).padStart(2, '0')}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-semibold">{section.title}</span>
+                      <LearningStatus progress={sectionProgress} compact />
                     </div>
-                    <Chevron className="text-fg-subtle h-5 w-5 transition-transform group-open:rotate-180" />
-                  </summary>
-                  <div className="border-border border-t px-3 py-2 sm:px-5">
-                    {section.articles.map((article) => (
-                      <ArticleProgressRow
-                        key={article.id}
-                        courseId={course.id}
-                        articleId={article.id}
-                        title={article.title}
-                        progress={
-                          statsBySetId.has(article.set_id)
-                            ? fromSetStats(statsBySetId.get(article.set_id)!)
-                            : { ...emptyProgress, loading: true }
-                        }
-                      />
-                    ))}
                   </div>
-                </details>
-              );
-            })}
-          </div>
-        </section>
+                  <span className="text-fg-muted text-sm tabular-nums">
+                    {sectionProgress.loading
+                      ? '—'
+                      : `${Math.round(sectionProgress.studiedPercent)}%`}
+                  </span>
+                  <Chevron className="text-fg-subtle h-5 w-5 transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="border-border border-t px-3 py-2 sm:px-5">
+                  {section.articles.map((article) => (
+                    <ArticleProgressRow
+                      key={article.id}
+                      courseId={course.id}
+                      articleId={article.id}
+                      title={article.title}
+                      progress={
+                        statsBySetId.has(article.set_id)
+                          ? fromSetStats(statsBySetId.get(article.set_id)!)
+                          : { ...emptyProgress, loading: true }
+                      }
+                    />
+                  ))}
+                </div>
+              </details>
+            );
+          })}
+        </div>
+      </section>
 
-        <DangerZone
-          title={course.saved ? 'Удалить сохранённый курс' : 'Удалить курс'}
-          description={
-            course.saved
-              ? 'Курс исчезнет из ваших сохранённых материалов. Оригинал автора и ваш учебный прогресс не удалятся.'
-              : 'Курс и его статьи будут удалены. Входящие в него наборы переместятся в архив вместе с учебным прогрессом.'
-          }
-          buttonLabel={course.saved ? 'Убрать из сохранённых' : 'Удалить курс'}
-          confirmText={`Удалить «${course.title}»? ${course.saved ? 'При необходимости вы сможете сохранить оригинал снова.' : 'Удаление курса нельзя отменить.'}`}
-          pending={deleting}
-          error={deleteError}
-          onConfirm={onDelete}
-        />
-      </div>
+      <DangerZone
+        title={course.saved ? 'Удалить сохранённый курс' : 'Удалить курс'}
+        description={
+          course.saved
+            ? 'Курс исчезнет из ваших сохранённых материалов. Оригинал автора и ваш учебный прогресс не удалятся.'
+            : 'Курс и его статьи будут удалены. Входящие в него наборы переместятся в архив вместе с учебным прогрессом.'
+        }
+        buttonLabel={course.saved ? 'Убрать из сохранённых' : 'Удалить курс'}
+        confirmText={`Удалить «${course.title}»? ${course.saved ? 'При необходимости вы сможете сохранить оригинал снова.' : 'Удаление курса нельзя отменить.'}`}
+        pending={deleting}
+        error={deleteError}
+        onConfirm={onDelete}
+      />
     </div>
   );
 }
@@ -786,9 +765,7 @@ function SetNavigator({
           {item.hasUpdates && <Badge tone="warning">Есть обновление</Badge>}
         </div>
         <h2 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">{item.title}</h2>
-        <p className="text-fg-muted mt-3 max-w-2xl">
-          {item.description || 'Описание пока не добавлено.'}
-        </p>
+        <MaterialDescription description={item.description} />
 
         {!item.archived && (
           <section className="border-border bg-surface mt-8 rounded-2xl border p-5 sm:p-7">
@@ -982,7 +959,7 @@ function LibraryNavigator({
                       </Badge>
                       {item.has_updates && <Badge tone="warning">Есть обновление</Badge>}
                     </div>
-                    <h3 className="mt-3 truncate text-lg font-semibold">{title}</h3>
+                    <h3 className="mt-3 break-words text-lg font-semibold">{title}</h3>
                     <p className="text-fg-muted mt-1 text-sm">
                       {item.course_title} · {item.cards_count} карточек
                     </p>
@@ -1042,7 +1019,7 @@ function LibraryTree({ library, search }: { library: LibraryItem[]; search: stri
     <TreeGroup title="Сохранено" count={filtered.length}>
       {filtered.slice(0, 12).map((item) => (
         <div key={item.id} className="border-border mx-2 border-b px-2 py-3 last:border-0">
-          <p className="truncate text-sm font-medium">{item.title}</p>
+          <p className="break-words text-sm font-medium">{item.title}</p>
           <p className="text-fg-muted mt-1 text-xs">
             {item.target_type === 'course'
               ? 'Курс'
@@ -1068,14 +1045,14 @@ function ArticleProgressRow({
   progress: MaterialProgress;
 }) {
   return (
-    <div className="border-border grid gap-3 border-b py-4 last:border-0 sm:grid-cols-[minmax(0,1fr)_180px_auto] sm:items-center">
+    <div className="border-border grid gap-3 border-b py-2 last:border-0 sm:grid-cols-[minmax(0,1fr)_minmax(70px,16%)_auto] sm:items-center">
       <div className="min-w-0">
         <Link
           to={`/courses/${courseId}/read?article=${articleId}`}
           className="group/read focus-visible:outline-primary flex min-h-11 min-w-0 items-center gap-2 rounded-lg font-medium focus-visible:outline focus-visible:outline-2"
           aria-label={`Читать материал «${title}»`}
         >
-          <span className="group-hover/read:text-primary truncate">{title}</span>
+          <span className="group-hover/read:text-primary break-words">{title}</span>
           <span className="text-primary shrink-0 text-xs font-semibold">Читать →</span>
         </Link>
         <p className="text-fg-muted text-sm">{progress.cardsTotal} карточек</p>
@@ -1089,10 +1066,8 @@ function ArticleProgressRow({
         </div>
         <ProgressBar progress={progress} className="mt-2" />
       </div>
-      <Link to={`/courses/${courseId}/learn`}>
-        <Button size="sm" variant={progress.dueNow > 0 ? 'primary' : 'secondary'}>
-          {progress.dueNow > 0 ? `Повторить ${progress.dueNow}` : 'Учить'}
-        </Button>
+      <Link className="material-repeat" to={`/courses/${courseId}/learn`}>
+        {progress.dueNow > 0 ? `Повторить ${progress.dueNow}` : 'Учить'}
       </Link>
     </div>
   );
@@ -1126,21 +1101,22 @@ function MaterialTreeItem({
       <button
         type="button"
         onClick={onClick}
+        aria-pressed={active}
         className={`group min-h-16 w-full rounded-xl px-3 py-2.5 text-left transition-colors ${active ? 'bg-primary-subtle text-fg' : 'hover:bg-surface-muted text-fg'}`}
       >
         <div className="flex items-start gap-2.5">
           {dragProps && <DragHandle />}
-          <StatusDot progress={progress} />
           <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-2">
-              <span className="truncate text-sm font-semibold">{title}</span>
-              <span className="text-fg-muted shrink-0 text-xs tabular-nums">
+            <span className="block break-words text-sm font-semibold">{title}</span>
+            <div className="text-fg-muted mt-1 flex items-center gap-2 text-xs">
+              <StatusDot progress={progress} />
+              <span className="min-w-0 flex-1">
+                {progress.dueNow > 0 ? `${progress.dueNow} на повторение` : meta}
+              </span>
+              <span className="tabular-nums">
                 {progress.loading ? '—' : `${Math.round(progress.studiedPercent)}%`}
               </span>
             </div>
-            <p className="text-fg-muted mt-0.5 truncate text-xs">
-              {progress.dueNow > 0 ? `${progress.dueNow} ждут повторения` : meta}
-            </p>
             <ProgressBar progress={progress} className="mt-2" />
           </div>
         </div>
@@ -1198,9 +1174,7 @@ function StatusDot({ progress }: { progress: MaterialProgress }) {
           : kind === 'good'
             ? 'bg-success'
             : 'bg-fg-subtle';
-  return (
-    <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${color}`} aria-hidden="true" />
-  );
+  return <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${color}`} aria-hidden="true" />;
 }
 
 function ProgressBar({
@@ -1239,7 +1213,7 @@ function TreeGroup({
 }) {
   return (
     <section>
-      <div className="text-fg-muted flex items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em]">
+      <div className="materials-group-heading flex items-center gap-2 px-2 py-3">
         <span>{title}</span>
         <span>{count}</span>
       </div>
@@ -1287,11 +1261,8 @@ function ManagementLink({ to, children }: { to: string; children: ReactNode }) {
 function CreateMenu({ onCreateSet }: { onCreateSet: () => void }) {
   return (
     <details className="group relative">
-      <summary
-        className="bg-primary text-primary-fg hover:bg-primary-hover grid h-11 w-11 cursor-pointer list-none place-items-center rounded-xl text-2xl"
-        aria-label="Создать материал"
-      >
-        +
+      <summary className="materials-create" aria-label="Создать материал">
+        <span aria-hidden="true">＋</span> Создать <Chevron className="h-4 w-4" />
       </summary>
       <div className="border-border bg-surface shadow-pop absolute right-0 z-20 mt-2 w-48 rounded-xl border p-1.5">
         <Link
@@ -1316,7 +1287,11 @@ function EmptyMaterials({ view, onCreateSet }: { view: MaterialView; onCreateSet
   return (
     <div className="grid min-h-[70dvh] place-items-center px-6 text-center">
       <div className="max-w-md">
-        <FishMark className="mx-auto h-24 w-24 opacity-70" />
+        <img
+          src={bookImage}
+          className="material-empty-cover mx-auto h-24 w-24 object-contain"
+          alt=""
+        />
         <h2 className="mt-5 text-2xl font-semibold">Здесь пока пусто</h2>
         <p className="text-fg-muted mt-2">
           Создайте первый материал — прогресс и подсказки появятся здесь автоматически.

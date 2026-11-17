@@ -25,7 +25,7 @@ export function AppLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const location = useLocation();
-  const isDashboard = location.pathname === '/';
+  const hasPaperShell = location.pathname === '/' || isMaterialsPath(location.pathname);
   const user = useAuthStore((state) => state.user);
   const becomeGuest = useAuthStore((state) => state.becomeGuest);
 
@@ -43,10 +43,10 @@ export function AppLayout() {
 
   return (
     <div
-      className={`min-h-dvh lg:grid lg:grid-cols-[260px_1fr] ${isDashboard ? 'dashboard-shell' : ''}`}
+      className={`min-h-dvh lg:grid lg:grid-cols-[260px_1fr] ${hasPaperShell ? 'dashboard-shell' : ''}`}
     >
       <header className="border-border bg-surface sticky top-0 z-30 flex h-16 items-center justify-between border-b px-4 lg:hidden">
-        <Brand dashboard={isDashboard} />
+        <Brand paper={hasPaperShell} />
         <button
           type="button"
           className="hover:bg-surface-muted grid h-11 w-11 place-items-center rounded-xl text-2xl"
@@ -62,7 +62,7 @@ export function AppLayout() {
         className={`${menuOpen ? 'flex max-lg:z-[55]' : 'hidden'} border-border bg-surface fixed inset-x-0 bottom-0 top-16 z-20 flex-col border-r p-5 lg:sticky lg:top-0 lg:flex lg:h-dvh`}
       >
         <div className="hidden px-2 py-2 lg:block">
-          <Brand dashboard={isDashboard} />
+          <Brand paper={hasPaperShell} />
         </div>
         <nav className="mt-5 space-y-1" aria-label="Основная навигация">
           {navigation.map(({ to, label, icon, end, matches }) => (
@@ -119,8 +119,8 @@ export function AppLayout() {
   );
 }
 
-function Brand({ dashboard }: { dashboard: boolean }) {
-  if (dashboard) {
+function Brand({ paper }: { paper: boolean }) {
+  if (paper) {
     return (
       <div className="dashboard-brand">
         <img src={lectureMark} width="40" height="40" alt="" />
@@ -196,7 +196,7 @@ function readThemeChoice(): ThemeChoice {
 }
 
 function isMaterialsPath(pathname: string) {
-  return ['/materials', '/sets', '/courses', '/library'].some((path) => pathname === path);
+  return ['/materials', '/sets', '/courses', '/library'].includes(pathname.replace(/\/$/, ''));
 }
 
 function isTranscriptionsPath(pathname: string) {
