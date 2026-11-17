@@ -1,7 +1,15 @@
 import type { components } from '@remora/api-client';
 import { Badge, Button, Input } from '@remora/ui';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState, type HTMLAttributes, type ReactNode } from 'react';
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type HTMLAttributes,
+  type ReactNode,
+} from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { createEmptySet } from '../features/materials/create-empty-set';
 import { LibraryUpdateControl } from '../features/library/LibraryUpdateControl';
@@ -640,18 +648,15 @@ function CourseNavigator({
         <MaterialDescription description={course.description} />
       </section>
       <section className="material-study-stats">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-3">
-            <h3>Прогресс курса</h3>
-            <strong>{progress.loading ? '—' : `${Math.round(progress.studiedPercent)}%`}</strong>
-          </div>
-          <ProgressBar progress={progress} className="my-2" />
-          <p className="text-fg-muted text-sm">
-            Изучено {progress.studiedCount} из {progress.cardsTotal} карточек · Закреплено{' '}
-            {progress.masteredCount}
-          </p>
+        <div className="flex items-center justify-between gap-3">
+          <h3>Прогресс курса</h3>
+          <strong>{progress.loading ? '—' : `${Math.round(progress.studiedPercent)}%`}</strong>
         </div>
-        <LearningStatus progress={progress} compact />
+        <ProgressBar progress={progress} className="my-2" />
+        <p className="text-fg-muted text-sm">
+          Изучено {progress.studiedCount} из {progress.cardsTotal} карточек · Закреплено{' '}
+          {progress.masteredCount} · {learningStatus(progress).label}
+        </p>
       </section>
 
       <section className="material-sections">
@@ -673,12 +678,7 @@ function CourseNavigator({
                   <span className="text-fg-subtle w-6 text-center text-sm tabular-nums">
                     {String(sectionIndex + 1).padStart(2, '0')}
                   </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="font-semibold">{section.title}</span>
-                      <LearningStatus progress={sectionProgress} compact />
-                    </div>
-                  </div>
+                  <span className="min-w-0 flex-1 font-semibold">{section.title}</span>
                   <span className="text-fg-muted text-sm tabular-nums">
                     {sectionProgress.loading
                       ? '—'
@@ -687,6 +687,9 @@ function CourseNavigator({
                   <Chevron className="text-fg-subtle h-5 w-5 transition-transform group-open:rotate-180" />
                 </summary>
                 <div className="border-border border-t px-3 py-2 sm:px-5">
+                  <div className="mb-1">
+                    <LearningStatus progress={sectionProgress} compact />
+                  </div>
                   {section.articles.map((article) => (
                     <ArticleProgressRow
                       key={article.id}
@@ -708,6 +711,7 @@ function CourseNavigator({
       </section>
 
       <DangerZone
+        iconOnly
         title={course.saved ? 'Удалить сохранённый курс' : 'Удалить курс'}
         description={
           course.saved
@@ -848,6 +852,7 @@ function SetNavigator({
 }
 
 function DangerZone({
+  iconOnly = false,
   title,
   description,
   buttonLabel,
@@ -856,6 +861,7 @@ function DangerZone({
   error,
   onConfirm,
 }: {
+  iconOnly?: boolean;
   title: string;
   description: string;
   buttonLabel: string;
@@ -865,10 +871,64 @@ function DangerZone({
   onConfirm: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
+  const [tipDismissed, setTipDismissed] = useState(false);
+  const tipId = useId();
+  const trigger = useRef<HTMLButtonElement>(null);
   return (
-    <section className="border-danger/40 mt-10 border-t pt-7" aria-label={title}>
-      <h3 className="text-xl font-semibold">{title}</h3>
-      <p className="text-fg-muted mt-2 max-w-2xl">{description}</p>
+    <section
+      className={iconOnly ? 'material-delete' : 'border-danger/40 mt-10 border-t pt-7'}
+      aria-label={title}
+    >
+      {iconOnly && (
+        <div
+          className="material-delete-control"
+          onPointerEnter={() => setTipDismissed(false)}
+          onFocus={() => setTipDismissed(false)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') setTipDismissed(true);
+          }}
+        >
+          <button
+            ref={trigger}
+            type="button"
+            className="material-delete-button"
+            aria-label={buttonLabel}
+            aria-describedby={tipId}
+            aria-expanded={confirming}
+            disabled={pending}
+            onClick={() => setConfirming(!confirming)}
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3.5 7h17M9 7V4h6v3M6 7l1 13h10l1-13M10 10.5v6M14 10.5v6" />
+            </svg>
+          </button>
+          <div
+            id={tipId}
+            role="tooltip"
+            className="material-delete-tip"
+            hidden={tipDismissed || confirming}
+          >
+            <strong>{title}</strong>
+            {description}
+          </div>
+        </div>
+      )}
+      {(!iconOnly || confirming) && (
+        <>
+          <h3 className="text-xl font-semibold">{title}</h3>
+          <p className="text-fg-muted mt-2 max-w-2xl">{description}</p>
+        </>
+      )}
       {confirming ? (
         <div className="mt-4 space-y-3">
           <p>{confirmText}</p>
@@ -880,16 +940,22 @@ function DangerZone({
               className="min-h-11"
               variant="ghost"
               disabled={pending}
-              onClick={() => setConfirming(false)}
+              autoFocus={iconOnly}
+              onClick={() => {
+                setConfirming(false);
+                trigger.current?.focus();
+              }}
             >
               Отмена
             </Button>
           </div>
         </div>
       ) : (
-        <Button variant="danger" className="mt-4 min-h-11" onClick={() => setConfirming(true)}>
-          {buttonLabel}
-        </Button>
+        !iconOnly && (
+          <Button variant="danger" className="mt-4 min-h-11" onClick={() => setConfirming(true)}>
+            {buttonLabel}
+          </Button>
+        )
       )}
       {error && (
         <p role="alert" className="text-danger mt-3 text-sm">
