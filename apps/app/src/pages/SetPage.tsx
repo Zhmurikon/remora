@@ -118,7 +118,7 @@ function SetDetailPage({ setId }: { setId: string }) {
         {source && <SavedSetSource set={source} />}
       </header>
       <SetStudyPanel setId={set.id} cardsCount={set.cards_count} />
-      <SetCardBrowser setId={set.id} owned={set.can_edit} />
+      <SetCardBrowser setId={set.id} owned={set.can_edit} standalone />
     </article>
   );
 }

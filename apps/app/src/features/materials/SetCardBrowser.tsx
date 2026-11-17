@@ -192,7 +192,16 @@ function RowIcon({ kind }: { kind: 'edit' | 'delete' }) {
   );
 }
 
-export function SetCardBrowser({ setId, owned }: { setId: string; owned: boolean }) {
+export function SetCardBrowser({
+  setId,
+  owned,
+  standalone = false,
+}: {
+  setId: string;
+  owned: boolean;
+  standalone?: boolean;
+}) {
+  const Heading = standalone ? 'h2' : 'h3';
   const query = useQuery({
     queryKey: ['sets', setId],
     queryFn: async () => {
@@ -210,7 +219,7 @@ export function SetCardBrowser({ setId, owned }: { setId: string; owned: boolean
   if (!query.data)
     return (
       <section className="set-block">
-        <h3>Состав набора</h3>
+        <Heading>Состав набора</Heading>
         {query.isError ? (
           <>
             <p role="alert">{query.error.message}</p>
@@ -241,10 +250,10 @@ export function SetCardBrowser({ setId, owned }: { setId: string; owned: boolean
     <>
       <section className="set-block set-contents">
         <header className="set-block-head">
-          <h3 ref={heading} tabIndex={-1}>
+          <Heading ref={heading} tabIndex={-1}>
             Состав набора{' '}
             <small>{pluralWithCount(set.cards.length, ['карточка', 'карточки', 'карточек'])}</small>
-          </h3>
+          </Heading>
           <div className="set-tools">
             <label className="set-card-search">
               <svg
@@ -262,7 +271,7 @@ export function SetCardBrowser({ setId, owned }: { setId: string; owned: boolean
               <input
                 type="search"
                 aria-label="Поиск по карточкам набора"
-                placeholder="Найти термин в наборе"
+                placeholder={standalone ? 'Найти карточку' : 'Найти термин в наборе'}
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
