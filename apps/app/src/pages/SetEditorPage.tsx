@@ -44,6 +44,23 @@ interface Snapshot {
 
 type SetDetail = components['schemas']['SetDetail'];
 
+function sameMetadata(a: Snapshot, b: Snapshot) {
+  return (
+    a.title === b.title &&
+    a.description === b.description &&
+    a.visibility === b.visibility &&
+    a.folderId === b.folderId
+  );
+}
+
+function sameSnapshot(a: Snapshot, b: Snapshot) {
+  return a.cards === b.cards && sameMetadata(a, b);
+}
+
+function sameServerCard(a: SetDetail['cards'][number], b?: SetDetail['cards'][number]) {
+  return a.id === b?.id && a.updated_at === b.updated_at;
+}
+
 function fromServer(card: SetDetail['cards'][number]): DraftCard {
   return {
     source: card,
@@ -130,8 +147,11 @@ function SetEditor({ initial }: { initial: SetDetail }) {
   );
   const baseline = useRef<Snapshot>(snapshot);
   const revision = useRef(initial.updated_at);
+  const serverCards = useRef(initial.cards);
+  const importGeneration = useRef(0);
   const serverIds = useRef(new Map(initial.cards.map((card) => [card.id, card.id])));
   const chain = useRef(Promise.resolve(true));
+  const pendingSaves = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const workHeading = useRef<HTMLHeadingElement>(null);
   const focusForm = useRef(false);
@@ -155,9 +175,16 @@ function SetEditor({ initial }: { initial: SetDetail }) {
 
   const save = useCallback(
     (draft: Snapshot) => {
+      const generation = importGeneration.current;
       async function persist() {
+        // После импорта новая версия формы уже содержит добавленные строки.
+        if (generation !== importGeneration.current) return false;
         const previous = baseline.current;
-        if (previous === draft) return true;
+        if (sameSnapshot(previous, draft)) {
+          setSaveError('');
+          setSaveState('saved');
+          return true;
+        }
         setSaveError('');
         const invalid = draft.cards.findIndex(
           (c) =>
@@ -204,15 +231,11 @@ function SetEditor({ initial }: { initial: SetDetail }) {
               serverIds.current.set(item.key, content.data.cards[i]!.id),
             );
             revision.current = content.data.updated_at;
+            serverCards.current = content.data.cards;
             baseline.current = { ...previous, cards: draft.cards };
             queryClient.setQueryData(['sets', setId], content.data);
           }
-          if (
-            previous.title !== draft.title ||
-            previous.description !== draft.description ||
-            previous.folderId !== draft.folderId ||
-            previous.visibility !== draft.visibility
-          ) {
+          if (!sameMetadata(previous, draft)) {
             const metadata = await api.PATCH('/api/v1/sets/{set_id}', {
               params: { path: { set_id: setId } },
               body: {
@@ -229,7 +252,13 @@ function SetEditor({ initial }: { initial: SetDetail }) {
                 (metadata.error as { message?: string } | undefined)?.message ??
                   'Не удалось сохранить настройки набора.',
               );
-            revision.current = metadata.data.updated_at;
+            // Изменение заголовка не даёт права перезаписать чужие изменения в карточках.
+            if (
+              metadata.data.cards.length === serverCards.current.length &&
+              metadata.data.cards.every((c, i) => sameServerCard(c, serverCards.current[i]))
+            ) {
+              revision.current = metadata.data.updated_at;
+            }
           }
           baseline.current = draft;
           await queryClient.invalidateQueries({ queryKey: ['sets'] });
@@ -243,28 +272,53 @@ function SetEditor({ initial }: { initial: SetDetail }) {
           return false;
         }
       }
-      chain.current = chain.current.then(persist);
+      pendingSaves.current += 1;
+      chain.current = chain.current.then(persist).finally(() => {
+        pendingSaves.current -= 1;
+      });
       return chain.current;
     },
     [queryClient, setId, initial.lang_term, initial.lang_definition],
   );
 
   const firstPending = !cards.length && !!(firstTerm.trim() || firstDefinition.trim());
+  const currentDraft = useMemo(
+    () => (firstPending ? { ...snapshot, cards: [newCard(firstTerm, firstDefinition)] } : snapshot),
+    [firstPending, firstTerm, firstDefinition, snapshot],
+  );
+  const leaving = useRef(currentDraft);
+  useEffect(() => {
+    leaving.current = currentDraft;
+  }, [currentDraft]);
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      if (!sameSnapshot(leaving.current, baseline.current)) event.preventDefault();
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => {
+      window.removeEventListener('beforeunload', warn);
+      // Ссылка в общей навигации может закрыть форму до срабатывания таймера.
+      if (pendingSaves.current || !sameSnapshot(leaving.current, baseline.current))
+        void save(leaving.current);
+    };
+  }, [save]);
+
   function saveNow() {
     if (timer.current) clearTimeout(timer.current);
     if (firstPending) {
-      const added = newCard(firstTerm, firstDefinition);
-      const next = [added];
-      setCards(next);
-      setSelected(added.key);
+      setCards(currentDraft.cards);
+      setSelected(currentDraft.cards[0]!.key);
       setFirstTerm('');
       setFirstDefinition('');
-      return save({ ...snapshot, cards: next });
     }
-    return save(snapshot);
+    return save(currentDraft);
   }
   useEffect(() => {
-    if (snapshot === baseline.current) return;
+    if (!pendingSaves.current && sameSnapshot(snapshot, baseline.current)) {
+      setSaveState('saved');
+      setSaveError('');
+      return;
+    }
     setSaveState('idle');
     timer.current = setTimeout(() => void save(snapshot), 800);
     return () => {
@@ -273,19 +327,31 @@ function SetEditor({ initial }: { initial: SetDetail }) {
   }, [snapshot, save]);
 
   const refreshImported = useCallback(async () => {
-    await chain.current;
-    const { data, error } = await api.GET('/api/v1/sets/{set_id}', {
-      params: { path: { set_id: setId } },
+    const refresh = chain.current.then(async () => {
+      const { data, error } = await api.GET('/api/v1/sets/{set_id}', {
+        params: { path: { set_id: setId } },
+      });
+      if (!data || error) throw new Error('Не удалось загрузить карточки.');
+      const known = serverCards.current;
+      if (!known.every((c, i) => sameServerCard(c, data.cards[i])))
+        throw new Error('Набор изменился.');
+      const additions = data.cards.slice(known.length).map(fromServer);
+      if (additions.length) {
+        if (timer.current) clearTimeout(timer.current);
+        importGeneration.current += 1;
+        serverCards.current = data.cards;
+        revision.current = data.updated_at;
+        additions.forEach((c) => serverIds.current.set(c.key, c.id!));
+        const previous = baseline.current;
+        const merged = [...previous.cards, ...additions];
+        baseline.current = { ...previous, cards: merged };
+        setCards((local) => (local === previous.cards ? merged : [...local, ...additions]));
+      }
+      queryClient.setQueryData(['sets', setId], data);
+      return true;
     });
-    if (!data || error) throw new Error('Не удалось загрузить импортированные карточки.');
-    const existing = new Set(serverIds.current.values());
-    const additions = data.cards.filter((c) => !existing.has(c.id)).map(fromServer);
-    if (additions.length) {
-      additions.forEach((c) => serverIds.current.set(c.key, c.id!));
-      revision.current = data.updated_at;
-      setCards((items) => [...items, ...additions]);
-    }
-    queryClient.setQueryData(['sets', setId], data);
+    chain.current = refresh.catch(() => false);
+    await refresh;
   }, [setId, queryClient]);
 
   function updateCard(key: string, field: 'term' | 'definition', value: string) {
@@ -346,13 +412,14 @@ function SetEditor({ initial }: { initial: SetDetail }) {
   }
   async function deleteSet() {
     if (!window.confirm('Переместить набор в архив?')) return;
+    if (!(await saveNow())) return;
     const { error } = await api.DELETE('/api/v1/sets/{set_id}', {
       params: { path: { set_id: setId } },
     });
     if (!error) {
-      await queryClient.invalidateQueries({ queryKey: ['sets'] });
+      await queryClient.invalidateQueries({ queryKey: ['sets'], refetchType: 'none' });
       navigate('/sets');
-    }
+    } else setSaveError('Не удалось переместить набор в архив.');
   }
 
   return (
@@ -372,7 +439,7 @@ function SetEditor({ initial }: { initial: SetDetail }) {
         <div className="editor-actions">
           <SaveIndicator
             state={
-              saveState === 'saved' && (firstPending || snapshot !== baseline.current)
+              saveState === 'saved' && (firstPending || !sameSnapshot(snapshot, baseline.current))
                 ? 'idle'
                 : saveState
             }
@@ -508,7 +575,9 @@ function SetEditor({ initial }: { initial: SetDetail }) {
             <SetExport
               setId={setId}
               title={title || 'Набор'}
-              canExport={!firstPending && saveState === 'saved' && baseline.current === snapshot}
+              canExport={
+                !firstPending && saveState === 'saved' && sameSnapshot(snapshot, baseline.current)
+              }
             />
           )}
           {bulkMounted && (
@@ -590,7 +659,6 @@ function SetEditor({ initial }: { initial: SetDetail }) {
                   label="Термин"
                   value={card.term}
                   contentType={card.contentType}
-                  codeLanguage={card.codeLanguage}
                   imageId={card.termImageId}
                   onChange={(value) => updateCard(card.key, 'term', value)}
                   onImageChange={(value) =>
@@ -605,7 +673,6 @@ function SetEditor({ initial }: { initial: SetDetail }) {
                   label="Определение"
                   value={card.definition}
                   contentType={card.contentType}
-                  codeLanguage={card.codeLanguage}
                   imageId={card.definitionImageId}
                   onChange={(value) => updateCard(card.key, 'definition', value)}
                   onImageChange={(value) =>
@@ -698,6 +765,7 @@ function SelectField({
     <label className="text-fg-muted block text-sm">
       {label}
       <select
+        aria-label={label}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="border-border bg-surface text-fg mt-1.5 h-11 w-full rounded-xl border px-3"
@@ -1515,7 +1583,6 @@ function CardField({
   label,
   value,
   contentType,
-  codeLanguage,
   imageId,
   onChange,
   onImageChange,
@@ -1523,7 +1590,6 @@ function CardField({
   label: string;
   value: string;
   contentType: CardContentType;
-  codeLanguage: string | null;
   imageId: string | null;
   onChange: (value: string) => void;
   onImageChange: (value: string | null) => void;

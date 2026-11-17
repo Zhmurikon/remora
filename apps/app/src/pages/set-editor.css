@@ -343,3 +343,50 @@
     top: 64px;
   }
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  .editor-index li button {
+    transition:
+      background-color 140ms ease,
+      color 140ms ease;
+  }
+  .editor-card {
+    animation: editor-card-appear 140ms ease-out;
+  }
+}
+@keyframes editor-card-appear {
+  from {
+    opacity: 0.75;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@container editor (max-width:440px) {
+  .editor-toolbar {
+    flex-wrap: nowrap;
+  }
+  .editor-toolbar .editor-actions {
+    flex-wrap: nowrap;
+  }
+  .editor-toolbar .editor-actions button {
+    padding-inline: 10px;
+    font-size: 0.875rem;
+  }
+  .editor-toolbar [role='status'] {
+    font-size: 0.75rem;
+  }
+  .editor-meta {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+    align-items: start;
+    gap: 8px;
+  }
+  .editor-meta select {
+    display: block;
+    width: 100%;
+    margin-top: 2px;
+  }
+}

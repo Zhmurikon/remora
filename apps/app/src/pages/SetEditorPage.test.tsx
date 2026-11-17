@@ -114,3 +114,38 @@ it('проверяет повторы, синонимы и технически�
   ).not.toBeNull();
   expect(wrongAnswersError(['', 'bat'], 'cat')).toBeNull();
 });
+
+it('связывает новые ID с отправленными карточками при перестановке во время сохранения', async () => {
+  let complete!: () => void;
+  const writing = new Promise<void>((resolve) => {
+    complete = resolve;
+  });
+  const duplicate = { ...card, id: 'duplicate' };
+  vi.mocked(api.PUT)
+    .mockImplementationOnce(async () => {
+      await writing;
+      return { data: { ...set, cards: [card, duplicate] } } as never;
+    })
+    .mockResolvedValue({ data: { ...set, cards: [duplicate, card] } } as never);
+  mount();
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole('button', { name: 'Дублировать' }));
+  await user.click(screen.getByRole('button', { name: 'Сохранить' }));
+  await waitFor(() => expect(api.PUT).toHaveBeenCalledTimes(1));
+  await user.click(screen.getByRole('button', { name: 'Выше' }));
+  await user.click(screen.getByRole('button', { name: 'Сохранить' }));
+  complete();
+  await waitFor(() => expect(api.PUT).toHaveBeenCalledTimes(2));
+  expect(api.PUT).toHaveBeenNthCalledWith(
+    2,
+    '/api/v1/sets/{set_id}/cards',
+    expect.objectContaining({
+      body: expect.objectContaining({
+        cards: [
+          expect.objectContaining({ id: 'duplicate' }),
+          expect.objectContaining({ id: 'card-1' }),
+        ],
+      }),
+    }),
+  );
+});
