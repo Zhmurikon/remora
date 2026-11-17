@@ -13,7 +13,6 @@
     --rule: light-dark(#d2d8e1, #414b5a);
     --blue: light-dark(#284bb2, #abc0ff);
     --wash: light-dark(#edf1ff, #2d3750);
-    --red: light-dark(#a92e33, #ffa5ab);
     font: 16px/1.45 system-ui, sans-serif;
     background: var(--paper);
     color: var(--ink);
@@ -39,22 +38,45 @@
   .body.open { grid-template-rows: 1fr; transition-duration: 180ms }
   .clip { overflow: hidden }
   ol { list-style: none; margin: 0 0 0 22px; padding: 0; border-left: 1px solid var(--rule) }
-  li { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--rule); min-height: 68px; background: var(--surface) }
+  li { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 4px; padding: 10px 12px 10px 0; border-top: 1px solid var(--rule); min-height: 68px; background: var(--surface) }
   .name { font: 19px/1.25 Georgia,'DejaVu Serif',serif; overflow-wrap: anywhere }
   small { display: block; font-size: 14px; color: var(--muted); margin-top: 3px }
-  .notice { color: var(--ink) }
-  .notice i { display:inline-grid; place-items:center; width:14px; height:14px; border:1px solid currentColor; border-radius:50%; color:var(--red); font: 12px/1 system-ui }
-  .notice b { color: var(--red); font-weight: 400 }
-  .actions { display: inline-flex; gap: 4px }
-  .actions button { width: 44px; height: 44px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); color: var(--blue); font-size: 20px }
+  .grip, .actions button { width: 44px; height: 44px; display: inline-grid; place-items: center; border: 0; padding: 0; background: transparent; color: var(--muted) }
+  .grip { cursor: grab; touch-action: none; user-select: none }
+  .grip svg { width: 14px; height: 20px; fill: currentColor; stroke: none; color: inherit }
+  .grip:active { cursor: grabbing }
+  .actions { display: inline-flex }
+  .actions button { font-size: 20px }
+  .actions button:hover:enabled, .grip:hover { color: var(--blue) }
+  li { position: relative }
+  li.dragging { opacity: .55; background: var(--wash) }
+  li[data-edge]::after { content: ""; position: absolute; inset-inline: 6px; height: 2px; background: var(--blue); pointer-events: none }
+  li[data-edge=before]::after { top: 0 }
+  li[data-edge=after]::after { bottom: 0 }
+  .folder.drop-target { background: var(--wash); outline: 2px dashed var(--blue); outline-offset: -3px }
+  .ghost { position: fixed; z-index: 10; pointer-events: none; max-width: 72vw; padding: 5px 10px; border: 1px solid var(--rule); border-radius: 6px; color: var(--blue); background: var(--surface); font-size: 14px }
+  section.archive li { grid-template-columns: 1fr; padding-left: 16px }
   .actions button:disabled { opacity: .32; cursor: default }
+  dialog { width: min(330px, 90vw); padding: 20px; border: 1px solid var(--rule); border-radius: 12px; background: var(--surface); color: var(--ink) }
+  dialog::backdrop { background: rgb(20 26 36 / .22) }
+  dialog h2 { margin: 0 0 10px }
+  dialog button { display: block; width: 100%; min-height: 44px; padding: 6px; text-align: start; border: 0; background: transparent; color: var(--blue) }
   [role=status] { font-size: 14px; color: var(--muted); min-height: 22px }
   @media (max-width: 480px) {
     main { padding-top: 22px }
     .folder { gap: 8px; padding-inline: 11px }
     ol { margin-left: 9px }
-    li { grid-template-columns: 1fr; padding: 12px }
+    li { grid-template-columns: 1fr auto; padding: 10px }
+    li .details { grid-column: 1 / -1; grid-row: 1 }
+    .grip { justify-self: start }
+    small { font-size: .8125rem }
     .actions { justify-self: end }
+  }
+  @media (max-width: 360px) {
+    main { padding-inline: 8px }
+    ol { margin-left: 4px }
+    li { padding-inline: 8px }
+    small { font: .78125rem/1.45 Arial, sans-serif }
   }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important } }
 </style>
@@ -64,6 +86,11 @@
   <div id="folders"></div>
   <p role="status"></p>
 </main>
+<dialog aria-labelledby="move-title">
+  <h2 id="move-title">Переместить в папку</h2>
+  <div class="destinations"></div>
+  <button class="cancel">Отмена</button>
+</dialog>
 <template id="folder-template">
   <section>
     <h2><button class="folder" aria-expanded="false">
@@ -104,33 +131,144 @@
       down.disabled = index === list.children.length - 1;
     });
   }
-  function move(row, direction) {
-    const list = row.parentElement;
-    const next = direction < 0 ? row.previousElementSibling : row.nextElementSibling;
-    if (!next) return;
-    const before = new Map([row, next].map(el => [el, el.getBoundingClientRect().top]));
-    for (const el of before.keys()) el.getAnimations().forEach(animation => animation.cancel());
-    if (direction < 0) list.insertBefore(row, next);
-    else list.insertBefore(next, row);
-    updateArrows(list);
-    const buttons = [...row.querySelectorAll('button')];
-    const same = buttons[direction < 0 ? 0 : 1];
-    (same.disabled ? buttons.find(button => !button.disabled) : same).focus({preventScroll:true});
-    if (!reduced.matches) {
-      before.forEach((oldTop, el) => {
-        const offset = oldTop - el.getBoundingClientRect().top;
-        el.animate([{transform:'translateY(' + offset + 'px)'}, {transform:'none'}],
+  function placeRow(row, list, anchor, focusDirection) {
+    const oldList = row.parentElement;
+    if (oldList === list && (anchor === row || anchor === row.nextElementSibling)) return;
+    const positions = new Map([...new Set([...oldList.children, ...list.children])]
+      .map(el => [el, el.getBoundingClientRect().top]));
+    list.insertBefore(row, anchor);
+    for (const changed of new Set([list, oldList])) {
+      updateArrows(changed);
+      changed.closest('section').querySelector('.count').textContent = changed.children.length;
+    }
+    if (focusDirection) {
+      const arrows = row.querySelectorAll('.actions button');
+      const button = arrows[focusDirection < 0 ? 0 : 1];
+      (button.disabled ? row.querySelector('.actions button:enabled') : button)?.focus({preventScroll:true});
+    }
+    if (!reduced.matches && oldList === list) {
+      positions.forEach((top, el) => {
+        el.getAnimations().forEach(animation => animation.cancel());
+        const offset = top - el.getBoundingClientRect().top;
+        if (offset) el.animate([{transform:'translateY(' + offset + 'px)'}, {transform:'none'}],
           {duration:180, easing:'cubic-bezier(.2,.75,.3,1)'});
       });
     }
+    const name = row.querySelector('.name').textContent;
+    const folder = list.closest('section').querySelector('.label').textContent;
     const index = [...list.children].indexOf(row) + 1;
-    status.textContent = row.querySelector('.name').textContent + ' — ' + index + ' из ' + list.children.length + '.';
+    status.textContent = oldList === list ? name + ' — ' + index + ' из ' + list.children.length + '.'
+      : name + ' — в папке «' + folder + '».';
+  }
+  function move(row, direction) {
+    const adjacent = direction < 0 ? row.previousElementSibling : row.nextElementSibling;
+    if (adjacent) placeRow(row, row.parentElement, direction < 0 ? adjacent : adjacent.nextElementSibling, direction);
+  }
+
+  function enableDrag(handle, row) {
+    let drag;
+    let dragged = false;
+    handle.onclick = event => {
+      if (dragged && event.detail > 0) return;
+      const dialog = document.querySelector('dialog');
+      const options = dialog.querySelector('.destinations');
+      options.replaceChildren();
+      for (const section of folders.querySelectorAll('section:not(.archive)')) {
+        const list = section.querySelector('ol');
+        if (row.parentElement === list) continue;
+        const choice = document.createElement('button');
+        choice.textContent = section.querySelector('.label').textContent;
+        choice.onclick = () => {
+          dialog.close();
+          placeRow(row, list, null);
+          section.querySelector('.folder').focus();
+        };
+        options.append(choice);
+      }
+      dialog.querySelector('.cancel').onclick = () => dialog.close();
+      dialog.showModal();
+    };
+    function clearTarget() {
+      if (!drag.target) return;
+      delete drag.target.dataset.edge;
+      drag.target.classList.remove('drop-target');
+      drag.target = null;
+    }
+    function markTarget() {
+      clearTarget();
+      const hit = document.elementFromPoint(drag.x, drag.y);
+      const section = hit?.closest('#folders section');
+      if (!section || section.classList.contains('archive')) return;
+      const target = hit.closest('li, .folder');
+      if (!target || target === row) return;
+      drag.target = target;
+      if (target.matches('li')) {
+        const bounds = target.getBoundingClientRect();
+        target.dataset.edge = drag.y < bounds.top + bounds.height / 2 ? 'before' : 'after';
+      } else target.classList.add('drop-target');
+    }
+    function scrollAtEdge() {
+      const step = drag.y < 44 ? -8 : drag.y > innerHeight - 44 ? 8 : 0;
+      if (step) { window.scrollBy(0, step); markTarget() }
+      drag.frame = requestAnimationFrame(scrollAtEdge);
+    }
+    function finish(commit) {
+      if (!drag) return;
+      const {target, ghost, frame, id} = drag;
+      const after = target?.dataset.edge === 'after';
+      clearTarget();
+      cancelAnimationFrame(frame);
+      ghost?.remove();
+      row.classList.remove('dragging');
+      drag = null;
+      if (handle.hasPointerCapture(id)) handle.releasePointerCapture(id);
+      document.removeEventListener('keydown', cancelOnEscape);
+      if (!commit || !target) return;
+      const list = target.closest('section').querySelector('ol');
+      placeRow(row, list, target.matches('li') ? (after ? target.nextElementSibling : target) : null);
+    }
+    function cancelOnEscape(event) {
+      if (event.key === 'Escape') finish(false);
+    }
+    handle.onpointerdown = event => {
+      if (!event.isPrimary || event.button !== 0 || drag) return;
+      dragged = false;
+      drag = {id:event.pointerId, startX:event.clientX, startY:event.clientY};
+      handle.setPointerCapture(event.pointerId);
+      document.addEventListener('keydown', cancelOnEscape);
+    };
+    handle.onpointermove = event => {
+      if (event.pointerId !== drag?.id) return;
+      drag.x = event.clientX;
+      drag.y = event.clientY;
+      if (!drag.ghost) {
+        if (Math.hypot(drag.x - drag.startX, drag.y - drag.startY) < 5) return;
+        dragged = true;
+        drag.ghost = document.createElement('div');
+        drag.ghost.className = 'ghost';
+        drag.ghost.setAttribute('aria-hidden', 'true');
+        drag.ghost.textContent = row.querySelector('.name').textContent;
+        document.body.append(drag.ghost);
+        row.classList.add('dragging');
+        drag.frame = requestAnimationFrame(scrollAtEdge);
+      }
+      drag.ghost.style.left = Math.max(4, Math.min(innerWidth - drag.ghost.offsetWidth - 4, drag.x + 14)) + 'px';
+      drag.ghost.style.top = (drag.y + 12) + 'px';
+      markTarget();
+    };
+    handle.onpointerup = event => {
+      if (event.pointerId !== drag?.id) return;
+      if (drag.ghost) { drag.x = event.clientX; drag.y = event.clientY; markTarget() }
+      finish(true);
+    };
+    handle.onpointercancel = handle.onlostpointercapture = () => finish(false);
   }
   function render() {
     folders.replaceChildren();
     status.textContent = '';
     examples.forEach(([title, sets], index) => {
       const section = document.querySelector('#folder-template').content.firstElementChild.cloneNode(true);
+      section.classList.toggle('archive', title === 'Архив');
       const list = section.querySelector('ol');
       const toggle = section.querySelector('.folder');
       section.querySelector('.label').textContent = title;
@@ -140,16 +278,19 @@
       toggle.onclick = () => expand(section, toggle.getAttribute('aria-expanded') === 'false');
       for (const [name, count, source] of sets) {
         const row = document.createElement('li');
-        row.innerHTML = '<div><div class="name"></div><small></small></div><div class="actions"></div>';
+        row.innerHTML = '<div class="details"><div class="name"></div><small></small></div>';
         row.querySelector('.name').textContent = name;
-        row.querySelector('small').textContent = count;
-        if (source) {
-          const credit = document.createElement('small');
-          credit.textContent = source;
-          row.firstElementChild.append(credit);
-          credit.insertAdjacentHTML('afterend','<small class="notice"><i aria-hidden="true">!</i> Есть обновление набора — <b><u>обновить</u></b></small>');
-        }
-        if (sets.length > 1) {
+        row.querySelector('small').textContent = [count, source].filter(Boolean).join(' · ');
+        if (title !== 'Архив') {
+          const grip = document.createElement('button');
+          grip.className = 'grip';
+          grip.title = 'Перетащить или выбрать папку';
+          grip.setAttribute('aria-label', 'Переместить набор — ' + name);
+          grip.setAttribute('aria-haspopup','dialog');
+          grip.innerHTML = '<svg aria-hidden="true" viewBox="0 0 14 20"><circle cx="4" cy="4" r="1.5"/><circle cx="10" cy="4" r="1.5"/><circle cx="4" cy="10" r="1.5"/><circle cx="10" cy="10" r="1.5"/><circle cx="4" cy="16" r="1.5"/><circle cx="10" cy="16" r="1.5"/></svg>';
+          row.prepend(grip);
+          enableDrag(grip, row);
+          row.insertAdjacentHTML('beforeend','<div class="actions"></div>');
           for (const [label, direction] of [['Выше', -1], ['Ниже', 1]]) {
             const button = document.createElement('button');
             button.textContent = direction < 0 ? '↑' : '↓';
