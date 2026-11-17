@@ -72,6 +72,26 @@
 .materials-index [draggable] + [draggable] {
   border-top: 1px solid rgb(var(--rm-border) / 0.65);
 }
+.material-course-links {
+  display: grid;
+  margin-top: 8px;
+}
+.material-course-links a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: 8px;
+  border-radius: 10px;
+  color: rgb(var(--rm-fg));
+  font-size: 0.875rem;
+}
+.material-course-links .material-sort-link {
+  color: color-mix(in srgb, rgb(var(--rm-fg-muted)) 92%, rgb(var(--rm-surface)));
+}
+.material-course-links a:is(:hover, :focus-visible) {
+  color: rgb(var(--rm-primary));
+  background: rgb(var(--rm-surface-muted));
+}
 .material-course {
   padding-top: 20px;
 }
@@ -139,8 +159,40 @@
 .material-actions .material-primary:hover {
   background: rgb(var(--rm-primary-hover));
 }
+.material-action {
+  position: relative;
+}
+.material-action-tip {
+  position: absolute;
+  z-index: 2;
+  bottom: 100%;
+  left: 0;
+  display: none;
+  width: max-content;
+  max-width: 12rem;
+  padding: 6px 10px;
+  border: 1px solid rgb(var(--rm-border));
+  border-radius: 8px;
+  color: rgb(var(--rm-fg));
+  background: rgb(var(--rm-surface));
+  font-size: 0.8125rem;
+}
+.material-action:last-child .material-action-tip {
+  right: 0;
+  left: auto;
+}
+.material-action:is(:hover, :focus-within) .material-action-tip:not([hidden]) {
+  display: block;
+}
 .material-actions .material-settings {
+  justify-content: center;
+  min-width: 44px;
+  border-radius: 10px;
   color: rgb(var(--rm-fg-muted));
+}
+.material-actions .material-settings:is(:hover, :focus-visible) {
+  background: rgb(var(--rm-primary-subtle));
+  color: rgb(var(--rm-primary));
 }
 .material-actions a:not(.material-primary):hover,
 .material-description button:hover {
@@ -247,7 +299,7 @@
 @media (min-width: 1024px) {
   .materials-columns {
     display: grid;
-    grid-template-columns: clamp(240px, 20vw, 286px) minmax(0, 1fr);
+    grid-template-columns: clamp(240px, calc(25vw - 40px), 336px) minmax(0, 1fr);
     gap: clamp(18px, 2vw, 30px);
     align-items: start;
   }

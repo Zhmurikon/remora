@@ -28,9 +28,12 @@ import {
   type MaterialProgress,
 } from '../features/materials/materials-progress';
 import { api } from '../lib/api';
+import { SettingsIcon } from '../components/SettingsIcon';
 import { MaterialDescription } from '../features/materials/MaterialDescription';
 import bookImage from '../../../web/public/lecture-demo/course-books.webp';
 import './materials.css';
+
+const courseCatalogUrl = `${import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000'}/kursy`;
 
 type CourseSummary = components['schemas']['CourseSummary'];
 type CourseDetail = components['schemas']['CourseDetail'];
@@ -458,7 +461,12 @@ export function MaterialsPage() {
                     />
                   ))}
                 </TreeGroup>
-                <ManagementLink to="/courses/manage">Другие способы сортировки</ManagementLink>
+                <nav className="material-course-links" aria-label="Навигация по курсам">
+                  <a href={courseCatalogUrl}>Каталог курсов</a>
+                  <Link className="material-sort-link" to="/courses/manage">
+                    Настройки сортировки
+                  </Link>
+                </nav>
               </>
             )}
             {!loading && view === 'sets' && (
@@ -598,6 +606,42 @@ export function MaterialsPage() {
   );
 }
 
+function CourseActionLink({
+  to,
+  className,
+  label,
+  description,
+  children,
+}: {
+  to: string;
+  className?: string;
+  label?: string;
+  description: string;
+  children: ReactNode;
+}) {
+  const tipId = useId();
+  const [dismissed, setDismissed] = useState(false);
+  return (
+    <span className="material-action" onPointerEnter={() => setDismissed(false)}>
+      <Link
+        to={to}
+        className={className}
+        aria-label={label}
+        aria-describedby={tipId}
+        onFocus={() => setDismissed(false)}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') setDismissed(true);
+        }}
+      >
+        {children}
+      </Link>
+      <span id={tipId} role="tooltip" className="material-action-tip" hidden={dismissed}>
+        {description}
+      </span>
+    </span>
+  );
+}
+
 function CourseNavigator({
   course,
   detail,
@@ -627,16 +671,25 @@ function CourseNavigator({
         </h2>
         {course.author && <p className="text-fg-muted mt-2 text-sm">Автор: {course.author}</p>}
         <div className="material-actions">
-          <Link className="material-primary" to={`/courses/${course.id}/learn`}>
-            Продолжить курс <span aria-hidden="true">→</span>
-          </Link>
-          <Link to={`/courses/${course.id}/read`}>
-            Читать курс <span aria-hidden="true">→</span>
-          </Link>
+          <CourseActionLink
+            className="material-primary"
+            to={`/courses/${course.id}/learn`}
+            description="Продолжить тренировку по карточкам курса"
+          >
+            Продолжить
+          </CourseActionLink>
+          <CourseActionLink to={`/courses/${course.id}/read`} description="Открыть статьи курса">
+            Читать
+          </CourseActionLink>
           {!course.saved && (
-            <Link className="material-settings" to={`/courses/${course.id}/edit`}>
-              Настроить
-            </Link>
+            <CourseActionLink
+              className="material-settings"
+              to={`/courses/${course.id}/edit`}
+              label="Настроить курс"
+              description="Открыть редактор курса"
+            >
+              <SettingsIcon />
+            </CourseActionLink>
           )}
         </div>
         {course.hasUpdates && course.saveId && (
@@ -995,7 +1048,7 @@ function LibraryNavigator({
               Курсы и наборы авторов остаются связанными с оригиналом, а ваш прогресс — личным.
             </p>
           </div>
-          <a href={`${import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000'}/kursy`}>
+          <a href={courseCatalogUrl}>
             <Button size="lg" variant="secondary">
               Найти курсы
             </Button>
@@ -1193,7 +1246,7 @@ function MaterialTreeItem({
 
 function DragHandle() {
   return (
-    <span className="text-fg-subtle mt-0.5 grid shrink-0 grid-cols-2 gap-0.5" aria-hidden="true">
+    <span className="text-fg-subtle mt-1.5 grid shrink-0 grid-cols-2 gap-0.5" aria-hidden="true">
       {Array.from({ length: 6 }, (_, index) => (
         <span key={index} className="h-1 w-1 rounded-full bg-current" />
       ))}
