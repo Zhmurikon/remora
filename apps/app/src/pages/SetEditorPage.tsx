@@ -14,6 +14,9 @@ import {
   type ReactNode,
 } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { CourseIcon } from '../components/CourseAction';
+import { EditorCardIndex } from '../features/materials/EditorCardIndex';
+import { moveCustomItemTo } from '../features/library/ListSort';
 import { CardSide } from '../features/materials/CardSide';
 import './set-editor.css';
 import { api, downloadFile, uploadBinary } from '../lib/api';
@@ -153,7 +156,7 @@ function SetEditor({ initial }: { initial: SetDetail }) {
   const chain = useRef(Promise.resolve(true));
   const pendingSaves = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const workHeading = useRef<HTMLHeadingElement>(null);
+  const workPanel = useRef<HTMLElement>(null);
   const focusForm = useRef(false);
   const index = Math.max(
     0,
@@ -163,7 +166,7 @@ function SetEditor({ initial }: { initial: SetDetail }) {
 
   useEffect(() => {
     if (focusForm.current) {
-      workHeading.current?.focus();
+      workPanel.current?.focus();
       focusForm.current = false;
     }
   }, [card?.key]);
@@ -360,7 +363,7 @@ function SetEditor({ initial }: { initial: SetDetail }) {
     );
   }
   function selectCard(key: string) {
-    if (key === card?.key) workHeading.current?.focus();
+    if (key === card?.key) workPanel.current?.focus();
     else focusForm.current = true;
     setSelected(key);
     setBulkOpen(false);
@@ -401,13 +404,13 @@ function SetEditor({ initial }: { initial: SetDetail }) {
     focusForm.current = true;
     setCards((items) => items.filter((item) => item.key !== key));
   }
-  function moveCard(index: number, offset: number) {
+  function moveCard(source: string, target: string, after: boolean) {
     setCards((items) => {
-      const target = index + offset;
-      if (target < 0 || target >= items.length) return items;
-      const next = [...items];
-      [next[index], next[target]] = [next[target]!, next[index]!];
-      return next;
+      const byKey = new Map(items.map((item) => [item.key, item]));
+      const order = moveCustomItemTo([...byKey.keys()], source, target, after);
+      return order.every((key, i) => key === items[i]?.key)
+        ? items
+        : order.map((key) => byKey.get(key)!);
     });
   }
   async function deleteSet() {
@@ -421,6 +424,11 @@ function SetEditor({ initial }: { initial: SetDetail }) {
       navigate('/sets');
     } else setSaveError('Не удалось переместить набор в архив.');
   }
+
+  const displaySaveState =
+    saveState === 'saved' && (firstPending || !sameSnapshot(snapshot, baseline.current))
+      ? 'idle'
+      : saveState;
 
   return (
     <article className="set-editor">
@@ -437,13 +445,7 @@ function SetEditor({ initial }: { initial: SetDetail }) {
           ← К набору
         </Link>
         <div className="editor-actions">
-          <SaveIndicator
-            state={
-              saveState === 'saved' && (firstPending || !sameSnapshot(snapshot, baseline.current))
-                ? 'idle'
-                : saveState
-            }
-          />
+          <SaveIndicator state={displaySaveState} />
           <Button onClick={() => void saveNow()}>Сохранить</Button>
         </div>
       </div>
@@ -493,6 +495,28 @@ function SetEditor({ initial }: { initial: SetDetail }) {
               Только мне · Plus и Pro
             </option>
           </SelectField>
+          <div className="editor-actions">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setExportOpen((open) => !open);
+                setBulkOpen(false);
+              }}
+            >
+              {exportOpen ? 'Закрыть экспорт' : 'Экспорт'}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={async () => {
+                if (!bulkOpen && !(await saveNow())) return;
+                setBulkMounted(true);
+                setBulkOpen((open) => !open);
+                setExportOpen(false);
+              }}
+            >
+              {bulkOpen ? 'Закрыть импорт' : 'Импорт'}
+            </Button>
+          </div>
         </div>
         {saveError && (
           <p role="status" className="text-danger mt-3">
@@ -510,67 +534,23 @@ function SetEditor({ initial }: { initial: SetDetail }) {
               ＋
             </IconButton>
           </div>
-          {cards.length ? (
-            <>
-              <select
-                className="editor-jump"
-                aria-label="Выбрать карточку"
-                value={card?.key}
-                onChange={(e) => selectCard(e.target.value)}
-              >
-                {cards.map((c, i) => (
-                  <option key={c.key} value={c.key}>
-                    {i + 1}. {c.term || 'Без термина'}
-                  </option>
-                ))}
-              </select>
-              <ol>
-                {cards.map((c, i) => (
-                  <li key={c.key}>
-                    <button
-                      type="button"
-                      aria-current={c.key === card?.key ? 'true' : undefined}
-                      onClick={() => selectCard(c.key)}
-                    >
-                      <span>{i + 1}</span>
-                      <span>{c.term || 'Без термина'}</span>
-                    </button>
-                  </li>
-                ))}
-              </ol>
-            </>
+          {card ? (
+            <EditorCardIndex
+              cards={cards}
+              selected={card}
+              onSelect={selectCard}
+              onMove={moveCard}
+            />
           ) : (
             <p className="editor-empty-index">Список пока пуст</p>
           )}
         </aside>
-        <section className="editor-work">
-          <div className="editor-work-head">
-            <h2 ref={workHeading} tabIndex={-1}>
-              {card ? `Карточка ${index + 1}` : 'Первая карточка'}
-            </h2>
-            <div className="editor-actions">
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setExportOpen((open) => !open);
-                  setBulkOpen(false);
-                }}
-              >
-                {exportOpen ? 'Закрыть экспорт' : 'Экспорт'}
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={async () => {
-                  if (!bulkOpen && !(await saveNow())) return;
-                  setBulkMounted(true);
-                  setBulkOpen((open) => !open);
-                  setExportOpen(false);
-                }}
-              >
-                {bulkOpen ? 'Закрыть импорт' : 'Импорт'}
-              </Button>
-            </div>
-          </div>
+        <section
+          ref={workPanel}
+          tabIndex={-1}
+          aria-label="Редактирование карточки"
+          className="editor-work"
+        >
           {exportOpen && (
             <SetExport
               setId={setId}
@@ -602,58 +582,6 @@ function SetEditor({ initial }: { initial: SetDetail }) {
           )}
           {card ? (
             <div key={card.key} className="editor-card">
-              <div className="border-border flex min-h-14 flex-wrap items-center justify-between gap-2 border-b px-4 py-1">
-                <div className="flex items-center gap-3">
-                  <select
-                    aria-label={`Тип содержимого карточки ${index + 1}`}
-                    value={card.contentType}
-                    onChange={(event) =>
-                      setCardType(card.key, event.target.value as CardContentType)
-                    }
-                    className="border-border bg-surface-muted text-fg h-10 rounded-lg border px-3 text-sm"
-                  >
-                    <option value="text">Текст и формулы</option>
-                    <option value="latex">Формула</option>
-                    <option value="code">Код</option>
-                  </select>
-                  {card.contentType === 'code' && (
-                    <select
-                      aria-label={`Язык кода карточки ${index + 1}`}
-                      value={card.codeLanguage ?? 'text'}
-                      onChange={(event) => setCodeLanguage(card.key, event.target.value)}
-                      className="border-border bg-surface-muted text-fg h-10 rounded-lg border px-3 text-sm"
-                    >
-                      {codeLanguageOptions.map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-                <div className="flex gap-1">
-                  <IconButton
-                    label="Выше"
-                    disabled={index === 0}
-                    onClick={() => moveCard(index, -1)}
-                  >
-                    ↑
-                  </IconButton>
-                  <IconButton
-                    label="Ниже"
-                    disabled={index === cards.length - 1}
-                    onClick={() => moveCard(index, 1)}
-                  >
-                    ↓
-                  </IconButton>
-                  <IconButton label="Дублировать" onClick={() => duplicateCard(index)}>
-                    ⧉
-                  </IconButton>
-                  <IconButton label="Удалить" onClick={() => removeCard(card.key)}>
-                    ×
-                  </IconButton>
-                </div>
-              </div>
               <div className="editor-faces">
                 <CardField
                   label="Термин"
@@ -683,6 +611,34 @@ function SetEditor({ initial }: { initial: SetDetail }) {
                     )
                   }
                 />
+                <div className="editor-card-type">
+                  <select
+                    aria-label={`Тип содержимого карточки ${index + 1}`}
+                    value={card.contentType}
+                    onChange={(event) =>
+                      setCardType(card.key, event.target.value as CardContentType)
+                    }
+                    className="border-border bg-surface-muted text-fg h-10 rounded-lg border px-3 text-sm"
+                  >
+                    <option value="text">Текст и формулы</option>
+                    <option value="latex">Формула</option>
+                    <option value="code">Код</option>
+                  </select>
+                  {card.contentType === 'code' && (
+                    <select
+                      aria-label={`Язык кода карточки ${index + 1}`}
+                      value={card.codeLanguage ?? 'text'}
+                      onChange={(event) => setCodeLanguage(card.key, event.target.value)}
+                      className="border-border bg-surface-muted text-fg h-10 rounded-lg border px-3 text-sm"
+                    >
+                      {codeLanguageOptions.map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
               </div>
               <WrongAnswersEditor
                 term={card.term}
@@ -713,9 +669,46 @@ function SetEditor({ initial }: { initial: SetDetail }) {
                   ))}
                 </div>
               </details>
+              <div className="editor-card-actions">
+                <SaveIndicator state={displaySaveState} announce={false} />
+                <IconButton label="Сохранить изменения" onClick={() => void saveNow()}>
+                  <CourseIcon name="save" />
+                </IconButton>
+                <IconButton label="Дублировать" onClick={() => duplicateCard(index)}>
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.65"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <rect x="8" y="8" width="12" height="13" rx="2" />
+                    <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
+                  </svg>
+                </IconButton>
+                <IconButton label="Удалить" onClick={() => removeCard(card.key)}>
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.65"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7" />
+                  </svg>
+                </IconButton>
+              </div>
             </div>
           ) : (
             <div className="editor-first">
+              <h2>Первая карточка</h2>
               <label>
                 Термин
                 <textarea
@@ -1712,7 +1705,7 @@ function IconButton({
   label,
   children,
   ...props
-}: { label: string; children: string } & ButtonHTMLAttributes<HTMLButtonElement>) {
+}: { label: string; children: ReactNode } & ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       type="button"
@@ -1725,7 +1718,7 @@ function IconButton({
     </button>
   );
 }
-function SaveIndicator({ state }: { state: SaveState }) {
+function SaveIndicator({ state, announce = true }: { state: SaveState; announce?: boolean }) {
   const labels: Record<SaveState, string> = {
     idle: 'Есть изменения',
     saving: 'Сохраняем…',
@@ -1735,7 +1728,7 @@ function SaveIndicator({ state }: { state: SaveState }) {
   return (
     <span
       className={`text-sm ${state === 'error' ? 'text-danger' : state === 'saved' ? 'text-success' : 'text-fg-muted'}`}
-      role="status"
+      role={announce ? 'status' : undefined}
     >
       {labels[state]}
     </span>

@@ -61,7 +61,8 @@ it('загружает и сохраняет оба направления, со
   expect((definitions as HTMLTextAreaElement).value).toBe('bat');
   await userEvent.type(terms, '\nкрот');
   await userEvent.type(definitions, '\nhat');
-  await userEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
+  expect(screen.getAllByText('Есть изменения')).toHaveLength(2);
+  await userEvent.click(screen.getByRole('button', { name: 'Сохранить изменения' }));
   await waitFor(() =>
     expect(api.PUT).toHaveBeenLastCalledWith(
       '/api/v1/sets/{set_id}/cards',
@@ -132,7 +133,9 @@ it('связывает новые ID с отправленными карточ�
   await user.click(await screen.findByRole('button', { name: 'Дублировать' }));
   await user.click(screen.getByRole('button', { name: 'Сохранить' }));
   await waitFor(() => expect(api.PUT).toHaveBeenCalledTimes(1));
-  await user.click(screen.getByRole('button', { name: 'Выше' }));
+  const rows = screen.getAllByRole('button', { name: 'кот' });
+  rows[1]!.focus();
+  await user.keyboard('{Alt>}{ArrowUp}{/Alt}');
   await user.click(screen.getByRole('button', { name: 'Сохранить' }));
   complete();
   await waitFor(() => expect(api.PUT).toHaveBeenCalledTimes(2));
