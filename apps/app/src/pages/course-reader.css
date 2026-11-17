@@ -1,5 +1,6 @@
 .reader-page.materials-page {
   container: reader / inline-size;
+  --reader-header-height: 0px;
   padding: 0;
 }
 .reader-page :where(button, a, summary):focus-visible {
@@ -85,6 +86,8 @@
   line-height: 1.2;
 }
 .reader-rail {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   border-bottom: 1px solid rgb(var(--rm-border));
 }
@@ -101,6 +104,14 @@
 }
 .reader-rail nav {
   padding-block: 4px;
+  min-height: 0;
+  max-height: 50dvh;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+}
+.reader-rail nav :focus-visible {
+  outline-offset: -2px;
 }
 .reader-chapter + .reader-chapter {
   border-top: 1px solid rgb(var(--rm-border) / 0.7);
@@ -210,16 +221,38 @@
   margin-top: 0.75rem;
 }
 .reader-tools {
-  justify-content: space-between;
+  position: sticky;
+  top: var(--reader-header-height);
+  z-index: 10;
   flex-wrap: wrap;
-  gap: 0 16px;
+  column-gap: 8px;
+  background: rgb(var(--rm-surface));
   margin-block: 16px 24px;
   border-bottom: 1px solid rgb(var(--rm-border));
 }
+.reader-movement,
+.reader-jumps,
+.reader-neighbors {
+  display: flex;
+  align-items: center;
+}
+.reader-movement {
+  gap: 8px;
+}
+.reader-jumps::before,
+.reader-neighbors::before {
+  content: '';
+  width: 1px;
+  height: 18px;
+  margin-inline-end: 4px;
+  background: rgb(var(--rm-border));
+}
 .reader-tabs {
+  margin-inline-end: auto;
   gap: 1.25rem;
 }
 .reader-tabs button {
+  min-width: 44px;
   border-block: 2px solid transparent;
   color: rgb(var(--rm-fg-muted));
   font-size: 0.9375rem;
@@ -238,6 +271,14 @@
   border-radius: 9px;
   font-size: 0.875rem;
   color: rgb(var(--rm-fg-muted));
+}
+.reader-icon:disabled {
+  color: rgb(var(--rm-fg-muted) / 0.4);
+  background: transparent;
+  cursor: default;
+}
+.reader-article :where(a, button, input, select, textarea, summary) {
+  scroll-margin-top: calc(var(--reader-header-height) + var(--reader-tools-height, 44px) + 8px);
 }
 .reader-type {
   font: 1.25rem var(--dashboard-serif);
@@ -310,12 +351,12 @@
     position: sticky;
     top: 1rem;
     max-height: calc(100dvh - 2rem);
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
-    scrollbar-width: thin;
     border-bottom: 0;
     border-right: 1px solid rgb(var(--rm-border));
     padding-right: 14px;
+  }
+  .reader-rail nav {
+    max-height: none;
   }
   .reader-rail:not([data-open='true']) nav {
     display: block;
@@ -334,6 +375,9 @@
   }
 }
 @media (max-width: 1023px) {
+  .reader-page.materials-page {
+    --reader-header-height: 4rem;
+  }
   @container reader (min-width: 48rem) {
     .reader-rail {
       top: 4.5rem;
@@ -372,6 +416,20 @@
 }
 
 @container reader (max-width: 30rem) {
+  .reader-tools,
+  .reader-movement {
+    gap: 0;
+  }
+  .reader-movement {
+    margin-inline-start: auto;
+  }
+  .reader-jumps::before,
+  .reader-neighbors::before {
+    margin-inline-end: 0;
+  }
+  .reader-tabs {
+    gap: 6px;
+  }
   .reader-crumb-tail {
     display: none;
   }
@@ -387,5 +445,19 @@
       color 120ms ease-out,
       background-color 120ms ease-out,
       border-color 120ms ease-out;
+  }
+}
+
+@container reader (max-width: 21.5rem) {
+  .reader-article {
+    --reader-tools-height: 88px;
+  }
+  .reader-movement {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .reader-jumps::before,
+  .reader-neighbors::before {
+    display: none;
   }
 }

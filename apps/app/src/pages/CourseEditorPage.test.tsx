@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -230,12 +230,18 @@ it('передаёт выбранные параметры квиза и поз�
   await user.clear(count);
   await user.type(count, '5');
   await user.click(screen.getByRole('button', { name: 'Увеличить количество вопросов' }));
-  await user.click(screen.getByText('Источник и направление'));
-  await user.selectOptions(screen.getByLabelText('Источник'), 'hard');
-  await user.selectOptions(screen.getByLabelText('Направление'), 'both');
-  await user.click(screen.getByText('Источник и направление'));
-  expect(screen.getByText('Только сложные · Оба направления')).toBeTruthy();
-  await user.click(screen.getByLabelText('Учитывать результат в расписании повторений'));
+  const advanced = screen.getByText('Расширенные настройки');
+  const details = advanced.closest('details')!;
+  expect(details.open).toBe(false);
+  expect(details.contains(start)).toBe(false);
+  await user.click(advanced);
+  expect(details.open).toBe(true);
+  const options = within(details);
+  await user.selectOptions(options.getByLabelText('Источник'), 'hard');
+  await user.selectOptions(options.getByLabelText('Направление'), 'both');
+  await user.click(options.getByLabelText('Учитывать результат в расписании повторений'));
+  await user.click(advanced);
+  expect(details.open).toBe(false);
   await user.click(start);
   expect((await screen.findByRole('alert')).textContent).toBe('Нет подходящих карточек');
   expect(vi.mocked(api.POST)).toHaveBeenCalledWith('/api/v1/study/sets/{set_id}/tests', {
@@ -304,9 +310,28 @@ it('проверяет квиз по набору урока и позволяе
     params: { path: { set_id: string } };
   };
   expect(request.params.path).toEqual({ set_id: 'set' });
-  expect(screen.queryByRole('button', { name: 'Следующий урок' })).toBeNull();
+  const toolbar = within(screen.getByRole('navigation', { name: 'Навигация по уроку' }));
+  expect(
+    (toolbar.getByRole('button', { name: 'Предыдущий урок' }) as HTMLButtonElement).disabled,
+  ).toBe(true);
+  const confirmLeave = vi.spyOn(window, 'confirm').mockReturnValue(false);
+  try {
+    await userEvent.click(toolbar.getByRole('button', { name: 'Следующий урок' }));
+    expect(confirmLeave).toHaveBeenCalledOnce();
+    expect(
+      (screen.getByRole('textbox', { name: 'Ответ на вопрос 1' }) as HTMLInputElement).value,
+    ).toBe('4');
+  } finally {
+    confirmLeave.mockRestore();
+  }
   await userEvent.click(screen.getByRole('button', { name: 'Проверить' }));
   await screen.findByText('100% верно');
-  await userEvent.click(screen.getByRole('button', { name: 'Следующий урок' }));
+  await userEvent.click(toolbar.getByRole('button', { name: 'Следующий урок' }));
   expect(await screen.findByText('Новый материал')).toBeTruthy();
+  const nextToolbar = within(screen.getByRole('navigation', { name: 'Навигация по уроку' }));
+  expect(
+    (nextToolbar.getByRole('button', { name: 'Следующий урок' }) as HTMLButtonElement).disabled,
+  ).toBe(true);
+  await userEvent.click(nextToolbar.getByRole('button', { name: 'Предыдущий урок' }));
+  expect(await screen.findByText('Конспект')).toBeTruthy();
 });

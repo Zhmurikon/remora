@@ -1,0 +1,19 @@
+# Иллюстрации типов вопросов
+
+Три макета созданы встроенным ImageGen по снимку блока выбора типов вопросов. Общая часть запроса дополнялась описанием соответствующего варианта.
+
+## Общая часть
+
+Use case: ui-mockup, precise localized illustration edit. Image 1 is the exact UI crop to edit. Return ONE straight-on raster mockup of only these four cards in the same wide landscape ~2.7:1 proportions as the reference. Keep the app screenshot geometry and all lettering exactly. Keep the 2×2 grid of four equal wide, short horizontal cards, white page, soft 10px corner radius, thin light blue outlines. Top two cards selected pale periwinkle (#e9efff) with blue checked squares at top right; bottom two white with empty checkboxes at top right. Preserve small regular black sans Russian labels in the lower left of each card exactly: TL «Выбор из вариантов», TR «Верно или нет», BL «Ввод ответа», BR «Сопоставление». No heading or other text anywhere. Change only the four existing abstract little drawings above the labels. Give each illustration a confident clean silhouette, immediate recognizability at ~100×48px, generous surrounding breathing room. Cohesive family with roughly equal optical weight, align near top left over caption, leaving the right half mostly empty. Pure flat UI screenshot with original card surfaces, no outside decoration, no extra page panels or examples.
+
+## А. Чернильные зарисовки
+
+Illustration direction A: human, editorial blue ballpoint pen studies on the margins of a lecture notebook. Authentic lively variable indigo pen lines with a few fine hatch marks and one limited soft cream tint, restrained, airy, elegantly drawn. Distinct objects for each tile: top left a slightly angled paper test slip with three option dots and one circled answer; top right a pair of small teacher stamps seen from an appealing slight angle, their visible imprints a checkmark and a cross; bottom left a slanted fountain pen actually writing a short ink stroke on ruled scrap paper, large nib; bottom right two little term and definition slips with a single curving pen line linking one marked point on each. No labels inside art, no illegible pseudo handwriting.
+
+## Б. Бумажная аппликация
+
+Illustration direction B: miniature tactile cut-paper collage, viewed from nearly overhead, die-cut matte paper in muted Prussian blue, powder blue, ivory. Fine real paper edges and the slightest contact shadow inside the spot illustration only, 2–3 simple overlapping shapes per symbol. Four specific paper models: TL a fan of three short answer slips with a contrasting blue tab on the chosen slip; TR two cut-paper square tiles bearing prominent die-cut ✓ and ×; BL sculptural paper keycaps and a narrow paper strip with a distinctly visible tall typing caret; BR two complementary jigsaw-shaped word-card halves, clearly matching, with tabs fitting together. A natural still-life collage in the approved scholarly blue-and-cream design, not a generic icon pack.
+
+## В. Условные знаки
+
+Illustration direction C: compact graphic symbols from a Swiss educational workbook, bold two-tone ink pictograms in deep ultramarine and pale blue, with a very small dull apricot spot for emphasis on each. Strong, economical silhouettes and precise geometry, negative space, flat print, zero shading. Four distinct visual metaphors rendered as carefully composed little typographic studies: TL three separate square answer tokens marked A B C with a sweeping printed circle around the B token; TR checkmark and a cross straddling a bold diagonal slash; BL two contrasting type characters Aa beside a tall insertion caret on a baseline; BR two pairs of distinctive matching geometric shapes one at either end of two short connecting rules (a circle linked to a circle, a triangle linked to a triangle), clear one-to-one pairing. The only tiny lettering allowed INSIDE the illustrations is intentional A B C and Aa. No other explanatory text.

@@ -7,6 +7,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api';
 import { CourseAttachments } from '../components/CourseAttachments';
 import { MaterialDescription } from '../features/materials/MaterialDescription';
+import { ReaderIconButton } from '../components/ReaderIconButton';
 import { SettingsIcon } from '../components/SettingsIcon';
 import bookImage from '../../../web/public/lecture-demo/course-books.webp';
 import './materials.css';
@@ -227,34 +228,27 @@ function ReaderOutline({
   onHide: () => void;
   onSelect: (section: Section) => void;
 }) {
+  const outline = useRef<HTMLElement>(null);
   const [expandedId, setExpandedId] = useState(selected?.id);
   useEffect(() => setExpandedId(selected?.id), [selected?.id, articleId]);
+  useEffect(() => {
+    const list = outline.current;
+    const lesson = list?.querySelector('[aria-current="page"]');
+    if (!list?.clientHeight || !lesson) return;
+    // При смене урока прокручиваем только оглавление, сохраняя положение статьи.
+    const bounds = list.getBoundingClientRect();
+    const item = lesson.getBoundingClientRect();
+    if (item.top < bounds.top) list.scrollTop += item.top - bounds.top;
+    else if (item.bottom > bounds.bottom) list.scrollTop += item.bottom - bounds.bottom;
+  }, [articleId, expandedId, mobileOpen]);
+
   const label = articleId ? 'Уроки курса' : 'Разделы курса';
   return (
     <aside className="reader-rail" data-open={mobileOpen}>
       <div className="reader-rail-heading">
         <h2>{label}</h2>
         {articleId && (
-          <button
-            type="button"
-            className="reader-control"
-            aria-label="Скрыть список уроков"
-            title="Скрыть список уроков"
-            onClick={onHide}
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              aria-hidden="true"
-            >
-              <rect x="3" y="4" width="18" height="16" rx="2" />
-              <path d="M9 4v16" />
-            </svg>
-          </button>
+          <ReaderIconButton icon="outline" label="Скрыть список уроков" onClick={onHide} />
         )}
       </div>
       <button
@@ -267,7 +261,7 @@ function ReaderOutline({
         {label}
         <span className="material-caret" aria-hidden="true" />
       </button>
-      <nav id="reader-outline" aria-label="Оглавление курса">
+      <nav ref={outline} id="reader-outline" aria-label="Оглавление курса">
         {sections.map((s, i) => {
           const expanded = Boolean(articleId) && expandedId === s.id;
           return (
@@ -327,6 +321,8 @@ function Reader({ course }: { course: Course }) {
   const articles = course.sections.flatMap((s) => s.articles);
   const active = articles.find((a) => a.id === params.get('article'));
   const index = articles.findIndex((a) => a.id === active?.id);
+  const previousLesson = articles[index - 1];
+  const nextLesson = articles[index + 1];
   const quiz = params.get('step') === 'quiz';
   const section = course.sections.find((s) => s.articles.some((a) => a.id === active?.id));
   const selected =
@@ -504,7 +500,7 @@ function Reader({ course }: { course: Course }) {
                 </p>
               )}
             </header>
-            <div className="reader-tools">
+            <nav className="reader-tools" aria-label="Навигация по уроку">
               <div className="reader-tabs" aria-label="Шаги урока">
                 <button aria-current={!quiz ? 'step' : undefined} onClick={() => go(active.id)}>
                   Материал
@@ -518,9 +514,11 @@ function Reader({ course }: { course: Course }) {
               </div>
               <div className="reader-options">
                 {hideOutline && (
-                  <button className="reader-control" onClick={toggleFocusMode}>
-                    Показать список уроков
-                  </button>
+                  <ReaderIconButton
+                    icon="outline"
+                    label="Показать список уроков"
+                    onClick={toggleFocusMode}
+                  />
                 )}
                 {!quiz && (
                   <button
@@ -534,7 +532,37 @@ function Reader({ course }: { course: Course }) {
                   </button>
                 )}
               </div>
-            </div>
+              <div className="reader-movement">
+                <div className="reader-jumps" role="group" aria-label="Прокрутка урока">
+                  <ReaderIconButton
+                    icon="top"
+                    label="В начало страницы"
+                    onClick={() => window.scrollTo({ top: 0 })}
+                  />
+                  <ReaderIconButton
+                    icon="bottom"
+                    label="В конец страницы"
+                    onClick={() => window.scrollTo({ top: document.documentElement.scrollHeight })}
+                  />
+                </div>
+                <div className="reader-neighbors" role="group" aria-label="Соседние уроки">
+                  <ReaderIconButton
+                    icon="previous"
+                    label="Предыдущий урок"
+                    title={previousLesson?.title && `Предыдущий урок — ${previousLesson.title}`}
+                    disabled={!previousLesson}
+                    onClick={() => previousLesson && go(previousLesson.id)}
+                  />
+                  <ReaderIconButton
+                    icon="next"
+                    label="Следующий урок"
+                    title={nextLesson?.title && `Следующий урок — ${nextLesson.title}`}
+                    disabled={!nextLesson}
+                    onClick={() => nextLesson && go(nextLesson.id)}
+                  />
+                </div>
+              </div>
+            </nav>
             {quiz ? (
               <TestPage
                 key={active.id}
@@ -593,13 +621,13 @@ function Reader({ course }: { course: Course }) {
               >
                 <Button
                   variant="ghost"
-                  disabled={index <= 0}
-                  onClick={() => go(articles[index - 1]!.id)}
+                  disabled={!previousLesson}
+                  onClick={() => previousLesson && go(previousLesson.id)}
                 >
                   Предыдущий урок
                 </Button>
-                {index < articles.length - 1 ? (
-                  <Button variant="secondary" onClick={() => go(articles[index + 1]!.id)}>
+                {nextLesson ? (
+                  <Button variant="secondary" onClick={() => go(nextLesson.id)}>
                     Следующий урок
                   </Button>
                 ) : (

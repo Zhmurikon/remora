@@ -9,10 +9,14 @@ import type { components } from '@remora/api-client';
 import { pluralWithCount } from '@remora/core';
 import { Badge, Button, Card, CardContent, Input } from '@remora/ui';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, openPdf } from '../lib/api';
-import { LessonQuizCount, QuizFormatPreview } from '../features/study/LessonQuizControls';
+import { LessonQuizCount } from '../features/study/LessonQuizControls';
+import choiceImage from '../features/study/quiz-art/choice.webp';
+import trueFalseImage from '../features/study/quiz-art/true-false.webp';
+import typingImage from '../features/study/quiz-art/typing.webp';
+import matchingImage from '../features/study/quiz-art/matching.webp';
 import './lesson-quiz.css';
 
 type TestConfig = components['schemas']['TestConfig'];
@@ -24,12 +28,21 @@ type QuestionKind = components['schemas']['TestQuestionKind'];
 /** Ответ на один вопрос: строка для большинства типов, список — для сопоставления. */
 type Answer = { value?: string; values?: string[] };
 
-const kindLabels: Record<QuestionKind, string> = {
-  choice: 'Выбор из вариантов',
-  true_false: 'Верно или нет',
-  typing: 'Ввод ответа',
-  matching: 'Сопоставление',
-};
+const questionFormats: Record<QuestionKind, { title: string; description: string; image: string }> =
+  {
+    choice: {
+      title: 'Выбор из вариантов',
+      description: 'Выбрать верный ответ',
+      image: choiceImage,
+    },
+    true_false: {
+      title: 'Верно или нет',
+      description: 'Оценить утверждение',
+      image: trueFalseImage,
+    },
+    typing: { title: 'Ввод ответа', description: 'Ответить по памяти', image: typingImage },
+    matching: { title: 'Сопоставление', description: 'Подобрать пары', image: matchingImage },
+  };
 
 const sourceLabels: Record<NonNullable<TestConfig['source']>, string> = {
   all: 'Весь набор',
@@ -112,6 +125,7 @@ function TestBuilder({
   onCreated: (attempt: TestAttempt) => void;
 }) {
   const navigate = useNavigate();
+  const formatId = useId();
   const [count, setCount] = useState('20');
   const questionCount = Number(count);
   const validCount = Number.isInteger(questionCount) && questionCount >= 1 && questionCount <= 50;
@@ -141,7 +155,7 @@ function TestBuilder({
     <fieldset className={embedded ? 'quiz-formats' : undefined}>
       <legend className="text-fg text-sm font-medium">Типы вопросов</legend>
       <div className={embedded ? 'quiz-format-grid' : 'mt-2 grid gap-2 sm:grid-cols-2'}>
-        {(Object.keys(kindLabels) as QuestionKind[]).map((kind) => (
+        {(Object.keys(questionFormats) as QuestionKind[]).map((kind) => (
           <label
             key={kind}
             className={
@@ -150,9 +164,22 @@ function TestBuilder({
                 : 'border-border flex min-h-11 items-center gap-2 rounded-md border px-3 text-sm'
             }
           >
+            {embedded && (
+              <>
+                <img src={questionFormats[kind].image} width="60" height="48" alt="" />
+                <span className="quiz-format-copy">
+                  <span id={`${formatId}-${kind}-title`}>{questionFormats[kind].title}</span>
+                  <small id={`${formatId}-${kind}-description`}>
+                    {questionFormats[kind].description}
+                  </small>
+                </span>
+              </>
+            )}
             <input
               type="checkbox"
               className="h-4 w-4"
+              aria-labelledby={embedded ? `${formatId}-${kind}-title` : undefined}
+              aria-describedby={embedded ? `${formatId}-${kind}-description` : undefined}
               checked={kinds.includes(kind)}
               onChange={(event) => {
                 const checked = event.currentTarget.checked;
@@ -161,8 +188,7 @@ function TestBuilder({
                 );
               }}
             />
-            {embedded && <QuizFormatPreview kind={kind} />}
-            <span>{kindLabels[kind]}</span>
+            {!embedded && <span>{questionFormats[kind].title}</span>}
           </label>
         ))}
       </div>
@@ -230,21 +256,14 @@ function TestBuilder({
           <LessonQuizCount value={count} valid={validCount} onChange={setCount} />
           <details className="quiz-filters">
             <summary>
+              Расширенные настройки
               <span className="quiz-caret" aria-hidden="true" />
-              <span>
-                <strong>Источник и направление</strong>
-                <small>
-                  {sourceLabels[source]} · {directionLabels[direction]}
-                </small>
-              </span>
             </summary>
             {filters}
+            {schedule}
           </details>
           {error}
-          <div className="quiz-launch">
-            {schedule}
-            {start}
-          </div>
+          <div className="quiz-launch">{start}</div>
         </>
       ) : (
         <>
@@ -380,7 +399,7 @@ function QuestionCard({
     <Card className="p-5 sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <span className="text-fg-subtle text-sm">Вопрос {index + 1}</span>
-        <Badge tone="neutral">{kindLabels[question.kind]}</Badge>
+        <Badge tone="neutral">{questionFormats[question.kind].title}</Badge>
       </div>
 
       {question.kind !== 'matching' && (
