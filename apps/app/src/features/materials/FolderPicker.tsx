@@ -82,7 +82,6 @@ export function FolderPicker({
           }
         }}
       >
-        <FolderIcon />
         <span className="truncate">{title}</span>
         <svg
           aria-hidden="true"
@@ -133,7 +132,6 @@ export function FolderPicker({
                 close();
               }}
             >
-              {option.id !== 'all' && <FolderIcon />}
               <span>{option.title}</span>
               <small>{option.count}</small>
             </button>
@@ -141,22 +139,5 @@ export function FolderPicker({
         </div>
       )}
     </div>
-  );
-}
-
-function FolderIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.65"
-      strokeLinejoin="round"
-    >
-      <path d="M3 7a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
-    </svg>
   );
 }
