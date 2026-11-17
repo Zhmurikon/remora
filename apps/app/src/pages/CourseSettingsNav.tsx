@@ -14,7 +14,6 @@ const paths = {
 export type SettingsSection = {
   id: keyof typeof paths;
   label: string;
-  detail?: string;
   to: string;
 };
 
@@ -74,10 +73,7 @@ export function CourseSettingsNav({
             >
               <path d={paths[item.id]} />
             </svg>
-            <span>
-              {item.label}
-              {item.detail && <small>{item.detail}</small>}
-            </span>
+            <span>{item.label}</span>
           </Link>
         ))}
       </div>

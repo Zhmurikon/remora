@@ -79,13 +79,6 @@
   flex-shrink: 0;
   margin-top: 0.08rem;
 }
-.course-settings-nav small {
-  display: block;
-  margin-top: 0.25rem;
-  font-size: 0.8rem;
-  color: rgb(var(--rm-fg-muted));
-  overflow-wrap: anywhere;
-}
 .course-settings-nav a:hover,
 .course-settings-nav a[aria-current='page'] {
   background: rgb(var(--rm-primary-subtle));
@@ -175,15 +168,12 @@
     }
   }
 }
-.course-mobile-access {
-  display: none;
+.course-create-access {
+  display: block;
+  margin-top: 0.25rem;
+  color: rgb(var(--rm-fg-muted));
 }
 @container course-settings (max-width:44rem) {
-  .course-mobile-access {
-    display: block;
-    margin-top: 0.25rem;
-    color: rgb(var(--rm-fg-muted));
-  }
   .course-settings-head {
     padding: 0.75rem 0 1.1rem;
   }
@@ -220,5 +210,199 @@
   }
   #course-description {
     min-height: 12rem;
+  }
+}
+
+.course-action-row,
+.publication-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+}
+.course-icon-action,
+.course-move-action,
+.course-upload-action {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  vertical-align: middle;
+  border-radius: 0.65rem;
+  color: rgb(var(--rm-primary));
+  cursor: pointer;
+}
+.course-icon-action:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.course-icon-action:hover:not(:disabled),
+.course-move-action:hover,
+.course-upload-action:hover {
+  background: rgb(var(--rm-primary-subtle));
+}
+.course-icon-action.is-delete:hover {
+  color: rgb(var(--rm-danger));
+}
+.course-icon-action.is-primary {
+  color: rgb(var(--rm-primary-fg));
+  background: rgb(var(--rm-primary));
+}
+.course-icon-action.is-primary:hover:not(:disabled) {
+  background: rgb(var(--rm-lecture-blue));
+}
+.course-settings-pane .course-move-action select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.course-move-action:focus-within,
+.course-upload-action:focus-within {
+  outline: 2px solid rgb(var(--rm-primary));
+  outline-offset: 2px;
+}
+.course-icon-action::after,
+.course-move-action::after,
+.course-upload-action::after {
+  display: none;
+  content: attr(aria-label);
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 2px);
+  left: 0;
+  width: max-content;
+  max-width: 10rem;
+  border-radius: 0.4rem;
+  padding: 0.3rem 0.55rem;
+  background: rgb(var(--rm-fg));
+  color: rgb(var(--rm-bg));
+  font:
+    400 0.8rem/1.35 Inter,
+    Arial,
+    sans-serif;
+  text-align: start;
+  pointer-events: none;
+}
+.course-move-action::after,
+.course-upload-action::after {
+  content: attr(data-tip);
+}
+.course-action-row > :nth-child(n + 4)::after {
+  left: auto;
+  right: 0;
+}
+.course-icon-action:is(:hover, :focus-visible):not(:disabled)::after,
+.course-move-action:is(:hover, :focus-within)::after,
+.course-upload-action:is(:hover, :focus-within)::after {
+  display: block;
+}
+.course-publication {
+  max-width: 48rem;
+}
+.course-publication h2 {
+  margin: 0.3rem 0 1.4rem;
+}
+.course-publication-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.8rem 1rem;
+  padding: 1rem 1.2rem;
+  background: rgb(var(--rm-lecture-selected));
+  color: rgb(var(--rm-lecture-blue));
+  border-radius: 0.85rem;
+}
+.publication-symbol {
+  display: grid;
+  place-items: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  border: 1px solid rgb(var(--rm-primary) / 0.25);
+  border-radius: 50%;
+}
+.publication-symbol svg {
+  width: 24px;
+  height: 24px;
+}
+.course-publication-status strong {
+  font-size: 1.05rem;
+  font-weight: 550;
+}
+.course-publication-status p,
+.publication-tags small {
+  font-size: 0.875rem;
+  color: rgb(var(--rm-fg-muted));
+}
+.publication-page-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  margin-left: auto;
+  font-size: 0.9rem;
+  color: rgb(var(--rm-primary));
+}
+.publication-page-link:hover {
+  text-decoration: underline;
+}
+.publication-page-link svg,
+.publication-tags header svg {
+  width: 16px;
+  height: 16px;
+}
+.publication-tags {
+  padding: 1.6rem 0 1.8rem;
+}
+.publication-tags header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+.publication-tag-list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.publication-tag-list li {
+  max-width: 100%;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid rgb(var(--rm-lecture-line));
+  border-radius: 0.6rem;
+  background: rgb(var(--rm-lecture-cream));
+  color: rgb(var(--rm-fg));
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+.publication-tags small {
+  display: block;
+  margin: 0.4rem 0 0.9rem;
+}
+.publication-controls {
+  gap: 0.6rem;
+}
+.publication-access {
+  border-top: 1px solid rgb(var(--rm-border));
+  padding: 1.25rem 0 0.5rem;
+}
+.publication-access h3 {
+  margin-bottom: 0.7rem;
+}
+.course-publication [role='alert'],
+.course-publication [role='status']:not(:empty) {
+  margin: 0.8rem 0;
+}
+@container course-settings (max-width:36rem) {
+  .publication-page-link {
+    margin-left: 0;
   }
 }

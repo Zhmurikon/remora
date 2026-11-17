@@ -2,6 +2,7 @@ import type { components } from '@remora/api-client';
 import { Button, Card } from '@remora/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
+import { CourseAction, CourseIcon } from './CourseAction';
 import { api } from '../lib/api';
 
 type Attachment = components['schemas']['CourseAttachmentPublic'];
@@ -17,10 +18,12 @@ export function CourseAttachments({
   courseId,
   articleId,
   canEdit = false,
+  compact = false,
 }: {
   courseId: string;
   articleId?: string;
   canEdit?: boolean;
+  compact?: boolean;
 }) {
   const client = useQueryClient();
   const input = useRef<HTMLInputElement>(null);
@@ -84,6 +87,10 @@ export function CourseAttachments({
   });
   const visible = (query.data ?? []).filter((item) => item.article_id === (articleId ?? null));
 
+  function confirmRemove(attachment: Attachment) {
+    if (window.confirm(`Удалить файл «${attachment.filename}»?`)) remove.mutate(attachment);
+  }
+
   async function download(attachment: Attachment) {
     setError('');
     const result = await api.GET(
@@ -122,32 +129,57 @@ export function CourseAttachments({
                 <p className="text-fg-muted text-sm">{sizeLabel(attachment.size_bytes)}</p>
               </div>
               <div className="flex gap-2">
-                <Button variant="secondary" onClick={() => void download(attachment)}>
-                  Скачать
-                </Button>
-                {canEdit && (
-                  <Button
-                    variant="danger"
-                    loading={remove.isPending}
-                    onClick={() => {
-                      if (window.confirm(`Удалить файл «${attachment.filename}»?`))
-                        remove.mutate(attachment);
-                    }}
-                  >
-                    Удалить
+                {compact ? (
+                  <CourseAction
+                    label="Скачать"
+                    icon="download"
+                    onClick={() => void download(attachment)}
+                  />
+                ) : (
+                  <Button variant="secondary" onClick={() => void download(attachment)}>
+                    Скачать
                   </Button>
                 )}
+                {canEdit &&
+                  (compact ? (
+                    <CourseAction
+                      label="Удалить файл"
+                      icon="trash"
+                      disabled={remove.isPending}
+                      onClick={() => confirmRemove(attachment)}
+                    />
+                  ) : (
+                    <Button
+                      variant="danger"
+                      loading={remove.isPending}
+                      onClick={() => confirmRemove(attachment)}
+                    >
+                      Удалить
+                    </Button>
+                  ))}
               </div>
             </li>
           ))}
         </ul>
       )}
       {canEdit && (
-        <label className="focus-within:outline-primary inline-flex min-h-11 cursor-pointer items-center rounded-xl focus-within:outline focus-within:outline-2">
-          <span className="border-border bg-surface rounded-xl border px-4 py-2 font-medium">
-            {upload.isPending ? 'Загружаем…' : 'Добавить файл'}
-          </span>
+        <label
+          data-tip={compact ? 'Добавить файл' : undefined}
+          className={
+            compact
+              ? 'course-upload-action'
+              : 'focus-within:outline-primary inline-flex min-h-11 cursor-pointer items-center rounded-xl focus-within:outline focus-within:outline-2'
+          }
+        >
+          {compact ? (
+            <CourseIcon name="upload" />
+          ) : (
+            <span className="border-border bg-surface rounded-xl border px-4 py-2 font-medium">
+              {upload.isPending ? 'Загружаем…' : 'Добавить файл'}
+            </span>
+          )}
           <input
+            aria-label="Добавить файл"
             ref={input}
             className="sr-only"
             type="file"
@@ -159,6 +191,7 @@ export function CourseAttachments({
           />
         </label>
       )}
+      {compact && upload.isPending && <p role="status">Загружаем файл…</p>}
       {error && (
         <p role="alert" className="text-danger">
           {error}

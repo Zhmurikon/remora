@@ -1,5 +1,4 @@
 import type { components } from '@remora/api-client';
-import { pluralWithCount } from '@remora/core';
 import { Button, Card } from '@remora/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -74,6 +73,7 @@ function CourseForm({ course }: { course?: Course }) {
   const canHide = useCanHideMaterials();
   const [isPublic, setIsPublic] = useState(true);
   const [setId, setSetId] = useState('');
+  const [structureActions, setStructureActions] = useState<HTMLDivElement | null>(null);
   const [saved, setSaved] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const sets = useQuery({
@@ -125,33 +125,21 @@ function CourseForm({ course }: { course?: Course }) {
   const base = course ? `/courses/${course.id}/edit` : '/courses/new';
   const sections: SettingsSection[] = [{ id: 'about', label: 'О курсе', to: base }];
   if (course) {
-    const count = course.sections.reduce((sum, section) => sum + section.articles.length, 0);
     sections.push(
       {
         id: 'structure',
         label: 'Структура',
-        detail:
-          pluralWithCount(course.sections.length, ['раздел', 'раздела', 'разделов']) +
-          ' · ' +
-          pluralWithCount(count, ['урок', 'урока', 'уроков']),
         to: `/courses/${course.id}/structure`,
       },
       {
         id: 'access',
         label: 'Публикация и доступ',
-        detail:
-          course.moderation_status === 'blocked'
-            ? 'Заблокирован'
-            : course.is_published
-              ? 'Опубликован'
-              : 'Черновик',
         to: base + '?section=access',
       },
       { id: 'materials', label: 'Материалы курса', to: base + '?section=materials' },
       {
         id: 'actions',
         label: 'Другие действия',
-        detail: 'Копирование и удаление',
         to: base + '?section=actions',
       },
     );
@@ -160,13 +148,11 @@ function CourseForm({ course }: { course?: Course }) {
       {
         id: 'access',
         label: 'Доступ к курсу',
-        detail: isPublic ? 'Публичный' : 'Только мне',
         to: base + '?section=access',
       },
       {
         id: 'first',
         label: 'Первый набор',
-        detail: sets.data?.find((set) => set.id === setId)?.title ?? 'Новый пустой набор',
         to: base + '?section=first',
       },
     );
@@ -178,15 +164,20 @@ function CourseForm({ course }: { course?: Course }) {
   const dirty = !!course && (title.trim() !== course.title || description !== course.description);
   return (
     <>
-      <header className="course-settings-head">
+      <header
+        className={
+          active.id === 'structure' ? 'course-settings-head has-outline' : 'course-settings-head'
+        }
+      >
         <div>
           <h1>{course ? 'Настройки курса' : 'Новый курс'}</h1>
           {!course && (
-            <small className="course-mobile-access">
+            <small className="course-create-access">
               {isPublic ? 'Публичный доступ' : 'Только мне'}
             </small>
           )}
         </div>
+        {active.id === 'structure' && <div ref={setStructureActions} />}
         {(!course || active.id === 'about' || (dirty && active.id === 'access')) && (
           <Button
             type="submit"
@@ -324,8 +315,7 @@ function CourseForm({ course }: { course?: Course }) {
               </div>
               {active.id === 'structure' && (
                 <div className="course-settings-pane">
-                  <h2>Структура курса</h2>
-                  <CourseEditorPage />
+                  <CourseEditorPage saveTarget={structureActions} />
                 </div>
               )}
               {active.id === 'materials' && (

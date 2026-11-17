@@ -139,12 +139,48 @@ it('переносит статью в другой раздел и оставл
   mount();
   await screen.findByLabelText('Название раздела 1');
   await userEvent.click(screen.getByRole('button', { name: 'Добавить раздел' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Действия с уроком 1.1' }));
   const select = screen.getByLabelText('Раздел статьи 1.1') as HTMLSelectElement;
   await userEvent.selectOptions(select, select.options[1]!.value);
   expect(screen.getByLabelText('Статья 2.1')).toBeTruthy();
   expect(screen.getByRole('link', { name: 'Редактировать карточки' }).getAttribute('href')).toBe(
     '/sets/set/edit',
   );
+});
+
+it('отменяет перенос с клавиатуры и сохраняет урок в выбранном разделе по команде', async () => {
+  const user = userEvent.setup();
+  const second = { id: 'second', title: 'Векторы', articles: [] };
+  const detail = { ...course, sections: [...course.sections, second] };
+  vi.mocked(api.GET).mockImplementation(
+    async (path) =>
+      ({
+        data: path === '/api/v1/sets' ? [] : detail,
+        response: new Response(),
+      }) as never,
+  );
+  vi.mocked(api.PUT).mockResolvedValue({ data: detail, response: new Response() } as never);
+  mount();
+  const grip = await screen.findByRole('button', { name: 'Переместить «Определитель»' });
+  grip.focus();
+  await user.keyboard('[Space][ArrowRight][Escape]');
+  expect(screen.getByLabelText('Статья 1.1')).toBeTruthy();
+  expect(
+    (screen.getByRole('button', { name: 'Сохранить структуру' }) as HTMLButtonElement).disabled,
+  ).toBe(true);
+  await user.keyboard('[Space][ArrowRight][Enter]');
+  expect(screen.getByLabelText('Статья 2.1')).toBeTruthy();
+  expect(api.PUT).not.toHaveBeenCalled();
+  await user.click(screen.getByRole('button', { name: 'Сохранить структуру' }));
+  await screen.findByText('Структура сохранена');
+  expect(vi.mocked(api.PUT).mock.calls[0]?.[1]).toMatchObject({
+    body: {
+      sections: [
+        { ...course.sections[0], articles: [] },
+        { ...second, articles: course.sections[0]!.articles },
+      ],
+    },
+  });
 });
 
 it('показывает теорию и прямой переход к заучиванию', async () => {
@@ -199,6 +235,7 @@ it('разделяет структуру и текст и подтвержда�
   expect(screen.getByRole('link', { name: 'Редактировать материал' }).getAttribute('href')).toBe(
     `/courses/${course.id}/materials/article/edit`,
   );
+  await userEvent.click(screen.getByRole('button', { name: 'Действия с уроком 1.1' }));
   await userEvent.click(screen.getByRole('button', { name: 'Удалить статью' }));
   await userEvent.click(screen.getByRole('button', { name: 'Отмена' }));
   expect(screen.getByLabelText('Статья 1.1')).toBeTruthy();

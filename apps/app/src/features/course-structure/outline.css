@@ -1,0 +1,256 @@
+.outline-heading,
+.outline-tools,
+.outline-row,
+.outline-options,
+.outline-confirm {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.outline-heading {
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0 0.75rem;
+}
+.course-settings-head.has-outline {
+  background: rgb(var(--rm-bg));
+  position: sticky;
+  top: 4rem;
+  z-index: 5;
+}
+@media (min-width: 1024px) {
+  .course-settings-head.has-outline {
+    top: 0;
+  }
+}
+.outline-tools {
+  flex-wrap: wrap;
+}
+.course-outline button,
+.outline-row a {
+  min-height: 44px;
+}
+.course-outline small,
+.outline-num,
+.outline-status {
+  font-size: 0.82rem;
+  color: rgb(var(--rm-fg-muted));
+}
+.outline-status:not(:empty) {
+  padding: 0.25rem 0 0.65rem;
+}
+.outline-section {
+  border-top: 1px solid rgb(var(--rm-border));
+}
+.outline-row {
+  min-height: 48px;
+  width: 100%;
+  border-radius: 0.5rem;
+  gap: 0.25rem;
+}
+.outline-chapter > small {
+  white-space: nowrap;
+}
+.outline-title,
+.course-settings-pane .outline-title {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  background: transparent;
+  resize: none;
+  padding: 0.35rem 0.25rem;
+  margin: 0;
+  line-height: 1.45;
+  font: inherit;
+  field-sizing: content;
+}
+.course-settings-pane .outline-title:hover,
+.course-settings-pane .outline-title:focus {
+  border-color: rgb(var(--rm-border));
+  background: rgb(var(--rm-bg));
+}
+.outline-grip,
+.outline-toggle,
+.outline-more {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  color: rgb(var(--rm-fg-muted));
+  border-radius: 0.5rem;
+}
+.outline-grip {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.outline-grip:active {
+  cursor: grabbing;
+}
+.outline-more:hover,
+.outline-toggle:hover,
+.outline-grip:hover,
+.outline-add:hover {
+  background: rgb(var(--rm-primary-subtle));
+  color: rgb(var(--rm-primary));
+}
+.outline-toggle svg,
+.outline-doc svg {
+  width: 16px;
+}
+.outline-toggle[aria-expanded='true'] svg {
+  transform: rotate(90deg);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .outline-toggle svg {
+    transition: transform 140ms ease-out;
+  }
+}
+.outline-num {
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--rm-primary));
+}
+.outline-branch {
+  margin: 0.15rem 0 0.75rem 1.1rem;
+  padding-left: 0.85rem;
+  border-left: 1px solid rgb(var(--rm-border));
+}
+.outline-lesson {
+  font-size: 0.95rem;
+}
+.outline-doc {
+  color: rgb(var(--rm-fg-muted));
+}
+.outline-destination > .outline-chapter,
+.outline-options {
+  background: rgb(var(--rm-primary-subtle));
+}
+.outline-options {
+  flex-wrap: wrap;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.55rem;
+}
+.outline-confirm {
+  flex-wrap: wrap;
+  padding: 0.5rem;
+}
+.outline-confirm p {
+  width: 100%;
+}
+.outline-set {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.4rem;
+}
+.outline-set select {
+  min-height: 44px;
+  min-width: 0;
+  border: 1px solid rgb(var(--rm-border));
+  background: rgb(var(--rm-bg));
+  border-radius: 0.5rem;
+  padding: 0.35rem;
+}
+.outline-add {
+  color: rgb(var(--rm-primary));
+  font-size: 0.9rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.5rem;
+}
+.outline-lifted {
+  outline: 1px dashed rgb(var(--rm-primary) / 0.55);
+  color: rgb(var(--rm-fg-muted));
+  background: rgb(var(--rm-surface));
+}
+.outline-insert {
+  pointer-events: none;
+  position: relative;
+  height: 2px;
+  margin-bottom: -2px;
+  z-index: 1;
+  background: rgb(var(--rm-primary));
+}
+.outline-insert::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -4px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgb(var(--rm-primary));
+}
+.outline-ghost {
+  pointer-events: none;
+  position: fixed;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: min(15rem, calc(100vw - 1rem));
+  padding: 0.5rem 0.8rem;
+  background: rgb(var(--rm-primary-subtle));
+  border: 1px solid rgb(var(--rm-primary));
+  color: rgb(var(--rm-primary));
+  border-radius: 0.6rem;
+  box-shadow: 0 3px 12px rgb(var(--rm-fg) / 0.12);
+  font-size: 0.9rem;
+}
+.outline-drag-help {
+  position: sticky;
+  bottom: 0.5rem;
+  z-index: 3;
+  padding: 0.6rem 0.8rem;
+  background: rgb(var(--rm-surface));
+  border: 1px solid rgb(var(--rm-border));
+  border-radius: 0.6rem;
+  font-size: 0.8rem;
+  color: rgb(var(--rm-fg-muted));
+  pointer-events: none;
+}
+@container course-settings (max-width:40rem) {
+  .outline-heading {
+    position: static;
+  }
+  .outline-grip,
+  .outline-toggle,
+  .outline-more {
+    width: 44px;
+  }
+  .outline-row {
+    gap: 0;
+    flex-wrap: wrap;
+  }
+  .outline-chapter > small,
+  .outline-doc,
+  .outline-num {
+    display: none;
+  }
+  .outline-branch {
+    margin-left: 0.35rem;
+    padding-left: 0.3rem;
+  }
+  .outline-title {
+    font-size: 0.9rem;
+  }
+  .outline-ghost {
+    max-width: 13rem;
+  }
+}
+
+.course-settings-pane .outline-lesson > a {
+  margin-top: 0;
+}
+@media (pointer: coarse) {
+  .outline-grip,
+  .outline-toggle,
+  .outline-more {
+    width: 44px;
+  }
+  .course-settings-pane .outline-title {
+    min-height: 44px;
+  }
+}

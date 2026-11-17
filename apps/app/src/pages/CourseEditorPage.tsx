@@ -4,17 +4,28 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
+import { CourseOutline } from '../features/course-structure/CourseOutline';
+import type { OutlineSection as Section } from '../features/course-structure/order';
 import { CourseAttachments } from '../components/CourseAttachments';
 
 type Detail = components['schemas']['CourseEditorDetail'];
-type Section = components['schemas']['SectionWrite'] & { key: string };
+function fromDetail(data: Detail, previous?: Section[]): Section[] {
+  return data.sections.map((section, i) => ({
+    ...section,
+    key: previous?.[i]?.key ?? section.id,
+    articles: section.articles.map((article, j) => ({
+      ...article,
+      key: previous?.[i]?.articles[j]?.key ?? article.id,
+    })),
+  }));
+}
 const drafts = new Map<string, { base: Detail; sections: Section[] }>();
 const field =
   'border-border bg-surface min-h-11 w-full rounded-xl border p-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary';
 export const courseLink =
   'text-primary inline-flex min-h-11 items-center rounded-lg underline focus-visible:outline focus-visible:outline-2';
 
-export function CourseEditorPage() {
+export function CourseEditorPage({ saveTarget }: { saveTarget?: HTMLElement | null }) {
   const { courseId = '', articleId } = useParams();
   const query = useQuery({
     queryKey: ['course-editor', courseId],
@@ -44,6 +55,7 @@ export function CourseEditorPage() {
       {query.data && (
         <StructureForm
           key={`${query.data.id}:${articleId ?? 'structure'}`}
+          saveTarget={saveTarget}
           initial={query.data}
           articleId={articleId}
         />
@@ -52,7 +64,15 @@ export function CourseEditorPage() {
   );
 }
 
-function StructureForm({ initial, articleId }: { initial: Detail; articleId?: string }) {
+function StructureForm({
+  initial,
+  articleId,
+  saveTarget,
+}: {
+  initial: Detail;
+  articleId?: string;
+  saveTarget?: HTMLElement | null;
+}) {
   const client = useQueryClient();
   const navigate = useNavigate();
   const draft = drafts.get(initial.id);
@@ -63,11 +83,9 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
       ? draft.base
       : initial,
   );
-  const fromDetail = (data: Detail): Section[] => data.sections.map((s) => ({ ...s, key: s.id }));
   const [sections, setSections] = useState<Section[]>(() => draft?.sections ?? fromDetail(initial));
   const [dirty, setDirty] = useState(!!draft);
   const [preview, setPreview] = useState(false);
-  const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
   const request = useRef<{ payload: string; key: string } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -91,7 +109,7 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
     change(
       sections.map((s) => ({
         ...s,
-        articles: s.articles?.map((a) => (a.id === articleId ? { ...a, body: next } : a)),
+        articles: s.articles.map((a) => (a.id === articleId ? { ...a, body: next } : a)),
       })),
     );
   }
@@ -120,6 +138,7 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
   }, [dirty]);
   const sets = useQuery({
     queryKey: ['sets'],
+    enabled: !articleId,
     queryFn: async () => {
       const result = await api.GET('/api/v1/sets');
       if (!result.data) throw new Error('Не удалось загрузить наборы');
@@ -128,7 +147,14 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
   });
   const save = useMutation({
     mutationFn: async () => {
-      const body = { revision: base.revision, sections: sections.map(({ key: _key, ...s }) => s) };
+      const body = {
+        revision: base.revision,
+        sections: sections.map(({ id, title, articles }) => ({
+          id,
+          title,
+          articles: articles.map(({ id, title, body, set_id }) => ({ id, title, body, set_id })),
+        })),
+      };
       const payload = JSON.stringify(body);
       if (request.current?.payload !== payload)
         request.current = { payload, key: crypto.randomUUID() };
@@ -155,7 +181,7 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
     onSuccess: (data) => {
       drafts.delete(base.id);
       setBase(data);
-      setSections(fromDetail(data));
+      setSections(fromDetail(data, sections));
       setDirty(false);
       setNotice(articleId ? 'Материал сохранён' : 'Структура сохранена');
       client.setQueryData(['course-editor', base.id], data);
@@ -175,12 +201,6 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
   function updateSection(index: number, patch: Partial<Section>) {
     change(sections.map((s, i) => (i === index ? { ...s, ...patch } : s)));
   }
-  function moveSection(index: number, delta: number) {
-    const next = [...sections];
-    [next[index], next[index + delta]] = [next[index + delta]!, next[index]!];
-    change(next);
-  }
-  const articleCount = sections.reduce((n, s) => n + (s.articles?.length ?? 0), 0);
   const selected = sections.flatMap((s) => s.articles ?? []).find((a) => a.id === articleId);
   if (articleId && !selected)
     return (
@@ -245,17 +265,23 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
         </label>
       )}
       <form
+        id="course-editor-form"
         onSubmit={(event) => {
           event.preventDefault();
-          if (!save.isPending) save.mutate();
+          if (dirty && !save.isPending) save.mutate();
         }}
         className={articleId ? 'max-w-4xl space-y-6' : 'space-y-6'}
       >
-        <div className="border-border bg-bg sticky top-16 z-10 flex flex-wrap items-center gap-3 border-b py-3 lg:top-0">
-          <Button className="min-h-11" type="submit" loading={save.isPending} disabled={!dirty}>
-            {articleId ? 'Сохранить материал' : 'Сохранить структуру'}
-          </Button>
-          {articleId && (
+        {articleId && (
+          <div className="border-border bg-bg sticky top-16 z-10 flex flex-wrap items-center gap-3 border-b py-3 lg:top-0">
+            <Button
+              className="min-h-11"
+              type="submit"
+              loading={save.isPending}
+              disabled={!dirty || save.isPending}
+            >
+              Сохранить материал
+            </Button>
             <Button
               className="min-h-11"
               type="button"
@@ -264,11 +290,11 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
             >
               {preview ? 'Продолжить редактирование' : 'Предпросмотр теории'}
             </Button>
-          )}
-          <span role="status">
-            {save.isPending ? 'Сохраняем…' : dirty ? 'Есть несохранённые изменения' : notice}
-          </span>
-        </div>
+            <span role="status">
+              {save.isPending ? 'Сохраняем…' : dirty ? 'Есть несохранённые изменения' : notice}
+            </span>
+          </div>
+        )}
         {save.isError && (
           <div role="alert" className="text-danger space-y-2">
             <p>{save.error.message}</p>
@@ -291,83 +317,23 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
           </div>
         )}
         <fieldset disabled={save.isPending} className="min-w-0 space-y-6">
-          {sections.length === 0 && (
-            <Card>В курсе пока нет разделов. Добавьте первый раздел и статью.</Card>
-          )}
-          {sections.map((section, si) =>
-            articleId && !section.articles?.some((a) => a.id === articleId) ? null : (
-              <Card key={section.key} className="min-w-0 space-y-5">
-                {!articleId && (
-                  <>
-                    <Input
-                      label={`Название раздела ${si + 1}`}
-                      required
-                      maxLength={160}
-                      className="min-h-11"
-                      value={section.title}
-                      onChange={(e) => updateSection(si, { title: e.target.value })}
-                    />
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="min-h-11"
-                        disabled={si === 0}
-                        onClick={() => moveSection(si, -1)}
-                      >
-                        Раздел выше
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="min-h-11"
-                        disabled={si === sections.length - 1}
-                        onClick={() => moveSection(si, 1)}
-                      >
-                        Раздел ниже
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="min-h-11"
-                        onClick={() => setConfirmRemove(section.key)}
-                      >
-                        Удалить раздел
-                      </Button>
-                    </div>
-                    {confirmRemove === section.key && (
-                      <div className="space-y-3">
-                        <p>
-                          Удалить раздел и тексты его статей из курса? Наборы карточек останутся в
-                          вашей библиотеке. Изменение применится после сохранения.
-                        </p>
-                        <Button
-                          type="button"
-                          variant="danger"
-                          onClick={() => {
-                            change(sections.filter((_, i) => i !== si));
-                            setConfirmRemove(null);
-                          }}
-                        >
-                          Подтвердить удаление раздела
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={() => setConfirmRemove(null)}
-                        >
-                          Отмена
-                        </Button>
-                      </div>
-                    )}
-                  </>
-                )}
-                {(section.articles ?? []).map((article, ai) =>
-                  articleId && article.id !== articleId ? null : (
-                    <div
-                      key={article.id ?? `new-${ai}`}
-                      className="border-border min-w-0 space-y-4 border-t pt-5"
-                    >
+          {!articleId ? (
+            <CourseOutline
+              sections={sections}
+              change={change}
+              courseId={base.id}
+              sets={sets.data ?? []}
+              dirty={dirty}
+              saving={save.isPending}
+              saveTarget={saveTarget}
+              notice={notice}
+            />
+          ) : (
+            sections.map((section, si) =>
+              section.articles.map(
+                (article, ai) =>
+                  article.id === articleId && (
+                    <Card key={article.key} className="min-w-0 space-y-4">
                       <Input
                         label={`Статья ${si + 1}.${ai + 1}`}
                         className="min-h-11"
@@ -376,230 +342,61 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
                         value={article.title}
                         onChange={(e) =>
                           updateSection(si, {
-                            articles: section.articles?.map((a, i) =>
+                            articles: section.articles.map((a, i) =>
                               i === ai ? { ...a, title: e.target.value } : a,
                             ),
                           })
                         }
                       />
-                      {articleId &&
-                        (preview ? (
-                          <ArticleContent
-                            value={article.body ?? ''}
-                            headingLevel={2}
-                            media={previewMedia}
-                          />
-                        ) : (
-                          <>
-                            <MaterialImageButton
-                              onUploaded={(id, media) => {
-                                setUploadedMedia((prev) => ({ ...prev, [id]: media }));
-                                insertImageMarker(id);
-                              }}
-                            />
-                            <label className="block space-y-2">
-                              <span>
-                                Теория статьи {si + 1}.{ai + 1}
-                              </span>
-                              <textarea
-                                ref={textareaRef}
-                                className={field}
-                                rows={22}
-                                maxLength={100000}
-                                value={article.body ?? ''}
-                                onChange={(e) =>
-                                  updateSection(si, {
-                                    articles: section.articles?.map((a, i) =>
-                                      i === ai ? { ...a, body: e.target.value } : a,
-                                    ),
-                                  })
-                                }
-                              />
-                              <span className="text-fg-muted block text-sm">
-                                Разметка Markdown: # заголовки, **жирный** и *курсив*, списки и
-                                нумерация, таблицы, цитаты через «&gt;», разделитель «---», ссылки,
-                                изображения, формулы $…$ и $$…$$, блоки кода с указанием языка.
-                              </span>
-                            </label>
-                          </>
-                        ))}
-                      {!articleId && article.id && (
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <p className="text-fg-muted text-sm">
-                            {article.body?.trim() ? 'Теория добавлена' : 'Теория пока не добавлена'}{' '}
-                            · Квиз по карточкам
-                          </p>
-                          <Link
-                            className={courseLink}
-                            to={`/courses/${base.id}/materials/${article.id}/edit`}
-                          >
-                            Редактировать материал
-                          </Link>
-                        </div>
-                      )}
-                      {!article.id ? (
-                        <label className="block space-y-2">
-                          <span>
-                            Набор для статьи {si + 1}.{ai + 1}
-                          </span>
-                          <select
-                            className={field}
-                            value={article.set_id ?? ''}
-                            onChange={(e) =>
-                              updateSection(si, {
-                                articles: section.articles?.map((a, i) =>
-                                  i === ai ? { ...a, set_id: e.target.value || null } : a,
-                                ),
-                              })
-                            }
-                          >
-                            <option value="">Создать новый пустой набор</option>
-                            {sets.data?.map((s) => (
-                              <option key={s.id} value={s.id}>
-                                {s.title}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
+                      {preview ? (
+                        <ArticleContent
+                          value={article.body ?? ''}
+                          headingLevel={2}
+                          media={previewMedia}
+                        />
                       ) : (
-                        <Link className={courseLink} to={`/sets/${article.set_id}/edit`}>
-                          Редактировать карточки
-                        </Link>
-                      )}
-                      {!articleId && (
                         <>
-                          <div className="flex flex-wrap gap-2">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              className="min-h-11"
-                              disabled={ai === 0}
-                              onClick={() => {
-                                const next = [...(section.articles ?? [])];
-                                [next[ai], next[ai - 1]] = [next[ai - 1]!, next[ai]!];
-                                updateSection(si, { articles: next });
-                              }}
-                            >
-                              Статья выше
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              className="min-h-11"
-                              disabled={ai === (section.articles?.length ?? 0) - 1}
-                              onClick={() => {
-                                const next = [...(section.articles ?? [])];
-                                [next[ai], next[ai + 1]] = [next[ai + 1]!, next[ai]!];
-                                updateSection(si, { articles: next });
-                              }}
-                            >
-                              Статья ниже
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              className="min-h-11"
-                              onClick={() => setConfirmRemove(`${section.key}:${ai}`)}
-                            >
-                              Удалить статью
-                            </Button>
-                          </div>
+                          <MaterialImageButton
+                            onUploaded={(id, media) => {
+                              setUploadedMedia((prev) => ({ ...prev, [id]: media }));
+                              insertImageMarker(id);
+                            }}
+                          />
                           <label className="block space-y-2">
                             <span>
-                              Раздел статьи {si + 1}.{ai + 1}
+                              Теория статьи {si + 1}.{ai + 1}
                             </span>
-                            <select
+                            <textarea
+                              ref={textareaRef}
                               className={field}
-                              value={section.key}
+                              rows={22}
+                              maxLength={100000}
+                              value={article.body ?? ''}
                               onChange={(e) =>
-                                change(
-                                  sections.map((s) =>
-                                    s.key === section.key
-                                      ? { ...s, articles: s.articles?.filter((_, i) => i !== ai) }
-                                      : s.key === e.target.value
-                                        ? { ...s, articles: [...(s.articles ?? []), article] }
-                                        : s,
+                                updateSection(si, {
+                                  articles: section.articles.map((a, i) =>
+                                    i === ai ? { ...a, body: e.target.value } : a,
                                   ),
-                                )
+                                })
                               }
-                            >
-                              {sections.map((s) => (
-                                <option key={s.key} value={s.key}>
-                                  {s.title}
-                                </option>
-                              ))}
-                            </select>
+                            />
+                            <span className="text-fg-muted block text-sm">
+                              Разметка Markdown: # заголовки, **жирный** и *курсив*, списки и
+                              нумерация, таблицы, цитаты через «&gt;», разделитель «---», ссылки,
+                              изображения, формулы $…$ и $$…$$, блоки кода с указанием языка.
+                            </span>
                           </label>
-                          {confirmRemove === `${section.key}:${ai}` && (
-                            <div className="space-y-3">
-                              <p>
-                                Текст статьи будет удалён из курса после сохранения. Набор карточек
-                                останется.
-                              </p>
-                              <Button
-                                type="button"
-                                variant="danger"
-                                onClick={() => {
-                                  updateSection(si, {
-                                    articles: section.articles?.filter((_, i) => i !== ai),
-                                  });
-                                  setConfirmRemove(null);
-                                }}
-                              >
-                                Подтвердить удаление статьи
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                onClick={() => setConfirmRemove(null)}
-                              >
-                                Отмена
-                              </Button>
-                            </div>
-                          )}
                         </>
                       )}
-                    </div>
+                      <Link className={courseLink} to={`/sets/${article.set_id}/edit`}>
+                        Редактировать карточки
+                      </Link>
+                    </Card>
                   ),
-                )}
-                {!articleId && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="min-h-11"
-                    disabled={articleCount >= 100}
-                    onClick={() =>
-                      updateSection(si, {
-                        articles: [
-                          ...(section.articles ?? []),
-                          { title: 'Новая статья', body: '' },
-                        ],
-                      })
-                    }
-                  >
-                    Добавить статью
-                  </Button>
-                )}
-              </Card>
-            ),
+              ),
+            )
           )}
-          {!articleId && (
-            <Button
-              type="button"
-              variant="secondary"
-              className="min-h-11"
-              disabled={sections.length >= 50}
-              onClick={() =>
-                change([
-                  ...sections,
-                  { key: crypto.randomUUID(), title: 'Новый раздел', articles: [] },
-                ])
-              }
-            >
-              Добавить раздел
-            </Button>
-          )}
-          {sets.isError && (
+          {!articleId && sets.isError && (
             <p role="alert">
               Не удалось загрузить существующие наборы.{' '}
               <Button type="button" variant="ghost" onClick={() => void sets.refetch()}>
@@ -609,7 +406,7 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
           )}
         </fieldset>
       </form>
-      <CourseAttachments courseId={base.id} articleId={articleId} canEdit />
+      <CourseAttachments courseId={base.id} articleId={articleId} canEdit compact={!articleId} />
     </div>
   );
 }
