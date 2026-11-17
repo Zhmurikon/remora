@@ -66,6 +66,7 @@ class LibraryService:
         return folder.id
 
     async def remove(self, user: User, save_id: UUID) -> None:
+        await lock_request(self.db, user.id)
         saved = await repo.get_save(self.db, user.id, save_id)
         folder_id = saved.folder_id if saved is not None and saved.course_id is not None else None
         course = await self._course_for_save(saved) if saved is not None else None
@@ -76,7 +77,11 @@ class LibraryService:
         if folder_id is not None:
             folder = await content_repo.get_folder(self.db, folder_id)
             owned_sets = await content_repo.list_sets(self.db, user.id)
-            if folder is not None and not any(item.folder_id == folder_id for item in owned_sets):
+            saved_sets = await self.list_saved_sets(user)
+            used_folders = {item.folder_id for item in owned_sets} | {
+                item.folder_id for item in saved_sets
+            }
+            if folder is not None and folder_id not in used_folders:
                 await content_repo.delete_folder(self.db, folder)
 
     async def _course_for_save(self, saved: LibrarySave) -> Course | None:
@@ -106,24 +111,15 @@ class LibraryService:
                 continue
             try:
                 item = await self._item(saved)
-                course = await course_repo.get_course(self.db, item.course_id)
-                author = await self.db.get(User, course.owner_id) if course else None
-                if course is None or author is None:
-                    continue
                 result.append(
                     SavedCourseItem(
-                        id=course.id,
-                        slug=course.slug,
+                        id=item.course_id,
+                        slug=item.course_slug,
                         title=item.course_title,
                         description=str(
                             saved.accepted_snapshot.get("course", {}).get("description", "")
                         ),
-                        author=CourseAuthor(
-                            id=author.id,
-                            username=author.username,
-                            display_name=author.display_name,
-                            avatar_url=author.avatar_url,
-                        ),
+                        author=item.author,
                         cards_count=item.cards_count,
                         save_id=saved.id,
                         saved_at=saved.created_at,
@@ -137,24 +133,14 @@ class LibraryService:
 
     async def list_saved_sets(self, user: User) -> list[SavedSetItem]:
         result: dict[UUID, SavedSetItem] = {}
+        placements = await repo.personal_set_folders(self.db, user.id)
         priority = {"course": 0, "article": 1, "set": 2}
         for saved in await repo.list_saves(self.db, user.id):
             target_type = "course" if saved.course_id else "article" if saved.article_id else "set"
             try:
                 item = await self._item(saved)
-                course = await course_repo.get_course(self.db, item.course_id)
-                author = await self.db.get(User, course.owner_id) if course else None
-                if course is None or author is None:
-                    continue
-                has_updates = (await self._current_snapshot(saved)) != saved.accepted_snapshot
             except NotFoundError:
                 continue
-            author_out = CourseAuthor(
-                id=author.id,
-                username=author.username,
-                display_name=author.display_name,
-                avatar_url=author.avatar_url,
-            )
             for article in saved.accepted_snapshot.get("articles", []):
                 set_data = article.get("set", {})
                 try:
@@ -172,19 +158,38 @@ class LibraryService:
                     cards_count=len(set_data.get("cards", [])),
                     lang_term=str(set_data.get("lang_term", "ru")),
                     lang_definition=str(set_data.get("lang_definition", "ru")),
-                    course_id=course.id,
-                    course_slug=course.slug,
+                    course_id=item.course_id,
+                    course_slug=item.course_slug,
                     course_title=item.course_title,
                     article_id=article_id,
                     article_title=str(article.get("title", "")),
-                    author=author_out,
+                    author=item.author,
                     save_id=saved.id,
                     access_via=target_type,
                     saved_at=saved.created_at,
-                    has_updates=has_updates,
-                    folder_id=saved.folder_id,
+                    has_updates=item.has_updates,
+                    folder_id=placements.get(set_id, saved.folder_id),
                 )
         return sorted(result.values(), key=lambda value: value.saved_at, reverse=True)
+
+    async def move_set(self, user: User, set_id: UUID, folder_id: UUID | None) -> None:
+        await lock_request(self.db, user.id)
+        if folder_id is not None:
+            folder = await content_repo.get_folder(self.db, folder_id)
+            if folder is None or folder.owner_id != user.id:
+                raise NotFoundError("Папка не найдена")
+        study_set = await content_repo.get_set(self.db, set_id)
+        if study_set is None:
+            raise NotFoundError("Набор не найден")
+        if study_set.owner_id == user.id:
+            study_set.folder_id = folder_id
+            await self.db.flush()
+            return
+        if not await repo.can_study_set(self.db, user.id, set_id) or (
+            await repo.snapshot_for_set(self.db, user.id, set_id) is None
+        ):
+            raise NotFoundError("Набор не найден в сохранённых материалах")
+        await repo.set_personal_folder(self.db, user.id, set_id, folder_id)
 
     async def get_study_course(self, user: User, course_id: UUID) -> Course:
         course = await course_repo.get_course(self.db, course_id)
@@ -296,7 +301,11 @@ class LibraryService:
                 current_set = await content_repo.get_set(self.db, current_article.set_id)
                 if current_set is not None:
                     cards_count += current_set.cards_count
+        author = await self.db.get(User, course.owner_id)
+        if author is None:
+            raise NotFoundError("Автор курса не найден")
         return LibraryItem(
+            author=CourseAuthor.model_validate(author, from_attributes=True),
             id=saved.id,
             target_type=target_type,
             target_id=target_id,

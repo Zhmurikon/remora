@@ -93,7 +93,7 @@ describe('Курсы в кабинете', () => {
       'http://localhost:3000/kurs/fizika-saved',
     );
     expect(screen.getByRole('button', { name: 'Обновить «Физика»' })).toBeTruthy();
-    await userEvent.click(screen.getByRole('button', { name: 'Созданные мной' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Свои' }));
     expect(screen.queryByText('Физика')).toBeNull();
     expect(screen.getByText('Алгебра')).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Сохранённые' }));

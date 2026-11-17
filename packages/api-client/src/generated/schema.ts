@@ -2294,6 +2294,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/library/sets/{set_id}/folder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Переместить набор в свою папку */
+        put: operations["move_set_to_folder_api_v1_library_sets__set_id__folder_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/library/{save_id}": {
         parameters: {
             query?: never;
@@ -7341,6 +7358,7 @@ export interface components {
             article_id?: string | null;
             /** Article Title */
             article_title?: string | null;
+            author: components["schemas"]["CourseAuthor"];
             /** Cards Count */
             cards_count: number;
             /**
@@ -8201,6 +8219,11 @@ export interface components {
              */
             updated_at: string;
             visibility: components["schemas"]["SetVisibility"];
+        };
+        /** SetFolderChange */
+        SetFolderChange: {
+            /** Folder Id */
+            folder_id: string | null;
         };
         /** SetLearnSettingsOut */
         SetLearnSettingsOut: {
@@ -13922,6 +13945,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SavedSetItem"][];
+                };
+            };
+        };
+    };
+    move_set_to_folder_api_v1_library_sets__set_id__folder_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetFolderChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

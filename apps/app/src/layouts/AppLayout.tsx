@@ -43,6 +43,9 @@ export function AppLayout() {
     location.pathname === '/' ||
     isMaterialsPath(location.pathname) ||
     isCourseReader ||
+    ['/sets/manage', '/courses/manage', '/library/manage', '/courses/copy/:slug'].some((path) =>
+      matchPath(path, location.pathname),
+    ) ||
     isCourseSettings ||
     isSetDetail ||
     Boolean(matchPath('/sets/:setId/edit', location.pathname));

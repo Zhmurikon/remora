@@ -1,11 +1,12 @@
 import type { components } from '@remora/api-client';
 import { pluralWithCount } from '@remora/core';
-import { ArticleContent, Button, Card } from '@remora/ui';
+import { ArticleContent, Button } from '@remora/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { CourseAttachments } from '../components/CourseAttachments';
+import { ManageHeader } from '../features/library/ManagementList';
 import { MaterialDescription } from '../features/materials/MaterialDescription';
 import { ReaderIconButton } from '../components/ReaderIconButton';
 import { SettingsIcon } from '../components/SettingsIcon';
@@ -117,46 +118,66 @@ export function CourseCopyPage() {
       return result.data;
     },
   });
-  const article = query.data?.sections.flatMap((s) => s.articles).find((a) => a.id === articleId);
+  const articles = query.data?.sections.flatMap((section) => section.articles) ?? [];
+  const selected = articles.find((article) =>
+    setId ? article.set_id === setId : article.id === articleId,
+  );
+  const invalid = Boolean((setId || articleId) && !selected) || Boolean(setId && articleId);
+  const heading = setId ? 'Копия набора' : articleId ? 'Копия статьи с карточками' : 'Копия курса';
+  const sourceUrl =
+    (import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000') +
+    '/kurs/' +
+    slug +
+    (selected ? '#article-' + selected.id : '');
   return (
-    <div className="max-w-2xl space-y-6">
-      <Link className={courseLink} to="/courses">
-        Мои курсы
-      </Link>
-      <h1 className="text-3xl font-semibold">Копирование материала</h1>
+    <div className="management">
+      <ManageHeader title={heading} />
       {query.isPending && <p role="status">Загружаем курс…</p>}
       {query.isError && (
-        <div role="alert">
-          {query.error.message}
-          <Button onClick={() => void query.refetch()}>Повторить</Button>
-        </div>
+        <p role="alert">
+          {query.error.message}{' '}
+          <button className="manage-link" onClick={() => void query.refetch()}>
+            Повторить
+          </button>
+        </p>
       )}
       {query.data &&
-        (articleId && !article ? (
-          <p role="alert">Статья не найдена.</p>
-        ) : setId ? (
-          <Card className="space-y-4">
-            <h2 className="text-xl font-semibold">
-              {query.data.sections.flatMap((s) => s.articles).find((a) => a.set_id === setId)
-                ?.title ?? query.data.title}
-            </h2>
-            <p>
-              В вашей библиотеке появится публичный набор с независимой копией карточек, без теории
-              и без курса. Вы сможете менять его и учиться, даже если автор снимет оригинал с
-              публикации. Прогресс автора не копируется.
-            </p>
-            <CopySetButton setId={setId} />
-          </Card>
+        (invalid ? (
+          <p role="alert">Материал не найден в этом курсе.</p>
         ) : (
-          <Card className="space-y-4">
-            <h2 className="text-xl font-semibold">{article?.title ?? query.data.title}</h2>
-            <p>
-              В вашей библиотеке появится публичный курс с независимой копией теории и карточек. Вы
-              сможете менять её и учиться, даже если автор снимет оригинал с публикации. Прогресс
-              автора не копируется.
+          <section className="manage-copy">
+            <h2>{selected?.title ?? query.data.title}</h2>
+            <p className="manage-meta">
+              {query.data.author.display_name || '@' + query.data.author.username} ·{' '}
+              <a href={sourceUrl}>{selected ? query.data.title : 'Оригинал курса'}</a>
             </p>
-            <CopyCourseButton courseId={query.data.id} articleId={articleId} />
-          </Card>
+            <p>
+              {setId
+                ? 'В ваших материалах появится самостоятельный публичный набор с карточками этого урока. Теория и остальные уроки в него не входят.'
+                : articleId
+                  ? 'В ваших материалах появится публичный курс с одним уроком. В него войдут текст выбранной статьи и её карточки.'
+                  : 'В ваших материалах появится публичный курс со всеми разделами, текстами уроков и карточками.'}
+            </p>
+            <p>
+              Вы сможете редактировать копию независимо от оригинала. Учебный прогресс автора не
+              переносится.
+            </p>
+            <div className="manage-inline">
+              {setId ? (
+                <CopySetButton key={setId} setId={setId} />
+              ) : (
+                <CopyCourseButton
+                  key={articleId ?? query.data.id}
+                  courseId={query.data.id}
+                  articleId={articleId}
+                />
+              )}
+            </div>
+            <p className="manage-meta">
+              Чтобы учиться по оригиналу и получать обновления, сохраните материал на{' '}
+              <a href={sourceUrl}>странице курса</a>.
+            </p>
+          </section>
         ))}
     </div>
   );

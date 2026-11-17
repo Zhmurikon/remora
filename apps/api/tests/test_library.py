@@ -52,6 +52,7 @@ async def test_course_save_grants_study_but_not_edit_and_revokes_on_unpublish(
         json={"target_type": "course", "target_id": course["id"]},
     )
     assert saved.status_code == 201, saved.text
+    assert saved.json()["author"]["username"] == "courselibrary-owner"
     assert saved.json()["cards_count"] == 1
     assert len((await client.get("/api/v1/library", headers=learner)).json()) == 1
     saved_courses = (await client.get("/api/v1/library/courses", headers=learner)).json()
@@ -264,3 +265,31 @@ async def test_article_and_set_saves_are_separate_and_protected(client: AsyncCli
         json={"target_type": "course", "target_id": course["id"]},
     )
     assert own.status_code == 409
+
+
+async def test_move_set_changes_only_personal_folder(client: AsyncClient) -> None:
+    owner = await auth(client, "move-owner")
+    learner = await auth(client, "move-learner")
+    stranger = await auth(client, "move-stranger")
+    course = await _published_course(client, owner)
+    set_id = course["set"]["id"]
+    await client.post(
+        "/api/v1/library",
+        headers=learner,
+        json={"target_type": "course", "target_id": course["id"]},
+    )
+    folder = (
+        await client.post("/api/v1/folders", headers=learner, json={"title": "Повторение"})
+    ).json()["id"]
+    path = f"/api/v1/library/sets/{set_id}/folder"
+    assert (await client.put(path, headers=stranger, json={"folder_id": None})).status_code == 404
+    assert (await client.put(path, headers=owner, json={"folder_id": folder})).status_code == 404
+    assert (await client.put(path, headers=learner, json={"folder_id": folder})).status_code == 204
+    assert (await client.get("/api/v1/library/sets", headers=learner)).json()[0][
+        "folder_id"
+    ] == folder
+    assert (await client.get(f"/api/v1/sets/{set_id}", headers=owner)).json()["folder_id"] is None
+    assert (await client.put(path, headers=learner, json={"folder_id": None})).status_code == 204
+    assert (await client.get("/api/v1/library/sets", headers=learner)).json()[0][
+        "folder_id"
+    ] is None

@@ -1,24 +1,32 @@
 import type { components } from '@remora/api-client';
-import { Badge, Button, Card } from '@remora/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import {
+  ManageHeader,
+  ManageGroup,
+  OrderedRows,
+  cardCount,
+} from '../features/library/ManagementList';
 import { LibraryUpdateControl } from '../features/library/LibraryUpdateControl';
-import { ListSort, sortItems, useListSort } from '../features/library/ListSort';
+import { ListSort, sortItems, useListSort, useCustomOrder } from '../features/library/ListSort';
 
-const WEB_URL = import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000';
-const catalogLinkStyle =
-  'border-border bg-surface text-fg hover:bg-surface-muted focus-visible:outline-primary mt-5 inline-flex min-h-11 items-center justify-center rounded-md border px-4 font-medium transition-colors focus-visible:outline focus-visible:outline-2';
-
+const web = import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000';
+type Item = components['schemas']['LibraryItem'];
+function titleOf(item: Item) {
+  return (item.target_type === 'set' ? item.set_title : item.article_title) ?? item.course_title;
+}
 export function LibraryPage() {
-  const queryClient = useQueryClient();
-  const [sortMode, setSortMode] = useListSort('remora:sort:library');
+  const client = useQueryClient();
+  const [search, setSearch] = useState('');
+  const [mode, setMode] = useListSort('remora:sort:library');
+  const [order, setOrder] = useCustomOrder('remora:order:library');
   const library = useQuery({
     queryKey: ['library'],
     queryFn: async () => {
       const { data, error } = await api.GET('/api/v1/library');
-      if (error) throw new Error('Не удалось загрузить библиотеку');
+      if (!data || error) throw new Error('Не удалось загрузить библиотеку');
       return data;
     },
   });
@@ -29,99 +37,128 @@ export function LibraryPage() {
       });
       if (error) throw new Error('Не удалось убрать материал');
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['library'] }),
+    onSuccess: async () => {
+      await Promise.all(
+        ['library', 'folders', 'course', 'set', 'study'].map((key) =>
+          client.invalidateQueries({ queryKey: [key] }),
+        ),
+      );
+    },
   });
-  const sortedLibrary = useMemo(
-    () =>
-      sortItems(library.data ?? [], sortMode, (item) => ({
-        id: item.id,
-        title: item.article_title ?? item.set_title ?? item.course_title,
-        date: item.saved_at,
-        size: item.cards_count,
-      })),
-    [library.data, sortMode],
+  const rows = sortItems(
+    library.data ?? [],
+    mode,
+    (item) => ({ id: item.id, title: titleOf(item), date: item.saved_at, size: item.cards_count }),
+    order,
+  ).map((item) => ({ ...item, title: titleOf(item) }));
+  const needle = search.trim().toLocaleLowerCase('ru');
+  const visible = rows.filter((item) =>
+    [item.title, item.course_title, item.author?.display_name, item.author?.username].some((text) =>
+      text?.toLocaleLowerCase('ru').includes(needle),
+    ),
   );
-
   return (
-    <div>
-      <header>
-        <p className="text-primary text-sm font-medium">Связанные оригиналы</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">Библиотека</h1>
-        <p className="text-fg-muted mt-2 max-w-2xl">
-          Учитесь по материалам авторов. Изменения не затрагивают ваш личный прогресс.
-        </p>
-        <a className={catalogLinkStyle} href={`${WEB_URL}/kursy`}>
+    <div className="management">
+      <ManageHeader title="Сохранённые материалы">
+        <a className="manage-link" href={web + '/kursy'}>
           Найти курсы
         </a>
-      </header>
-      {library.isPending && <p className="text-fg-muted mt-8">Загружаем библиотеку…</p>}
-      {library.isError && <p className="text-danger mt-8">Не удалось загрузить библиотеку.</p>}
-      <div className="mt-8 flex justify-end">
-        <ListSort value={sortMode} onChange={setSortMode} label="Сортировка библиотеки" />
+      </ManageHeader>
+      <div className="manage-toolbar">
+        <input
+          type="search"
+          aria-label="Поиск по сохранённым материалам"
+          placeholder="Найти материал или автора"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <ListSort value={mode} onChange={setMode} label="Сортировка библиотеки" />
       </div>
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        {sortedLibrary.map((item) => (
-          <LibraryCard
-            key={item.id}
-            item={item}
-            removing={remove.isPending && remove.variables === item.id}
-            onRemove={() => remove.mutate(item.id)}
-          />
-        ))}
-      </div>
-      {library.data?.length === 0 && (
-        <Card className="mt-8 p-8 text-center">
-          <p className="text-fg-muted">Сохранённых материалов пока нет.</p>
-        </Card>
+      {library.isError ? (
+        <p role="alert">
+          {library.error.message}{' '}
+          <button className="manage-link" onClick={() => void library.refetch()}>
+            Повторить
+          </button>
+        </p>
+      ) : library.isPending ? (
+        <p role="status">Загружаем библиотеку…</p>
+      ) : !visible.length ? (
+        <p className="manage-note">
+          {needle ? 'Материалы не найдены.' : 'Сохранённых материалов пока нет.'}
+        </p>
+      ) : null}
+      {remove.isError && (
+        <p role="alert" className="danger">
+          {remove.error.message}
+        </p>
       )}
+      {(
+        [
+          ['course', 'Курсы'],
+          ['article', 'Статьи'],
+          ['set', 'Наборы'],
+        ] as const
+      ).map(([type, label]) => {
+        const items = visible.filter((item) => item.target_type === type);
+        if (!items.length) return null;
+        return (
+          <ManageGroup key={type} title={label} count={items.length}>
+            <OrderedRows
+              items={items}
+              custom={mode === 'custom'}
+              fullOrder={rows.map((item) => item.id)}
+              onOrder={setOrder}
+            >
+              {(item) => (
+                <>
+                  <Link
+                    className="manage-title"
+                    to={
+                      type === 'set'
+                        ? '/sets/' + item.set_id
+                        : '/courses/' +
+                          item.course_id +
+                          (type === 'article' ? '?article=' + item.article_id : '')
+                    }
+                  >
+                    {item.title}
+                  </Link>
+                  <p className="manage-meta">
+                    {cardCount(item.cards_count)} ·{' '}
+                    {item.author?.display_name || item.author?.username} ·{' '}
+                    <a href={web + '/kurs/' + item.course_slug}>
+                      {type === 'course' ? 'Оригинал курса' : item.course_title}
+                    </a>
+                  </p>
+                  <div className="manage-inline">
+                    {item.set_id && (
+                      <Link to={'/sets/' + item.set_id + '/learn'}>Начать учиться</Link>
+                    )}
+                    <button
+                      className="manage-link"
+                      disabled={remove.isPending}
+                      onClick={() => {
+                        if (window.confirm('Убрать «' + item.title + '» из сохранённых?'))
+                          remove.mutate(item.id);
+                      }}
+                    >
+                      Убрать
+                    </button>
+                  </div>
+                  {item.has_updates && (
+                    <LibraryUpdateControl
+                      saveId={item.id}
+                      title={item.title}
+                      targetType={item.target_type}
+                    />
+                  )}
+                </>
+              )}
+            </OrderedRows>
+          </ManageGroup>
+        );
+      })}
     </div>
-  );
-}
-
-type LibraryItem = components['schemas']['LibraryItem'];
-
-function LibraryCard({
-  item,
-  removing,
-  onRemove,
-}: {
-  item: LibraryItem;
-  removing: boolean;
-  onRemove: () => void;
-}) {
-  const title = item.article_title ?? item.set_title ?? item.course_title;
-  return (
-    <Card className="p-5">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge>
-          {item.target_type === 'course'
-            ? 'Курс'
-            : item.target_type === 'article'
-              ? 'Статья'
-              : 'Набор'}
-        </Badge>
-      </div>
-      <h2 className="mt-3 text-xl font-semibold">{title}</h2>
-      <p className="text-fg-muted mt-2 text-sm">
-        {item.course_title} · {item.cards_count} карточек
-      </p>
-      <div className="mt-5 flex flex-wrap gap-3">
-        {item.set_id ? (
-          <Link to={`/sets/${item.set_id}/learn`}>
-            <Button>Начать учиться</Button>
-          </Link>
-        ) : (
-          <a href={`${WEB_URL}/kurs/${item.course_slug}`}>
-            <Button>Открыть курс</Button>
-          </a>
-        )}
-        {item.has_updates && (
-          <LibraryUpdateControl saveId={item.id} title={title} targetType={item.target_type} />
-        )}
-        <Button variant="ghost" loading={removing} onClick={onRemove}>
-          Убрать
-        </Button>
-      </div>
-    </Card>
   );
 }

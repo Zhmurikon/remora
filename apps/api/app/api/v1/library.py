@@ -15,6 +15,7 @@ from app.schemas.library import (
     LibraryState,
     SavedCourseItem,
     SavedSetItem,
+    SetFolderChange,
 )
 from app.services.library import LibraryService
 
@@ -33,6 +34,16 @@ async def list_saved_sets(
     user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
 ) -> list[SavedSetItem]:
     return await LibraryService(db).list_saved_sets(user)
+
+
+@router.put("/sets/{set_id}/folder", status_code=204, summary="Переместить набор в свою папку")
+async def move_set_to_folder(
+    set_id: UUID,
+    body: SetFolderChange,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    await LibraryService(db).move_set(user, set_id, body.folder_id)
 
 
 @router.get("", response_model=list[LibraryItem], summary="Сохранённые оригиналы")

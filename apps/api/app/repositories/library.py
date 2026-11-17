@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.classes import ClassMember, ClassMemberStatus, Classroom, ClassSet
 from app.models.content import Card, ContentType, StudySet
-from app.models.courses import Course, CourseArticle, CourseSection, LibrarySave
+from app.models.courses import Course, CourseArticle, CourseSection, LibrarySave, SavedSetFolder
 from app.models.user import User, UserStatus
 
 
@@ -177,3 +177,15 @@ async def cards_accessible_by(
         card.set_id for card in cards if await can_study_set(db, user_id, card.set_id)
     }
     return {card.id: card for card in cards if card.set_id in allowed_sets}
+
+
+async def personal_set_folders(db: AsyncSession, user_id: UUID) -> dict[UUID, UUID | None]:
+    placements = await db.scalars(select(SavedSetFolder).where(SavedSetFolder.user_id == user_id))
+    return {row.set_id: row.folder_id for row in placements}
+
+
+async def set_personal_folder(
+    db: AsyncSession, user_id: UUID, set_id: UUID, folder_id: UUID | None
+) -> None:
+    await db.merge(SavedSetFolder(user_id=user_id, set_id=set_id, folder_id=folder_id))
+    await db.flush()

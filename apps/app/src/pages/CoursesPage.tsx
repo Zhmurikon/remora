@@ -1,25 +1,18 @@
-import { Badge, Button, Card } from '@remora/ui';
+import {
+  ManageHeader,
+  ManageGroup,
+  OrderedRows,
+  OriginFilter,
+  cardCount,
+} from '../features/library/ManagementList';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
-import {
-  DropIndicator,
-  ListSort,
-  moveCustomItem,
-  moveCustomItemTo,
-  sortItems,
-  useCustomOrder,
-  useDragOrder,
-  useListSort,
-} from '../features/library/ListSort';
+import { ListSort, sortItems, useCustomOrder, useListSort } from '../features/library/ListSort';
 import { LibraryUpdateControl } from '../features/library/LibraryUpdateControl';
 
 const WEB_URL = import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000';
-const primaryActionStyle =
-  'bg-primary text-primary-fg hover:bg-primary-hover focus-visible:outline-primary inline-flex min-h-11 items-center justify-center rounded-md px-4 font-medium transition-colors focus-visible:outline focus-visible:outline-2';
-const secondaryActionStyle =
-  'border-border bg-surface text-fg hover:bg-surface-muted focus-visible:outline-primary inline-flex min-h-11 items-center justify-center rounded-md border px-4 font-medium transition-colors focus-visible:outline focus-visible:outline-2';
 function failure(error: unknown): Error {
   if (error && typeof error === 'object' && 'code' in error && error.code === 'CONFLICT') {
     return new Error('Этот набор уже входит в курс. Выберите другой набор.');
@@ -28,6 +21,7 @@ function failure(error: unknown): Error {
 }
 
 export function CoursesPage() {
+  const [search, setSearch] = useState('');
   const [origin, setOrigin] = useState<'all' | 'owned' | 'saved'>('all');
   const [sortMode, setSortMode] = useListSort('remora:sort:courses', 'custom', false);
   const [customOrder, setCustomOrder] = useCustomOrder('remora:order:courses');
@@ -47,14 +41,6 @@ export function CoursesPage() {
       return data;
     },
   });
-  const isEmpty =
-    !courses.isPending &&
-    !savedCourses.isPending &&
-    (origin === 'saved'
-      ? savedCourses.data?.length === 0
-      : origin === 'owned'
-        ? courses.data?.length === 0
-        : courses.data?.length === 0 && savedCourses.data?.length === 0);
   const sortedCourses = useMemo(
     () =>
       sortItems(
@@ -85,79 +71,38 @@ export function CoursesPage() {
     [customOrder, savedCourses.data, sortMode],
   );
   const allOrderedIds = [...sortedCourses, ...sortedSavedCourses].map((course) => course.id);
-  const visibleOwnedIds = origin === 'saved' ? [] : sortedCourses.map((course) => course.id);
-  const visibleSavedIds = origin === 'owned' ? [] : sortedSavedCourses.map((course) => course.id);
-
-  function moveCourse(courseId: string, direction: -1 | 1) {
-    const visibleIds = visibleOwnedIds.includes(courseId) ? visibleOwnedIds : visibleSavedIds;
-    setCustomOrder(moveCustomItem(allOrderedIds, visibleIds, courseId, direction));
-  }
-  const moveCourseByDrag = (courseId: string, targetId: string, afterTarget: boolean) => {
-    setCustomOrder(moveCustomItemTo(allOrderedIds, courseId, targetId, afterTarget));
+  const needle = search.trim().toLocaleLowerCase('ru');
+  const matches = (course: { title: string; description: string }) =>
+    (course.title + ' ' + course.description).toLocaleLowerCase('ru').includes(needle);
+  const owned = origin === 'saved' ? [] : sortedCourses.filter(matches);
+  const saved = origin === 'owned' ? [] : sortedSavedCourses.filter(matches);
+  const ordering = {
+    fullOrder: allOrderedIds,
+    onOrder: setCustomOrder,
+    custom: sortMode === 'custom',
   };
-  const ownedCourseDrag = useDragOrder(moveCourseByDrag, visibleOwnedIds, moveCourse);
-  const savedCourseDrag = useDragOrder(moveCourseByDrag, visibleSavedIds, moveCourse);
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-semibold">Мои курсы</h1>
-        <p className="text-fg-muted mt-2">
-          Новые курсы публичны. Ссылкой на курс можно поделиться сразу.
-        </p>
-        <div className="mt-5 flex flex-wrap gap-3">
-          <Link className={primaryActionStyle} to="/courses/new">
-            Создать курс
-          </Link>
-          <a className={secondaryActionStyle} href={`${WEB_URL}/kursy`}>
-            Найти курсы
-          </a>
-        </div>
-        <nav className="mt-5 flex flex-wrap gap-2" aria-label="Фильтр курсов">
-          {(
-            [
-              ['all', 'Все'],
-              ['owned', 'Созданные мной'],
-              ['saved', 'Сохранённые'],
-            ] as const
-          ).map(([value, label]) => (
-            <Button
-              key={value}
-              variant={origin === value ? 'primary' : 'secondary'}
-              size="sm"
-              aria-pressed={origin === value}
-              onClick={() => setOrigin(value)}
-            >
-              {label}
-            </Button>
-          ))}
-        </nav>
-        {origin === 'saved' && (
-          <Link
-            to="/library/manage"
-            className="text-primary inline-flex min-h-11 items-center text-sm underline underline-offset-2"
-          >
-            Управлять сохранениями
-          </Link>
-        )}
-      </header>
-      {(courses.isPending || savedCourses.isPending) && <p role="status">Загружаем курсы…</p>}
-      {(courses.isError || savedCourses.isError) && (
-        <div role="alert">
-          <p>{courses.error?.message ?? savedCourses.error?.message}</p>
-          <Button className="min-h-11" variant="secondary" onClick={() => void courses.refetch()}>
-            Повторить
-          </Button>
-        </div>
-      )}
-      {isEmpty && (
-        <Card>
-          <h2 className="text-xl font-semibold">Ваш первый курс</h2>
-          <p className="text-fg-muted mt-2">
-            Создайте курс с нуля или выберите свой набор карточек как первый материал.
-          </p>
-        </Card>
-      )}
-      <div className="flex justify-end">
+    <div className="management">
+      <ManageHeader title="Сортировка курсов">
+        <a className="manage-link" href={WEB_URL + '/kursy'}>
+          Найти курсы
+        </a>
+        <Link className="manage-link" to="/library/manage">
+          Управлять сохранениями
+        </Link>
+        <Link className="manage-action" to="/courses/new">
+          Создать курс
+        </Link>
+      </ManageHeader>
+      <div className="manage-toolbar">
+        <input
+          type="search"
+          aria-label="Поиск курсов"
+          placeholder="Найти курс"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <OriginFilter value={origin} onChange={setOrigin} />
         <ListSort
           value={sortMode}
           onChange={setSortMode}
@@ -165,102 +110,86 @@ export function CoursesPage() {
           includeSize={false}
         />
       </div>
-      {sortMode === 'custom' && (
-        <p className="text-fg-muted text-sm">
-          Перетаскивайте карточки. Новые курсы будут появляться сверху.
+      {courses.isError || savedCourses.isError ? (
+        <p role="alert">
+          {courses.error?.message ?? savedCourses.error?.message}{' '}
+          <button
+            className="manage-link"
+            onClick={() => {
+              void courses.refetch();
+              void savedCourses.refetch();
+            }}
+          >
+            Повторить
+          </button>
         </p>
+      ) : courses.isPending || savedCourses.isPending ? (
+        <p role="status">Загружаем курсы…</p>
+      ) : (
+        <>
+          {owned.length > 0 && (
+            <ManageGroup title="Свои курсы" count={owned.length}>
+              <OrderedRows {...ordering} items={owned}>
+                {(course) => (
+                  <>
+                    <Link className="manage-title" draggable={false} to={'/courses/' + course.id}>
+                      {course.title}
+                    </Link>
+                    <p className="manage-meta">
+                      Изменён {new Date(course.updated_at).toLocaleDateString('ru-RU')}
+                    </p>
+                  </>
+                )}
+              </OrderedRows>
+            </ManageGroup>
+          )}
+          {saved.length > 0 && (
+            <ManageGroup title="Сохранённые курсы" count={saved.length}>
+              <OrderedRows {...ordering} items={saved}>
+                {(course) => (
+                  <>
+                    <Link
+                      className="manage-title"
+                      draggable={false}
+                      to={'/courses/' + course.id}
+                      aria-label={[course.title, course.description].filter(Boolean).join(' ')}
+                    >
+                      {course.title}
+                    </Link>
+                    <p className="manage-meta">
+                      {cardCount(course.cards_count)} ·{' '}
+                      {course.author.display_name || '@' + course.author.username} ·{' '}
+                      <a aria-label="Публичная страница" href={WEB_URL + '/kurs/' + course.slug}>
+                        Оригинал курса
+                      </a>
+                    </p>
+                    <div className="manage-inline">
+                      <Link to={'/courses/' + course.id + '/learn'}>Учить весь курс</Link>
+                      <Link to={'/courses/' + course.id}>Открыть курс</Link>
+                    </div>
+                    {course.has_updates && (
+                      <LibraryUpdateControl
+                        saveId={course.save_id}
+                        title={course.title}
+                        targetType="course"
+                      />
+                    )}
+                  </>
+                )}
+              </OrderedRows>
+            </ManageGroup>
+          )}
+          {!owned.length && !saved.length && (
+            <p className="manage-note">
+              {needle
+                ? 'Курсы не найдены.'
+                : origin === 'saved'
+                  ? 'Сохранённых курсов пока нет.'
+                  : 'Ваш первый курс'}
+            </p>
+          )}
+        </>
       )}
-      <div className="grid gap-4 sm:grid-cols-2">
-        {origin !== 'saved' &&
-          sortedCourses.map((course) => (
-            <div
-              key={course.id}
-              {...(sortMode === 'custom'
-                ? ownedCourseDrag.getDragProps(course.id, course.title)
-                : {})}
-              className={`focus-visible:outline-primary relative transition-opacity focus-visible:outline focus-visible:outline-2 ${
-                sortMode === 'custom' ? 'cursor-grab active:cursor-grabbing' : ''
-              } ${ownedCourseDrag.draggedId === course.id ? 'opacity-40' : ''}`}
-            >
-              {ownedCourseDrag.dropTarget?.id === course.id && (
-                <DropIndicator edge={ownedCourseDrag.dropTarget.edge} />
-              )}
-              <Card className="h-full break-words">
-                <Link
-                  to={`/courses/${course.id}`}
-                  draggable={sortMode !== 'custom'}
-                  className="focus-visible:outline-primary block rounded-lg focus-visible:outline focus-visible:outline-2"
-                >
-                  <Badge>Ваш курс</Badge>
-                  <h2 className="text-xl font-semibold">{course.title}</h2>
-                  <p className="text-fg-muted mt-2 line-clamp-3">
-                    {course.description || 'Описание пока не добавлено'}
-                  </p>
-                  <p className="text-fg-subtle mt-4 text-sm">
-                    Изменён {new Date(course.updated_at).toLocaleDateString('ru-RU')}
-                  </p>
-                </Link>
-              </Card>
-            </div>
-          ))}
-        {origin !== 'owned' &&
-          sortedSavedCourses.map((course) => (
-            <div
-              key={course.id}
-              {...(sortMode === 'custom'
-                ? savedCourseDrag.getDragProps(course.id, course.title)
-                : {})}
-              className={`focus-visible:outline-primary relative transition-opacity focus-visible:outline focus-visible:outline-2 ${
-                sortMode === 'custom' ? 'cursor-grab active:cursor-grabbing' : ''
-              } ${savedCourseDrag.draggedId === course.id ? 'opacity-40' : ''}`}
-            >
-              {savedCourseDrag.dropTarget?.id === course.id && (
-                <DropIndicator edge={savedCourseDrag.dropTarget.edge} />
-              )}
-              <Card className="h-full break-words">
-                <Link
-                  to={`/courses/${course.id}`}
-                  draggable={sortMode !== 'custom'}
-                  className="focus-visible:outline-primary block rounded-lg focus-visible:outline focus-visible:outline-2"
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge>Сохранённый</Badge>
-                  </div>
-                  <h2 className="mt-3 text-xl font-semibold">{course.title}</h2>
-                  <p className="text-fg-muted mt-2 line-clamp-3">
-                    {course.description || 'Описание пока не добавлено'}
-                  </p>
-                  <p className="text-fg-subtle mt-4 text-sm">
-                    Автор: {course.author.display_name || `@${course.author.username}`} ·{' '}
-                    {course.cards_count} карточек
-                  </p>
-                </Link>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {course.has_updates && (
-                    <LibraryUpdateControl
-                      saveId={course.save_id}
-                      title={course.title}
-                      targetType="course"
-                    />
-                  )}
-                  <Link to={`/courses/${course.id}/learn`}>
-                    <Button size="sm">Учить весь курс</Button>
-                  </Link>
-                  <Link to={`/courses/${course.id}`}>
-                    <Button size="sm" variant="secondary">
-                      Открыть курс
-                    </Button>
-                  </Link>
-                  <a href={`${WEB_URL}/kurs/${course.slug}`}>
-                    <Button size="sm" variant="ghost">
-                      Публичная страница
-                    </Button>
-                  </a>
-                </div>
-              </Card>
-            </div>
-          ))}
-      </div>
     </div>
   );
 }

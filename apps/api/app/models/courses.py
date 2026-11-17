@@ -136,6 +136,22 @@ class LibrarySave(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
 
 
+class SavedSetFolder(Base):
+    """Личная папка набора, в том числе полученного вместе с целым курсом."""
+
+    __tablename__ = "saved_set_folders"
+
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    set_id: Mapped[UUID] = mapped_column(
+        ForeignKey("study_sets.id", ondelete="CASCADE"), primary_key=True
+    )
+    folder_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("folders.id", ondelete="SET NULL"), index=True
+    )
+
+
 class CourseSearchSync(Base):
     """Накопленная задача точечной пересборки одного документа каталога.
 

@@ -9,12 +9,17 @@ from pydantic import BaseModel
 from app.schemas.courses import CourseAuthor
 
 
+class SetFolderChange(BaseModel):
+    folder_id: UUID | None
+
+
 class LibrarySaveCreate(BaseModel):
     target_type: Literal["course", "article", "set"]
     target_id: UUID
 
 
 class LibraryItem(BaseModel):
+    author: CourseAuthor
     id: UUID
     target_type: Literal["course", "article", "set"]
     target_id: UUID
