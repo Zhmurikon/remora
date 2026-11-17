@@ -4,7 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CoursePage, CoursesPage, NewCoursePage } from './CoursesPage';
+import { CoursesPage } from './CoursesPage';
+import { CoursePage, NewCoursePage } from './CourseSettingsPage';
 import { api } from '../lib/api';
 
 vi.mock('../lib/api', () => ({
@@ -39,6 +40,7 @@ function mount(path = '/courses') {
           <Route path="/courses/new" element={<NewCoursePage />} />
           <Route path="/courses/:courseId" element={<CoursePage />} />
           <Route path="/courses/:courseId/edit" element={<CoursePage />} />
+          <Route path="/courses/:courseId/structure" element={<CoursePage />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -170,6 +172,7 @@ describe('Курсы в кабинете', () => {
       } as never)
       .mockResolvedValueOnce({ data: course, response: new Response() } as never);
     mount('/courses/course-1');
+    await userEvent.click(await screen.findByRole('link', { name: /Публикация и доступ/ }));
     await userEvent.type(await screen.findByLabelText('Теги через запятую'), 'математика');
     await userEvent.click(screen.getByRole('button', { name: 'Опубликовать курс' }));
     expect(await screen.findByText('Курс опубликован. Ссылкой можно поделиться.')).toBeTruthy();
@@ -194,11 +197,14 @@ describe('Курсы в кабинете', () => {
     mount('/courses/course-1');
     const title = await screen.findByLabelText('Название курса');
     await userEvent.type(title, ' новая');
+    await userEvent.click(screen.getByRole('link', { name: /Публикация и доступ/ }));
     expect(
       (screen.getByRole('button', { name: 'Опубликовать курс' }) as HTMLButtonElement).disabled,
     ).toBe(true);
+    await userEvent.click(screen.getByRole('link', { name: 'О курсе' }));
     await userEvent.clear(title);
     await userEvent.type(title, course.title);
+    await userEvent.click(screen.getByRole('link', { name: /Публикация и доступ/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Опубликовать курс' }));
     expect((await screen.findByRole('alert')).textContent).toContain('хотя бы с одной карточкой');
   });
@@ -223,16 +229,82 @@ describe('Курсы в кабинете', () => {
     vi.mocked(api.POST).mockResolvedValue({ data: course, response: new Response() } as never);
     mount('/courses/new');
     await userEvent.type(screen.getByLabelText('Название курса'), 'Алгебра');
+    await userEvent.click(screen.getByRole('link', { name: /Первый набор/ }));
     await userEvent.selectOptions(screen.getByLabelText('Первый набор карточек'), 'set-1');
     vi.mocked(api.GET).mockResolvedValue({ data: course, response: new Response() } as never);
     await userEvent.click(screen.getByRole('button', { name: 'Создать курс' }));
-    expect(await screen.findByText('Материалы курса')).toBeTruthy();
+    await userEvent.click(await screen.findByRole('link', { name: 'Материалы курса' }));
+    await userEvent.click(screen.getByText('Основной раздел'));
     expect(api.POST).toHaveBeenCalledWith('/api/v1/courses', {
       body: { title: 'Алгебра', description: '', is_published: true, set_id: 'set-1' },
     });
     expect(screen.getByRole('link', { name: 'Редактировать карточки' }).getAttribute('href')).toBe(
       '/sets/set-1/edit',
     );
+  });
+
+  it('открывает редактор структуры внутри настроек и сохраняет поля при переключении', async () => {
+    vi.mocked(api.GET).mockImplementation(
+      async (path) =>
+        ({
+          data: path === '/api/v1/sets' ? [] : { ...course, revision: 'v1' },
+          response: new Response(),
+        }) as never,
+    );
+    mount('/courses/course-1/structure');
+    expect(await screen.findByRole('heading', { name: 'Настройки курса' })).toBeTruthy();
+    expect(await screen.findByLabelText('Название раздела 1')).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Структура/ }).getAttribute('aria-current')).toBe(
+      'page',
+    );
+    await userEvent.click(screen.getByRole('link', { name: 'О курсе' }));
+    const title = screen.getByLabelText('Название курса') as HTMLTextAreaElement;
+    await userEvent.type(title, ' и анализ');
+    await userEvent.click(screen.getByRole('link', { name: /Структура/ }));
+    await screen.findByLabelText('Название раздела 1');
+    await userEvent.click(screen.getByRole('link', { name: 'О курсе' }));
+    expect((screen.getByLabelText('Название курса') as HTMLTextAreaElement).value).toBe(
+      'Алгебра и анализ',
+    );
+  });
+
+  it('использует новую ревизию для черновика структуры после сохранения описания', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    let revision = 'v1';
+    const data = () => ({ ...course, revision });
+    vi.mocked(api.GET).mockImplementation(
+      async (path) =>
+        ({
+          data: path === '/api/v1/sets' ? [] : data(),
+          response: new Response(),
+        }) as never,
+    );
+    vi.mocked(api.PUT).mockImplementation(async () => {
+      revision = 'v2';
+      return { data: data(), response: new Response() } as never;
+    });
+    try {
+      mount('/courses/course-1/structure');
+      await userEvent.type(await screen.findByLabelText('Название раздела 1'), ' и задачи');
+      await userEvent.click(screen.getByRole('link', { name: 'О курсе' }));
+      await userEvent.type(screen.getByLabelText('Описание'), ' теории');
+      await userEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
+      await screen.findByText('Изменения сохранены');
+      await userEvent.click(screen.getByRole('link', { name: /Структура/ }));
+      expect(((await screen.findByLabelText('Название раздела 1')) as HTMLInputElement).value).toBe(
+        'Основной раздел и задачи',
+      );
+      await userEvent.click(screen.getByRole('button', { name: 'Сохранить структуру' }));
+      await screen.findByText('Структура сохранена');
+      expect(api.PUT).toHaveBeenLastCalledWith(
+        '/api/v1/courses/{course_id}/structure',
+        expect.objectContaining({
+          body: expect.objectContaining({ revision: 'v2' }),
+        }),
+      );
+    } finally {
+      confirm.mockRestore();
+    }
   });
 
   it('сохраняет название и описание', async () => {
@@ -260,6 +332,7 @@ describe('Курсы в кабинете', () => {
     vi.mocked(api.DELETE).mockResolvedValue({ response: new Response(null, { status: 204 }) });
     mount('/courses/course-1');
 
+    await userEvent.click(await screen.findByRole('link', { name: /Другие действия/ }));
     await userEvent.click(await screen.findByRole('button', { name: 'Удалить курс' }));
     expect(api.DELETE).not.toHaveBeenCalled();
     expect(screen.getByText('Удалить курс «Алгебра»? Это действие нельзя отменить.')).toBeTruthy();
@@ -284,10 +357,12 @@ describe('Курсы в кабинете', () => {
     } as never);
     mount('/courses/new');
     await userEvent.type(screen.getByLabelText('Название курса'), 'Алгебра');
+    await userEvent.click(screen.getByRole('link', { name: /Первый набор/ }));
     await userEvent.selectOptions(screen.getByLabelText('Первый набор карточек'), 'set-1');
     await userEvent.click(screen.getByRole('button', { name: 'Создать курс' }));
     expect((await screen.findByRole('alert')).textContent).toContain('уже входит в курс');
-    expect((screen.getByLabelText('Название курса') as HTMLInputElement).value).toBe('Алгебра');
+    await userEvent.click(screen.getByRole('link', { name: 'О курсе' }));
+    expect((screen.getByLabelText('Название курса') as HTMLTextAreaElement).value).toBe('Алгебра');
     await waitFor(() =>
       expect(
         (screen.getByRole('button', { name: 'Создать курс' }) as HTMLButtonElement).disabled,

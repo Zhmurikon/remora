@@ -52,6 +52,7 @@ export function CoursePublicationPanel({
     },
     onSuccess: (data) => {
       client.setQueryData(['course', course.id], data);
+      void client.resetQueries({ queryKey: ['course-editor', data.id], exact: true });
       void client.invalidateQueries({ queryKey: ['courses'] });
       setTags(data.tags.join(', '));
       setConfirmHide(false);

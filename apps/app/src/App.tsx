@@ -4,7 +4,8 @@ import { AchievementCelebration } from './features/achievements/AchievementCeleb
 import { ProtectedRoute } from './features/auth/ProtectedRoute';
 import { AppLayout } from './layouts/AppLayout';
 import { DashboardPage } from './pages/DashboardPage';
-import { CoursePage, CoursesPage, NewCoursePage } from './pages/CoursesPage';
+import { CoursesPage } from './pages/CoursesPage';
+import { CoursePage, NewCoursePage } from './pages/CourseSettingsPage';
 import { CourseEditorPage } from './pages/CourseEditorPage';
 import { CourseCopyPage, CourseReaderPage } from './pages/CourseReaderPage';
 import { FlashcardsPage } from './pages/FlashcardsPage';
@@ -52,7 +53,7 @@ export function App() {
               <Route path="courses/new" element={<NewCoursePage />} />
               <Route path="courses/:courseId" element={<CourseReaderPage />} />
               <Route path="courses/:courseId/edit" element={<CoursePage />} />
-              <Route path="courses/:courseId/structure" element={<CourseEditorPage />} />
+              <Route path="courses/:courseId/structure" element={<CoursePage />} />
               <Route
                 path="courses/:courseId/materials/:articleId/edit"
                 element={<CourseEditorPage />}

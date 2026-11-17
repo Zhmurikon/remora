@@ -34,10 +34,16 @@ export function AppLayout() {
   const isSetDetail =
     Boolean(matchPath('/sets/:setId', location.pathname)) &&
     !matchPath('/sets/manage', location.pathname);
+  const isCourseSettings = [
+    '/courses/new',
+    '/courses/:courseId/edit',
+    '/courses/:courseId/structure',
+  ].some((path) => matchPath(path, location.pathname));
   const hasPaperShell =
     location.pathname === '/' ||
     isMaterialsPath(location.pathname) ||
     isCourseReader ||
+    isCourseSettings ||
     isSetDetail;
   const user = useAuthStore((state) => state.user);
   const becomeGuest = useAuthStore((state) => state.becomeGuest);

@@ -29,9 +29,11 @@ export function CourseEditorPage() {
   });
   return (
     <div className="space-y-6">
-      <Link to={`/courses/${courseId}`} className={courseLink}>
-        К курсу
-      </Link>
+      {articleId && (
+        <Link to={`/courses/${courseId}`} className={courseLink}>
+          К курсу
+        </Link>
+      )}
       {query.isPending && <p role="status">Загружаем редактор…</p>}
       {query.isError && (
         <div role="alert">
@@ -53,12 +55,17 @@ export function CourseEditorPage() {
 function StructureForm({ initial, articleId }: { initial: Detail; articleId?: string }) {
   const client = useQueryClient();
   const navigate = useNavigate();
-  const [base, setBase] = useState(drafts.get(initial.id)?.base ?? initial);
-  const fromDetail = (data: Detail): Section[] => data.sections.map((s) => ({ ...s, key: s.id }));
-  const [sections, setSections] = useState<Section[]>(
-    () => drafts.get(initial.id)?.sections ?? fromDetail(initial),
+  const draft = drafts.get(initial.id);
+  // Если менялись только настройки курса, черновик можно сохранить с новой ревизией.
+  // При изменении самих разделов сервер проверит прежнюю ревизию и покажет конфликт.
+  const [base, setBase] = useState(() =>
+    draft && JSON.stringify(draft.base.sections) !== JSON.stringify(initial.sections)
+      ? draft.base
+      : initial,
   );
-  const [dirty, setDirty] = useState(drafts.has(initial.id));
+  const fromDetail = (data: Detail): Section[] => data.sections.map((s) => ({ ...s, key: s.id }));
+  const [sections, setSections] = useState<Section[]>(() => draft?.sections ?? fromDetail(initial));
+  const [dirty, setDirty] = useState(!!draft);
   const [preview, setPreview] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
@@ -186,35 +193,31 @@ function StructureForm({ initial, articleId }: { initial: Detail; articleId?: st
     );
   return (
     <div className="space-y-6">
-      <nav
-        aria-label="Управление курсом"
-        className="border-border flex flex-wrap gap-5 border-b pb-3"
-      >
-        <Link className={courseLink} to={`/courses/${base.id}/read`}>
-          Читать курс
-        </Link>
-        <Link
-          className={courseLink}
-          aria-current={!articleId ? 'page' : undefined}
-          to={`/courses/${base.id}/structure`}
-        >
-          Структура курса
-        </Link>
-        <Link className={courseLink} to={`/courses/${base.id}/edit`}>
-          Настройки и публикация
-        </Link>
-      </nav>
-      <header>
-        <p className="text-fg-muted">{base.title}</p>
-        <h1 className="text-3xl font-semibold">
-          {articleId ? 'Редактор материала' : 'Структура курса'}
-        </h1>
-        <p className="text-fg-muted mt-2">
-          {articleId
-            ? 'Напишите теорию, проверьте её вид и подготовьте карточки для квиза.'
-            : 'Соберите разделы и уроки в нужном порядке. Теория каждого урока редактируется отдельно.'}
-        </p>
-      </header>
+      {articleId && (
+        <>
+          <nav
+            aria-label="Управление курсом"
+            className="border-border flex flex-wrap gap-5 border-b pb-3"
+          >
+            <Link className={courseLink} to={`/courses/${base.id}/read`}>
+              Читать курс
+            </Link>
+            <Link className={courseLink} to={`/courses/${base.id}/structure`}>
+              Структура курса
+            </Link>
+            <Link className={courseLink} to={`/courses/${base.id}/edit`}>
+              Настройки и публикация
+            </Link>
+          </nav>
+          <header>
+            <p className="text-fg-muted">{base.title}</p>
+            <h1 className="text-3xl font-semibold">Редактор материала</h1>
+            <p className="text-fg-muted mt-2">
+              Напишите теорию, проверьте её вид и подготовьте карточки для квиза.
+            </p>
+          </header>
+        </>
+      )}
       {articleId && (
         <label className="block max-w-xl space-y-2">
           <span className="text-fg-muted text-sm">Материал курса</span>
