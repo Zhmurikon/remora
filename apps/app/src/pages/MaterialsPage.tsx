@@ -31,6 +31,7 @@ import {
 import { api } from '../lib/api';
 import { SettingsIcon } from '../components/SettingsIcon';
 import { MaterialDescription } from '../features/materials/MaterialDescription';
+import cardsImage from '../../../web/public/lecture-demo/pricing-cards.webp';
 import bookImage from '../../../web/public/lecture-demo/course-books.webp';
 import './materials.css';
 
@@ -490,15 +491,13 @@ export function MaterialsPage() {
                     />
                   ))}
                 </TreeGroup>
-                <button
-                  type="button"
-                  onClick={() => switchView('archive')}
-                  className="text-fg-muted hover:bg-surface-muted mt-3 flex min-h-11 w-full items-center justify-between rounded-xl px-3 text-sm"
-                >
-                  <span>Архив</span>
-                  <span>{archiveItems.length}</span>
-                </button>
-                <ManagementLink to="/sets/manage">Папки и другие сортировки</ManagementLink>
+                <nav className="material-course-links" aria-label="Навигация по наборам">
+                  <button type="button" onClick={() => switchView('archive')}>
+                    Архив · {archiveItems.length}
+                  </button>
+                  <a href={courseCatalogUrl}>Каталог курсов</a>
+                  <Link to="/sets/manage">Папки и настройки сортировки</Link>
+                </nav>
               </>
             )}
             {!loading && view === 'archive' && (
@@ -605,7 +604,7 @@ export function MaterialsPage() {
   );
 }
 
-function CourseActionLink({
+function MaterialActionLink({
   to,
   className,
   label,
@@ -677,25 +676,28 @@ function CourseNavigator({
         )}
         <MaterialDescription description={course.description}>
           <div className="material-actions">
-            <CourseActionLink
+            <MaterialActionLink
               className="material-primary"
               to={`/courses/${course.id}/learn`}
               description="Продолжить тренировку по карточкам курса"
             >
               Продолжить
-            </CourseActionLink>
-            <CourseActionLink to={`/courses/${course.id}/read`} description="Открыть статьи курса">
+            </MaterialActionLink>
+            <MaterialActionLink
+              to={`/courses/${course.id}/read`}
+              description="Открыть статьи курса"
+            >
               Читать
-            </CourseActionLink>
+            </MaterialActionLink>
             {!course.saved && (
-              <CourseActionLink
+              <MaterialActionLink
                 className="material-settings"
                 to={`/courses/${course.id}/edit`}
                 label="Настроить курс"
                 description="Открыть редактор курса"
               >
                 <SettingsIcon />
-              </CourseActionLink>
+              </MaterialActionLink>
             )}
           </div>
         </MaterialDescription>
@@ -774,7 +776,6 @@ function CourseNavigator({
       </section>
 
       <DangerZone
-        iconOnly
         title={course.saved ? 'Удалить сохранённый курс' : 'Удалить курс'}
         description={
           course.saved
@@ -806,116 +807,132 @@ function SetNavigator({
   deleteError: Error | null;
   onDelete: () => void;
 }) {
-  const [busy, setBusy] = useState(false);
-  async function restore() {
-    setBusy(true);
-    const { error } = await api.POST('/api/v1/sets/{set_id}/restore', {
-      params: { path: { set_id: item.id } },
-    });
-    setBusy(false);
-    if (!error) onRestored();
-  }
+  const restore = useMutation({
+    mutationFn: async () => {
+      const { error } = await api.POST('/api/v1/sets/{set_id}/restore', {
+        params: { path: { set_id: item.id } },
+      });
+      if (error) throw new Error('Не удалось восстановить набор. Попробуйте ещё раз.');
+    },
+    onSuccess: onRestored,
+  });
+  const learnPath = `/sets/${item.id}/learn`;
+  const cardsPath = `/sets/${item.id}/flashcards`;
   return (
-    <div>
-      <div className="border-border flex min-h-16 items-center border-b px-5 text-sm sm:px-8">
-        <span className="text-fg-muted">Материалы</span>
-        <span className="text-fg-subtle px-2" aria-hidden="true">
-          /
+    <div className="material-course material-set">
+      <section className="material-folder">
+        <span className="material-tab">
+          {item.archived ? 'В архиве' : item.saved ? 'Сохранённый набор' : 'Ваш набор'}
         </span>
-        <span className="truncate font-medium">{item.title}</span>
-      </div>
-      <div className="mx-auto max-w-4xl px-5 py-8 sm:px-8 sm:py-12">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge>
-            {item.archived ? 'В архиве' : item.saved ? 'Сохранённый набор' : 'Ваш набор'}
-          </Badge>
-          {item.hasUpdates && <Badge tone="warning">Есть обновление</Badge>}
-        </div>
-        <h2 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">{item.title}</h2>
-        <MaterialDescription description={item.description} />
-
-        {!item.archived && (
-          <section className="border-border bg-surface mt-8 rounded-2xl border p-5 sm:p-7">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-fg-muted text-sm">Прогресс набора</p>
-                <p className="mt-1 text-4xl font-semibold tabular-nums">
-                  {progress.loading ? '—' : `${Math.round(progress.studiedPercent)}%`}
-                </p>
-              </div>
-              <LearningStatus progress={progress} />
-            </div>
-            <ProgressBar progress={progress} className="mt-5" />
-            <p className="text-fg-muted mt-3 text-sm">
-              {progress.studiedCount} изучались · {progress.masteredCount} закреплено ·{' '}
-              {progress.dueNow} ждут повторения · {item.cardsCount} всего
-            </p>
-            <div className="mt-6 flex flex-wrap gap-2">
-              <Link to={`/sets/${item.id}/learn`}>
-                <Button size="lg">Продолжить</Button>
-              </Link>
-              <Link to={`/sets/${item.id}/flashcards`}>
-                <Button size="lg" variant="secondary">
-                  Карточки
-                </Button>
-              </Link>
+        <img className="material-cover" src={cardsImage} width="90" height="100" alt="" />
+        <h2>{item.archived ? item.title : <Link to={cardsPath}>{item.title}</Link>}</h2>
+        {item.hasUpdates && <Badge tone="warning">Есть обновление</Badge>}
+        <MaterialDescription description={item.description}>
+          {!item.archived && (
+            <div className="material-actions">
+              <MaterialActionLink
+                className="material-primary"
+                to={learnPath}
+                description="Продолжить тренировку по набору"
+              >
+                Продолжить
+              </MaterialActionLink>
+              <MaterialActionLink to={cardsPath} description="Открыть карточки набора">
+                Карточки
+              </MaterialActionLink>
               {!item.saved && (
-                <Link to={`/sets/${item.id}/edit`}>
-                  <Button size="lg" variant="ghost">
-                    Редактировать
-                  </Button>
-                </Link>
+                <MaterialActionLink
+                  className="material-settings"
+                  to={`/sets/${item.id}/edit`}
+                  label="Редактировать набор"
+                  description="Открыть редактор набора"
+                >
+                  <SettingsIcon />
+                </MaterialActionLink>
               )}
             </div>
-          </section>
-        )}
-        {item.archived && (
-          <section className="border-border bg-surface mt-8 rounded-2xl border p-6">
-            <h3 className="text-xl font-semibold">Набор находится в архиве</h3>
-            <p className="text-fg-muted mt-2">Восстановите его, чтобы снова продолжить обучение.</p>
-            <Button className="mt-5" loading={busy} onClick={() => void restore()}>
-              Восстановить
-            </Button>
-          </section>
-        )}
-        <DangerZone
-          title={
-            item.archived
-              ? 'Удалить набор навсегда'
-              : item.saved
-                ? 'Удалить сохранённый набор'
-                : 'Удалить набор'
-          }
-          description={
-            item.archived
-              ? 'Набор, карточки и связанный учебный прогресс будут удалены без возможности восстановления.'
-              : item.saved
-                ? savedSetRemovalDescription(item)
-                : 'Набор переместится в архив. Карточки и учебный прогресс сохранятся, пока вы не удалите его навсегда.'
-          }
-          buttonLabel={
-            item.archived
-              ? 'Удалить навсегда'
-              : item.saved
-                ? item.accessVia === 'course'
-                  ? 'Убрать курс из сохранённых'
-                  : item.accessVia === 'article'
-                    ? 'Убрать раздел из сохранённых'
-                    : 'Убрать из сохранённых'
-                : 'Переместить в архив'
-          }
-          confirmText={`Удалить «${item.title}»? ${item.archived ? 'Это действие нельзя отменить.' : ''}`}
-          pending={deleting}
-          error={deleteError}
-          onConfirm={onDelete}
-        />
-      </div>
+          )}
+        </MaterialDescription>
+      </section>
+      {item.archived ? (
+        <section className="mt-8">
+          <h3 className="text-xl font-semibold">Набор находится в архиве</h3>
+          <p className="text-fg-muted mt-2">Восстановите его, чтобы снова продолжить обучение.</p>
+          <Button
+            className="mt-5 min-h-11"
+            loading={restore.isPending}
+            onClick={() => restore.mutate()}
+          >
+            Восстановить
+          </Button>
+          {restore.isError && (
+            <p role="alert" className="text-danger mt-2">
+              {restore.error.message}
+            </p>
+          )}
+        </section>
+      ) : (
+        <section className="material-study-stats">
+          <div className="flex items-center justify-between gap-3">
+            <h3>Прогресс набора</h3>
+            <strong>{progress.loading ? '—' : `${Math.round(progress.studiedPercent)}%`}</strong>
+          </div>
+          <ProgressBar progress={progress} className="my-2" />
+          <p className="text-fg-muted text-sm">
+            {progress.loading ? (
+              'Считаем прогресс'
+            ) : (
+              <>
+                Изучено {progress.studiedCount} из {item.cardsCount} карточек · Закреплено{' '}
+                {progress.masteredCount} ·{' '}
+                {progress.dueNow > 0 ? (
+                  <MaterialActionLink to={learnPath} description="повторить карточки">
+                    {learningStatus(progress).label}
+                  </MaterialActionLink>
+                ) : (
+                  learningStatus(progress).label
+                )}
+              </>
+            )}
+          </p>
+        </section>
+      )}
+      <DangerZone
+        title={
+          item.archived
+            ? 'Удалить набор навсегда'
+            : item.saved
+              ? 'Удалить сохранённый набор'
+              : 'Удалить набор'
+        }
+        description={
+          item.archived
+            ? 'Набор, карточки и связанный учебный прогресс будут удалены без возможности восстановления.'
+            : item.saved
+              ? savedSetRemovalDescription(item)
+              : 'Набор переместится в архив. Карточки и учебный прогресс сохранятся, пока вы не удалите его навсегда.'
+        }
+        buttonLabel={
+          item.archived
+            ? 'Удалить навсегда'
+            : item.saved
+              ? item.accessVia === 'course'
+                ? 'Убрать курс из сохранённых'
+                : item.accessVia === 'article'
+                  ? 'Убрать раздел из сохранённых'
+                  : 'Убрать из сохранённых'
+              : 'Переместить в архив'
+        }
+        confirmText={`Удалить «${item.title}»? ${item.archived ? 'Это действие нельзя отменить.' : ''}`}
+        pending={deleting}
+        error={deleteError}
+        onConfirm={onDelete}
+      />
     </div>
   );
 }
 
 function DangerZone({
-  iconOnly = false,
   title,
   description,
   buttonLabel,
@@ -924,7 +941,6 @@ function DangerZone({
   error,
   onConfirm,
 }: {
-  iconOnly?: boolean;
   title: string;
   description: string;
   buttonLabel: string;
@@ -938,87 +954,74 @@ function DangerZone({
   const tipId = useId();
   const trigger = useRef<HTMLButtonElement>(null);
   return (
-    <section
-      className={iconOnly ? 'material-delete' : 'border-danger/40 mt-10 border-t pt-7'}
-      aria-label={title}
-    >
-      {iconOnly && (
-        <div
-          className="material-delete-control"
-          onPointerEnter={() => setTipDismissed(false)}
-          onFocus={() => setTipDismissed(false)}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') setTipDismissed(true);
-          }}
+    <section className="material-delete" aria-label={title}>
+      <div
+        className="material-delete-control"
+        onPointerEnter={() => setTipDismissed(false)}
+        onFocus={() => setTipDismissed(false)}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') setTipDismissed(true);
+        }}
+      >
+        <button
+          ref={trigger}
+          type="button"
+          className="material-delete-button"
+          aria-label={buttonLabel}
+          aria-describedby={tipId}
+          aria-expanded={confirming}
+          disabled={pending}
+          onClick={() => setConfirming(!confirming)}
         >
-          <button
-            ref={trigger}
-            type="button"
-            className="material-delete-button"
-            aria-label={buttonLabel}
-            aria-describedby={tipId}
-            aria-expanded={confirming}
-            disabled={pending}
-            onClick={() => setConfirming(!confirming)}
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              width="20"
-              height="20"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M3.5 7h17M9 7V4h6v3M6 7l1 13h10l1-13M10 10.5v6M14 10.5v6" />
-            </svg>
-          </button>
-          <div
-            id={tipId}
-            role="tooltip"
-            className="material-delete-tip"
-            hidden={tipDismissed || confirming}
-          >
-            <strong>{title}</strong>
-            {description}
-          </div>
+            <path d="M3.5 7h17M9 7V4h6v3M6 7l1 13h10l1-13M10 10.5v6M14 10.5v6" />
+          </svg>
+        </button>
+        <div
+          id={tipId}
+          role="tooltip"
+          className="material-delete-tip"
+          hidden={tipDismissed || confirming}
+        >
+          <strong>{title}</strong>
+          {description}
         </div>
-      )}
-      {(!iconOnly || confirming) && (
+      </div>
+      {confirming && (
         <>
           <h3 className="text-xl font-semibold">{title}</h3>
           <p className="text-fg-muted mt-2 max-w-2xl">{description}</p>
-        </>
-      )}
-      {confirming ? (
-        <div className="mt-4 space-y-3">
-          <p>{confirmText}</p>
-          <div className="flex flex-wrap gap-3">
-            <Button className="min-h-11" variant="danger" loading={pending} onClick={onConfirm}>
-              Подтвердить удаление
-            </Button>
-            <Button
-              className="min-h-11"
-              variant="ghost"
-              disabled={pending}
-              autoFocus={iconOnly}
-              onClick={() => {
-                setConfirming(false);
-                trigger.current?.focus();
-              }}
-            >
-              Отмена
-            </Button>
+          <div className="mt-4 space-y-3">
+            <p>{confirmText}</p>
+            <div className="flex flex-wrap gap-3">
+              <Button className="min-h-11" variant="danger" loading={pending} onClick={onConfirm}>
+                Подтвердить удаление
+              </Button>
+              <Button
+                className="min-h-11"
+                variant="ghost"
+                disabled={pending}
+                autoFocus
+                onClick={() => {
+                  setConfirming(false);
+                  trigger.current?.focus();
+                }}
+              >
+                Отмена
+              </Button>
+            </div>
           </div>
-        </div>
-      ) : (
-        !iconOnly && (
-          <Button variant="danger" className="mt-4 min-h-11" onClick={() => setConfirming(true)}>
-            {buttonLabel}
-          </Button>
-        )
+        </>
       )}
       {error && (
         <p role="alert" className="text-danger mt-3 text-sm">
@@ -1283,13 +1286,13 @@ function LearningStatus({ progress, courseId }: { progress: MaterialProgress; co
   const [color, background] = statusStyles[status.kind];
   if (courseId && status.kind === 'urgent') {
     return (
-      <CourseActionLink
+      <MaterialActionLink
         to={`/courses/${courseId}/learn`}
         className={color}
         description="повторить карточки"
       >
         {status.label}
-      </CourseActionLink>
+      </MaterialActionLink>
     );
   }
   return (

@@ -71,7 +71,7 @@
   display: grid;
   margin-top: 8px;
 }
-.material-course-links a {
+.material-course-links :is(a, button) {
   display: flex;
   justify-content: end;
   align-items: center;
@@ -81,7 +81,7 @@
   font-size: 0.875rem;
   color: color-mix(in srgb, rgb(var(--rm-fg-muted)) 92%, rgb(var(--rm-surface)));
 }
-.material-course-links a:is(:hover, :focus-visible) {
+.material-course-links :is(a, button):is(:hover, :focus-visible) {
   color: rgb(var(--rm-primary));
   background: rgb(var(--rm-surface-muted));
 }
@@ -94,6 +94,10 @@
   border: 1px solid var(--folder-edge);
   background: rgb(var(--rm-lecture-cream));
   border-radius: 15px;
+}
+.material-set .material-cover {
+  width: 86px;
+  height: 66px;
 }
 .material-folder h2 {
   font-size: clamp(1.7rem, 2.45vw, 2.35rem);
@@ -172,7 +176,8 @@
   right: 0;
   left: auto;
 }
-.material-sections .material-action-tip {
+.material-sections .material-action-tip,
+.material-set .material-study-stats .material-action-tip {
   top: 100%;
   bottom: auto;
 }
