@@ -99,3 +99,29 @@ it('показывает сохранённому набору все режим
   expect(screen.getByRole('link', { name: 'Аудирование' })).toBeTruthy();
   expect(screen.queryByRole('link', { name: 'Редактировать' })).toBeNull();
 });
+
+it.each([
+  ['course', 'Git с нуля', 'Есть обновление курса', '/kurs/git'],
+  ['article', 'Репозитории', 'Есть обновление набора', '/kurs/git#article-article'],
+  ['set', 'Репозитории', 'Есть обновление набора', '/kurs/git#article-article'],
+])('показывает источник карточек и область обновления для %s', async (via, text, notice, path) => {
+  vi.mocked(api.GET).mockImplementation(async (requestPath) => {
+    const data =
+      requestPath === '/api/v1/library/sets'
+        ? [{ ...savedSet, access_via: via, has_updates: true }]
+        : requestPath === '/api/v1/sets/{set_id}'
+          ? { ...savedSet, visibility: 'public', can_edit: false, cards: [] }
+          : undefined;
+    if (!data)
+      return {
+        error: { code: 'NOT_FOUND' },
+        response: new Response(null, { status: 404 }),
+      } as never;
+    return { data, response: new Response() } as never;
+  });
+  renderWithRouter('/sets/saved-set', <SetPage />);
+  const source = await screen.findByRole('link', { name: text });
+  expect(source.getAttribute('href')).toBe(`http://localhost:3000${path}`);
+  expect(screen.getByText(notice)).toBeTruthy();
+  expect(screen.getByRole('button', { name: /^Обновить «/ }).textContent).toBe('обновить');
+});

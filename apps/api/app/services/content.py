@@ -25,12 +25,14 @@ from app.repositories import library as library_repo
 from app.repositories.api_tokens import lock_request
 from app.schemas.content import (
     CardBatch,
+    CardPublic,
     FolderCreate,
     FolderUpdate,
     PublicCard,
     PublicSet,
     PublicSetAuthor,
     SetCreate,
+    SetDetail,
     SetUpdate,
 )
 from app.services.entitlements import Entitlements
@@ -180,6 +182,45 @@ class ContentService:
         if not await library_repo.can_study_set(self.db, user.id, set_id):
             raise ForbiddenError("Нет доступа к обучению по этому набору")
         return study_set
+
+    async def get_set_detail(self, user: User, set_id: UUID) -> SetDetail:
+        study_set = await self.get_study_set(user, set_id, with_cards=True)
+        owned = study_set.owner_id == user.id
+        detail = SetDetail.model_validate(study_set).model_copy(update={"can_edit": owned})
+        if owned:
+            return detail
+        snapshot = await library_repo.snapshot_for_set(self.db, user.id, set_id)
+        if snapshot is None:
+            return detail
+
+        # Сохранённые тексты и порядок меняются только после принятия обновления.
+        # Старые снимки не содержат дат карточек и ссылок на изображения.
+        current = {str(card.id): card for card in detail.cards}
+        cards: list[CardPublic] = []
+        for entry in snapshot["cards"]:
+            original = current.get(entry["id"])
+            cards.append(
+                CardPublic.model_validate(
+                    {
+                        "created_at": original.created_at if original else study_set.created_at,
+                        "updated_at": original.updated_at if original else study_set.updated_at,
+                        "term_image_id": original.term_image_id if original else None,
+                        "definition_image_id": original.definition_image_id if original else None,
+                        **entry,
+                    }
+                )
+            )
+        return detail.model_copy(
+            update={
+                **{
+                    key: snapshot[key]
+                    for key in ("title", "description", "lang_term", "lang_definition")
+                    if key in snapshot
+                },
+                "cards": cards,
+                "cards_count": len(cards),
+            }
+        )
 
     async def create_set(self, user: User, body: SetCreate) -> StudySet:
         await lock_request(self.db, user.id)

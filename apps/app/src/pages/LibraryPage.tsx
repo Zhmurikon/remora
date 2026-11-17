@@ -100,7 +100,6 @@ function LibraryCard({
               ? 'Статья'
               : 'Набор'}
         </Badge>
-        {item.has_updates && <Badge tone="warning">Есть обновление</Badge>}
       </div>
       <h2 className="mt-3 text-xl font-semibold">{title}</h2>
       <p className="text-fg-muted mt-2 text-sm">
@@ -116,7 +115,9 @@ function LibraryCard({
             <Button>Открыть курс</Button>
           </a>
         )}
-        {item.has_updates && <LibraryUpdateControl saveId={item.id} title={title} />}
+        {item.has_updates && (
+          <LibraryUpdateControl saveId={item.id} title={title} targetType={item.target_type} />
+        )}
         <Button variant="ghost" loading={removing} onClick={onRemove}>
           Убрать
         </Button>

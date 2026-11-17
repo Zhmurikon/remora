@@ -322,6 +322,14 @@ export function SetsPage() {
               </FolderButton>
             </div>
           </nav>
+          {origin === 'saved' && (
+            <Link
+              to="/library/manage"
+              className="text-primary inline-flex min-h-11 items-center text-sm underline underline-offset-2"
+            >
+              Управлять сохранениями
+            </Link>
+          )}
           <form
             className="mt-4 flex gap-2"
             onSubmit={(event) => {
@@ -504,7 +512,6 @@ export function SetsPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge>Сохранённый</Badge>
-                          {set.has_updates && <Badge tone="warning">Есть обновление</Badge>}
                         </div>
                         <span className="text-fg-subtle text-xs">{set.cards_count} карт.</span>
                       </div>
@@ -520,7 +527,17 @@ export function SetsPage() {
                     </Link>
                     {set.has_updates && (
                       <div className="border-border mt-4 flex flex-wrap gap-2 border-t pt-4">
-                        <LibraryUpdateControl saveId={set.save_id} title={set.title} />
+                        <LibraryUpdateControl
+                          saveId={set.save_id}
+                          title={
+                            set.access_via === 'course'
+                              ? set.course_title
+                              : set.access_via === 'article'
+                                ? set.article_title
+                                : set.title
+                          }
+                          targetType={set.access_via}
+                        />
                       </div>
                     )}
                   </Card>

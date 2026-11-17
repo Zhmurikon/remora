@@ -1,6 +1,6 @@
 import type { components } from '@remora/api-client';
 import { pluralWithCount } from '@remora/core';
-import { Badge, Button, Input } from '@remora/ui';
+import { Button, Input } from '@remora/ui';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   useEffect,
@@ -13,7 +13,7 @@ import {
 } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { createEmptySet } from '../features/materials/create-empty-set';
-import { LibraryUpdateControl } from '../features/library/LibraryUpdateControl';
+import { SavedMaterialSource, SavedSetSource } from '../features/library/SavedMaterialSource';
 import {
   DropIndicator,
   moveCustomItem,
@@ -44,9 +44,8 @@ type SavedCourse = components['schemas']['SavedCourseItem'];
 type SetSummary = components['schemas']['SetSummary'];
 type SavedSet = components['schemas']['SavedSetItem'];
 type SetStats = components['schemas']['SetStats'];
-type LibraryItem = components['schemas']['LibraryItem'];
 type Folder = components['schemas']['FolderPublic'];
-type MaterialView = 'courses' | 'sets' | 'library' | 'archive';
+type MaterialView = 'courses' | 'sets' | 'archive';
 
 type CourseItem = {
   id: string;
@@ -68,10 +67,8 @@ type SetItem = {
   saved: boolean;
   archived: boolean;
   folderId: string | null;
-  hasUpdates: boolean;
   saveId?: string;
-  accessVia?: SavedSet['access_via'];
-  sourceTitle?: string;
+  source?: SavedSet;
   orderDate: string;
 };
 
@@ -94,14 +91,14 @@ export function MaterialsPage() {
   const [view, setView] = useState<MaterialView>(initialView);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [mobileDetailOpen, setMobileDetailOpen] = useState(initialView === 'library');
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [courseOrder, setCourseOrder] = useCustomOrder('remora:order:courses');
   const [setOrder, setSetOrder] = useCustomOrder('remora:order:sets');
 
   useEffect(() => {
     setView(viewFromPath(location.pathname));
     setSelectedId(null);
-    setMobileDetailOpen(viewFromPath(location.pathname) === 'library');
+    setMobileDetailOpen(false);
   }, [location.pathname]);
 
   const courses = useQuery({
@@ -152,15 +149,6 @@ export function MaterialsPage() {
       return data;
     },
   });
-  const library = useQuery({
-    queryKey: ['library'],
-    queryFn: async () => {
-      const { data, error } = await api.GET('/api/v1/library');
-      if (!data || error) throw new Error('Не удалось загрузить библиотеку');
-      return data;
-    },
-  });
-
   const courseItems = useMemo(
     () => [
       ...(courses.data ?? []).map(ownedCourseItem),
@@ -315,7 +303,7 @@ export function MaterialsPage() {
   function switchView(next: MaterialView) {
     setView(next);
     setSelectedId(null);
-    setMobileDetailOpen(next === 'library');
+    setMobileDetailOpen(false);
     navigate(pathForView(next));
   }
 
@@ -383,10 +371,10 @@ export function MaterialsPage() {
     },
   });
 
-  const loading = [courses, savedCourses, sets, savedSets, archivedSets, library].some(
+  const loading = [courses, savedCourses, sets, savedSets, archivedSets].some(
     (query) => query.isPending,
   );
-  const failed = [courses, savedCourses, sets, savedSets, archivedSets, library].some(
+  const failed = [courses, savedCourses, sets, savedSets, archivedSets].some(
     (query) => query.isError,
   );
 
@@ -426,9 +414,6 @@ export function MaterialsPage() {
               </ViewButton>
               <ViewButton active={view === 'sets'} onClick={() => switchView('sets')}>
                 Наборы
-              </ViewButton>
-              <ViewButton active={view === 'library'} onClick={() => switchView('library')}>
-                Сохранено
               </ViewButton>
             </nav>
           </div>
@@ -518,12 +503,6 @@ export function MaterialsPage() {
                 ))}
               </TreeGroup>
             )}
-            {!loading && view === 'library' && (
-              <>
-                <LibraryTree library={library.data ?? []} search={search} />
-                <ManagementLink to="/library/manage">Настроить порядок</ManagementLink>
-              </>
-            )}
           </div>
         </aside>
 
@@ -588,15 +567,7 @@ export function MaterialsPage() {
               }}
             />
           )}
-          {view === 'library' && (
-            <LibraryNavigator
-              items={library.data ?? []}
-              statsBySetId={statsBySetId}
-              removingId={removeLibraryItem.isPending ? removeLibraryItem.variables : undefined}
-              onRemove={(id) => removeLibraryItem.mutate(id)}
-            />
-          )}
-          {!loading && view !== 'library' && !selectedCourse && !selectedSet && (
+          {!loading && !selectedCourse && !selectedSet && (
             <EmptyMaterials view={view} onCreateSet={() => void createSet()} />
           )}
         </div>
@@ -668,12 +639,17 @@ function CourseNavigator({
         <h2>
           <Link to={`/courses/${course.id}/read`}>{course.title}</Link>
         </h2>
-        {course.author && <p className="text-fg-muted mt-2 text-sm">Автор: {course.author}</p>}
-        {course.hasUpdates && course.saveId && (
-          <div className="mt-2">
-            <Badge tone="warning">Есть обновление</Badge>
-            <LibraryUpdateControl saveId={course.saveId} title={course.title} />
-          </div>
+        {course.saved && course.saveId && course.author && (
+          <SavedMaterialSource
+            slug={course.slug}
+            sourceLabel="Источник:"
+            linkText="Оригинал курса"
+            author={course.author}
+            saveId={course.saveId}
+            hasUpdates={course.hasUpdates}
+            title={course.title}
+            targetType="course"
+          />
         )}
         <MaterialDescription description={course.description}>
           <div className="material-actions">
@@ -827,7 +803,7 @@ function SetNavigator({
         </span>
         <img className="material-cover" src={cardsImage} width="90" height="100" alt="" />
         <h2>{item.archived ? item.title : <Link to={cardsPath}>{item.title}</Link>}</h2>
-        {item.hasUpdates && <Badge tone="warning">Есть обновление</Badge>}
+        {item.source && <SavedSetSource set={item.source} />}
         <MaterialDescription description={item.description}>
           {!item.archived && (
             <div className="material-actions">
@@ -919,9 +895,9 @@ function SetNavigator({
           item.archived
             ? 'Удалить навсегда'
             : item.saved
-              ? item.accessVia === 'course'
+              ? item.source?.access_via === 'course'
                 ? 'Убрать курс из сохранённых'
-                : item.accessVia === 'article'
+                : item.source?.access_via === 'article'
                   ? 'Убрать раздел из сохранённых'
                   : 'Убрать из сохранённых'
               : 'Переместить в архив'
@@ -1032,139 +1008,6 @@ function DangerZone({
         </p>
       )}
     </section>
-  );
-}
-
-function LibraryNavigator({
-  items,
-  statsBySetId,
-  removingId,
-  onRemove,
-}: {
-  items: LibraryItem[];
-  statsBySetId: Map<string, SetStats>;
-  removingId?: string;
-  onRemove: (id: string) => void;
-}) {
-  return (
-    <div>
-      <div className="border-border flex min-h-16 items-center border-b px-5 text-sm sm:px-8">
-        <span className="font-medium">Сохранённые материалы</span>
-      </div>
-      <div className="mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-12">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-fg-subtle text-xs font-semibold uppercase tracking-[0.14em]">
-              Ваша библиотека
-            </p>
-            <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-              Сохранено для изучения
-            </h2>
-            <p className="text-fg-muted mt-3 max-w-2xl">
-              Курсы и наборы авторов остаются связанными с оригиналом, а ваш прогресс — личным.
-            </p>
-          </div>
-          <a href={courseCatalogUrl}>
-            <Button size="lg" variant="secondary">
-              Найти курсы
-            </Button>
-          </a>
-        </div>
-        {items.length === 0 ? (
-          <EmptyBlock>Сохранённых материалов пока нет.</EmptyBlock>
-        ) : (
-          <div className="divide-border border-border mt-8 divide-y border-y">
-            {items.map((item) => {
-              const title = item.article_title ?? item.set_title ?? item.course_title;
-              const stats = item.set_id ? statsBySetId.get(item.set_id) : undefined;
-              const progress = stats ? fromSetStats(stats) : { ...emptyProgress, loading: true };
-              return (
-                <div
-                  key={item.id}
-                  className="grid gap-4 py-5 md:grid-cols-[1fr_220px_auto] md:items-center"
-                >
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge>
-                        {item.target_type === 'course'
-                          ? 'Курс'
-                          : item.target_type === 'article'
-                            ? 'Раздел'
-                            : 'Набор'}
-                      </Badge>
-                      {item.has_updates && <Badge tone="warning">Есть обновление</Badge>}
-                    </div>
-                    <h3 className="mt-3 break-words text-lg font-semibold">{title}</h3>
-                    <p className="text-fg-muted mt-1 text-sm">
-                      {item.course_title} · {item.cards_count} карточек
-                    </p>
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between gap-3 text-sm">
-                      <span className="text-fg-muted">Прогресс</span>
-                      <span className="font-semibold tabular-nums">
-                        {item.set_id && !progress.loading
-                          ? `${Math.round(progress.studiedPercent)}%`
-                          : '—'}
-                      </span>
-                    </div>
-                    <ProgressBar progress={progress} className="mt-2" />
-                  </div>
-                  <div className="flex flex-wrap gap-2 md:justify-end">
-                    {item.has_updates && <LibraryUpdateControl saveId={item.id} title={title} />}
-                    {item.set_id ? (
-                      <Link to={`/sets/${item.set_id}/learn`}>
-                        <Button size="sm">Учить</Button>
-                      </Link>
-                    ) : (
-                      <a
-                        href={`${import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000'}/kurs/${item.course_slug}`}
-                      >
-                        <Button size="sm">Открыть</Button>
-                      </a>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      loading={removingId === item.id}
-                      onClick={() => onRemove(item.id)}
-                    >
-                      Убрать
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function LibraryTree({ library, search }: { library: LibraryItem[]; search: string }) {
-  const filtered = filterBySearch(
-    library.map((item) => ({
-      ...item,
-      title: item.article_title ?? item.set_title ?? item.course_title,
-    })),
-    search,
-  );
-  return (
-    <TreeGroup title="Сохранено" count={filtered.length}>
-      {filtered.slice(0, 12).map((item) => (
-        <div key={item.id} className="border-border mx-2 border-b px-2 py-3 last:border-0">
-          <p className="break-words text-sm font-medium">{item.title}</p>
-          <p className="text-fg-muted mt-1 text-xs">
-            {item.target_type === 'course'
-              ? 'Курс'
-              : item.target_type === 'article'
-                ? 'Раздел курса'
-                : 'Набор'}
-          </p>
-        </div>
-      ))}
-    </TreeGroup>
   );
 }
 
@@ -1396,17 +1239,6 @@ function ViewButton({
   );
 }
 
-function ManagementLink({ to, children }: { to: string; children: ReactNode }) {
-  return (
-    <Link
-      to={to}
-      className="text-fg-muted hover:bg-surface-muted hover:text-fg mt-2 flex min-h-11 items-center rounded-xl px-3 text-sm font-medium"
-    >
-      {children}
-    </Link>
-  );
-}
-
 function CreateMenu({ onCreateSet }: { onCreateSet: () => void }) {
   return (
     <details className="group relative">
@@ -1588,7 +1420,6 @@ function ownedSetItem(set: SetSummary, archived: boolean): SetItem {
     saved: false,
     archived,
     folderId: set.folder_id ?? null,
-    hasUpdates: false,
     orderDate: set.updated_at,
   };
 }
@@ -1602,20 +1433,18 @@ function savedSetItem(set: SavedSet): SetItem {
     saved: true,
     archived: false,
     folderId: set.folder_id ?? null,
-    hasUpdates: set.has_updates,
     saveId: set.save_id,
-    accessVia: set.access_via,
-    sourceTitle: set.access_via === 'course' ? set.course_title : set.article_title,
+    source: set,
     orderDate: set.saved_at,
   };
 }
 
 function savedSetRemovalDescription(item: SetItem): string {
-  if (item.accessVia === 'course') {
-    return `Набор сохранён вместе с курсом «${item.sourceTitle ?? 'Без названия'}». Курс и все его наборы исчезнут из вашей библиотеки, но оригинал автора и учебный прогресс сохранятся.`;
+  if (item.source?.access_via === 'course') {
+    return `Набор сохранён вместе с курсом «${item.source.course_title}». Курс и все его наборы исчезнут из вашей библиотеки, но оригинал автора и учебный прогресс сохранятся.`;
   }
-  if (item.accessVia === 'article') {
-    return `Набор сохранён вместе с разделом «${item.sourceTitle ?? 'Без названия'}». Раздел исчезнет из вашей библиотеки, но оригинал автора и учебный прогресс сохранятся.`;
+  if (item.source?.access_via === 'article') {
+    return `Набор сохранён вместе с разделом «${item.source.article_title}». Раздел исчезнет из вашей библиотеки, но оригинал автора и учебный прогресс сохранятся.`;
   }
   return 'Набор исчезнет из ваших сохранённых материалов. Оригинал автора и ваш учебный прогресс не удалятся.';
 }
@@ -1639,12 +1468,10 @@ function folderName(
 
 function viewFromPath(path: string): MaterialView {
   if (path.startsWith('/sets')) return 'sets';
-  if (path.startsWith('/library')) return 'library';
   return 'courses';
 }
 
 function pathForView(view: MaterialView): string {
   if (view === 'sets' || view === 'archive') return '/sets';
-  if (view === 'library') return '/library';
   return '/materials';
 }

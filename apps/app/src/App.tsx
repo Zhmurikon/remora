@@ -73,7 +73,7 @@ export function App() {
               <Route path="sets/:setId/battle" element={<BattlePage />} />
               <Route path="battles/:battleId" element={<BattlePage />} />
               <Route path="sets/:setId/listen" element={<ListenPage />} />
-              <Route path="library" element={<MaterialsPage />} />
+              <Route path="library" element={<Navigate to="/materials" replace />} />
               <Route path="transcriptions" element={<TranscriptionsPage />} />
               <Route path="transcriptions/:jobId" element={<TranscriptionsPage />} />
               <Route path="practice" element={<PracticePage />} />

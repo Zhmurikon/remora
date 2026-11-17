@@ -390,36 +390,60 @@ class LibraryService:
             or old_articles[key]["body"] != new_articles[key]["body"]
             for key in common
         )
-        cards_added = cards_removed = cards_changed = 0
-        for key in common:
+        added_terms: list[str] = []
+        removed_terms: list[str] = []
+        changed_terms: list[str] = []
+        for key in new_articles:
+            if key not in old_articles:
+                continue
             old_cards = {c["id"]: c for c in old_articles[key]["set"]["cards"]}
             new_cards = {c["id"]: c for c in new_articles[key]["set"]["cards"]}
-            cards_added += len(new_cards.keys() - old_cards.keys())
-            cards_removed += len(old_cards.keys() - new_cards.keys())
-            common_cards = old_cards.keys() & new_cards.keys()
-            cards_changed += sum(old_cards[cid] != new_cards[cid] for cid in common_cards)
+            for cid, card in new_cards.items():
+                if cid not in old_cards:
+                    added_terms.append(card["term"])
+                elif card != old_cards[cid]:
+                    changed_terms.append(card["term"])
+            removed_terms.extend(
+                card["term"] for cid, card in old_cards.items() if cid not in new_cards
+            )
         summary: list[str] = []
         for count, label in (
             (added, "Добавлено статей"),
             (removed, "Удалено статей"),
             (articles_changed, "Изменено статей"),
-            (cards_added, "Добавлено карточек"),
-            (cards_removed, "Удалено карточек"),
-            (cards_changed, "Изменено карточек"),
         ):
             if count:
                 summary.append(f"{label}: {count}")
-        if saved.accepted_snapshot.get("course") != current.get("course"):
-            summary.insert(0, "Изменены название или описание курса")
+        for terms, label in (
+            (added_terms, "Добавлено карточек"),
+            (removed_terms, "Удалено карточек"),
+            (changed_terms, "Изменено карточек"),
+        ):
+            if terms:
+                examples = [" ".join(term.split()) or "Без текста" for term in terms[:3]]
+                excerpt = ", ".join(
+                    f"«{term[:60]}{'…' if len(term) > 60 else ''}»" for term in examples
+                )
+                summary.append(
+                    f"{label}: {len(terms)} — {excerpt}{' и др.' if len(terms) > 3 else ''}"
+                )
+        old_course = saved.accepted_snapshot.get("course", {})
+        new_course = current.get("course", {})
+        for field, label in (
+            ("description", "Изменено описание курса"),
+            ("title", "Изменено название курса"),
+        ):
+            if old_course.get(field) != new_course.get(field):
+                summary.insert(0, label)
         return LibraryDiff(
             save_id=saved.id,
-            has_updates=bool(summary),
+            has_updates=current != saved.accepted_snapshot,
             accepted_at=saved.accepted_at,
             summary=summary,
             articles_added=added,
             articles_removed=removed,
             articles_changed=articles_changed,
-            cards_added=cards_added,
-            cards_removed=cards_removed,
-            cards_changed=cards_changed,
+            cards_added=len(added_terms),
+            cards_removed=len(removed_terms),
+            cards_changed=len(changed_terms),
         )

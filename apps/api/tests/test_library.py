@@ -177,6 +177,10 @@ async def test_course_save_grants_study_but_not_edit_and_revokes_on_unpublish(
     changes = await client.get(f"/api/v1/library/{saved.json()['id']}/changes", headers=learner)
     assert changes.json()["cards_added"] == 1
     assert changes.json()["cards_changed"] == 1
+    assert "Изменено карточек: 1 — «A обновлено»" in changes.json()["summary"]
+    previous = (await client.get(f"/api/v1/sets/{set_id}", headers=learner)).json()
+    assert previous["cards_count"] == 1
+    assert [card["term"] for card in previous["cards"]] == ["A"]
     assert (
         await client.get(f"/api/v1/library/{saved.json()['id']}/changes", headers=stranger)
     ).status_code == 404
@@ -186,6 +190,9 @@ async def test_course_save_grants_study_but_not_edit_and_revokes_on_unpublish(
     assert (await client.post(f"/api/v1/library/{saved.json()['id']}/accept")).status_code == 401
     accepted = await client.post(f"/api/v1/library/{saved.json()['id']}/accept", headers=learner)
     assert accepted.json()["has_updates"] is False
+    updated = (await client.get(f"/api/v1/sets/{set_id}", headers=learner)).json()
+    assert updated["cards_count"] == 2
+    assert [card["term"] for card in updated["cards"]] == ["A обновлено", "Новая"]
     new_queue = await client.get(
         f"/api/v1/study/sets/{set_id}/queue",
         headers=learner,

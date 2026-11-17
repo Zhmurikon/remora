@@ -22,7 +22,7 @@ function mount() {
         })
       }
     >
-      <LibraryUpdateControl saveId="save-1" title="Физика" />
+      <LibraryUpdateControl saveId="save-1" title="Физика" targetType="course" />
     </QueryClientProvider>,
   );
 }
@@ -64,7 +64,9 @@ it('позволяет повторить загрузку состава изм
   mount();
 
   await userEvent.click(screen.getByRole('button', { name: 'Обновить «Физика»' }));
-  expect((await screen.findByRole('alert')).textContent).toContain('Не удалось загрузить изменения');
+  expect((await screen.findByRole('alert')).textContent).toContain(
+    'Не удалось загрузить изменения',
+  );
   await userEvent.click(screen.getByRole('button', { name: 'Повторить' }));
   expect(await screen.findByText('Автор обновил свойства материала.')).toBeTruthy();
 });

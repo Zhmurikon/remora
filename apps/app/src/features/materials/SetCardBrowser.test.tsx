@@ -20,17 +20,24 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-const cards = Array.from({ length: 8 }, (_, i) => ({
-  id: String(i),
-  term: `Термин ${i + 1}`,
-  definition: 'Определение',
-  content_type: 'text',
-  hint: 'Подсказка',
-  alt_answers: ['Синоним'],
-  wrong_term_answers: ['Другое слово'],
-}));
-function mount(canEdit: boolean) {
-  const data = { id: 'set', updated_at: '2026-11-17T00:00:00Z', cards, can_edit: canEdit };
+const makeCards = (length: number) =>
+  Array.from({ length }, (_, i) => ({
+    id: String(i),
+    term: `Термин ${i + 1}`,
+    definition: 'Определение',
+    content_type: 'text',
+    hint: 'Подсказка',
+    alt_answers: ['Синоним'],
+    wrong_term_answers: ['Другое слово'],
+  }));
+const cards = makeCards(8);
+function mount(canEdit: boolean, setCards = cards) {
+  const data = {
+    id: 'set',
+    updated_at: '2026-11-17T00:00:00Z',
+    cards: setCards,
+    can_edit: canEdit,
+  };
   vi.mocked(api.GET).mockResolvedValue({ data, response: new Response() } as never);
   vi.mocked(api.PUT).mockResolvedValue({ data, response: new Response() } as never);
   render(
@@ -83,4 +90,43 @@ it('показывает состав сохранённого набора бе
       name: /Добавить карточку|Редактировать карточку|Удалить карточку/,
     }),
   ).toBeNull();
+});
+
+it('показывает по 12 карточек, переключает страницы и сбрасывает страницу при поиске', async () => {
+  mount(false, makeCards(173));
+  const pages = within(await screen.findByRole('navigation', { name: 'Страницы состава набора' }));
+  expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(13);
+  expect(screen.getByText('1–12 из 173')).toBeTruthy();
+  expect(screen.queryByRole('heading', { name: 'Карточки набора' })).toBeNull();
+  fireEvent.click(pages.getByRole('button', { name: 'Страница 15' }));
+  expect(screen.getByText('169–173 из 173')).toBeTruthy();
+  expect(pages.getByRole('button', { current: 'page' }).textContent).toBe('15');
+  expect(pages.getByRole('button', { name: 'Следующая страница' }).hasAttribute('disabled')).toBe(
+    true,
+  );
+  fireEvent.click(pages.getByRole('button', { name: 'Предыдущая страница' }));
+  expect(screen.getByText('157–168 из 173')).toBeTruthy();
+  fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'Термин 1' } });
+  expect(pages.getByRole('button', { current: 'page' }).textContent).toBe('1');
+  fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'Термин 173' } });
+  expect(screen.getByText('1–1 из 1')).toBeTruthy();
+  expect(screen.queryByRole('navigation')).toBeNull();
+});
+
+it('после добавления 13-й карточки открывает новую страницу, после её удаления возвращается на первую', async () => {
+  const initial = mount(true, makeCards(12));
+  const extended = { ...initial, cards: makeCards(13) };
+  vi.mocked(api.PUT).mockResolvedValueOnce({ data: extended, response: new Response() } as never);
+  const add = await screen.findByRole('button', { name: 'Добавить карточку' });
+  expect(add.textContent).toBe('+');
+  fireEvent.click(add);
+  const editor = within(screen.getByRole('dialog'));
+  fireEvent.change(editor.getByLabelText('Термин'), { target: { value: 'Термин 13' } });
+  fireEvent.change(editor.getByLabelText('Определение'), { target: { value: 'Определение' } });
+  fireEvent.click(editor.getByRole('button', { name: 'Сохранить' }));
+  await screen.findByText('13–13 из 13');
+  fireEvent.click(screen.getByRole('button', { name: 'Удалить карточку «Термин 13»' }));
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Удалить' }));
+  await screen.findByText('1–12 из 12');
+  expect(screen.queryByRole('navigation')).toBeNull();
 });

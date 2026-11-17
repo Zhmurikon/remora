@@ -1,6 +1,6 @@
 import { pluralWithCount } from '@remora/core';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { Fragment, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { CardSide } from './CardSide';
@@ -15,7 +15,7 @@ import pencilImage from '../../../../web/public/lecture-demo/create-pencil.webp'
 import testImage from '../../../../web/public/lecture-demo/news-test.webp';
 import './set-cards.css';
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 12;
 const modes = [
   { path: 'flashcards', title: 'Карточки', description: 'Листать и запоминать', image: cardsImage },
   { path: 'write', title: 'Письмо', description: 'Отвечать по памяти', image: pencilImage },
@@ -54,74 +54,78 @@ function Face({ card, side }: { card: SetCard; side: 'term' | 'definition' }) {
   );
 }
 
-function CardPreview({ cards }: { cards: SetCard[] }) {
-  const [selected, setSelected] = useState<string>();
-  const [answerFor, setAnswerFor] = useState<string>();
-  const index = Math.max(
-    0,
-    cards.findIndex((c) => c.id === selected),
-  );
-  const card = cards[index];
-  if (!card) return null;
-  function select(id: string) {
-    setSelected(id);
-    setAnswerFor(undefined);
-  }
-  const flipped = answerFor === card.id;
-  const nextCards = cards.slice(index + 1, index + 5);
+function AddCardButton({ onClick }: { onClick: () => void }) {
+  const [dismissed, setDismissed] = useState(false);
   return (
-    <section className="set-block">
-      <header className="set-block-head">
-        <h3>Карточки набора</h3>
-        <div className="set-tools">
-          <small aria-live="polite">
-            {index + 1} из {cards.length}
-          </small>
+    <span className="material-action" onPointerEnter={() => setDismissed(false)}>
+      <button
+        type="button"
+        className="set-add"
+        aria-label="Добавить карточку"
+        onFocus={() => setDismissed(false)}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') setDismissed(true);
+        }}
+        onClick={onClick}
+      >
+        <span aria-hidden="true">+</span>
+      </button>
+      <span className="material-action-tip" aria-hidden="true" hidden={dismissed}>
+        Добавить карточку
+      </span>
+    </span>
+  );
+}
+
+function CardPagination({
+  page,
+  lastPage,
+  onChange,
+}: {
+  page: number;
+  lastPage: number;
+  onChange: (page: number) => void;
+}) {
+  if (lastPage === 0) return null;
+  const middle = Math.max(1, Math.min(page, lastPage - 1));
+  const pages =
+    lastPage < 5
+      ? Array.from({ length: lastPage + 1 }, (_, i) => i)
+      : [...new Set([0, middle - 1, middle, middle + 1, lastPage])];
+  return (
+    <nav className="set-pagination" aria-label="Страницы состава набора">
+      <button
+        type="button"
+        className="set-page-arrow"
+        aria-label="Предыдущая страница"
+        disabled={page === 0}
+        onClick={() => onChange(page - 1)}
+      >
+        ‹
+      </button>
+      {pages.map((number, index) => (
+        <Fragment key={number}>
+          {index > 0 && number - pages[index - 1]! > 1 && <span aria-hidden="true">…</span>}
           <button
-            className="set-tool"
-            disabled={index === 0}
-            aria-label="Предыдущая карточка"
-            onClick={() => select(cards[index - 1]!.id)}
+            type="button"
+            aria-label={`Страница ${number + 1}`}
+            aria-current={number === page ? 'page' : undefined}
+            onClick={() => onChange(number)}
           >
-            ‹
+            {number + 1}
           </button>
-          <button
-            className="set-tool"
-            disabled={index + 1 === cards.length}
-            aria-label="Следующая карточка"
-            onClick={() => select(cards[index + 1]!.id)}
-          >
-            ›
-          </button>
-        </div>
-      </header>
-      <div className="set-preview">
-        <div className="set-face">
-          <small>{flipped ? 'Оборотная сторона' : 'Лицевая сторона'}</small>
-          <div className="set-face-text">
-            <Face card={card} side={flipped ? 'definition' : 'term'} />
-          </div>
-          <button
-            className="set-tool"
-            aria-pressed={flipped}
-            onClick={() => setAnswerFor(flipped ? undefined : card.id)}
-          >
-            <span aria-hidden="true">⇄</span>
-            {flipped ? 'Показать термин' : 'Показать ответ'}
-          </button>
-        </div>
-        <aside className="set-queue">
-          <h4>Дальше в наборе</h4>
-          {nextCards.map((c, i) => (
-            <button key={c.id} onClick={() => select(c.id)}>
-              <small>{String(index + i + 2).padStart(2, '0')}</small>
-              <span>{c.term || 'Карточка с изображением'}</span>
-            </button>
-          ))}
-          {nextCards.length === 0 && <small>Это последняя карточка набора.</small>}
-        </aside>
-      </div>
-    </section>
+        </Fragment>
+      ))}
+      <button
+        type="button"
+        className="set-page-arrow"
+        aria-label="Следующая страница"
+        disabled={page === lastPage}
+        onClick={() => onChange(page + 1)}
+      >
+        ›
+      </button>
+    </nav>
   );
 }
 
@@ -160,13 +164,14 @@ export function SetCardBrowser({ setId, owned }: { setId: string; owned: boolean
       return data;
     },
   });
+  const heading = useRef<HTMLHeadingElement>(null);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [dialog, setDialog] = useState<{ snapshot: SetDetail; change: CardChange } | null>(null);
   if (!query.data)
     return (
       <section className="set-block">
-        <h3>Карточки набора</h3>
+        <h3>Состав набора</h3>
         {query.isError ? (
           <>
             <p role="alert">{query.error.message}</p>
@@ -195,10 +200,9 @@ export function SetCardBrowser({ setId, owned }: { setId: string; owned: boolean
   }
   return (
     <>
-      <CardPreview cards={set.cards} />
       <section className="set-block set-contents">
         <header className="set-block-head">
-          <h3>
+          <h3 ref={heading} tabIndex={-1}>
             Состав набора{' '}
             <small>{pluralWithCount(set.cards.length, ['карточка', 'карточки', 'карточек'])}</small>
           </h3>
@@ -227,11 +231,7 @@ export function SetCardBrowser({ setId, owned }: { setId: string; owned: boolean
                 }}
               />
             </label>
-            {editable && (
-              <button className="set-tool set-add" onClick={() => open({ kind: 'add' })}>
-                ＋ Добавить карточку
-              </button>
-            )}
+            {editable && <AddCardButton onClick={() => open({ kind: 'add' })} />}
           </div>
         </header>
         {rows.length ? (
@@ -286,21 +286,17 @@ export function SetCardBrowser({ setId, owned }: { setId: string; owned: boolean
         )}
         {filtered.length > 0 && (
           <footer className="set-block-head set-pages">
-            <small>
+            <small aria-live="polite">
               {start + 1}–{start + rows.length} из {filtered.length}
             </small>
-            <div className="set-tools">
-              {currentPage > 0 && (
-                <button className="set-tool" onClick={() => setPage(currentPage - 1)}>
-                  Назад
-                </button>
-              )}
-              {currentPage < lastPage && (
-                <button className="set-tool" onClick={() => setPage(currentPage + 1)}>
-                  Следующие карточки ›
-                </button>
-              )}
-            </div>
+            <CardPagination
+              page={currentPage}
+              lastPage={lastPage}
+              onChange={(nextPage) => {
+                setPage(nextPage);
+                heading.current?.focus();
+              }}
+            />
           </footer>
         )}
       </section>

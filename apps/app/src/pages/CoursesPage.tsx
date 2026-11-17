@@ -141,6 +141,14 @@ export function CoursesPage() {
             </Button>
           ))}
         </nav>
+        {origin === 'saved' && (
+          <Link
+            to="/library/manage"
+            className="text-primary inline-flex min-h-11 items-center text-sm underline underline-offset-2"
+          >
+            Управлять сохранениями
+          </Link>
+        )}
       </header>
       {(courses.isPending || savedCourses.isPending) && <p role="status">Загружаем курсы…</p>}
       {(courses.isError || savedCourses.isError) && (
@@ -227,7 +235,6 @@ export function CoursesPage() {
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge>Сохранённый</Badge>
-                    {course.has_updates && <Badge tone="warning">Есть обновление</Badge>}
                   </div>
                   <h2 className="mt-3 text-xl font-semibold">{course.title}</h2>
                   <p className="text-fg-muted mt-2 line-clamp-3">
@@ -240,7 +247,11 @@ export function CoursesPage() {
                 </Link>
                 <div className="mt-5 flex flex-wrap gap-2">
                   {course.has_updates && (
-                    <LibraryUpdateControl saveId={course.save_id} title={course.title} />
+                    <LibraryUpdateControl
+                      saveId={course.save_id}
+                      title={course.title}
+                      targetType="course"
+                    />
                   )}
                   <Link to={`/courses/${course.id}/learn`}>
                     <Button size="sm">Учить весь курс</Button>

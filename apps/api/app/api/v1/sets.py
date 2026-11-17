@@ -56,10 +56,7 @@ async def create_set(
 async def get_set(
     set_id: UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
 ) -> SetDetail:
-    study_set = await ContentService(db).get_study_set(user, set_id, with_cards=True)
-    return SetDetail.model_validate(study_set).model_copy(
-        update={"can_edit": study_set.owner_id == user.id}
-    )
+    return await ContentService(db).get_set_detail(user, set_id)
 
 
 @router.patch("/{set_id}", response_model=SetDetail, summary="Изменить набор")

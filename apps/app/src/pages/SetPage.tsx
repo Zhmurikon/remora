@@ -1,5 +1,6 @@
 import { Badge, Button, Card } from '@remora/ui';
 import { useQuery } from '@tanstack/react-query';
+import { SavedSetSource } from '../features/library/SavedMaterialSource';
 import { CardSide } from '../features/materials/CardSide';
 import { Link, useParams } from 'react-router-dom';
 import { SetStudyPanel } from '../features/study/SetStudyPanel';
@@ -19,6 +20,16 @@ export function SetPage() {
       return data;
     },
   });
+  const savedSets = useQuery({
+    queryKey: ['library', 'sets'],
+    enabled: query.data?.can_edit === false,
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/library/sets');
+      if (!data || error) throw new Error('Не удалось загрузить сохранённые наборы.');
+      return data;
+    },
+  });
+  const source = savedSets.data?.find((entry) => entry.id === setId);
   if (query.isPending) return <p className="text-fg-muted">Загружаем набор…</p>;
   if (!query.data) return <p className="text-danger">Набор не найден.</p>;
   const set = query.data;
@@ -40,6 +51,7 @@ export function SetPage() {
             <span className="text-fg-muted text-sm">{set.cards_count} карточек</span>
           </div>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight">{set.title}</h1>
+          {source && <SavedSetSource set={source} />}
           {set.description && <p className="text-fg-muted mt-3 max-w-2xl">{set.description}</p>}
         </div>
         <div className="flex flex-wrap gap-3">

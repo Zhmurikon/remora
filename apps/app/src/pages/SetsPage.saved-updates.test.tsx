@@ -57,6 +57,6 @@ it('показывает кнопку обновления у сохранённ
     </MemoryRouter>,
   );
 
-  expect(await screen.findByRole('button', { name: 'Обновить «Механика»' })).toBeTruthy();
-  expect(screen.getByText('Есть обновление')).toBeTruthy();
+  expect(await screen.findByRole('button', { name: 'Обновить «Физика»' })).toBeTruthy();
+  expect(screen.getByText('Есть обновление курса')).toBeTruthy();
 });
