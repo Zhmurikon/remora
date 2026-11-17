@@ -1178,11 +1178,10 @@ function ArticleProgressRow({
       <div className="col-span-full min-w-0 sm:col-span-1">
         <Link
           to={`/courses/${courseId}/read?article=${articleId}`}
-          className="group/read focus-visible:outline-primary flex min-h-11 min-w-0 items-center gap-2 rounded-lg font-medium focus-visible:outline focus-visible:outline-2"
+          className="hover:text-primary focus-visible:outline-primary flex min-h-11 min-w-0 items-center break-words rounded-lg font-medium focus-visible:outline focus-visible:outline-2"
           aria-label={`Читать материал «${title}»`}
         >
-          <span className="group-hover/read:text-primary break-words">{title}</span>
-          <span className="text-primary shrink-0 text-xs font-semibold">Читать →</span>
+          {title}
         </Link>
         <p className="text-fg-muted flex flex-wrap items-baseline gap-x-3 text-sm">
           <span>{pluralWithCount(progress.cardsTotal, ['карточка', 'карточки', 'карточек'])}</span>
@@ -1287,7 +1286,7 @@ function LearningStatus({ progress, courseId }: { progress: MaterialProgress; co
       <CourseActionLink
         to={`/courses/${courseId}/learn`}
         className={color}
-        description="Повторить карточки по курсу"
+        description="повторить карточки"
       >
         {status.label}
       </CourseActionLink>

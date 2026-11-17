@@ -172,6 +172,10 @@
   right: 0;
   left: auto;
 }
+.material-sections .material-action-tip {
+  top: 100%;
+  bottom: auto;
+}
 .material-action:is(:hover, :focus-within) .material-action-tip:not([hidden]) {
   display: block;
 }
