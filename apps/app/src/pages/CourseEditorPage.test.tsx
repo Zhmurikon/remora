@@ -207,10 +207,49 @@ it('разделяет структуру и текст и подтвержда�
 it('открывает квиз внутри урока и возвращает к материалу', async () => {
   mount('read?article=article');
   await userEvent.click(await screen.findByRole('button', { name: 'Пройти квиз' }));
-  expect(await screen.findByRole('button', { name: 'Начать тест' })).toBeTruthy();
+  expect(await screen.findByRole('button', { name: 'Начать квиз' })).toBeTruthy();
   expect(screen.getByRole('navigation', { name: 'Оглавление курса' })).toBeTruthy();
   await userEvent.click(screen.getByRole('button', { name: 'Материал' }));
   expect(await screen.findByText('Конспект')).toBeTruthy();
+});
+
+it('передаёт выбранные параметры квиза и позволяет повторить запуск при ошибке', async () => {
+  const user = userEvent.setup();
+  vi.mocked(api.POST).mockResolvedValue({ error: { message: 'Нет подходящих карточек' } } as never);
+  mount('read?article=article&step=quiz');
+  const start = (await screen.findByRole('button', { name: 'Начать квиз' })) as HTMLButtonElement;
+  await user.click(screen.getByLabelText('Выбор из вариантов'));
+  await user.click(screen.getByLabelText('Верно или нет'));
+  expect(start.disabled).toBe(true);
+  await user.click(screen.getByLabelText('Сопоставление'));
+  await user.click(screen.getByLabelText('Ввод ответа'));
+  const count = screen.getByRole('spinbutton', { name: 'Количество вопросов' });
+  await user.clear(count);
+  await user.type(count, '51');
+  expect(start.disabled).toBe(true);
+  await user.clear(count);
+  await user.type(count, '5');
+  await user.click(screen.getByRole('button', { name: 'Увеличить количество вопросов' }));
+  await user.click(screen.getByText('Источник и направление'));
+  await user.selectOptions(screen.getByLabelText('Источник'), 'hard');
+  await user.selectOptions(screen.getByLabelText('Направление'), 'both');
+  await user.click(screen.getByText('Источник и направление'));
+  expect(screen.getByText('Только сложные · Оба направления')).toBeTruthy();
+  await user.click(screen.getByLabelText('Учитывать результат в расписании повторений'));
+  await user.click(start);
+  expect((await screen.findByRole('alert')).textContent).toBe('Нет подходящих карточек');
+  expect(vi.mocked(api.POST)).toHaveBeenCalledWith('/api/v1/study/sets/{set_id}/tests', {
+    params: { path: { set_id: 'set' } },
+    body: {
+      question_count: 6,
+      kinds: ['matching', 'typing'],
+      source: 'hard',
+      direction: 'both',
+      write_to_schedule: false,
+    },
+  });
+  await user.click(start);
+  await waitFor(() => expect(vi.mocked(api.POST)).toHaveBeenCalledTimes(2));
 });
 
 it('сохраняет теорию при изменении структуры', async () => {
@@ -259,7 +298,7 @@ it('проверяет квиз по набору урока и позволяе
   );
   mount('read?article=article');
   await userEvent.click(await screen.findByRole('button', { name: 'Пройти квиз' }));
-  await userEvent.click(screen.getByRole('button', { name: 'Начать тест' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Начать квиз' }));
   await userEvent.type(await screen.findByRole('textbox', { name: 'Ответ на вопрос 1' }), '4');
   const request = vi.mocked(api.POST).mock.calls[0]?.[1] as unknown as {
     params: { path: { set_id: string } };

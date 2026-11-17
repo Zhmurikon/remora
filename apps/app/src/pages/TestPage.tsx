@@ -12,6 +12,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, openPdf } from '../lib/api';
+import { LessonQuizCount, QuizFormatPreview } from '../features/study/LessonQuizControls';
+import './lesson-quiz.css';
 
 type TestConfig = components['schemas']['TestConfig'];
 type TestAttempt = components['schemas']['TestAttemptOut'];
@@ -33,6 +35,12 @@ const sourceLabels: Record<NonNullable<TestConfig['source']>, string> = {
   all: 'Весь набор',
   hard: 'Только сложные',
   new: 'Только невыученные',
+};
+
+const directionLabels: Record<NonNullable<TestConfig['direction']>, string> = {
+  term_to_def: 'Термин → определение',
+  def_to_term: 'Определение → термин',
+  both: 'Оба направления',
 };
 
 export function TestPage({
@@ -104,19 +112,19 @@ function TestBuilder({
   onCreated: (attempt: TestAttempt) => void;
 }) {
   const navigate = useNavigate();
-  const [count, setCount] = useState(20);
+  const [count, setCount] = useState('20');
+  const questionCount = Number(count);
+  const validCount = Number.isInteger(questionCount) && questionCount >= 1 && questionCount <= 50;
   const [kinds, setKinds] = useState<QuestionKind[]>(['choice', 'true_false']);
   const [source, setSource] = useState<NonNullable<TestConfig['source']>>('all');
   const [direction, setDirection] = useState<NonNullable<TestConfig['direction']>>('term_to_def');
   const [writeToSchedule, setWriteToSchedule] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   const create = useMutation({
     mutationFn: async () => {
       const { data, error: failure } = await api.POST('/api/v1/study/sets/{set_id}/tests', {
         params: { path: { set_id: setId } },
         body: {
-          question_count: count,
+          question_count: questionCount,
           kinds,
           source,
           direction,
@@ -127,107 +135,151 @@ function TestBuilder({
       return data;
     },
     onSuccess: onCreated,
-    onError: (failure: Error) => setError(failure.message),
   });
 
-  return (
-    <div className="mx-auto max-w-2xl">
-      {!embedded && (
-        <Link to={`/sets/${setId}`} className="text-primary text-sm font-medium">
-          ← К набору
-        </Link>
-      )}
-      <h1 className="mt-5 text-2xl font-semibold tracking-tight">Тест</h1>
-      <p className="text-fg-muted mt-2">
-        Рекомендуем выбор ответа и вопросы «Верно или неверно». Для письменных ответов включите
-        «Ввод ответа».
-      </p>
-
-      <Card className="mt-6 space-y-5 p-6">
-        <Input
-          label="Сколько вопросов"
-          type="number"
-          min={1}
-          max={50}
-          value={count}
-          onChange={(event) => setCount(Number(event.target.value))}
-        />
-
-        <fieldset>
-          <legend className="text-fg text-sm font-medium">Типы вопросов</legend>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            {(Object.keys(kindLabels) as QuestionKind[]).map((kind) => (
-              <label
-                key={kind}
-                className="border-border flex min-h-11 items-center gap-2 rounded-md border px-3 text-sm"
-              >
-                <input
-                  type="checkbox"
-                  className="h-4 w-4"
-                  checked={kinds.includes(kind)}
-                  onChange={(event) =>
-                    setKinds((current) =>
-                      event.target.checked
-                        ? [...current, kind]
-                        : current.filter((item) => item !== kind),
-                    )
-                  }
-                />
-                {kindLabels[kind]}
-              </label>
-            ))}
-          </div>
-          {kinds.length === 0 && (
-            <p className="text-danger mt-2 text-sm">Выберите хотя бы один тип.</p>
-          )}
-        </fieldset>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Select
-            label="Источник"
-            value={source}
-            onChange={(value) => setSource(value as NonNullable<TestConfig['source']>)}
-            options={Object.entries(sourceLabels)}
-          />
-          <Select
-            label="Направление"
-            value={direction}
-            onChange={(value) => setDirection(value as NonNullable<TestConfig['direction']>)}
-            options={[
-              ['term_to_def', 'Термин → определение'],
-              ['def_to_term', 'Определение → термин'],
-              ['both', 'Оба направления'],
-            ]}
-          />
-        </div>
-
-        <label className="text-fg-muted flex min-h-11 items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            className="h-4 w-4"
-            checked={writeToSchedule}
-            onChange={(event) => setWriteToSchedule(event.target.checked)}
-          />
-          Учитывать результат в расписании повторений
-        </label>
-
-        {error && <p className="text-danger text-sm">{error}</p>}
-        <div className="flex flex-wrap gap-3">
-          <Button
-            loading={create.isPending}
-            disabled={kinds.length === 0}
-            onClick={() => create.mutate()}
+  const formats = (
+    <fieldset className={embedded ? 'quiz-formats' : undefined}>
+      <legend className="text-fg text-sm font-medium">Типы вопросов</legend>
+      <div className={embedded ? 'quiz-format-grid' : 'mt-2 grid gap-2 sm:grid-cols-2'}>
+        {(Object.keys(kindLabels) as QuestionKind[]).map((kind) => (
+          <label
+            key={kind}
+            className={
+              embedded
+                ? 'quiz-format-card'
+                : 'border-border flex min-h-11 items-center gap-2 rounded-md border px-3 text-sm'
+            }
           >
-            Начать тест
-          </Button>
-          {!embedded && (
-            <Button variant="ghost" onClick={() => navigate(`/sets/${setId}`)}>
-              Отмена
-            </Button>
-          )}
-        </div>
-      </Card>
+            <input
+              type="checkbox"
+              className="h-4 w-4"
+              checked={kinds.includes(kind)}
+              onChange={(event) => {
+                const checked = event.currentTarget.checked;
+                setKinds((current) =>
+                  checked ? [...current, kind] : current.filter((item) => item !== kind),
+                );
+              }}
+            />
+            {embedded && <QuizFormatPreview kind={kind} />}
+            <span>{kindLabels[kind]}</span>
+          </label>
+        ))}
+      </div>
+      {kinds.length === 0 && (
+        <p role="status" className="text-danger mt-2 text-sm">
+          Выберите хотя бы один тип.
+        </p>
+      )}
+    </fieldset>
+  );
+
+  const filters = (
+    <div className="grid gap-4 sm:grid-cols-2">
+      <Select
+        label="Источник"
+        value={source}
+        onChange={(value) => setSource(value as typeof source)}
+        options={Object.entries(sourceLabels)}
+      />
+      <Select
+        label="Направление"
+        value={direction}
+        onChange={(value) => setDirection(value as typeof direction)}
+        options={Object.entries(directionLabels)}
+      />
     </div>
+  );
+  const schedule = (
+    <label className="text-fg-muted flex min-h-11 cursor-pointer items-center gap-2 text-sm">
+      <input
+        type="checkbox"
+        className="h-4 w-4 shrink-0"
+        checked={writeToSchedule}
+        onChange={(event) => setWriteToSchedule(event.target.checked)}
+      />
+      Учитывать результат в расписании повторений
+    </label>
+  );
+  const error = create.isError && (
+    <p role="alert" className="text-danger text-sm">
+      {create.error.message}
+    </p>
+  );
+  const start = (
+    <Button
+      type="submit"
+      loading={create.isPending}
+      disabled={!validCount || kinds.length === 0 || create.isPending}
+    >
+      {embedded ? 'Начать квиз' : 'Начать тест'}
+    </Button>
+  );
+  return (
+    <form
+      className={embedded ? 'lesson-quiz' : 'mx-auto max-w-2xl'}
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (validCount && kinds.length && !create.isPending) create.mutate();
+      }}
+    >
+      {embedded ? (
+        <>
+          <h2 className="quiz-title">Настройки квиза</h2>
+          {formats}
+          <LessonQuizCount value={count} valid={validCount} onChange={setCount} />
+          <details className="quiz-filters">
+            <summary>
+              <span className="quiz-caret" aria-hidden="true" />
+              <span>
+                <strong>Источник и направление</strong>
+                <small>
+                  {sourceLabels[source]} · {directionLabels[direction]}
+                </small>
+              </span>
+            </summary>
+            {filters}
+          </details>
+          {error}
+          <div className="quiz-launch">
+            {schedule}
+            {start}
+          </div>
+        </>
+      ) : (
+        <>
+          <Link to={`/sets/${setId}`} className="text-primary text-sm font-medium">
+            ← К набору
+          </Link>
+          <h1 className="mt-5 text-2xl font-semibold tracking-tight">Тест</h1>
+          <p className="text-fg-muted mt-2">
+            Рекомендуем выбор ответа и вопросы «Верно или неверно». Для письменных ответов включите
+            «Ввод ответа».
+          </p>
+          <Card className="mt-6 space-y-5 p-6">
+            <Input
+              label="Сколько вопросов"
+              type="number"
+              required
+              min={1}
+              max={50}
+              value={count}
+              onChange={(event) => setCount(event.target.value)}
+            />
+            {formats}
+            {filters}
+            {schedule}
+            {error}
+            <div className="flex flex-wrap gap-3">
+              {start}
+              <Button type="button" variant="ghost" onClick={() => navigate(`/sets/${setId}`)}>
+                Отмена
+              </Button>
+            </div>
+          </Card>
+        </>
+      )}
+    </form>
   );
 }
 
