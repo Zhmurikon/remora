@@ -1096,34 +1096,19 @@ function MaterialTreeItem({
         aria-pressed={active}
         className={`group min-h-16 w-full rounded-xl px-3 py-2.5 text-left transition-colors ${active ? 'bg-primary-subtle text-fg' : 'hover:bg-surface-muted text-fg'}`}
       >
-        <div className="flex items-start gap-2.5">
-          {dragProps && <DragHandle />}
-          <div className="min-w-0 flex-1">
-            <span className="block break-words text-sm font-semibold">{title}</span>
-            <div className="text-fg-muted mt-1 flex items-center gap-2 text-xs">
-              <StatusDot progress={progress} />
-              <span className="min-w-0 flex-1">
-                {progress.dueNow > 0 ? `${progress.dueNow} на повторение` : meta}
-              </span>
-              <span className="tabular-nums">
-                {progress.loading ? '—' : `${Math.round(progress.studiedPercent)}%`}
-              </span>
-            </div>
-            <ProgressBar progress={progress} className="mt-2" />
-          </div>
+        <span className="block break-words text-sm font-semibold">{title}</span>
+        <div className="text-fg-muted mt-1 flex items-center gap-2 text-xs">
+          <StatusDot progress={progress} />
+          <span className="min-w-0 flex-1">
+            {progress.dueNow > 0 ? `${progress.dueNow} на повторение` : meta}
+          </span>
+          <span className="tabular-nums">
+            {progress.loading ? '—' : `${Math.round(progress.studiedPercent)}%`}
+          </span>
         </div>
+        <ProgressBar progress={progress} className="mt-2" />
       </button>
     </div>
-  );
-}
-
-function DragHandle() {
-  return (
-    <span className="text-fg-subtle mt-1.5 grid shrink-0 grid-cols-2 gap-0.5" aria-hidden="true">
-      {Array.from({ length: 6 }, (_, index) => (
-        <span key={index} className="h-1 w-1 rounded-full bg-current" />
-      ))}
-    </span>
   );
 }
 
