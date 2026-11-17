@@ -17,6 +17,7 @@ import {
   sortMaterials,
   useMaterialSort,
 } from '../features/materials/material-sort';
+import { FolderPicker } from '../features/materials/FolderPicker';
 import { createEmptySet } from '../features/materials/create-empty-set';
 import { SavedMaterialSource, SavedSetSource } from '../features/library/SavedMaterialSource';
 import {
@@ -96,6 +97,7 @@ export function MaterialsPage() {
   const initialView = viewFromPath(location.pathname);
   const [view, setView] = useState<MaterialView>(initialView);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [folder, setFolder] = useState('all');
   const [search, setSearch] = useState('');
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [courseSort, selectCourseSort] = useMaterialSort('courses');
@@ -253,7 +255,14 @@ export function MaterialsPage() {
     [setItems, setSort, setOrder, setProgress],
   );
   const filteredCourses = filterBySearch(orderedCourses, search);
-  const filteredSets = filterBySearch(orderedSets, search);
+  const matchingSets = filterBySearch(orderedSets, search);
+  const activeFolder =
+    folder === 'none' || folders.data?.some((item) => item.id === folder) ? folder : 'all';
+  const filteredSets =
+    activeFolder === 'all'
+      ? matchingSets
+      : matchingSets.filter((item) => (item.folderId ?? 'none') === activeFolder);
+  const setsEmptyMessage = search.trim() ? 'Ничего не найдено' : 'В этой папке пока нет наборов';
   const filteredArchive = filterBySearch(archiveItems, search);
   const selectedCourse =
     filteredCourses.find((item) => item.id === selectedId) ?? filteredCourses[0];
@@ -458,7 +467,15 @@ export function MaterialsPage() {
             {!loading && view === 'sets' && (
               <>
                 <TreeGroup
-                  title="Все наборы"
+                  title={
+                    <FolderPicker
+                      folders={folders.data ?? []}
+                      items={matchingSets}
+                      value={activeFolder}
+                      onChange={setFolder}
+                    />
+                  }
+                  emptyMessage={activeFolder !== 'all' ? setsEmptyMessage : undefined}
                   count={filteredSets.length}
                   sortControl={
                     <QuickSort label="Сортировка наборов" mode={setSort} onChange={selectSetSort} />
@@ -485,6 +502,18 @@ export function MaterialsPage() {
                     />
                   ))}
                 </TreeGroup>
+                {folders.isError && (
+                  <p className="text-fg-muted px-2 text-sm" role="alert">
+                    Не удалось загрузить папки.{' '}
+                    <button
+                      type="button"
+                      className="min-h-11 underline"
+                      onClick={() => void folders.refetch()}
+                    >
+                      Повторить
+                    </button>
+                  </p>
+                )}
                 <nav className="material-course-links" aria-label="Навигация по наборам">
                   <button type="button" onClick={() => switchView('archive')}>
                     Архив · {archiveItems.length}
@@ -575,9 +604,13 @@ export function MaterialsPage() {
               }}
             />
           )}
-          {!loading && !(view === 'courses' ? selectedCourse : selectedSet) && (
-            <EmptyMaterials view={view} onCreateSet={() => void createSet()} />
-          )}
+          {!loading &&
+            !(view === 'courses' ? selectedCourse : selectedSet) &&
+            (view === 'sets' && (activeFolder !== 'all' || search.trim()) ? (
+              <EmptyBlock>{setsEmptyMessage}</EmptyBlock>
+            ) : (
+              <EmptyMaterials view={view} onCreateSet={() => void createSet()} />
+            ))}
         </div>
       </div>
     </div>
@@ -1215,10 +1248,12 @@ function QuickSort({
 function TreeGroup({
   title,
   count,
+  emptyMessage = 'Ничего не найдено',
   sortControl,
   children,
 }: {
-  title: string;
+  title: ReactNode;
+  emptyMessage?: string;
   count: number;
   sortControl?: ReactNode;
   children: ReactNode;
@@ -1226,15 +1261,11 @@ function TreeGroup({
   return (
     <section>
       <div className="materials-group-heading flex items-center gap-2 px-2 py-3">
-        <span>{title}</span>
-        <span>{count}</span>
+        {typeof title === 'string' ? <span>{title}</span> : title}
+        <span className="material-group-count">{count}</span>
         {sortControl}
       </div>
-      {count === 0 ? (
-        <p className="text-fg-muted px-3 py-5 text-sm">Ничего не найдено</p>
-      ) : (
-        children
-      )}
+      {count === 0 ? <p className="text-fg-muted px-3 py-5 text-sm">{emptyMessage}</p> : children}
     </section>
   );
 }

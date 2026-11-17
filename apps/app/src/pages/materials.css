@@ -57,15 +57,12 @@
 .materials-group-heading {
   font-size: 1.4rem;
 }
-.materials-group-heading span + span {
+.materials-group-heading .material-group-count {
   font: 0.875rem var(--rm-font-sans);
   color: rgb(var(--rm-fg-muted));
 }
 .materials-index [aria-pressed='true'] {
   color: rgb(var(--rm-fg));
-}
-.materials-index [draggable] + [draggable] {
-  border-top: 1px solid rgb(var(--rm-border) / 0.65);
 }
 .material-course-links {
   display: grid;
@@ -404,4 +401,89 @@
 .material-quick-sort option {
   color: rgb(var(--rm-fg));
   background: rgb(var(--rm-surface));
+}
+
+.material-folder-picker {
+  position: relative;
+  min-width: 0;
+  max-width: 100%;
+  font:
+    500 1rem/1.35 Inter,
+    'Segoe UI',
+    sans-serif;
+  letter-spacing: normal;
+}
+.material-folder-trigger,
+.material-folder-menu button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  text-align: start;
+}
+.material-folder-trigger {
+  max-width: 100%;
+  border-radius: 6px;
+}
+.material-folder-picker svg {
+  flex-shrink: 0;
+  color: rgb(var(--rm-fg-muted));
+}
+.material-folder-menu {
+  position: absolute;
+  inset: 100% auto auto 0;
+  z-index: 20;
+  width: min(15rem, calc(100vw - 4rem));
+  max-height: min(18rem, 50dvh);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 4px;
+  border: 1px solid rgb(var(--rm-border));
+  border-radius: 10px;
+  background: rgb(var(--rm-surface));
+}
+.material-folder-menu button {
+  width: 100%;
+  padding: 4px 9px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+.material-folder-menu button:hover {
+  background: rgb(var(--rm-surface-muted));
+}
+.material-folder-menu button[aria-checked='true'] {
+  background: rgb(var(--rm-primary-subtle));
+}
+.material-folder-menu small {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: rgb(var(--rm-fg-muted));
+}
+.material-folder-picker button:focus-visible {
+  outline: 2px solid rgb(var(--rm-primary));
+  outline-offset: -2px;
+}
+
+.materials-group-heading:has(.material-folder-picker) {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) auto 1fr;
+  column-gap: 4px;
+  padding-inline: 2px;
+}
+.materials-group-heading:has(.material-folder-picker) .material-quick-sort {
+  font-size: 0.8125rem;
+}
+.materials-index {
+  container-type: inline-size;
+}
+@container (max-width: 260px) {
+  .materials-group-heading:has(.material-folder-picker) {
+    grid-template-columns: minmax(0, max-content) auto;
+    justify-content: start;
+  }
+  .materials-group-heading:has(.material-folder-picker) .material-quick-sort {
+    grid-column: 1 / -1;
+    margin-inline-start: 0;
+    justify-self: start;
+  }
 }
