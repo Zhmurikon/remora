@@ -70,8 +70,28 @@ it.each(['', 'read'])('открывает оглавление с навигац
   await userEvent.click(screen.getByRole('link', { name: /Определитель/ }));
   expect(await screen.findByText('Конспект')).toBeTruthy();
   await userEvent.click(screen.getByRole('button', { name: 'О курсе и оглавление' }));
-  expect(await screen.findByRole('heading', { name: 'Оглавление' })).toBeTruthy();
+  expect(await screen.findByRole('heading', { name: 'Разделы курса' })).toBeTruthy();
   expect(screen.queryByText('Конспект')).toBeNull();
+});
+
+it('сохраняет выбранный раздел при переходе в урок и обратно', async () => {
+  const otherSection = {
+    id: 'other-section',
+    title: 'Векторы',
+    articles: [{ id: 'other-article', set_id: 'other-set', title: 'Базис', body: 'Теория базиса' }],
+  };
+  vi.mocked(api.GET).mockResolvedValue({
+    data: { ...course, sections: [...course.sections, otherSection] },
+    response: new Response(),
+  } as never);
+  mount('read');
+  await userEvent.click(await screen.findByRole('button', { name: /02.*Векторы/ }));
+  expect(screen.queryByRole('link', { name: /Определитель/ })).toBeNull();
+  await userEvent.click(screen.getByRole('link', { name: /Базис/ }));
+  expect(await screen.findByText('Теория базиса')).toBeTruthy();
+  expect(screen.getByRole('link', { name: 'Базис' }).getAttribute('aria-current')).toBe('page');
+  await userEvent.click(screen.getByRole('button', { name: 'О курсе и оглавление' }));
+  expect(await screen.findByRole('heading', { name: 'Векторы' })).toBeTruthy();
 });
 
 it('не открывает первый урок вместо отсутствующего', async () => {
@@ -189,7 +209,7 @@ it('открывает квиз внутри урока и возвращает 
   await userEvent.click(await screen.findByRole('button', { name: 'Пройти квиз' }));
   expect(await screen.findByRole('button', { name: 'Начать тест' })).toBeTruthy();
   expect(screen.getByRole('navigation', { name: 'Оглавление курса' })).toBeTruthy();
-  await userEvent.click(screen.getByRole('button', { name: '1. Материал' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Материал' }));
   expect(await screen.findByText('Конспект')).toBeTruthy();
 });
 

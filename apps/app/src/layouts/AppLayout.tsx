@@ -1,7 +1,7 @@
 import { SettingsIcon } from '../components/SettingsIcon';
 import { Button, FishMark } from '@remora/ui';
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { matchPath, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../features/auth/auth-store';
 import lectureMark from '../../../web/public/lecture-demo/remora-icon.png';
 import { api, clearAccessToken } from '../lib/api';
@@ -26,7 +26,13 @@ export function AppLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const location = useLocation();
-  const hasPaperShell = location.pathname === '/' || isMaterialsPath(location.pathname);
+  const isCourseReader =
+    Boolean(matchPath('/courses/:courseId/read', location.pathname)) ||
+    (Boolean(matchPath('/courses/:courseId', location.pathname)) &&
+      !matchPath('/courses/new', location.pathname) &&
+      !matchPath('/courses/manage', location.pathname));
+  const hasPaperShell =
+    location.pathname === '/' || isMaterialsPath(location.pathname) || isCourseReader;
   const user = useAuthStore((state) => state.user);
   const becomeGuest = useAuthStore((state) => state.becomeGuest);
 

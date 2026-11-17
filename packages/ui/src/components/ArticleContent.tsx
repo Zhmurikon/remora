@@ -5,8 +5,9 @@ import type { Token } from 'markdown-it';
 import { md, mediaId } from './article-markdown';
 import './card-content.css';
 
-// Тяжёлые зависимости (shiki, katex) грузятся только когда в теории есть код или формула.
+// Подсветка, схемы и формулы загружаются только для материалов с соответствующей разметкой.
 const HighlightedCode = lazy(() => import('./HighlightedCode'));
+const ArticleDiagram = lazy(() => import('./ArticleDiagram'));
 const FormulaContent = lazy(() => import('./FormulaContent'));
 
 const FENCE_MATH = new Set(['math', 'latex', 'tex', 'katex']);
@@ -34,16 +35,45 @@ function alignClass(token: Token): string {
 export function ArticleContent({
   value,
   headingLevel = 3,
+  articleTitle,
   media = {},
   variant = 'article',
   className = '',
 }: {
   value: string;
   headingLevel?: 2 | 3;
+  articleTitle?: string;
   media?: Record<string, ArticleMedia>;
   variant?: 'article' | 'card';
   className?: string;
 }) {
+  const tokens = md.parse(value ?? '', {});
+  let headingOffset = headingLevel - 1;
+  if (articleTitle !== undefined) {
+    // Заголовок урока уже есть над текстом. Точку после номера авторы ставят по-разному.
+    const normalize = (text: string) => text.trim().replace(/^(\d+(?:\.\d+)*)\.?(?=\s)/u, '$1');
+    if (
+      tokens[0]?.type === 'heading_open' &&
+      tokens[0].tag === 'h1' &&
+      tokens[1]?.type === 'inline' &&
+      normalize(tokens[1].content) === normalize(articleTitle)
+    )
+      tokens.splice(0, 3);
+    const levels = tokens
+      .filter((t) => t.type === 'heading_open')
+      .map((t) => Number(t.tag.slice(1)));
+    if (levels.length) headingOffset = headingLevel - Math.min(...levels);
+  }
+  const summaries = new Set(
+    articleTitle === undefined
+      ? []
+      : tokens.filter(
+          (token, index) =>
+            token.type === 'blockquote_open' &&
+            tokens[index + 1]?.type === 'paragraph_open' &&
+            tokens[index + 2]?.content === '**Коротко**',
+        ),
+  );
   let key = 0;
   const nextKey = () => (key += 1);
 
@@ -71,7 +101,7 @@ export function ArticleContent({
     const k = nextKey();
     switch (open.type) {
       case 'heading_open': {
-        const level = Math.min(6, headingLevel - 1 + Number(open.tag.slice(1)));
+        const level = Math.min(6, headingOffset + Number(open.tag.slice(1)));
         const size = level <= 2 ? 'text-2xl' : level === 3 ? 'text-xl' : 'text-lg';
         return createElement(
           `h${level}`,
@@ -87,7 +117,14 @@ export function ArticleContent({
         );
       case 'blockquote_open':
         return (
-          <blockquote key={k} className="border-border text-fg-muted border-l-4 pl-4 italic">
+          <blockquote
+            key={k}
+            className={
+              summaries.has(open)
+                ? 'article-summary'
+                : 'border-border text-fg-muted border-l-4 pl-4 italic'
+            }
+          >
             {children}
           </blockquote>
         );
@@ -187,6 +224,16 @@ export function ArticleContent({
         );
       case 'fence': {
         const info = (token.info || '').trim().toLowerCase();
+        if (articleTitle !== undefined && info === 'mermaid') {
+          return (
+            <Suspense
+              key={nextKey()}
+              fallback={<pre className="overflow-x-auto">{token.content}</pre>}
+            >
+              <ArticleDiagram value={token.content} />
+            </Suspense>
+          );
+        }
         if (FENCE_MATH.has(info))
           return (
             <Suspense key={nextKey()} fallback={<p>{token.content}</p>}>
@@ -254,7 +301,7 @@ export function ArticleContent({
     <div
       className={`${variant === 'article' ? 'course-article max-w-prose space-y-4' : 'space-y-3'} break-words leading-relaxed ${className}`}
     >
-      {render(md.parse(value ?? '', {}))}
+      {render(tokens)}
     </div>
   );
 }

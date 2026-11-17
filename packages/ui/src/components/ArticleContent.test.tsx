@@ -8,6 +8,23 @@ describe('ArticleContent', () => {
     expect(container.querySelector('h2')?.textContent).toBe('Тема');
   });
 
+  it('скрывает только повтор названия урока и сохраняет уровни подразделов', () => {
+    const renderLesson = (title: string) => (
+      <ArticleContent
+        articleTitle={title}
+        headingLevel={2}
+        value={'# 1.1 Введение\n\n> **Коротко**\n> - Тезис\n\n## Пример\n\n### Решение\n\n> Цитата'}
+      />
+    );
+    const view = render(renderLesson('1.1. Введение'));
+    expect(view.container.querySelector('h2')?.textContent).toBe('Пример');
+    expect(view.container.querySelector('h3')?.textContent).toBe('Решение');
+    expect(view.container.querySelectorAll('blockquote.article-summary')).toHaveLength(1);
+    view.rerender(renderLesson('Обзор'));
+    expect(view.container.querySelector('h2')?.textContent).toBe('1.1 Введение');
+    expect(view.container.querySelector('h3')?.textContent).toBe('Пример');
+  });
+
   it('рендерит эмфазу и строчный код', () => {
     const { container } = render(<ArticleContent value={'**жир** и `код`'} />);
     expect(container.querySelector('strong')?.textContent).toBe('жир');
@@ -28,9 +45,7 @@ describe('ArticleContent', () => {
   });
 
   it('рендерит таблицу в контейнере с прокруткой', () => {
-    const { container } = render(
-      <ArticleContent value={'| A | B |\n| --- | --- |\n| 1 | 2 |'} />,
-    );
+    const { container } = render(<ArticleContent value={'| A | B |\n| --- | --- |\n| 1 | 2 |'} />);
     expect(container.querySelector('.overflow-x-auto table')).not.toBeNull();
     expect(container.querySelectorAll('thead th')).toHaveLength(2);
     expect(container.querySelectorAll('tbody td')).toHaveLength(2);
@@ -104,7 +119,9 @@ describe('ArticleContent', () => {
   it('не рендерит внешние изображения и неизвестный media', () => {
     const { container } = render(
       <ArticleContent
-        value={'![внешнее](https://e.com/x.png) ![нет карты](media:22222222-2222-4222-8222-222222222222)'}
+        value={
+          '![внешнее](https://e.com/x.png) ![нет карты](media:22222222-2222-4222-8222-222222222222)'
+        }
       />,
     );
     expect(container.querySelector('img')).toBeNull();
