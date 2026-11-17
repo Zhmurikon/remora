@@ -763,7 +763,7 @@ function CourseNavigator({
                           'карточек',
                         ])}
                       </span>
-                      <LearningStatus progress={sectionProgress} inline />
+                      <LearningStatus progress={sectionProgress} courseId={course.id} />
                     </p>
                   )}
                 </div>
@@ -1186,13 +1186,17 @@ function ArticleProgressRow({
         </Link>
         <p className="text-fg-muted flex flex-wrap items-baseline gap-x-3 text-sm">
           <span>{pluralWithCount(progress.cardsTotal, ['карточка', 'карточки', 'карточек'])}</span>
-          <LearningStatus progress={progress} inline />
+          <LearningStatus progress={progress} courseId={courseId} />
         </p>
       </div>
-      <Link className="material-repeat" to={`/courses/${courseId}/learn`}>
-        {progress.dueNow > 0 ? 'Повторить' : 'Учить'}
-      </Link>
-      <div>
+      {progress.dueNow === 0 && (
+        <Link className="material-repeat" to={`/courses/${courseId}/learn`}>
+          Учить
+        </Link>
+      )}
+      <div
+        className={progress.dueNow > 0 ? 'col-span-full sm:col-span-1 sm:col-start-3' : undefined}
+      >
         <div className="flex items-center justify-between text-xs">
           <span className="text-fg-muted">Прогресс</span>
           <span className="font-semibold tabular-nums">
@@ -1275,19 +1279,24 @@ const statusStyles = {
   new: ['text-fg-muted', 'bg-surface-muted'],
 } as const;
 
-function LearningStatus({
-  progress,
-  inline = false,
-}: {
-  progress: MaterialProgress;
-  inline?: boolean;
-}) {
+function LearningStatus({ progress, courseId }: { progress: MaterialProgress; courseId?: string }) {
   const status = learningStatus(progress);
   const [color, background] = statusStyles[status.kind];
+  if (courseId && status.kind === 'urgent') {
+    return (
+      <CourseActionLink
+        to={`/courses/${courseId}/learn`}
+        className={color}
+        description="Повторить карточки по курсу"
+      >
+        {status.label}
+      </CourseActionLink>
+    );
+  }
   return (
     <span
       className={
-        inline
+        courseId
           ? color
           : `${color} ${background} inline-flex items-center rounded-full px-2.5 py-1 text-sm font-medium`
       }

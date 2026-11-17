@@ -233,9 +233,7 @@
 }
 .material-study-stats {
   clear: both;
-  margin: 20px 0 24px;
-  padding-bottom: 19px;
-  border-bottom: 1px solid rgb(var(--rm-border));
+  margin: 20px 0 56px;
 }
 .material-study-stats h3 {
   font-size: 0.9375rem;
@@ -295,6 +293,13 @@
 }
 .material-delete-control:is(:hover, :focus-within) .material-delete-tip:not([hidden]) {
   display: block;
+}
+@media (pointer: coarse) {
+  .material-sections .material-action a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
 }
 .material-repeat {
   display: inline-flex;
