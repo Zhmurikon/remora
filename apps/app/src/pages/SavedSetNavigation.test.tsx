@@ -92,12 +92,15 @@ it('показывает сохранённому набору все режим
 
   renderWithRouter('/sets/saved-set', <SetPage />);
 
-  expect(await screen.findByRole('link', { name: 'Заучивание' })).toBeTruthy();
+  expect(await screen.findByRole('link', { name: /Заучивание/i })).toBeTruthy();
   expect(screen.getByRole('link', { name: 'Карточки' })).toBeTruthy();
   expect(screen.getByRole('link', { name: 'Письмо' })).toBeTruthy();
   expect(screen.getByRole('link', { name: 'Тест' })).toBeTruthy();
   expect(screen.getByRole('link', { name: 'Аудирование' })).toBeTruthy();
-  expect(screen.queryByRole('link', { name: 'Редактировать' })).toBeNull();
+  expect(screen.getByRole('link', { name: 'Битва' }).getAttribute('href')).toBe(
+    '/sets/saved-set/battle',
+  );
+  expect(screen.queryByRole('link', { name: 'Редактировать набор' })).toBeNull();
 });
 
 it.each([

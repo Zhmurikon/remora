@@ -13,6 +13,9 @@ import {
 import cardsImage from '../../../../web/public/lecture-demo/pricing-cards.webp';
 import pencilImage from '../../../../web/public/lecture-demo/create-pencil.webp';
 import testImage from '../../../../web/public/lecture-demo/news-test.webp';
+import cassetteImage from '../../../../web/public/lecture-demo/folio-cassette.webp';
+import writingImage from '../study/quiz-art/typing.webp';
+import battleImage from '../study/quiz-art/true-false.webp';
 import './set-cards.css';
 
 const PAGE_SIZE = 12;
@@ -20,23 +23,59 @@ const modes = [
   { path: 'flashcards', title: 'Карточки', description: 'Листать и запоминать', image: cardsImage },
   { path: 'write', title: 'Письмо', description: 'Отвечать по памяти', image: pencilImage },
   { path: 'test', title: 'Тест', description: 'Проверить знания', image: testImage },
+] as const;
+
+const additionalModes = [
+  modes[0],
+  { ...modes[1], image: writingImage },
+  {
+    path: 'listen',
+    title: 'Аудирование',
+    description: 'Слушать и записывать',
+    image: cassetteImage,
+  },
+  modes[2],
+  { path: 'battle', title: 'Битва', description: 'Сыграть с соперником', image: battleImage },
 ];
 
-export function SetModes({ setId }: { setId: string }) {
+export function SetModes({
+  setId,
+  standalone = false,
+  disabled = false,
+}: {
+  setId: string;
+  standalone?: boolean;
+  disabled?: boolean;
+}) {
   return (
-    <section className="set-block">
-      <h3>Режимы обучения</h3>
+    <section className={standalone ? 'set-secondary' : 'set-block'} aria-label="Режимы обучения">
+      {!standalone && <h3>Режимы обучения</h3>}
       <div className="set-mode-grid">
-        {modes.map((mode) => (
-          <Link key={mode.path} to={`/sets/${setId}/${mode.path}`}>
-            <img src={mode.image} width="52" height="50" alt="" />
-            <span>
-              <b>{mode.title}</b>
-              <small>{mode.description}</small>
+        {(standalone ? additionalModes : modes).map((mode) => {
+          const content = (
+            <>
+              <img src={mode.image} width="52" height="50" alt="" />
+              <span>
+                <b>{mode.title}</b>
+                <small>{mode.description}</small>
+              </span>
+              <span aria-hidden="true">›</span>
+            </>
+          );
+          return disabled ? (
+            <span className="set-inactive-mode" aria-disabled="true" key={mode.path}>
+              {content}
             </span>
-            <span aria-hidden="true">›</span>
-          </Link>
-        ))}
+          ) : (
+            <Link
+              key={mode.path}
+              aria-label={standalone ? mode.title : undefined}
+              to={`/sets/${setId}/${mode.path}`}
+            >
+              {content}
+            </Link>
+          );
+        })}
       </div>
     </section>
   );

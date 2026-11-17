@@ -4,12 +4,13 @@
  */
 
 import { pluralWithCount } from '@remora/core';
-import { Badge, Button, Card } from '@remora/ui';
+import { useState } from 'react';
+import trayImage from '../../../../web/public/lecture-demo/create-tray.webp';
+import { SettingsIcon } from '../../components/SettingsIcon';
+import { SetModes } from '../materials/SetCardBrowser';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { PrintMenu } from './PrintMenu';
-import { ResetProgress } from './ResetProgress';
 import { SetLearnSettings } from './SetLearnSettings';
 
 export function SetStudyPanel({ setId, cardsCount }: { setId: string; cardsCount: number }) {
@@ -24,105 +25,118 @@ export function SetStudyPanel({ setId, cardsCount }: { setId: string; cardsCount
     },
   });
 
+  const [panel, setPanel] = useState<'settings' | 'stats' | null>(null);
   const disabled = cardsCount === 0;
-  const due = stats.data?.due_now ?? 0;
-  const notStarted = stats.data?.not_started_count ?? cardsCount;
+  const data = stats.data;
+  const due = data?.due_now ?? 0;
+  const percent = Math.round(data?.mastery_percent ?? 0);
+  const action = due > 0 ? 'Начать повторение' : 'Начать заучивание';
+  let message = 'Повторять по расписанию';
+  if (disabled) message = 'Добавьте карточки, чтобы начать';
+  else if (due > 0)
+    message = `${pluralWithCount(due, ['карточка ждёт', 'карточки ждут', 'карточек ждут'])} повторения`;
+  else if (data?.not_started_count)
+    message = `Ещё не начато: ${pluralWithCount(data.not_started_count, ['карточка', 'карточки', 'карточек'])}`;
+  else if (data) message = 'Всё повторено по расписанию';
 
   return (
-    <Card className="p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold">Обучение</h2>
-          <p className="text-fg-muted mt-1 text-sm">
-            {disabled
-              ? 'Добавьте карточки, чтобы начать'
-              : due > 0
-                ? `${pluralWithCount(due, ['карточка ждёт', 'карточки ждут', 'карточек ждут'])} повторения`
-                : notStarted > 0
-                  ? `${pluralWithCount(notStarted, ['карточка', 'карточки', 'карточек'])} ещё не начата`
-                  : 'Всё повторено — возвращайтесь по расписанию'}
-          </p>
-        </div>
-        {stats.data && (
-          <Badge tone={stats.data.mastery_percent >= 80 ? 'success' : 'primary'}>
-            Освоено {Math.round(stats.data.mastery_percent)}%
-          </Badge>
-        )}
-      </div>
-
-      <div className="mt-5 flex flex-wrap gap-3">
-        <Link to={`/sets/${setId}/learn`} aria-disabled={disabled}>
-          <Button disabled={disabled}>Заучивание</Button>
-        </Link>
-        <Link to={`/sets/${setId}/flashcards`} aria-disabled={disabled}>
-          <Button variant="secondary" disabled={disabled}>
-            Карточки
-          </Button>
-        </Link>
-        <Link to={`/sets/${setId}/write`} aria-disabled={disabled}>
-          <Button variant="secondary" disabled={disabled}>
-            Письмо
-          </Button>
-        </Link>
-        <Link to={`/sets/${setId}/test`} aria-disabled={disabled}>
-          <Button variant="secondary" disabled={disabled}>
-            Тест
-          </Button>
-        </Link>
-        <Link to={`/sets/${setId}/battle`} aria-disabled={disabled}>
-          <Button variant="secondary" disabled={disabled}>
-            Битва
-          </Button>
-        </Link>
-        <Link to={`/sets/${setId}/listen`} aria-disabled={disabled}>
-          <Button variant="secondary" disabled={disabled}>
-            Аудирование
-          </Button>
-        </Link>
-      </div>
-
-      <SetLearnSettings setId={setId} disabled={disabled} />
-
-      {stats.data && stats.data.cards_total > 0 && (
-        <>
-          <div className="mt-6">
-            <StateBar
-              distribution={stats.data.distribution}
-              total={
-                stats.data.distribution.new +
-                stats.data.distribution.learning +
-                stats.data.distribution.review +
-                stats.data.distribution.relearning
-              }
-            />
+    <>
+      <section className="set-session" aria-labelledby="set-learn-title">
+        <div className="set-session-main">
+          <img className="set-tray" src={trayImage} width="156" height="120" alt="" />
+          <div className="set-launch">
+            <h2 id="set-learn-title">Заучивание</h2>
+            <p>{message}</p>
+            {disabled ? (
+              <button className="set-start" disabled>
+                {action}
+              </button>
+            ) : (
+              <Link
+                className="set-start"
+                to={`/sets/${setId}/learn`}
+                aria-label={`${action} — Заучивание`}
+              >
+                {action} <span aria-hidden="true">→</span>
+              </Link>
+            )}
           </div>
-
-          <Forecast days={stats.data.forecast} />
-
-          <PrintMenu setId={setId} disabled={disabled} />
-
-          {stats.data.problem_cards.length > 0 && (
-            <section className="mt-6">
-              <h3 className="text-sm font-semibold">Проблемные карточки</h3>
-              <ul className="mt-2 space-y-1">
-                {stats.data.problem_cards.slice(0, 5).map((card) => (
-                  <li
-                    key={card.card_id}
-                    className="text-fg-muted flex justify-between gap-4 text-sm"
+          {!disabled && (
+            <div className="set-mastery">
+              {data ? (
+                <>
+                  <p>
+                    Освоено <strong>{percent}%</strong>
+                  </p>
+                  <progress value={data.mastery_percent} max={100} aria-label="Освоение набора" />
+                  <p className="set-counts">
+                    Закреплено {data.mastered_count} из {cardsCount} · Изучаются{' '}
+                    {data.learning_count} · Не начато {data.not_started_count}
+                  </p>
+                  <button
+                    type="button"
+                    className="set-stat-link"
+                    aria-expanded={panel === 'stats'}
+                    aria-controls="set-stats"
+                    onClick={() => setPanel(panel === 'stats' ? null : 'stats')}
                   >
-                    <span className="truncate">{card.term}</span>
-                    <span className="text-fg-subtle shrink-0">
-                      {pluralWithCount(card.lapses, ['ошибка', 'ошибки', 'ошибок'])}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
+                    Статистика <span aria-hidden="true" className="material-caret" />
+                  </button>
+                </>
+              ) : stats.isError ? (
+                <>
+                  <p role="alert">Не удалось загрузить статистику.</p>
+                  <button className="set-stat-link" onClick={() => void stats.refetch()}>
+                    Повторить загрузку
+                  </button>
+                </>
+              ) : (
+                <p role="status">Загружаем статистику…</p>
+              )}
+            </div>
           )}
-        </>
-      )}
-      <ResetProgress setId={setId} disabled={disabled} />
-    </Card>
+        </div>
+        <button
+          className="set-icon set-settings"
+          type="button"
+          aria-label="Настройки заучивания"
+          title="Настройки заучивания"
+          aria-controls="set-learn-settings"
+          aria-expanded={panel === 'settings'}
+          onClick={() => setPanel(panel === 'settings' ? null : 'settings')}
+        >
+          <SettingsIcon />
+        </button>
+        <div className="set-study-details" id="set-learn-settings" hidden={panel !== 'settings'}>
+          <SetLearnSettings setId={setId} disabled={disabled} />
+        </div>
+        {data && !disabled && (
+          <div className="set-study-details" id="set-stats" hidden={panel !== 'stats'}>
+            <StateBar
+              distribution={data.distribution}
+              total={Object.values(data.distribution).reduce((sum, value) => sum + value, 0)}
+            />
+            <Forecast days={data.forecast} />
+            {data.problem_cards.length > 0 && (
+              <section className="mt-5">
+                <h3 className="text-sm font-medium">Проблемные карточки</h3>
+                <ul className="mt-2 space-y-1">
+                  {data.problem_cards.slice(0, 5).map((card) => (
+                    <li key={card.card_id} className="flex justify-between gap-4 text-sm">
+                      <span className="min-w-0 break-words">{card.term}</span>
+                      <span className="text-fg-muted shrink-0">
+                        {pluralWithCount(card.lapses, ['ошибка', 'ошибки', 'ошибок'])}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </div>
+        )}
+      </section>
+      <SetModes setId={setId} standalone disabled={disabled} />
+    </>
   );
 }
 

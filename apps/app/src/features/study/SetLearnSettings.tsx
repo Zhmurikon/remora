@@ -84,16 +84,16 @@ export function SetLearnSettings({ setId, disabled }: { setId: string; disabled:
   }
 
   return (
-    <details className="border-border mt-5 rounded-lg border">
-      <summary className="focus-visible:ring-primary flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 focus-visible:outline-none focus-visible:ring-2">
+    <section aria-label="Настройки заучивания">
+      <header className="flex flex-wrap items-center gap-3">
         <span className="font-medium">Настройки заучивания</span>
         {settings.data?.customized ? (
           <Badge tone="primary">Для этого набора</Badge>
         ) : (
           <span className="text-fg-subtle text-sm">Общие</span>
         )}
-      </summary>
-      <div className="border-border border-t p-4">
+      </header>
+      <div className="mt-3">
         {settings.isPending ? (
           <p className="text-fg-muted text-sm">Загружаем настройки…</p>
         ) : settings.isError ? (
@@ -129,6 +129,6 @@ export function SetLearnSettings({ setId, disabled }: { setId: string; disabled:
           </>
         )}
       </div>
-    </details>
+    </section>
   );
 }
