@@ -44,7 +44,8 @@ export function AppLayout() {
     isMaterialsPath(location.pathname) ||
     isCourseReader ||
     isCourseSettings ||
-    isSetDetail;
+    isSetDetail ||
+    Boolean(matchPath('/sets/:setId/edit', location.pathname));
   const user = useAuthStore((state) => state.user);
   const becomeGuest = useAuthStore((state) => state.becomeGuest);
 

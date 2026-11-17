@@ -1,17 +1,12 @@
 import { useCanHideMaterials } from '../components/MaterialVisibility';
 import type { components } from '@remora/api-client';
 import { defaultCardImportOptions, parseCardImport, type CardImportOptions } from '@remora/core';
-import {
-  Button,
-  Card,
-  CardContent,
-  Input,
-  codeLanguageOptions,
-  type CardContentType,
-} from '@remora/ui';
+import { Button, Card, Input, codeLanguageOptions, type CardContentType } from '@remora/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -19,6 +14,8 @@ import {
   type ReactNode,
 } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { CardSide } from '../features/materials/CardSide';
+import './set-editor.css';
 import { api, downloadFile, uploadBinary } from '../lib/api';
 import { WrongAnswersEditor, wrongAnswersError } from './WrongAnswersEditor';
 
@@ -45,25 +42,38 @@ interface Snapshot {
   cards: DraftCard[];
 }
 
+type SetDetail = components['schemas']['SetDetail'];
+
+function fromServer(card: SetDetail['cards'][number]): DraftCard {
+  return {
+    source: card,
+    key: card.id,
+    id: card.id,
+    term: card.term,
+    definition: card.definition,
+    wrongTermAnswers: card.wrong_term_answers,
+    wrongDefinitionAnswers: card.wrong_definition_answers,
+    contentType: card.content_type,
+    codeLanguage: card.code_language ?? null,
+    termImageId: card.term_image_id ?? null,
+    definitionImageId: card.definition_image_id ?? null,
+  };
+}
+
+function newCard(term = '', definition = ''): DraftCard {
+  return {
+    key: crypto.randomUUID(),
+    term,
+    definition,
+    contentType: 'text',
+    codeLanguage: null,
+    termImageId: null,
+    definitionImageId: null,
+  };
+}
+
 export function SetEditorPage() {
   const { setId = '' } = useParams();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const canHide = useCanHideMaterials();
-  const [saveError, setSaveError] = useState('');
-  const [visibility, setVisibility] = useState<Visibility>('public');
-  const [folderId, setFolderId] = useState<string | null>(null);
-  const [cards, setCards] = useState<DraftCard[]>([]);
-  const [ready, setReady] = useState(false);
-  const [saveState, setSaveState] = useState<SaveState>('idle');
-  const [bulkOpen, setBulkOpen] = useState(false);
-  const [exportOpen, setExportOpen] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const saving = useRef(false);
-  const pending = useRef<Snapshot | null>(null);
-
   const query = useQuery({
     queryKey: ['sets', setId],
     queryFn: async () => {
@@ -74,152 +84,228 @@ export function SetEditorPage() {
       return data;
     },
   });
+  if (query.isPending) return <p role="status">Открываем редактор…</p>;
+  if (!query.data)
+    return (
+      <div role="alert">
+        <p>Не удалось открыть набор.</p>
+        <button className="set-tool mt-3" onClick={() => void query.refetch()}>
+          Повторить загрузку
+        </button>
+      </div>
+    );
+  if (query.data.can_edit === false)
+    return (
+      <div>
+        <p>Редактировать набор может его владелец.</p>
+        <Link className="set-back" to={`/sets/${setId}`}>
+          К набору
+        </Link>
+      </div>
+    );
+  return <SetEditor key={setId} initial={query.data} />;
+}
+
+function SetEditor({ initial }: { initial: SetDetail }) {
+  const setId = initial.id;
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const canHide = useCanHideMaterials();
+  const [title, setTitle] = useState(initial.title);
+  const [description, setDescription] = useState(initial.description);
+  const [visibility, setVisibility] = useState<Visibility>(initial.visibility);
+  const [folderId, setFolderId] = useState(initial.folder_id);
+  const [cards, setCards] = useState(() => initial.cards.map(fromServer));
+  const [selected, setSelected] = useState(cards[0]?.key);
+  const [firstTerm, setFirstTerm] = useState('');
+  const [firstDefinition, setFirstDefinition] = useState('');
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkMounted, setBulkMounted] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>('saved');
+  const [saveError, setSaveError] = useState('');
+  const snapshot = useMemo(
+    () => ({ title, description, visibility, folderId, cards }),
+    [title, description, visibility, folderId, cards],
+  );
+  const baseline = useRef<Snapshot>(snapshot);
+  const revision = useRef(initial.updated_at);
+  const serverIds = useRef(new Map(initial.cards.map((card) => [card.id, card.id])));
+  const chain = useRef(Promise.resolve(true));
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const workHeading = useRef<HTMLHeadingElement>(null);
+  const focusForm = useRef(false);
+  const index = Math.max(
+    0,
+    cards.findIndex((card) => card.key === selected),
+  );
+  const card = cards[index];
+
+  useEffect(() => {
+    if (focusForm.current) {
+      workHeading.current?.focus();
+      focusForm.current = false;
+    }
+  }, [card?.key]);
+
   const folders = useQuery({
     queryKey: ['folders'],
     queryFn: async () => (await api.GET('/api/v1/folders')).data ?? [],
   });
 
-  useEffect(() => {
-    if (!query.data || ready) return;
-    setTitle(query.data.title);
-    setDescription(query.data.description);
-    setVisibility(query.data.visibility);
-    setFolderId(query.data.folder_id);
-    setCards(
-      query.data.cards.map((card) => ({
-        source: card,
-        wrongTermAnswers: card.wrong_term_answers ?? [],
-        wrongDefinitionAnswers: card.wrong_definition_answers ?? [],
-        key: card.id,
-        id: card.id,
-        term: card.term,
-        definition: card.definition,
-        contentType: card.content_type,
-        codeLanguage: card.code_language ?? null,
-        termImageId: card.term_image_id ?? null,
-        definitionImageId: card.definition_image_id ?? null,
-      })),
-    );
-    setReady(true);
-  }, [query.data, ready]);
-
-  async function runSave(snapshot: Snapshot) {
-    if (
-      snapshot.cards.some(
-        (card) =>
-          wrongAnswersError(card.wrongTermAnswers ?? [], card.term, card.source?.alt_answers) ||
-          wrongAnswersError(
-            card.wrongDefinitionAnswers ?? [],
-            card.definition,
-            card.source?.alt_answers,
-          ),
-      )
-    ) {
-      setSaveState('error');
-      return;
-    }
-    if (saving.current) {
-      pending.current = snapshot;
-      return;
-    }
-    saving.current = true;
-    setSaveState('saving');
-    try {
-      const metadata = await api.PATCH('/api/v1/sets/{set_id}', {
-        params: { path: { set_id: setId } },
-        body: {
-          title: snapshot.title || 'Без названия',
-          description: snapshot.description,
-          visibility: snapshot.visibility,
-          lang_term: 'ru',
-          lang_definition: 'ru',
-          folder_id: snapshot.folderId,
-        },
-      });
-      if (metadata.error)
-        throw new Error(
-          (metadata.error as { message?: string }).message ??
-            'Не удалось сохранить настройки набора',
+  const save = useCallback(
+    (draft: Snapshot) => {
+      async function persist() {
+        const previous = baseline.current;
+        if (previous === draft) return true;
+        setSaveError('');
+        const invalid = draft.cards.findIndex(
+          (c) =>
+            wrongAnswersError(c.wrongTermAnswers ?? [], c.term, c.source?.alt_answers) ||
+            wrongAnswersError(c.wrongDefinitionAnswers ?? [], c.definition, c.source?.alt_answers),
         );
-      const content = await api.PUT('/api/v1/sets/{set_id}/cards', {
-        params: { path: { set_id: setId } },
-        body: {
-          cards: snapshot.cards.map((card) => ({
-            ...card.source,
-            id: card.id,
-            wrong_term_answers: (card.wrongTermAnswers ?? [])
-              .map((value) => value.trim())
-              .filter(Boolean),
-            wrong_definition_answers: (card.wrongDefinitionAnswers ?? [])
-              .map((value) => value.trim())
-              .filter(Boolean),
-            term: card.term,
-            definition: card.definition,
-            content_type: card.contentType,
-            code_language: card.contentType === 'code' ? card.codeLanguage || 'text' : null,
-            term_image_id: card.termImageId,
-            definition_image_id: card.definitionImageId,
-          })),
-        },
-      });
-      if (content.error || !content.data) throw new Error('Не удалось сохранить карточки');
-      setSaveError('');
-      if (snapshot.cards.some((card) => !card.id))
-        setCards((current) =>
-          current.map((card, index) => ({
-            ...card,
-            id: content.data?.cards[index]?.id ?? card.id,
-          })),
-        );
-      setSaveState('saved');
-      await queryClient.invalidateQueries({ queryKey: ['sets'] });
-    } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Не удалось сохранить набор');
-      setSaveState('error');
-    } finally {
-      saving.current = false;
-      const next = pending.current;
-      pending.current = null;
-      if (next) void runSave(next);
-    }
-  }
+        if (invalid >= 0) {
+          setSaveError(`Проверьте неверные ответы в карточке ${invalid + 1}.`);
+          setSaveState('error');
+          return false;
+        }
+        setSaveState('saving');
+        try {
+          if (previous.cards !== draft.cards) {
+            const content = await api.PUT('/api/v1/sets/{set_id}/cards', {
+              params: { path: { set_id: setId } },
+              body: {
+                expected_updated_at: revision.current,
+                cards: draft.cards.map((item) => ({
+                  ...item.source,
+                  id: serverIds.current.get(item.key) ?? item.id,
+                  wrong_term_answers: (item.wrongTermAnswers ?? [])
+                    .map((v) => v.trim())
+                    .filter(Boolean),
+                  wrong_definition_answers: (item.wrongDefinitionAnswers ?? [])
+                    .map((v) => v.trim())
+                    .filter(Boolean),
+                  term: item.term,
+                  definition: item.definition,
+                  content_type: item.contentType,
+                  code_language: item.contentType === 'code' ? item.codeLanguage || 'text' : null,
+                  term_image_id: item.termImageId,
+                  definition_image_id: item.definitionImageId,
+                })),
+              },
+            });
+            if (content.error || !content.data)
+              throw new Error(
+                (content.error as { message?: string } | undefined)?.message ??
+                  'Не удалось сохранить карточки.',
+              );
+            // Сервер возвращает карточки в порядке отправленного снимка. Пользователь за это время мог изменить порядок в форме.
+            draft.cards.forEach((item, i) =>
+              serverIds.current.set(item.key, content.data.cards[i]!.id),
+            );
+            revision.current = content.data.updated_at;
+            baseline.current = { ...previous, cards: draft.cards };
+            queryClient.setQueryData(['sets', setId], content.data);
+          }
+          if (
+            previous.title !== draft.title ||
+            previous.description !== draft.description ||
+            previous.folderId !== draft.folderId ||
+            previous.visibility !== draft.visibility
+          ) {
+            const metadata = await api.PATCH('/api/v1/sets/{set_id}', {
+              params: { path: { set_id: setId } },
+              body: {
+                lang_term: initial.lang_term,
+                lang_definition: initial.lang_definition,
+                title: draft.title || 'Без названия',
+                description: draft.description,
+                visibility: draft.visibility,
+                folder_id: draft.folderId,
+              },
+            });
+            if (metadata.error || !metadata.data)
+              throw new Error(
+                (metadata.error as { message?: string } | undefined)?.message ??
+                  'Не удалось сохранить настройки набора.',
+              );
+            revision.current = metadata.data.updated_at;
+          }
+          baseline.current = draft;
+          await queryClient.invalidateQueries({ queryKey: ['sets'] });
+          if (previous.cards !== draft.cards)
+            await queryClient.invalidateQueries({ queryKey: ['study'] });
+          setSaveState('saved');
+          return true;
+        } catch (error) {
+          setSaveError(error instanceof Error ? error.message : 'Не удалось сохранить набор.');
+          setSaveState('error');
+          return false;
+        }
+      }
+      chain.current = chain.current.then(persist);
+      return chain.current;
+    },
+    [queryClient, setId, initial.lang_term, initial.lang_definition],
+  );
 
+  const firstPending = !cards.length && !!(firstTerm.trim() || firstDefinition.trim());
   function saveNow() {
     if (timer.current) clearTimeout(timer.current);
-    pending.current = null;
-    void runSave({ title, description, visibility, folderId, cards });
+    if (firstPending) {
+      const added = newCard(firstTerm, firstDefinition);
+      const next = [added];
+      setCards(next);
+      setSelected(added.key);
+      setFirstTerm('');
+      setFirstDefinition('');
+      return save({ ...snapshot, cards: next });
+    }
+    return save(snapshot);
   }
-
   useEffect(() => {
-    if (!ready) return;
+    if (snapshot === baseline.current) return;
     setSaveState('idle');
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => saveNow(), 800);
+    timer.current = setTimeout(() => void save(snapshot), 800);
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-    // saveNow намеренно пересоздаётся: снимок должен содержать последние поля формы.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, description, visibility, folderId, cards, ready]);
+  }, [snapshot, save]);
+
+  const refreshImported = useCallback(async () => {
+    await chain.current;
+    const { data, error } = await api.GET('/api/v1/sets/{set_id}', {
+      params: { path: { set_id: setId } },
+    });
+    if (!data || error) throw new Error('Не удалось загрузить импортированные карточки.');
+    const existing = new Set(serverIds.current.values());
+    const additions = data.cards.filter((c) => !existing.has(c.id)).map(fromServer);
+    if (additions.length) {
+      additions.forEach((c) => serverIds.current.set(c.key, c.id!));
+      revision.current = data.updated_at;
+      setCards((items) => [...items, ...additions]);
+    }
+    queryClient.setQueryData(['sets', setId], data);
+  }, [setId, queryClient]);
 
   function updateCard(key: string, field: 'term' | 'definition', value: string) {
     setCards((items) =>
       items.map((card) => (card.key === key ? { ...card, [field]: value } : card)),
     );
   }
+  function selectCard(key: string) {
+    if (key === card?.key) workHeading.current?.focus();
+    else focusForm.current = true;
+    setSelected(key);
+    setBulkOpen(false);
+    setExportOpen(false);
+  }
   function addCard() {
-    setCards((items) => [
-      ...items,
-      {
-        key: crypto.randomUUID(),
-        term: '',
-        definition: '',
-        contentType: 'text',
-        codeLanguage: null,
-        termImageId: null,
-        definitionImageId: null,
-      },
-    ]);
+    const addition = newCard(cards.length ? '' : firstTerm, cards.length ? '' : firstDefinition);
+    setCards((items) => [...items, addition]);
+    setFirstTerm('');
+    setFirstDefinition('');
+    selectCard(addition.key);
   }
   function setCardType(key: string, contentType: CardContentType) {
     setCards((items) =>
@@ -238,15 +324,16 @@ export function SetEditorPage() {
     setCards((items) => items.map((card) => (card.key === key ? { ...card, codeLanguage } : card)));
   }
   function duplicateCard(index: number) {
-    setCards((items) => {
-      const source = items[index];
-      if (!source) return items;
-      const copy = { ...source, id: undefined, key: crypto.randomUUID() };
-      return [...items.slice(0, index + 1), copy, ...items.slice(index + 1)];
-    });
+    const source = cards[index];
+    if (!source) return;
+    const copy = { ...source, id: undefined, key: crypto.randomUUID() };
+    setCards((items) => [...items.slice(0, index + 1), copy, ...items.slice(index + 1)]);
+    selectCard(copy.key);
   }
   function removeCard(key: string) {
-    setCards((items) => items.filter((card) => card.key !== key));
+    setSelected(cards[index + 1]?.key ?? cards[index - 1]?.key);
+    focusForm.current = true;
+    setCards((items) => items.filter((item) => item.key !== key));
   }
   function moveCard(index: number, offset: number) {
     setCards((items) => {
@@ -258,7 +345,7 @@ export function SetEditorPage() {
     });
   }
   async function deleteSet() {
-    if (!window.confirm('Удалить набор? Это действие пока нельзя отменить.')) return;
+    if (!window.confirm('Переместить набор в архив?')) return;
     const { error } = await api.DELETE('/api/v1/sets/{set_id}', {
       params: { path: { set_id: setId } },
     });
@@ -268,43 +355,52 @@ export function SetEditorPage() {
     }
   }
 
-  if (query.isPending || !ready) return <p className="text-fg-muted">Открываем редактор…</p>;
-  if (query.isError) return <p className="text-danger">{query.error.message}</p>;
-
   return (
-    <div className="pb-24">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <Link to={`/sets/${setId}`} className="text-primary text-sm font-medium">
-          ← Просмотр набора
+    <article className="set-editor">
+      <div className="editor-toolbar">
+        <Link
+          className="set-back"
+          to={`/sets/${setId}`}
+          onClick={async (e) => {
+            if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+            e.preventDefault();
+            if (await saveNow()) navigate(`/sets/${setId}`);
+          }}
+        >
+          ← К набору
         </Link>
-        <div className="flex items-center gap-3">
-          <SaveIndicator state={saveState} />
-          <Button variant="secondary" size="sm" onClick={saveNow}>
-            Сохранить
-          </Button>
+        <div className="editor-actions">
+          <SaveIndicator
+            state={
+              saveState === 'saved' && (firstPending || snapshot !== baseline.current)
+                ? 'idle'
+                : saveState
+            }
+          />
+          <Button onClick={() => void saveNow()}>Сохранить</Button>
         </div>
       </div>
-      <header className="mt-7 grid gap-4 lg:grid-cols-[1fr_220px]">
-        <div className="space-y-4">
-          <Input
-            aria-label="Название набора"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            maxLength={160}
-            className="h-14 border-0 bg-transparent px-0 text-3xl font-semibold shadow-none"
-            placeholder="Название набора"
-          />
-          <textarea
-            aria-label="Описание набора"
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            maxLength={5000}
-            rows={2}
-            className="border-border bg-surface text-fg placeholder:text-fg-subtle w-full resize-y rounded-xl border px-4 py-3"
-            placeholder="Короткое описание"
-          />
-        </div>
-        <div className="space-y-4">
+      <header className="editor-heading">
+        <h1 className="sr-only">Редактор набора</h1>
+        <textarea
+          className="editor-title"
+          aria-label="Название набора"
+          value={title}
+          onChange={(e) => setTitle(e.target.value.replace(/\n/g, ' '))}
+          rows={1}
+          maxLength={160}
+          placeholder="Название набора"
+        />
+        <textarea
+          className="editor-description"
+          aria-label="Описание набора"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={1}
+          maxLength={5000}
+          placeholder="Добавить описание"
+        />
+        <div className="editor-meta">
           <SelectField
             label="Папка"
             value={folderId ?? ''}
@@ -322,7 +418,7 @@ export function SetEditorPage() {
             value={visibility}
             onChange={(value) => setVisibility(value as Visibility)}
           >
-            <option value="public">Публичный доступ (рекомендуем)</option>
+            <option value="public">Публичный</option>
             <option value="unlisted" disabled={!canHide}>
               По ссылке · Plus и Pro
             </option>
@@ -330,186 +426,260 @@ export function SetEditorPage() {
               Только мне · Plus и Pro
             </option>
           </SelectField>
-          {saveError && (
-            <p role="alert" className="text-danger">
-              {saveError}
-            </p>
-          )}
         </div>
+        {saveError && (
+          <p role="status" className="text-danger mt-3">
+            {saveError}
+          </p>
+        )}
       </header>
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">Карточки</h2>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setExportOpen((open) => !open);
-              setBulkOpen(false);
-            }}
-          >
-            {exportOpen ? 'Закрыть экспорт' : 'Экспортировать'}
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setBulkOpen((open) => !open);
-              setExportOpen(false);
-            }}
-          >
-            {bulkOpen ? 'Закрыть импорт' : 'Массовый ввод'}
-          </Button>
-        </div>
-      </div>
-      {exportOpen && (
-        <SetExport setId={setId} title={title || 'Набор'} canExport={saveState === 'saved'} />
-      )}
-      {bulkOpen && (
-        <BulkImport
-          setId={setId}
-          onCancel={() => setBulkOpen(false)}
-          onAnkiImported={async () => {
-            const refreshed = await query.refetch();
-            if (!refreshed.data) return;
-            setCards(
-              refreshed.data.cards.map((card) => ({
-                source: card,
-                wrongTermAnswers: card.wrong_term_answers ?? [],
-                wrongDefinitionAnswers: card.wrong_definition_answers ?? [],
-                key: card.id,
-                id: card.id,
-                term: card.term,
-                definition: card.definition,
-                contentType: card.content_type,
-                codeLanguage: card.code_language ?? null,
-                termImageId: card.term_image_id ?? null,
-                definitionImageId: card.definition_image_id ?? null,
-              })),
-            );
-          }}
-          onImport={(imported) => {
-            setCards((current) => [
-              ...current,
-              ...imported.map((card) => ({
-                ...card,
-                key: crypto.randomUUID(),
-                contentType: 'text' as const,
-                codeLanguage: null,
-                termImageId: null,
-                definitionImageId: null,
-              })),
-            ]);
-            setBulkOpen(false);
-          }}
-        />
-      )}
-      <div className="mt-8 space-y-4">
-        {cards.map((card, index) => (
-          <Card key={card.key} className="p-0">
-            <div className="border-border flex min-h-14 flex-wrap items-center justify-between gap-2 border-b px-4 py-1">
-              <div className="flex items-center gap-3">
-                <span className="text-fg-subtle text-sm font-medium">{index + 1}</span>
-                <select
-                  aria-label={`Тип содержимого карточки ${index + 1}`}
-                  value={card.contentType}
-                  onChange={(event) => setCardType(card.key, event.target.value as CardContentType)}
-                  className="border-border bg-surface-muted text-fg h-10 rounded-lg border px-3 text-sm"
-                >
-                  <option value="text">Текст и формулы</option>
-                  <option value="latex">Формула</option>
-                  <option value="code">Код</option>
-                </select>
-                {card.contentType === 'code' && (
+      <div className="editor-spread">
+        <aside className="editor-index" aria-label="Карточки набора">
+          <div className="editor-index-head">
+            <h2>
+              Карточки <small>{cards.length}</small>
+            </h2>
+            <IconButton label="Добавить карточку" onClick={addCard}>
+              ＋
+            </IconButton>
+          </div>
+          {cards.length ? (
+            <>
+              <select
+                className="editor-jump"
+                aria-label="Выбрать карточку"
+                value={card?.key}
+                onChange={(e) => selectCard(e.target.value)}
+              >
+                {cards.map((c, i) => (
+                  <option key={c.key} value={c.key}>
+                    {i + 1}. {c.term || 'Без термина'}
+                  </option>
+                ))}
+              </select>
+              <ol>
+                {cards.map((c, i) => (
+                  <li key={c.key}>
+                    <button
+                      type="button"
+                      aria-current={c.key === card?.key ? 'true' : undefined}
+                      onClick={() => selectCard(c.key)}
+                    >
+                      <span>{i + 1}</span>
+                      <span>{c.term || 'Без термина'}</span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </>
+          ) : (
+            <p className="editor-empty-index">Список пока пуст</p>
+          )}
+        </aside>
+        <section className="editor-work">
+          <div className="editor-work-head">
+            <h2 ref={workHeading} tabIndex={-1}>
+              {card ? `Карточка ${index + 1}` : 'Первая карточка'}
+            </h2>
+            <div className="editor-actions">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setExportOpen((open) => !open);
+                  setBulkOpen(false);
+                }}
+              >
+                {exportOpen ? 'Закрыть экспорт' : 'Экспорт'}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={async () => {
+                  if (!bulkOpen && !(await saveNow())) return;
+                  setBulkMounted(true);
+                  setBulkOpen((open) => !open);
+                  setExportOpen(false);
+                }}
+              >
+                {bulkOpen ? 'Закрыть импорт' : 'Импорт'}
+              </Button>
+            </div>
+          </div>
+          {exportOpen && (
+            <SetExport
+              setId={setId}
+              title={title || 'Набор'}
+              canExport={!firstPending && saveState === 'saved' && baseline.current === snapshot}
+            />
+          )}
+          {bulkMounted && (
+            <div hidden={!bulkOpen}>
+              <BulkImport
+                setId={setId}
+                onCancel={() => setBulkOpen(false)}
+                onAnkiImported={refreshImported}
+                onImport={(imported) => {
+                  const additions = imported.map((c) => newCard(c.term, c.definition));
+                  if (firstPending) {
+                    additions.unshift(newCard(firstTerm, firstDefinition));
+                    setFirstTerm('');
+                    setFirstDefinition('');
+                  }
+                  setCards((items) => [...items, ...additions]);
+                  if (additions[0]) selectCard(additions[0].key);
+                  setBulkOpen(false);
+                }}
+              />
+            </div>
+          )}
+          {card ? (
+            <div key={card.key} className="editor-card">
+              <div className="border-border flex min-h-14 flex-wrap items-center justify-between gap-2 border-b px-4 py-1">
+                <div className="flex items-center gap-3">
                   <select
-                    aria-label={`Язык кода карточки ${index + 1}`}
-                    value={card.codeLanguage ?? 'text'}
-                    onChange={(event) => setCodeLanguage(card.key, event.target.value)}
+                    aria-label={`Тип содержимого карточки ${index + 1}`}
+                    value={card.contentType}
+                    onChange={(event) =>
+                      setCardType(card.key, event.target.value as CardContentType)
+                    }
                     className="border-border bg-surface-muted text-fg h-10 rounded-lg border px-3 text-sm"
                   >
-                    {codeLanguageOptions.map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
+                    <option value="text">Текст и формулы</option>
+                    <option value="latex">Формула</option>
+                    <option value="code">Код</option>
                   </select>
-                )}
+                  {card.contentType === 'code' && (
+                    <select
+                      aria-label={`Язык кода карточки ${index + 1}`}
+                      value={card.codeLanguage ?? 'text'}
+                      onChange={(event) => setCodeLanguage(card.key, event.target.value)}
+                      className="border-border bg-surface-muted text-fg h-10 rounded-lg border px-3 text-sm"
+                    >
+                      {codeLanguageOptions.map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                <div className="flex gap-1">
+                  <IconButton
+                    label="Выше"
+                    disabled={index === 0}
+                    onClick={() => moveCard(index, -1)}
+                  >
+                    ↑
+                  </IconButton>
+                  <IconButton
+                    label="Ниже"
+                    disabled={index === cards.length - 1}
+                    onClick={() => moveCard(index, 1)}
+                  >
+                    ↓
+                  </IconButton>
+                  <IconButton label="Дублировать" onClick={() => duplicateCard(index)}>
+                    ⧉
+                  </IconButton>
+                  <IconButton label="Удалить" onClick={() => removeCard(card.key)}>
+                    ×
+                  </IconButton>
+                </div>
               </div>
-              <div className="flex gap-1">
-                <IconButton label="Выше" disabled={index === 0} onClick={() => moveCard(index, -1)}>
-                  ↑
-                </IconButton>
-                <IconButton
-                  label="Ниже"
-                  disabled={index === cards.length - 1}
-                  onClick={() => moveCard(index, 1)}
-                >
-                  ↓
-                </IconButton>
-                <IconButton label="Дублировать" onClick={() => duplicateCard(index)}>
-                  ⧉
-                </IconButton>
-                <IconButton label="Удалить" onClick={() => removeCard(card.key)}>
-                  ×
-                </IconButton>
+              <div className="editor-faces">
+                <CardField
+                  label="Термин"
+                  value={card.term}
+                  contentType={card.contentType}
+                  codeLanguage={card.codeLanguage}
+                  imageId={card.termImageId}
+                  onChange={(value) => updateCard(card.key, 'term', value)}
+                  onImageChange={(value) =>
+                    setCards((items) =>
+                      items.map((item) =>
+                        item.key === card.key ? { ...item, termImageId: value } : item,
+                      ),
+                    )
+                  }
+                />
+                <CardField
+                  label="Определение"
+                  value={card.definition}
+                  contentType={card.contentType}
+                  codeLanguage={card.codeLanguage}
+                  imageId={card.definitionImageId}
+                  onChange={(value) => updateCard(card.key, 'definition', value)}
+                  onImageChange={(value) =>
+                    setCards((items) =>
+                      items.map((item) =>
+                        item.key === card.key ? { ...item, definitionImageId: value } : item,
+                      ),
+                    )
+                  }
+                />
               </div>
-            </div>
-            <div className="grid gap-4 p-4 sm:grid-cols-2">
-              <CardField
-                label="Термин"
-                value={card.term}
-                contentType={card.contentType}
-                codeLanguage={card.codeLanguage}
-                imageId={card.termImageId}
-                onChange={(value) => updateCard(card.key, 'term', value)}
-                onImageChange={(value) =>
+              <WrongAnswersEditor
+                term={card.term}
+                definition={card.definition}
+                wrongTermAnswers={card.wrongTermAnswers ?? []}
+                wrongDefinitionAnswers={card.wrongDefinitionAnswers ?? []}
+                alternatives={card.source?.alt_answers ?? []}
+                onChange={(field, values) =>
                   setCards((items) =>
                     items.map((item) =>
-                      item.key === card.key ? { ...item, termImageId: value } : item,
+                      item.key === card.key ? { ...item, [field]: values } : item,
                     ),
                   )
                 }
               />
-              <CardField
-                label="Определение"
-                value={card.definition}
-                contentType={card.contentType}
-                codeLanguage={card.codeLanguage}
-                imageId={card.definitionImageId}
-                onChange={(value) => updateCard(card.key, 'definition', value)}
-                onImageChange={(value) =>
-                  setCards((items) =>
-                    items.map((item) =>
-                      item.key === card.key ? { ...item, definitionImageId: value } : item,
-                    ),
-                  )
-                }
-              />
+              <details className="editor-preview">
+                <summary>Предпросмотр</summary>
+                <div>
+                  {(['term', 'definition'] as const).map((side) => (
+                    <CardSide
+                      key={side}
+                      value={card[side]}
+                      type={card.contentType}
+                      codeLanguage={card.codeLanguage}
+                      imageId={side === 'term' ? card.termImageId : card.definitionImageId}
+                      imageAlt={side === 'term' ? 'Изображение термина' : 'Изображение определения'}
+                    />
+                  ))}
+                </div>
+              </details>
             </div>
-            <WrongAnswersEditor
-              term={card.term}
-              definition={card.definition}
-              wrongTermAnswers={card.wrongTermAnswers ?? []}
-              wrongDefinitionAnswers={card.wrongDefinitionAnswers ?? []}
-              alternatives={card.source?.alt_answers ?? []}
-              onChange={(field, values) =>
-                setCards((items) =>
-                  items.map((item) =>
-                    item.key === card.key ? { ...item, [field]: values } : item,
-                  ),
-                )
-              }
-            />
-          </Card>
-        ))}
+          ) : (
+            <div className="editor-first">
+              <label>
+                Термин
+                <textarea
+                  rows={2}
+                  maxLength={10000}
+                  value={firstTerm}
+                  onChange={(e) => setFirstTerm(e.target.value)}
+                  placeholder="Введите термин"
+                />
+              </label>
+              <label>
+                Определение
+                <textarea
+                  rows={2}
+                  maxLength={10000}
+                  value={firstDefinition}
+                  onChange={(e) => setFirstDefinition(e.target.value)}
+                  placeholder="Введите определение"
+                />
+              </label>
+              <Button onClick={addCard}>Добавить карточку</Button>
+            </div>
+          )}
+        </section>
       </div>
-      <Button variant="secondary" fullWidth className="mt-4 border-dashed" onClick={addCard}>
-        ＋ Добавить карточку
-      </Button>
-      <div className="border-border mt-10 flex justify-end border-t pt-6">
+      <div className="editor-delete">
         <Button variant="danger" onClick={() => void deleteSet()}>
           Удалить набор
         </Button>
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -736,16 +906,24 @@ function BulkImport({
     let active = true;
     void api
       .GET('/api/v1/imports/sets/{set_id}/jobs', { params: { path: { set_id: setId } } })
-      .then((response) => {
+      .then(async (response) => {
         if (!active || response.error || !response.data?.[0]) return;
         const latest = response.data[0] as ImportJobResponse;
         setAnkiJob(latest);
         setAnkiState(latest.status === 'completed' ? 'done' : latest.status);
+        if (latest.status === 'failed') setFileError(latest.error_message ?? 'Импорт не завершён');
+        if (latest.status === 'completed') {
+          try {
+            await onAnkiImported();
+          } catch {
+            setFileError('Не удалось загрузить импортированные карточки. Откройте набор заново.');
+          }
+        }
       });
     return () => {
       active = false;
     };
-  }, [setId]);
+  }, [setId, onAnkiImported]);
 
   useEffect(() => {
     if (!ankiJobId || (ankiJobStatus !== 'queued' && ankiJobStatus !== 'processing')) return;
@@ -759,7 +937,11 @@ function BulkImport({
       setAnkiJob(job);
       if (job.status === 'completed') {
         setAnkiState('done');
-        await onAnkiImported();
+        try {
+          await onAnkiImported();
+        } catch {
+          setFileError('Не удалось загрузить импортированные карточки. Откройте набор заново.');
+        }
       } else {
         setAnkiState(job.status);
         if (job.status === 'failed') setFileError(job.error_message ?? 'Импорт не завершён');
@@ -1346,30 +1528,20 @@ function CardField({
   onChange: (value: string) => void;
   onImageChange: (value: string | null) => void;
 }) {
+  const id = useId();
   return (
-    <label className="text-fg-muted text-xs font-medium uppercase tracking-wide">
-      {label}
+    <div className="editor-field">
+      <label htmlFor={id}>{label}</label>
       <textarea
+        id={id}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        rows={3}
-        maxLength={10_000}
-        className="border-border bg-surface-muted text-fg mt-2 w-full resize-y rounded-xl border px-4 py-3 text-base normal-case tracking-normal"
+        rows={2}
+        maxLength={10000}
         placeholder={fieldPlaceholder(label, contentType)}
       />
       <ImageUpload imageId={imageId} label={label} onChange={onImageChange} />
-      {contentType === 'text' && (
-        <span className="text-fg-subtle mt-2 block text-xs normal-case tracking-normal">
-          Формула в тексте: $...$, отдельным блоком: $$...$$
-        </span>
-      )}
-      {value && (
-        <div className="border-border bg-surface mt-3 rounded-xl border p-3 normal-case tracking-normal">
-          <span className="text-fg-subtle mb-2 block text-xs">Предпросмотр</span>
-          <CardContent value={value} type={contentType} codeLanguage={codeLanguage} />
-        </div>
-      )}
-    </label>
+    </div>
   );
 }
 
@@ -1479,7 +1651,8 @@ function IconButton({
     <button
       type="button"
       aria-label={label}
-      className="text-fg-muted hover:bg-surface-muted hover:text-fg grid h-10 w-10 place-items-center rounded-lg disabled:opacity-30"
+      title={label}
+      className="text-fg-muted hover:bg-surface-muted hover:text-fg grid h-11 w-11 place-items-center rounded-lg disabled:opacity-30"
       {...props}
     >
       {children}
