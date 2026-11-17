@@ -312,6 +312,37 @@
 .course-reading .course-article li::marker {
   color: rgb(var(--rm-fg-muted));
 }
+.course-reading .rm-study-question + .rm-study-question {
+  margin-top: 0.5rem;
+}
+.course-reading .rm-study-question > summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  list-style: none;
+}
+.course-reading .rm-study-question > summary::-webkit-details-marker {
+  display: none;
+}
+.course-reading .rm-study-question > summary::after {
+  content: '';
+  flex: none;
+  align-self: center;
+  width: 0.5rem;
+  height: 0.5rem;
+  border: solid rgb(var(--rm-fg-muted));
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(-45deg);
+}
+.course-reading .rm-study-question[open] > summary::after {
+  transform: rotate(45deg);
+}
+.course-reading .rm-study-question > summary > :is(h2, h3, h4, h5, h6) {
+  margin: 0;
+  min-width: 0;
+  font: normal 1em/1.4 var(--dashboard-serif);
+}
 .course-reading .course-article .article-summary {
   border-radius: 12px;
   background: color-mix(in srgb, rgb(var(--rm-primary-subtle)) 65%, rgb(var(--rm-surface)));

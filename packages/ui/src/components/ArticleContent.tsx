@@ -3,6 +3,7 @@
 import { createElement, lazy, Suspense, type ReactNode } from 'react';
 import type { Token } from 'markdown-it';
 import { md, mediaId } from './article-markdown';
+import './article-study.css';
 import './card-content.css';
 
 // Подсветка, схемы и формулы загружаются только для материалов с соответствующей разметкой.
@@ -30,6 +31,37 @@ function alignClass(token: Token): string {
   if (style.includes('right')) return 'text-right';
   if (style.includes('center')) return 'text-center';
   return '';
+}
+
+// В старых уроках вопрос — подзаголовок раздела «Проверь себя», ответ — блоки под ним.
+function selfCheckQuestions(tokens: Token[]) {
+  const questions: { start: number; answer: number; end: number }[] = [];
+  let sectionDepth = 0;
+  for (let i = 0; i < tokens.length; i++) {
+    const heading = tokens[i]!;
+    if (heading.type !== 'heading_open' || heading.level !== 0) continue;
+    const depth = Number(heading.tag.slice(1));
+    if (depth <= sectionDepth) sectionDepth = 0;
+    if (/^проверь(?:те)?\s+себя[!:.]?$/iu.test(tokens[i + 1]?.content.trim() ?? '')) {
+      sectionDepth = depth;
+      continue;
+    }
+    if (!sectionDepth || depth !== sectionDepth + 1) continue;
+
+    const answer = i + 3; // heading_open, inline, heading_close
+    let next = answer;
+    while (next < tokens.length) {
+      const token = tokens[next]!;
+      if (token.level === 0 && token.type === 'heading_open' && Number(token.tag.slice(1)) <= depth)
+        break;
+      next++;
+    }
+    let end = next;
+    while (end > answer && tokens[end - 1]!.type === 'hr') end--;
+    if (end > answer) questions.push({ start: i, answer, end });
+    i = next - 1;
+  }
+  return questions;
 }
 
 export function ArticleContent({
@@ -297,11 +329,27 @@ export function ArticleContent({
     }
   }
 
+  function renderLesson() {
+    const content: ReactNode[] = [];
+    let start = 0;
+    for (const question of selfCheckQuestions(tokens)) {
+      content.push(...render(tokens.slice(start, question.start)));
+      content.push(
+        <details key={nextKey()} className="rm-study-question">
+          <summary>{render(tokens.slice(question.start, question.answer))}</summary>
+          {render(tokens.slice(question.answer, question.end))}
+        </details>,
+      );
+      start = question.end;
+    }
+    return content.concat(render(tokens.slice(start)));
+  }
+
   return (
     <div
       className={`${variant === 'article' ? 'course-article max-w-prose space-y-4' : 'space-y-3'} break-words leading-relaxed ${className}`}
     >
-      {render(tokens)}
+      {articleTitle !== undefined ? renderLesson() : render(tokens)}
     </div>
   );
 }

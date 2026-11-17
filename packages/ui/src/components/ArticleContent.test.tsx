@@ -31,6 +31,46 @@ describe('ArticleContent', () => {
     expect(container.querySelector('code')?.textContent).toBe('код');
   });
 
+  it('сворачивает ответы под вопросами «Проверь себя» и сохраняет границы раздела', async () => {
+    const { container } = render(
+      <ArticleContent
+        articleTitle="Распределения"
+        value={[
+          '## Теория',
+          '### Пример',
+          'До вопросов.',
+          '## Проверь себя',
+          'Вспомните ответ.',
+          '### Что означает $λ$?',
+          '**Интенсивность** потока.',
+          '#### Пример',
+          '- Два звонка в час',
+          '### Что такое `cdf`?',
+          'Функция распределения.',
+          '---',
+          '## Навигация',
+          '### Следующий урок',
+        ].join('\n\n')}
+      />,
+    );
+    const questions = container.querySelectorAll('details');
+    expect(questions).toHaveLength(2);
+    const [first, second] = Array.from(questions) as [HTMLDetailsElement, HTMLDetailsElement];
+    expect(first.open).toBe(false);
+    expect(second.open).toBe(false);
+    expect(first.querySelector('strong')?.textContent).toBe('Интенсивность');
+    expect(first.querySelector('li')?.textContent).toBe('Два звонка в час');
+    expect(second.querySelector('summary code')?.textContent).toBe('cdf');
+    expect(second.nextElementSibling?.tagName).toBe('HR');
+    expect(second.nextElementSibling?.nextElementSibling?.textContent).toBe('Навигация');
+    first.querySelector('summary')!.click();
+    expect(first.open).toBe(true);
+    expect(second.open).toBe(false);
+    await waitFor(() => expect(first.querySelector('summary .katex')).not.toBeNull());
+    first.querySelector('summary')!.click();
+    expect(first.open).toBe(false);
+  });
+
   it('рендерит списки, цитату и разделитель', () => {
     const { container } = render(<ArticleContent value={'- один\n- два\n\n> цитата\n\n---'} />);
     expect(container.querySelectorAll('ul li')).toHaveLength(2);
