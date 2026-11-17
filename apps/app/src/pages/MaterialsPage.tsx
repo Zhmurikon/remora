@@ -1,4 +1,5 @@
 import type { components } from '@remora/api-client';
+import { pluralWithCount } from '@remora/core';
 import { Badge, Button, Input } from '@remora/ui';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -463,9 +464,7 @@ export function MaterialsPage() {
                 </TreeGroup>
                 <nav className="material-course-links" aria-label="Навигация по курсам">
                   <a href={courseCatalogUrl}>Каталог курсов</a>
-                  <Link className="material-sort-link" to="/courses/manage">
-                    Настройки сортировки
-                  </Link>
+                  <Link to="/courses/manage">Настройки сортировки</Link>
                 </nav>
               </>
             )}
@@ -670,35 +669,36 @@ function CourseNavigator({
           <Link to={`/courses/${course.id}/read`}>{course.title}</Link>
         </h2>
         {course.author && <p className="text-fg-muted mt-2 text-sm">Автор: {course.author}</p>}
-        <div className="material-actions">
-          <CourseActionLink
-            className="material-primary"
-            to={`/courses/${course.id}/learn`}
-            description="Продолжить тренировку по карточкам курса"
-          >
-            Продолжить
-          </CourseActionLink>
-          <CourseActionLink to={`/courses/${course.id}/read`} description="Открыть статьи курса">
-            Читать
-          </CourseActionLink>
-          {!course.saved && (
-            <CourseActionLink
-              className="material-settings"
-              to={`/courses/${course.id}/edit`}
-              label="Настроить курс"
-              description="Открыть редактор курса"
-            >
-              <SettingsIcon />
-            </CourseActionLink>
-          )}
-        </div>
         {course.hasUpdates && course.saveId && (
           <div className="mt-2">
             <Badge tone="warning">Есть обновление</Badge>
             <LibraryUpdateControl saveId={course.saveId} title={course.title} />
           </div>
         )}
-        <MaterialDescription description={course.description} />
+        <MaterialDescription description={course.description}>
+          <div className="material-actions">
+            <CourseActionLink
+              className="material-primary"
+              to={`/courses/${course.id}/learn`}
+              description="Продолжить тренировку по карточкам курса"
+            >
+              Продолжить
+            </CourseActionLink>
+            <CourseActionLink to={`/courses/${course.id}/read`} description="Открыть статьи курса">
+              Читать
+            </CourseActionLink>
+            {!course.saved && (
+              <CourseActionLink
+                className="material-settings"
+                to={`/courses/${course.id}/edit`}
+                label="Настроить курс"
+                description="Открыть редактор курса"
+              >
+                <SettingsIcon />
+              </CourseActionLink>
+            )}
+          </div>
+        </MaterialDescription>
       </section>
       <section className="material-study-stats">
         <div className="flex items-center justify-between gap-3">
@@ -740,9 +740,6 @@ function CourseNavigator({
                   <Chevron className="text-fg-subtle h-5 w-5 transition-transform group-open:rotate-180" />
                 </summary>
                 <div className="border-border border-t px-3 py-2 sm:px-5">
-                  <div className="mb-1">
-                    <LearningStatus progress={sectionProgress} compact />
-                  </div>
                   {section.articles.map((article) => (
                     <ArticleProgressRow
                       key={article.id}
@@ -756,6 +753,19 @@ function CourseNavigator({
                       }
                     />
                   ))}
+                  {section.articles.length !== 1 && (
+                    <p className="text-fg-muted flex flex-wrap items-baseline gap-x-3 py-2 text-sm">
+                      <span>
+                        Всего в разделе:{' '}
+                        {pluralWithCount(sectionProgress.cardsTotal, [
+                          'карточка',
+                          'карточки',
+                          'карточек',
+                        ])}
+                      </span>
+                      <LearningStatus progress={sectionProgress} inline />
+                    </p>
+                  )}
                 </div>
               </details>
             );
@@ -1164,8 +1174,8 @@ function ArticleProgressRow({
   progress: MaterialProgress;
 }) {
   return (
-    <div className="border-border grid gap-3 border-b py-2 last:border-0 sm:grid-cols-[minmax(0,1fr)_minmax(70px,16%)_auto] sm:items-center">
-      <div className="min-w-0">
+    <div className="border-border grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 border-b py-2 last-of-type:border-0 sm:grid-cols-[minmax(0,1fr)_auto_minmax(70px,16%)]">
+      <div className="col-span-full min-w-0 sm:col-span-1">
         <Link
           to={`/courses/${courseId}/read?article=${articleId}`}
           className="group/read focus-visible:outline-primary flex min-h-11 min-w-0 items-center gap-2 rounded-lg font-medium focus-visible:outline focus-visible:outline-2"
@@ -1174,8 +1184,14 @@ function ArticleProgressRow({
           <span className="group-hover/read:text-primary break-words">{title}</span>
           <span className="text-primary shrink-0 text-xs font-semibold">Читать →</span>
         </Link>
-        <p className="text-fg-muted text-sm">{progress.cardsTotal} карточек</p>
+        <p className="text-fg-muted flex flex-wrap items-baseline gap-x-3 text-sm">
+          <span>{pluralWithCount(progress.cardsTotal, ['карточка', 'карточки', 'карточек'])}</span>
+          <LearningStatus progress={progress} inline />
+        </p>
       </div>
+      <Link className="material-repeat" to={`/courses/${courseId}/learn`}>
+        {progress.dueNow > 0 ? 'Повторить' : 'Учить'}
+      </Link>
       <div>
         <div className="flex items-center justify-between text-xs">
           <span className="text-fg-muted">Прогресс</span>
@@ -1185,9 +1201,6 @@ function ArticleProgressRow({
         </div>
         <ProgressBar progress={progress} className="mt-2" />
       </div>
-      <Link className="material-repeat" to={`/courses/${courseId}/learn`}>
-        {progress.dueNow > 0 ? `Повторить ${progress.dueNow}` : 'Учить'}
-      </Link>
     </div>
   );
 }
@@ -1254,27 +1267,30 @@ function DragHandle() {
   );
 }
 
+const statusStyles = {
+  urgent: ['text-danger', 'bg-danger-subtle'],
+  weak: ['text-warning', 'bg-warning-subtle'],
+  learning: ['text-primary', 'bg-primary-subtle'],
+  good: ['text-success', 'bg-success-subtle'],
+  new: ['text-fg-muted', 'bg-surface-muted'],
+} as const;
+
 function LearningStatus({
   progress,
-  compact = false,
+  inline = false,
 }: {
   progress: MaterialProgress;
-  compact?: boolean;
+  inline?: boolean;
 }) {
   const status = learningStatus(progress);
-  const tone =
-    status.kind === 'urgent'
-      ? 'text-danger bg-danger-subtle'
-      : status.kind === 'weak'
-        ? 'text-warning bg-warning-subtle'
-        : status.kind === 'learning'
-          ? 'text-primary bg-primary-subtle'
-          : status.kind === 'good'
-            ? 'text-success bg-success-subtle'
-            : 'text-fg-muted bg-surface-muted';
+  const [color, background] = statusStyles[status.kind];
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-1 font-medium ${compact ? 'text-xs' : 'text-sm'} ${tone}`}
+      className={
+        inline
+          ? color
+          : `${color} ${background} inline-flex items-center rounded-full px-2.5 py-1 text-sm font-medium`
+      }
     >
       {status.label}
     </span>
@@ -1380,8 +1396,8 @@ function ManagementLink({ to, children }: { to: string; children: ReactNode }) {
 function CreateMenu({ onCreateSet }: { onCreateSet: () => void }) {
   return (
     <details className="group relative">
-      <summary className="materials-create" aria-label="Создать материал">
-        <span aria-hidden="true">＋</span> Создать <Chevron className="h-4 w-4" />
+      <summary className="materials-create" aria-label="Создать материал" title="Создать материал">
+        <span aria-hidden="true">+</span>
       </summary>
       <div className="border-border bg-surface shadow-pop absolute right-0 z-20 mt-2 w-48 rounded-xl border p-1.5">
         <Link

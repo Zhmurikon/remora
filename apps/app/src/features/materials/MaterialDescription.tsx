@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 
 const SHORT_DESCRIPTION = 240;
 
@@ -33,29 +33,42 @@ function paragraphs(text: string, opening: string) {
   return parts;
 }
 
-export function MaterialDescription({ description }: { description: string }) {
+export function MaterialDescription({
+  description,
+  children,
+}: {
+  description: string;
+  children?: ReactNode;
+}) {
   const [expanded, setExpanded] = useState(false);
   const id = useId();
   const text = description.trim();
-  if (!text) return null;
+  if (!text && !children) return null;
   const opening = preview(text);
   return (
     <div className="material-description">
-      <div id={id} className="material-description-text">
-        {(expanded ? paragraphs(text, opening) : [opening]).map((paragraph, index) => (
-          <p key={index}>{paragraph}</p>
-        ))}
-      </div>
-      {opening !== text && (
-        <button
-          type="button"
-          aria-expanded={expanded}
-          aria-controls={id}
-          onClick={() => setExpanded(!expanded)}
-        >
-          {expanded ? 'Свернуть описание' : 'Показать полное описание'}
-          <span aria-hidden="true" className="material-caret" />
-        </button>
+      {text && (
+        <div id={id} className="material-description-text">
+          {(expanded ? paragraphs(text, opening) : [opening]).map((paragraph, index) => (
+            <p key={index}>{paragraph}</p>
+          ))}
+        </div>
+      )}
+      {(children || opening !== text) && (
+        <div className="material-description-footer">
+          {opening !== text && (
+            <button
+              type="button"
+              aria-expanded={expanded}
+              aria-controls={id}
+              onClick={() => setExpanded(!expanded)}
+            >
+              {expanded ? 'Свернуть описание' : 'Полное описание'}
+              <span aria-hidden="true" className="material-caret" />
+            </button>
+          )}
+          {children}
+        </div>
       )}
     </div>
   );

@@ -26,27 +26,22 @@
 .materials-heading h1 {
   font-size: clamp(2rem, 3.2vw, 2.9rem);
 }
-.materials-create,
-.material-repeat {
+.materials-create {
   list-style: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 44px;
-  border: 1px solid rgb(var(--rm-reading-rule) / 0.65);
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
   border-radius: 10px;
   color: rgb(var(--rm-lecture-blue));
-  padding: 0 14px;
-  font-size: 0.9375rem;
-  font-weight: 600;
+  font-size: 2rem;
+  line-height: 1;
   cursor: pointer;
 }
 .materials-create::-webkit-details-marker {
   display: none;
 }
-.materials-create:hover,
-.material-repeat:hover {
+.materials-create:hover {
   background: rgb(var(--rm-primary-subtle));
 }
 .materials-page summary:focus-visible {
@@ -78,14 +73,12 @@
 }
 .material-course-links a {
   display: flex;
+  justify-content: end;
   align-items: center;
   min-height: 44px;
   padding-inline: 8px;
   border-radius: 10px;
-  color: rgb(var(--rm-fg));
   font-size: 0.875rem;
-}
-.material-course-links .material-sort-link {
   color: color-mix(in srgb, rgb(var(--rm-fg-muted)) 92%, rgb(var(--rm-surface)));
 }
 .material-course-links a:is(:hover, :focus-visible) {
@@ -101,9 +94,6 @@
   border: 1px solid var(--folder-edge);
   background: rgb(var(--rm-lecture-cream));
   border-radius: 15px;
-  box-shadow:
-    0 3px rgb(var(--rm-surface)),
-    0 4px var(--folder-edge);
 }
 .material-folder h2 {
   font-size: clamp(1.7rem, 2.45vw, 2.35rem);
@@ -138,7 +128,8 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 4px 18px;
-  margin-top: 17px;
+  margin-inline-start: auto;
+  justify-content: flex-end;
 }
 .material-actions a,
 .material-description button {
@@ -210,6 +201,19 @@
   white-space: pre-line;
   line-height: 1.55;
   color: rgb(var(--rm-fg-muted));
+}
+.material-folder .material-description {
+  padding-top: 0;
+  border: 0;
+}
+.material-description-footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+.material-folder .material-description-text + .material-description-footer {
+  margin-top: 12px;
 }
 .material-folder .material-description-text {
   max-width: none;
@@ -293,6 +297,12 @@
   display: block;
 }
 .material-repeat {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: rgb(var(--rm-primary));
+  text-decoration: underline;
+  text-underline-offset: 3px;
   font-size: 0.875rem;
   justify-self: start;
 }

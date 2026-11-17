@@ -17,7 +17,7 @@ it('раскрывает полный текст с абзацами и свор
   const lead = 'Конспект первой недели.';
   const body = 'Работа с таблицами и построение графиков. '.repeat(8).trim();
   render(<MaterialDescription description={lead + '\n\n' + body} />);
-  const toggle = screen.getByRole('button', { name: 'Показать полное описание' });
+  const toggle = screen.getByRole('button', { name: 'Полное описание' });
   expect(screen.getByText(lead)).toBeTruthy();
   expect(screen.queryByText(body)).toBeNull();
   await userEvent.tab();
