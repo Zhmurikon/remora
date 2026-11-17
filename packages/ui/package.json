@@ -9,6 +9,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./article-content-server": "./src/components/ArticleContentServer.tsx",
+    "./article-markdown": "./src/components/article-markdown.ts",
+    "./article-formula": "./src/components/article-formula.ts",
     "./base": "./src/base.ts",
     "./assets/remora-mascot-source.png": "./src/assets/remora-mascot-source.png",
     "./assets/remora-mark.svg": "./src/assets/remora-mark.svg",

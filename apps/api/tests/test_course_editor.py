@@ -332,6 +332,16 @@ async def test_theory_images_resolve_validate_and_copy(client: AsyncClient) -> N
     assert article["media"][0]["url"].startswith("http://storage.test/")
     assert article["media"][0]["width"] == 32
 
+    # Повторное подписание URL не должно требовать перезагрузки черновика.
+    with (
+        patch("app.services.courses.get_object_storage", return_value=storage),
+        patch.object(storage, "download_url", return_value="http://storage.test/new-signature"),
+    ):
+        refreshed = (
+            await client.get(f"/api/v1/courses/{course['id']}/editor", headers=owner)
+        ).json()
+    assert refreshed["revision"] == saved.json()["revision"]
+
     # Чужое изображение в body отклоняется при сохранении.
     current = (await client.get(f"/api/v1/courses/{course['id']}/editor", headers=owner)).json()
     bad = deepcopy(current["sections"])

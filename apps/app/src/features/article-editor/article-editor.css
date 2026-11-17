@@ -1,0 +1,565 @@
+.ae-page {
+  min-width: 0;
+  color: rgb(var(--rm-fg));
+  font-family: Inter, 'Segoe UI', Arial, sans-serif;
+}
+.ae-page :is(button, a, select, input, textarea):focus-visible,
+.ae-pop :is(button, a, input, textarea):focus-visible,
+.ae-bubble button:focus-visible {
+  outline: 2px solid rgb(var(--rm-primary));
+  outline-offset: 2px;
+}
+.ae-crumb,
+.ae-commands,
+.ae-modes,
+.ae-links,
+.ae-tabs,
+.ae-head,
+.ae-toolbar,
+.ae-toolbar > div,
+.ae-bubble {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.ae-page :is(button, a),
+.ae-pop :is(button, a),
+.ae-bubble button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  border-radius: 0.45rem;
+}
+.ae-page svg,
+.ae-pop svg,
+.ae-bubble svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.ae-crumb {
+  flex-wrap: wrap;
+  color: rgb(var(--rm-fg-muted));
+  font-size: 0.86rem;
+  gap: 0.65rem;
+  margin-bottom: 0.55rem;
+}
+.ae-crumb a,
+.ae-links button[aria-expanded='true'] {
+  color: rgb(var(--rm-primary));
+}
+.ae-head {
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  border-bottom: 1px solid rgb(var(--rm-border));
+  padding: 0.2rem 0 0.8rem;
+  gap: 0.6rem;
+}
+.ae-head h1 {
+  flex: 1 1 24rem;
+  min-width: 0;
+  font: 400 clamp(1.65rem, 2.5vw, 2.35rem)/1.18 var(--dashboard-serif, Georgia, serif);
+  letter-spacing: -0.035em;
+}
+.ae-head textarea {
+  display: block;
+  width: 100%;
+  resize: none;
+  field-sizing: content;
+  min-height: 1.3em;
+  color: inherit;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.4rem;
+  padding: 0.15rem;
+}
+.ae-head textarea:is(:hover, :focus) {
+  border-color: rgb(var(--rm-border));
+}
+.ae-commands {
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.ae-icon,
+.ae-switch,
+.ae-toolbar button,
+.ae-bubble button {
+  min-width: 44px;
+}
+.ae-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.5rem;
+  color: rgb(var(--rm-fg-muted));
+  font-size: 0.9rem;
+}
+.ae-switch select {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  cursor: pointer;
+}
+.ae-switch:focus-within {
+  outline: 2px solid rgb(var(--rm-primary));
+}
+.ae-status {
+  font-size: 0.85rem;
+  color: rgb(var(--rm-fg-muted));
+}
+.ae-status:not(:empty) {
+  margin-top: 0.4rem;
+}
+.ae-page [role='alert'],
+.ae-pop [role='alert'] {
+  color: rgb(var(--rm-danger));
+}
+.ae-modes {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.65rem 0;
+}
+.ae-tabs {
+  background: rgb(var(--rm-surface-muted));
+  padding: 3px;
+  border: 1px solid rgb(var(--rm-border));
+  border-radius: 0.6rem;
+  gap: 2px;
+}
+.ae-tabs button,
+.ae-links :is(button, a) {
+  padding: 0 0.65rem;
+  font-size: 0.88rem;
+  color: rgb(var(--rm-fg-muted));
+}
+.ae-tabs [aria-pressed='true'] {
+  background: rgb(var(--rm-bg));
+  color: rgb(var(--rm-primary));
+  box-shadow: 0 1px 3px rgb(var(--rm-fg) / 0.12);
+}
+.ae-toolbar {
+  position: sticky;
+  top: 4rem;
+  z-index: 4;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  background: rgb(var(--rm-surface-muted));
+  border: 1px solid rgb(var(--rm-border));
+  border-radius: 0.65rem;
+  padding: 0.25rem 0.4rem;
+  color: rgb(var(--rm-fg));
+}
+@media (min-width: 1024px) {
+  .ae-toolbar {
+    top: 0;
+  }
+}
+.ae-toolbar > div {
+  gap: 0;
+}
+.ae-toolbar > div + div {
+  border-left: 1px solid rgb(var(--rm-border));
+  padding-left: 0.2rem;
+}
+.ae-toolbar > div:last-child {
+  margin-left: auto;
+}
+.ae-toolbar button {
+  font-size: 0.86rem;
+  padding: 0 0.45rem;
+}
+.ae-toolbar > div:first-child button {
+  background: rgb(var(--rm-bg));
+  border: 1px solid rgb(var(--rm-border));
+}
+.ae-toolbar button > b,
+.ae-toolbar button > i,
+.ae-bubble button > b,
+.ae-bubble button > i {
+  font-family: Georgia, serif;
+  font-size: 1.15rem;
+}
+.ae-toolbar button[aria-pressed='true'],
+.ae-toolbar button[aria-expanded='true'],
+.ae-bubble button[aria-pressed='true'] {
+  background: rgb(var(--rm-primary-subtle));
+  color: rgb(var(--rm-primary));
+}
+.ae-icon:hover,
+.ae-links :is(a, button):hover,
+.ae-toolbar button:hover:not(:disabled),
+.ae-pop button:hover:not(:disabled),
+.ae-pop a:hover,
+.ae-pop [aria-pressed='true'],
+.ae-bubble button:hover {
+  background: rgb(var(--rm-primary-subtle));
+  color: rgb(var(--rm-primary));
+}
+.ae-page button:disabled,
+.ae-pop button:disabled {
+  opacity: 0.48;
+  cursor: default;
+}
+.ae-quote {
+  font:
+    2rem/1 Georgia,
+    serif;
+  transform: translateY(0.18em);
+}
+.ae-paper {
+  position: relative;
+  max-width: 49rem;
+  margin: 1.6rem auto 3rem;
+}
+.ae-insert {
+  position: absolute;
+  left: -2.8rem;
+  top: 0;
+}
+.ae-insert button {
+  width: 40px;
+  color: rgb(var(--rm-fg-muted));
+}
+.ae-paper .ProseMirror,
+.ae-preview {
+  min-height: 20rem;
+  line-height: 1.75;
+  font: 1.05rem/1.75 var(--dashboard-serif, Georgia, serif);
+  overflow-wrap: anywhere;
+}
+.ae-paper :is(.ProseMirror, .ae-preview) > * + * {
+  margin-top: 1rem;
+}
+.ae-paper .ProseMirror {
+  outline: none;
+  white-space: pre-wrap;
+  scroll-margin-top: 8rem;
+}
+.ae-paper .ProseMirror:focus-visible {
+  box-shadow: -2px 0 rgb(var(--rm-primary-subtle));
+}
+.ae-paper .ProseMirror :is(h1, h2, h3, h4, h5, h6),
+.ae-preview :is(h2, h3, h4) {
+  font-weight: 500;
+  line-height: 1.28;
+  letter-spacing: -0.025em;
+}
+.ae-paper .ProseMirror h1 {
+  font-size: 2.1rem;
+}
+.ae-paper .ProseMirror h2 {
+  font-size: 1.85rem;
+}
+.ae-paper .ProseMirror h3 {
+  font-size: 1.48rem;
+}
+.ae-paper .ProseMirror :is(h4, h5, h6) {
+  font-size: 1.16rem;
+  font-weight: 650;
+}
+.ae-paper blockquote {
+  border-left: 3px solid rgb(var(--rm-border));
+  padding: 0.45rem 1rem;
+  color: rgb(var(--rm-fg-muted));
+}
+.ae-paper ul,
+.ae-paper ol {
+  padding-left: 1.5rem;
+}
+.ae-paper ul {
+  list-style: disc;
+}
+.ae-paper ol {
+  list-style: decimal;
+}
+.ae-paper pre,
+.ae-paper code,
+.ae-source {
+  font:
+    0.93rem/1.55 ui-monospace,
+    monospace;
+  background: rgb(var(--rm-surface-muted));
+}
+.ae-paper pre {
+  overflow: auto;
+  padding: 1rem;
+  border-radius: 0.6rem;
+}
+.ae-paper .ProseMirror table {
+  width: 100%;
+  border-collapse: collapse;
+  font:
+    0.92rem/1.5 Inter,
+    Arial,
+    sans-serif;
+  table-layout: fixed;
+}
+.ae-paper :is(th, td) {
+  border: 1px solid rgb(var(--rm-border));
+  padding: 0.65rem;
+  vertical-align: top;
+  text-align: left;
+}
+.ae-paper th {
+  background: rgb(var(--rm-surface-muted));
+}
+.ae-paper td:focus-within {
+  background: rgb(var(--rm-primary-subtle));
+}
+.ae-paper a {
+  color: rgb(var(--rm-primary));
+  text-decoration: underline;
+  display: inline;
+  min-height: auto;
+}
+.ae-paper .ae-media img {
+  display: inline-block;
+  max-width: 100%;
+  max-height: 32rem;
+  object-fit: contain;
+  border-radius: 0.45rem;
+}
+.ae-math {
+  cursor: pointer;
+}
+div.ae-math {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.ae-math .katex-display {
+  margin: 0.5rem 0;
+}
+.ae-paper .ProseMirror-selectednode {
+  outline: 2px solid rgb(var(--rm-primary));
+}
+.ae-preview {
+  max-width: 100%;
+}
+.ae-source {
+  width: 100%;
+  min-height: 60vh;
+  padding: 1rem;
+  border: 1px solid rgb(var(--rm-border));
+  border-radius: 0.5rem;
+  color: inherit;
+}
+.ae-pop,
+.ae-bubble {
+  position: fixed;
+  z-index: 70;
+  background: rgb(var(--rm-bg));
+  border: 1px solid rgb(var(--rm-border));
+  color: rgb(var(--rm-fg));
+  border-radius: 0.7rem;
+  box-shadow: 0 4px 20px rgb(var(--rm-fg) / 0.14);
+  padding: 0.35rem;
+}
+.ae-pop {
+  min-width: 12.5rem;
+  max-width: min(23rem, calc(100vw - 12px));
+  overflow: auto;
+}
+.ae-pop > button,
+.ae-pop > a {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  gap: 0.7rem;
+  padding: 0.35rem 0.65rem;
+  text-align: left;
+  font-size: 0.92rem;
+}
+.ae-pop button small {
+  width: 1.6rem;
+  color: rgb(var(--rm-fg-muted));
+}
+.ae-pop strong,
+.ae-pop > span {
+  display: block;
+  padding: 0.35rem 0.5rem;
+}
+.ae-pop > span {
+  font-size: 0.85rem;
+  color: rgb(var(--rm-primary));
+}
+.ae-pop form {
+  width: min(18rem, calc(100vw - 2rem));
+  padding: 0.35rem;
+  display: grid;
+  gap: 0.55rem;
+}
+.ae-pop form label {
+  display: block;
+  font-size: 0.85rem;
+}
+.ae-pop :is(textarea, input:not([type='checkbox'])) {
+  width: 100%;
+  margin-top: 0.2rem;
+  padding: 0.45rem;
+  min-height: 44px;
+  border: 1px solid rgb(var(--rm-border));
+  background: rgb(var(--rm-bg));
+  border-radius: 0.4rem;
+  color: inherit;
+}
+.ae-pop .ae-submit {
+  justify-self: start;
+  padding: 0.4rem 0.9rem;
+  background: rgb(var(--rm-primary));
+  color: rgb(var(--rm-primary-fg));
+}
+.ae-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1.55rem);
+  gap: 3px;
+  padding: 0.4rem;
+}
+.ae-grid button {
+  min-height: 0;
+  height: 1.55rem;
+  border: 1px solid rgb(var(--rm-border));
+  border-radius: 3px;
+}
+.ae-grid .is-filled {
+  background: rgb(var(--rm-primary-subtle));
+  border-color: rgb(var(--rm-primary));
+}
+.ae-bubble {
+  gap: 0;
+  padding: 0.15rem;
+}
+.ae-bubble button {
+  min-height: 38px;
+  min-width: 38px;
+}
+@media (max-width: 1180px) {
+  .ae-insert {
+    position: static;
+    float: right;
+    margin: 0 0 0 0.25rem;
+    z-index: 1;
+    position: relative;
+  }
+}
+@media (max-width: 639px) {
+  .ae-toolbar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  .ae-toolbar > div {
+    flex: none;
+  }
+  .ae-toolbar button {
+    white-space: nowrap;
+  }
+  .ae-paper {
+    margin-top: 1rem;
+  }
+  .ae-paper .ProseMirror {
+    font-size: 1rem;
+  }
+  .ae-paper .ProseMirror h1 {
+    font-size: 1.65rem;
+  }
+  .ae-paper .ProseMirror h2 {
+    font-size: 1.5rem;
+  }
+  .ae-paper th,
+  .ae-paper td {
+    padding: 0.35rem;
+  }
+  .ae-commands {
+    justify-content: flex-end;
+    width: 100%;
+  }
+  .ae-modes {
+    gap: 0.25rem;
+  }
+  .ae-page .ae-links {
+    flex-wrap: wrap;
+  }
+  .ae-crumb {
+    gap: 0.3rem;
+  }
+  .ae-paper .ae-preview {
+    min-width: 0;
+  }
+}
+
+.ae-table-actions {
+  border-bottom: 1px solid rgb(var(--rm-border));
+  padding-bottom: 0.3rem;
+  margin-bottom: 0.3rem;
+}
+.ae-table-actions button {
+  width: 100%;
+  justify-content: flex-start;
+  padding: 0 0.65rem;
+}
+.ae-table-size {
+  display: none;
+}
+@media (pointer: coarse), (max-width: 639px) {
+  .ae-table-size {
+    display: flex;
+    align-items: end;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.4rem;
+  }
+  .ae-table-size select {
+    display: block;
+    min-height: 44px;
+    width: 4rem;
+    border: 1px solid rgb(var(--rm-border));
+    border-radius: 0.4rem;
+    background: rgb(var(--rm-bg));
+  }
+  .ae-table-size button {
+    padding: 0 0.55rem;
+    background: rgb(var(--rm-primary-subtle));
+  }
+  .ae-table-size ~ .ae-grid,
+  .ae-table-size ~ span {
+    display: none;
+  }
+}
+
+.ae-page {
+  --ae-top: 4rem;
+}
+.ae-head {
+  position: sticky;
+  top: var(--ae-top);
+  z-index: 5;
+  background: rgb(var(--rm-bg));
+}
+.ae-head textarea {
+  max-height: 3.8em;
+}
+.ae-toolbar {
+  top: calc(var(--ae-top) + var(--ae-head-height, 4rem));
+}
+.ae-paper .ProseMirror {
+  scroll-margin-top: calc(var(--ae-top) + var(--ae-head-height, 4rem) + 4rem);
+}
+@media (min-width: 1024px) {
+  .ae-page {
+    --ae-top: 0px;
+  }
+}
+@media (max-height: 550px) {
+  .ae-head {
+    position: static;
+  }
+  .ae-toolbar {
+    top: var(--ae-top);
+  }
+}

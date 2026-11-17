@@ -108,7 +108,9 @@ it('сохраняет теорию на отдельной странице б�
     response: new Response(),
   } as never);
   mount('materials/article/edit');
-  await userEvent.type(await screen.findByRole('textbox', { name: /Теория статьи/ }), ' дополнен');
+  await userEvent.click(await screen.findByRole('button', { name: 'Другие действия' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Исходный Markdown' }));
+  await userEvent.type(screen.getByRole('textbox', { name: 'Исходный Markdown' }), ' дополнен');
   expect(screen.queryByRole('button', { name: 'Добавить раздел' })).toBeNull();
   await userEvent.click(screen.getByRole('button', { name: 'Сохранить материал' }));
   await screen.findByText('Материал сохранён');
@@ -128,7 +130,9 @@ it('сохраняет текст материала при конфликте',
     response: new Response(),
   } as never);
   mount('materials/article/edit');
-  const body = await screen.findByRole('textbox', { name: /Теория статьи/ });
+  await userEvent.click(await screen.findByRole('button', { name: 'Другие действия' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Исходный Markdown' }));
+  const body = screen.getByRole('textbox', { name: 'Исходный Markdown' });
   await userEvent.type(body, ' мой');
   await userEvent.click(screen.getByRole('button', { name: 'Сохранить материал' }));
   expect((await screen.findByRole('alert')).textContent).toContain('другой вкладке');
@@ -230,10 +234,6 @@ it('не исполняет HTML и отображает безопасную р
   expect(view.container.querySelector('img')).toBeNull();
 });
 
-it('разделяет структуру и текст и подтверждает удаление статьи', async () => {
-  mount();
-  await screen.findByLabelText('Статья 1.1');
-  expect(screen.queryByLabelText(/Теория статьи/)).toBeNull();
 it('открывает меню строки с клавиатуры, пропускает недоступные действия и возвращает фокус', async () => {
   const user = userEvent.setup();
   mount();
@@ -253,6 +253,10 @@ it('открывает меню строки с клавиатуры, пропу
   expect(screen.queryByRole('menu')).toBeNull();
 });
 
+it('разделяет структуру и текст и подтверждает удаление статьи', async () => {
+  mount();
+  await screen.findByLabelText('Статья 1.1');
+  expect(screen.queryByLabelText(/Теория статьи/)).toBeNull();
   expect(screen.getByRole('link', { name: 'Редактировать материал' }).getAttribute('href')).toBe(
     `/courses/${course.id}/materials/article/edit`,
   );

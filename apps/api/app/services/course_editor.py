@@ -40,7 +40,14 @@ class CourseEditorService:
         course = await self.courses.owned(user, course_id)
         detail = await self.courses.detail(user, course.id)
         data = detail.model_dump(mode="json")
-        return CourseEditorDetail(**data, revision=digest(data))
+        # Подписанные URL изображений меняются со временем, даже когда автор ничего не правил.
+        stable = detail.model_dump(
+            mode="json",
+            exclude={
+                "sections": {"__all__": {"articles": {"__all__": {"media": {"__all__": {"url"}}}}}}
+            },
+        )
+        return CourseEditorDetail(**data, revision=digest(stable))
 
     async def save_agent_structure(
         self, user: User, course_id: UUID, body: CourseStructureWrite

@@ -1,6 +1,16 @@
 import { Link } from 'react-router-dom';
 
 const strokes = {
+  link: 'm9 15 6-6M7 13l-2 2a3 3 0 0 0 4 4l4-4m-2-6 4-4a3 3 0 0 1 4 4l-2 2',
+  table: 'M3 4h18v16H3zM3 9h18M3 14h18M9 4v16M15 4v16',
+  image: 'M3 4h18v16H3zM4 17l5-5 4 4 3-3 5 5M15 8h.2',
+  bullet: 'M8 6h13M8 12h13M8 18h13M3 6h.2M3 12h.2M3 18h.2',
+  ordered: 'M8 6h13M8 12h13M8 18h13M2 4l1-1v5M2 12c2-2 3 0 1 1l-1 2h2M2 18h2l-1 1c2 0 1 3-1 2',
+  undo: 'm8 4-5 5 5 5M4 9h10a6 6 0 0 1 0 12',
+  redo: 'm16 4 5 5-5 5m4-5H10a6 6 0 0 0 0 12',
+  code: 'm8 6-6 6 6 6m8-12 6 6-6 6m-3-15-3 18',
+  clip: 'm8 14 7-7a2 2 0 0 1 3 3l-8 8a4 4 0 0 1-6-6l9-9',
+  eye: 'M2 12q10-15 20 0-10 15-20 0ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z',
   folder: 'M3 6h7l2 3h9v11H3z',
   cancel: 'm6 6 12 12M18 6 6 18',
   grip: 'M9 5h.2m5.8 0h.2M9 12h.2m5.8 0h.2M9 19h.2m5.8 0h.2',
