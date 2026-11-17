@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Папки и сортировка наборов — движение</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: light-dark(#fbfbfa, #171c22);
+    --surface: light-dark(#fff, #202630);
+    --ink: light-dark(#1b2435, #edf0f7);
+    --muted: light-dark(#586378, #b1b9ca);
+    --rule: light-dark(#d2d8e1, #414b5a);
+    --blue: light-dark(#284bb2, #abc0ff);
+    --wash: light-dark(#edf1ff, #2d3750);
+    --red: light-dark(#a92e33, #ffa5ab);
+    font: 16px/1.45 system-ui, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  * { box-sizing: border-box }
+  body { margin: 0 }
+  main { max-width: 960px; margin: 0 auto; padding: 34px clamp(16px,4vw,42px) }
+  h1, h2 { font-family: Georgia, 'DejaVu Serif', serif; font-weight: 500 }
+  h1 { margin: 0 0 24px; font-size: clamp(28px,4.3vw,42px); line-height: 1.12 }
+  h2 { margin: 0; font-size: 21px }
+  button { color: inherit; font: inherit; cursor: pointer }
+  button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; z-index: 1 }
+  .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; font-size: 14px; color: var(--muted) }
+  .replay { padding: 0 13px; min-height: 44px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); color: var(--blue) }
+  section { border: 1px solid var(--rule); border-radius: 12px; background: var(--surface); margin-bottom: 10px }
+  .folder { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 16px; min-height: 56px; text-align: left; border: 0; border-radius: 11px; background: transparent; font: inherit }
+  .folder[aria-expanded=true] { background: var(--wash) }
+  .count { font: 14px system-ui; color: var(--muted) }
+  svg { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.55; stroke-linecap: round; stroke-linejoin: round; color: var(--blue) }
+  .chevron { width: 16px; height: 16px; transition: transform 150ms ease }
+  [aria-expanded=true] .chevron { transform: rotate(90deg) }
+  .body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 150ms ease-out }
+  .body.open { grid-template-rows: 1fr; transition-duration: 180ms }
+  .clip { overflow: hidden }
+  ol { list-style: none; margin: 0 0 0 22px; padding: 0; border-left: 1px solid var(--rule) }
+  li { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--rule); min-height: 68px; background: var(--surface) }
+  .name { font: 19px/1.25 Georgia,'DejaVu Serif',serif; overflow-wrap: anywhere }
+  small { display: block; font-size: 14px; color: var(--muted); margin-top: 3px }
+  .notice { color: var(--ink) }
+  .notice i { display:inline-grid; place-items:center; width:14px; height:14px; border:1px solid currentColor; border-radius:50%; color:var(--red); font: 12px/1 system-ui }
+  .notice b { color: var(--red); font-weight: 400 }
+  .actions { display: inline-flex; gap: 4px }
+  .actions button { width: 44px; height: 44px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); color: var(--blue); font-size: 20px }
+  .actions button:disabled { opacity: .32; cursor: default }
+  [role=status] { font-size: 14px; color: var(--muted); min-height: 22px }
+  @media (max-width: 480px) {
+    main { padding-top: 22px }
+    .folder { gap: 8px; padding-inline: 11px }
+    ol { margin-left: 9px }
+    li { grid-template-columns: 1fr; padding: 12px }
+    .actions { justify-self: end }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important } }
+</style>
+<main>
+  <h1>Папки и сортировка наборов</h1>
+  <div class="toolbar"><span>Свой порядок</span><button class="replay">Показать движение</button></div>
+  <div id="folders"></div>
+  <p role="status"></p>
+</main>
+<template id="folder-template">
+  <section>
+    <h2><button class="folder" aria-expanded="false">
+      <svg class="chevron" aria-hidden="true" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg>
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6a1 1 0 0 1 1-1h5l2 3h9a1 1 0 0 1 1 1v10H3z"/></svg>
+      <span class="label"></span><span class="count"></span>
+    </button></h2>
+    <div class="body" inert><div class="clip"><ol></ol></div></div>
+  </section>
+</template>
+<script>
+  const examples = [
+    ['Теория вероятностей', [
+      ['Случайные величины и их характеристики', '24 карточки'],
+      ['Дискретные распределения', '18 карточек', 'Анна Орлова · Основы статистики'],
+      ['Формула Байеса', '12 карточек']
+    ]],
+    ['Python', [['Типы данных', '16 карточек'], ['Списки и словари', '20 карточек']]],
+    ['Без папки', [['Описательная статистика', '8 карточек']]],
+    ['Архив', [['Введение в анализ данных', '10 карточек']]]
+  ];
+  const folders = document.querySelector('#folders');
+  const status = document.querySelector('[role=status]');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const replay = document.querySelector('.replay');
+  let run = 0;
+  function expand(section, open) {
+    section.querySelector('.folder').setAttribute('aria-expanded', String(open));
+    const body = section.querySelector('.body');
+    body.inert = !open;
+    body.classList.toggle('open', open);
+  }
+  function updateArrows(list) {
+    [...list.children].forEach((row, index) => {
+      const [up, down] = row.querySelectorAll('.actions button');
+      if (!up) return;
+      up.disabled = index === 0;
+      down.disabled = index === list.children.length - 1;
+    });
+  }
+  function move(row, direction) {
+    const list = row.parentElement;
+    const next = direction < 0 ? row.previousElementSibling : row.nextElementSibling;
+    if (!next) return;
+    const before = new Map([row, next].map(el => [el, el.getBoundingClientRect().top]));
+    for (const el of before.keys()) el.getAnimations().forEach(animation => animation.cancel());
+    if (direction < 0) list.insertBefore(row, next);
+    else list.insertBefore(next, row);
+    updateArrows(list);
+    const buttons = [...row.querySelectorAll('button')];
+    const same = buttons[direction < 0 ? 0 : 1];
+    (same.disabled ? buttons.find(button => !button.disabled) : same).focus({preventScroll:true});
+    if (!reduced.matches) {
+      before.forEach((oldTop, el) => {
+        const offset = oldTop - el.getBoundingClientRect().top;
+        el.animate([{transform:'translateY(' + offset + 'px)'}, {transform:'none'}],
+          {duration:180, easing:'cubic-bezier(.2,.75,.3,1)'});
+      });
+    }
+    const index = [...list.children].indexOf(row) + 1;
+    status.textContent = row.querySelector('.name').textContent + ' — ' + index + ' из ' + list.children.length + '.';
+  }
+  function render() {
+    folders.replaceChildren();
+    status.textContent = '';
+    examples.forEach(([title, sets], index) => {
+      const section = document.querySelector('#folder-template').content.firstElementChild.cloneNode(true);
+      const list = section.querySelector('ol');
+      const toggle = section.querySelector('.folder');
+      section.querySelector('.label').textContent = title;
+      section.querySelector('.count').textContent = sets.length;
+      toggle.setAttribute('aria-controls', 'group-' + index);
+      section.querySelector('.body').id = 'group-' + index;
+      toggle.onclick = () => expand(section, toggle.getAttribute('aria-expanded') === 'false');
+      for (const [name, count, source] of sets) {
+        const row = document.createElement('li');
+        row.innerHTML = '<div><div class="name"></div><small></small></div><div class="actions"></div>';
+        row.querySelector('.name').textContent = name;
+        row.querySelector('small').textContent = count;
+        if (source) {
+          const credit = document.createElement('small');
+          credit.textContent = source;
+          row.firstElementChild.append(credit);
+          credit.insertAdjacentHTML('afterend','<small class="notice"><i aria-hidden="true">!</i> Есть обновление набора — <b><u>обновить</u></b></small>');
+        }
+        if (sets.length > 1) {
+          for (const [label, direction] of [['Выше', -1], ['Ниже', 1]]) {
+            const button = document.createElement('button');
+            button.textContent = direction < 0 ? '↑' : '↓';
+            button.setAttribute('aria-label', label + ' — ' + name);
+            button.title = label;
+            button.onclick = () => move(row, direction);
+            row.querySelector('.actions').append(button);
+          }
+        }
+        list.append(row);
+      }
+      updateArrows(list);
+      folders.append(section);
+    });
+  }
+  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+  // Любое ручное действие передаёт управление пользователю сразу.
+  for (const type of ['keydown','pointerdown']) document.addEventListener(type, () => ++run);
+  replay.onclick = async () => {
+    const id = ++run;
+    render();
+    const section = folders.firstElementChild;
+    section.querySelector('.folder').focus();
+    await wait(500);
+    if (id !== run) return;
+    expand(section, true);
+    await wait(800);
+    if (id !== run) return;
+    const row = section.querySelectorAll('li')[1];
+    row.querySelector('.actions button').focus();
+    await wait(550);
+    if (id === run) move(row, -1);
+  };
+  render();
+  const state = new URLSearchParams(location.search).get('state');
+  if (state === 'open' || state === 'moved') expand(folders.firstElementChild, true);
+  if (state === 'moved') move(folders.querySelectorAll('li')[1], -1);
+</script>
+</html>
