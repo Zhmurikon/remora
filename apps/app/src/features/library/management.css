@@ -84,6 +84,11 @@
 .manage-band[data-open='true'] {
   background: rgb(var(--rm-primary-subtle));
 }
+.management-motion .manage-band[data-drop-active='true'] {
+  background: rgb(var(--rm-primary-subtle));
+  outline: 2px dashed rgb(var(--rm-primary));
+  outline-offset: -4px;
+}
 .manage-group,
 .manage-copy {
   margin: 0.75rem 0;
@@ -136,6 +141,19 @@
 .manage-band [aria-expanded='true'] .manage-chevron {
   transform: rotate(90deg);
 }
+.manage-group-motion .manage-group-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+}
+.manage-group-motion .manage-group-body[data-open='true'] {
+  grid-template-rows: 1fr;
+  visibility: visible;
+}
+.manage-group-motion .manage-group-clip {
+  min-height: 0;
+  overflow: hidden;
+}
 .manage-row {
   display: flex;
   align-items: center;
@@ -144,6 +162,25 @@
   padding: 0.65rem 0.85rem;
   border-top: 1px solid rgb(var(--rm-border));
   min-height: 76px;
+}
+.management-motion .manage-row {
+  isolation: isolate;
+}
+.management-motion .manage-row::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 4px 6px;
+  border-radius: 10px;
+  background: rgb(var(--rm-primary-subtle));
+  opacity: 0;
+  pointer-events: none;
+}
+.management-motion .manage-row:focus-within::before {
+  opacity: 0.62;
+}
+.management-motion .manage-row[data-dragged='true'] {
+  opacity: 0.62;
 }
 .manage-row:first-child {
   border-top-color: transparent;
@@ -288,4 +325,111 @@
   background: rgb(var(--rm-primary));
   color: rgb(var(--rm-primary-fg));
   border-color: transparent;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes manage-reveal-up {
+    from {
+      opacity: 0;
+      transform: translateY(7px);
+    }
+  }
+  .management-motion .manage-header {
+    animation: manage-reveal-up 180ms ease-out both;
+  }
+  .management-motion .manage-toolbar {
+    animation: manage-reveal-up 200ms 40ms ease-out both;
+  }
+  .management-motion .manage-groups {
+    animation: manage-reveal-up 220ms 80ms ease-out both;
+  }
+  .management-motion .manage-folder-form {
+    animation: manage-reveal-up 180ms ease-out both;
+  }
+  .course-copy-motion .course-copy-status {
+    animation: manage-reveal-up 180ms 50ms ease-out both;
+  }
+  .course-copy-motion .course-copy-card {
+    animation: manage-reveal-up 220ms 80ms ease-out both;
+  }
+  .course-copy-motion .course-copy-action [role='alert'] {
+    animation: manage-reveal-up 150ms ease-out both;
+  }
+  .management-motion .manage-band,
+  .management-motion .manage-row::before {
+    transition:
+      background-color 150ms ease,
+      opacity 150ms ease;
+  }
+  .management-motion .manage-chevron,
+  .management-motion .manage-item,
+  .management-motion .manage-grip,
+  .management-motion .manage-arrows button,
+  .management-motion .manage-action,
+  .management-motion .manage-link {
+    transition: transform 150ms ease-out;
+  }
+  .course-copy-motion .course-copy-action button {
+    transition: transform 150ms ease-out;
+  }
+  .manage-group-motion .manage-group-body {
+    transition:
+      grid-template-rows 150ms ease-out,
+      visibility 0s 150ms;
+  }
+  .manage-group-motion .manage-group-body[data-open='true'] {
+    transition:
+      grid-template-rows 180ms ease-out,
+      visibility 0s;
+  }
+  .manage-group-motion .manage-group-clip {
+    opacity: 0;
+    transform: translateY(-4px);
+    transition:
+      opacity 120ms ease-out,
+      transform 150ms ease-out;
+  }
+  .manage-group-motion .manage-group-body[data-open='true'] .manage-group-clip {
+    opacity: 1;
+    transform: none;
+    transition-delay: 35ms;
+  }
+  .management-motion .manage-action:focus-visible,
+  .management-motion .manage-link:focus-visible,
+  .management-motion .manage-arrows button:focus-visible {
+    transform: translateY(-1px);
+  }
+  .course-copy-motion .course-copy-action button:focus-visible {
+    transform: translateY(-1px);
+  }
+  .management-motion .manage-action:active,
+  .management-motion .manage-link:active,
+  .management-motion .manage-arrows button:active:not([aria-disabled='true']) {
+    transform: scale(0.97);
+  }
+  .course-copy-motion .course-copy-action button:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  .management-motion .manage-row[data-dragged='true'] {
+    transform: scale(0.995);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .management-motion .manage-row:hover::before {
+      opacity: 0.62;
+    }
+    .management-motion .manage-row:hover .manage-item {
+      transform: translateX(3px);
+    }
+    .management-motion .manage-row:hover .manage-grip {
+      transform: rotate(-3deg);
+    }
+    .management-motion .manage-action:hover,
+    .management-motion .manage-link:hover,
+    .management-motion .manage-arrows button:hover:not([aria-disabled='true']) {
+      transform: translateY(-1px);
+    }
+    .course-copy-motion .course-copy-action button:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+  }
 }

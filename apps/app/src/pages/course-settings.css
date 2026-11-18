@@ -156,15 +156,59 @@
   background: rgb(var(--rm-lecture-blue));
 }
 @media (prefers-reduced-motion: no-preference) {
-  .course-settings-pane:not([hidden]) {
-    animation: course-settings-enter 160ms ease-out;
-  }
   @keyframes course-settings-enter {
     from {
-      opacity: 0.25;
+      opacity: 0;
+      transform: translateY(6px);
     }
-    to {
-      opacity: 1;
+  }
+  @keyframes course-settings-enter-inline {
+    from {
+      opacity: 0;
+      transform: translateX(-4px);
+    }
+  }
+  .course-settings-motion > .course-settings-link {
+    animation: course-settings-enter-inline 160ms ease-out both;
+  }
+  .course-settings-motion .course-settings-head {
+    animation: course-settings-enter 180ms 25ms ease-out both;
+  }
+  .course-settings-motion .course-settings-nav {
+    animation: course-settings-enter-inline 200ms 55ms ease-out both;
+  }
+  .course-settings-motion .course-settings-content {
+    animation: course-settings-enter 220ms 75ms ease-out both;
+  }
+  .course-settings-motion > :is([role='alert'], [role='status']) {
+    animation: course-settings-enter 150ms ease-out both;
+  }
+  .course-settings-motion .course-settings-pane:not([hidden]) {
+    animation: course-settings-enter 160ms ease-out;
+  }
+  .course-settings-motion > .course-settings-link,
+  .course-settings-motion .course-settings-head button,
+  .course-settings-motion .course-settings-nav a,
+  .course-settings-motion .course-settings-toggle,
+  .course-settings-motion .course-settings-pane button {
+    transition: transform 150ms ease-out;
+  }
+  .course-settings-motion > .course-settings-link:focus-visible,
+  .course-settings-motion .course-settings-head button:focus-visible,
+  .course-settings-motion .course-settings-nav a:focus-visible,
+  .course-settings-motion .course-settings-toggle:focus-visible,
+  .course-settings-motion .course-settings-pane button:focus-visible {
+    transform: translateY(-1px);
+  }
+  .course-settings-motion :is(.course-settings-head button, .course-settings-pane button):active {
+    transform: scale(0.97);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .course-settings-motion > .course-settings-link:hover,
+    .course-settings-motion .course-settings-head button:hover,
+    .course-settings-motion .course-settings-nav a:hover,
+    .course-settings-motion .course-settings-pane button:hover {
+      transform: translateY(-1px);
     }
   }
 }

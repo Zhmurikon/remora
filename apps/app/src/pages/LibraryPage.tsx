@@ -1,6 +1,6 @@
 import type { components } from '@remora/api-client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import {
@@ -29,6 +29,7 @@ export function LibraryPage() {
   const [search, setSearch] = useState('');
   const [mode, setMode] = useListSort('remora:sort:library');
   const [order, setOrder] = useCustomOrder('remora:order:library');
+  const rowMotionScope = useRef(new Map<string, DOMRect>());
   const library = useQuery({
     queryKey: ['library'],
     queryFn: async () => {
@@ -65,7 +66,7 @@ export function LibraryPage() {
     ),
   );
   return (
-    <div className="management">
+    <div className="management management-motion">
       <ManageHeader title="Сохранённые материалы">
         <a className="manage-link" href={web + '/kursy'}>
           Найти курсы
@@ -100,63 +101,67 @@ export function LibraryPage() {
           {remove.error.message}
         </p>
       )}
-      {(
-        [
-          ['course', 'Курсы'],
-          ['article', 'Статьи'],
-          ['set', 'Наборы'],
-        ] as const
-      ).map(([type, label]) => {
-        const items = visible.filter((item) => item.target_type === type);
-        if (!items.length) return null;
-        return (
-          <ManageGroup key={type} title={label} count={items.length}>
-            <OrderedRows
-              items={items}
-              custom={mode === 'custom'}
-              fullOrder={rows.map((item) => item.id)}
-              onOrder={setOrder}
-            >
-              {(item) => (
-                <>
-                  <Link className="manage-title" to={readerPath(item)}>
-                    {item.title}
-                  </Link>
-                  <p className="manage-meta">
-                    {(type !== 'article' || item.set_id) && cardCount(item.cards_count) + ' · '}
-                    {item.author?.display_name || item.author?.username} ·{' '}
-                    <a href={web + '/kurs/' + item.course_slug}>
-                      {type === 'course' ? 'Оригинал курса' : item.course_title}
-                    </a>
-                  </p>
-                  <div className="manage-inline">
-                    {item.set_id && (
-                      <Link to={'/sets/' + item.set_id + '/learn'}>Начать учиться</Link>
+      <div className="manage-groups">
+        {(
+          [
+            ['course', 'Курсы'],
+            ['article', 'Статьи'],
+            ['set', 'Наборы'],
+          ] as const
+        ).map(([type, label]) => {
+          const items = visible.filter((item) => item.target_type === type);
+          if (!items.length) return null;
+          return (
+            <ManageGroup key={type} title={label} count={items.length} motion>
+              <OrderedRows
+                items={items}
+                custom={mode === 'custom'}
+                fullOrder={rows.map((item) => item.id)}
+                onOrder={setOrder}
+                motion
+                motionScope={rowMotionScope}
+              >
+                {(item) => (
+                  <>
+                    <Link className="manage-title" to={readerPath(item)}>
+                      {item.title}
+                    </Link>
+                    <p className="manage-meta">
+                      {(type !== 'article' || item.set_id) && cardCount(item.cards_count) + ' · '}
+                      {item.author?.display_name || item.author?.username} ·{' '}
+                      <a href={web + '/kurs/' + item.course_slug}>
+                        {type === 'course' ? 'Оригинал курса' : item.course_title}
+                      </a>
+                    </p>
+                    <div className="manage-inline">
+                      {item.set_id && (
+                        <Link to={'/sets/' + item.set_id + '/learn'}>Начать учиться</Link>
+                      )}
+                      <button
+                        className="manage-link"
+                        disabled={remove.isPending}
+                        onClick={() => {
+                          if (window.confirm('Убрать «' + item.title + '» из сохранённых?'))
+                            remove.mutate(item.id);
+                        }}
+                      >
+                        Убрать
+                      </button>
+                    </div>
+                    {item.has_updates && (
+                      <LibraryUpdateControl
+                        saveId={item.id}
+                        title={item.title}
+                        targetType={item.target_type}
+                      />
                     )}
-                    <button
-                      className="manage-link"
-                      disabled={remove.isPending}
-                      onClick={() => {
-                        if (window.confirm('Убрать «' + item.title + '» из сохранённых?'))
-                          remove.mutate(item.id);
-                      }}
-                    >
-                      Убрать
-                    </button>
-                  </div>
-                  {item.has_updates && (
-                    <LibraryUpdateControl
-                      saveId={item.id}
-                      title={item.title}
-                      targetType={item.target_type}
-                    />
-                  )}
-                </>
-              )}
-            </OrderedRows>
-          </ManageGroup>
-        );
-      })}
+                  </>
+                )}
+              </OrderedRows>
+            </ManageGroup>
+          );
+        })}
+      </div>
     </div>
   );
 }

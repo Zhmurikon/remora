@@ -68,7 +68,10 @@ function RetentionContent({ summary }: { summary: RetentionSummary }) {
           role="img"
           aria-label={`Дневная цель выполнена на ${percent}%`}
         >
-          <span style={{ width: percent + '%' }} />
+          <span
+            className="dashboard-progress-fill"
+            style={{ transform: `scaleX(${percent / 100})` }}
+          />
         </div>
         {summary.goal_completed && <p>Цель выполнена</p>}
         <small>
@@ -149,8 +152,8 @@ function Progress({ value, max, label }: { value: number; max: number; label: st
       aria-valuenow={value}
     >
       <div
-        className="bg-primary h-full rounded-full transition-all"
-        style={{ width: `${percent}%` }}
+        className="dashboard-progress-fill bg-primary h-full w-full rounded-full"
+        style={{ transform: `scaleX(${percent / 100})` }}
       />
     </div>
   );

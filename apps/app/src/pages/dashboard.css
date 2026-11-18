@@ -126,6 +126,18 @@
   font-size: 0.875rem;
   font-weight: 600;
 }
+.dashboard-stats a,
+.dashboard-learn,
+.dashboard-primary {
+  transition:
+    color 160ms ease,
+    background-color 160ms ease;
+}
+.dashboard-stats a span,
+.dashboard-learn span,
+.dashboard-primary span {
+  display: inline-block;
+}
 .dashboard-stats a {
   margin-left: auto;
 }
@@ -189,6 +201,9 @@
   background: rgb(var(--rm-lecture-blue));
   text-decoration: none;
 }
+.dashboard button.dashboard-primary:hover:not(:disabled) {
+  background: rgb(var(--rm-lecture-blue));
+}
 .dashboard button:disabled {
   opacity: 0.55;
   cursor: default;
@@ -209,7 +224,7 @@
   top: 50%;
   right: 3%;
   transform: translateY(-50%);
-  pointer-events: none;
+  pointer-events: auto;
 }
 .dashboard-drawer img,
 .dashboard-drawer svg {
@@ -231,12 +246,28 @@
   margin-top: 16px;
 }
 .dashboard-list li {
+  isolation: isolate;
+  position: relative;
   min-height: 75px;
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 10px 2px;
   border-top: 1px solid rgb(var(--rm-border));
+}
+.dashboard-list li::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 4px -8px;
+  border-radius: 10px;
+  background: rgb(var(--rm-primary-subtle));
+  opacity: 0;
+  transition: opacity 160ms ease;
+  pointer-events: none;
+}
+.dashboard-list li:focus-within::before {
+  opacity: 0.62;
 }
 .dashboard-list li > div {
   flex: 1;
@@ -303,8 +334,12 @@
 }
 .dashboard-ruler span {
   display: block;
+  width: 100%;
   height: 100%;
   background: rgb(var(--rm-primary));
+}
+.dashboard-progress-fill {
+  transform-origin: left center;
 }
 .dashboard-calendar {
   display: flex;
@@ -462,6 +497,75 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  @keyframes dashboard-reveal-up {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  @keyframes dashboard-progress-grow {
+    from {
+      transform: scaleX(0);
+    }
+  }
+  @keyframes dashboard-calendar-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+  .dashboard > header > .dashboard-context {
+    animation: dashboard-reveal-up 180ms ease-out both;
+  }
+  .dashboard > header > h1 {
+    animation: dashboard-reveal-up 220ms 40ms ease-out both;
+  }
+  .dashboard > header > .dashboard-stats {
+    animation: dashboard-reveal-up 220ms 80ms ease-out both;
+  }
+  .dashboard-columns > section:first-child {
+    animation: dashboard-reveal-up 240ms 120ms ease-out both;
+  }
+  .dashboard-columns > .dashboard-retention {
+    animation: dashboard-reveal-up 240ms 160ms ease-out both;
+  }
+  .dashboard-progress-fill {
+    animation: dashboard-progress-grow 420ms 180ms cubic-bezier(0.22, 0.75, 0.22, 1) both;
+  }
+  .dashboard-calendar {
+    animation: dashboard-calendar-reveal 240ms 80ms ease-out both;
+  }
+  .dashboard-primary,
+  .dashboard-learn,
+  .dashboard-stats a,
+  .dashboard-primary span,
+  .dashboard-learn span,
+  .dashboard-stats a span,
+  .dashboard-list li > div,
+  .dashboard-stack {
+    transition: transform 160ms ease-out;
+  }
+  .dashboard-primary:focus-visible,
+  .dashboard-learn:focus-visible,
+  .dashboard-stats a:focus-visible {
+    transform: translateY(-1px);
+  }
+  .dashboard-primary:focus-visible span,
+  .dashboard-learn:focus-visible span,
+  .dashboard-stats a:focus-visible span {
+    transform: translateX(3px);
+  }
+  .dashboard-primary:active,
+  .dashboard-learn:active,
+  .dashboard-stats a:active {
+    transform: scale(0.98);
+  }
+  .dashboard-list li:focus-within > div {
+    transform: translateX(3px);
+  }
+  .dashboard-list li:focus-within .dashboard-stack {
+    transform: translateY(-2px) rotate(-2deg);
+  }
   .dashboard-drawer-sheet {
     transform-box: fill-box;
     transform-origin: 50% 100%;
@@ -472,6 +576,26 @@
     transition: transform 250ms cubic-bezier(0.22, 0.75, 0.22, 1);
   }
   @media (hover: hover) and (pointer: fine) {
+    .dashboard-primary:hover:not(:disabled),
+    .dashboard-learn:hover,
+    .dashboard-stats a:hover {
+      transform: translateY(-1px);
+    }
+    .dashboard-primary:hover span,
+    .dashboard-learn:hover span,
+    .dashboard-stats a:hover span {
+      transform: translateX(3px);
+    }
+    .dashboard-list li:hover::before {
+      opacity: 0.62;
+    }
+    .dashboard-list li:hover > div {
+      transform: translateX(3px);
+    }
+    .dashboard-list li:hover .dashboard-stack {
+      transform: translateY(-2px) rotate(-2deg);
+    }
+    .dashboard-drawer:hover .dashboard-drawer-sheet,
     .dashboard-card > a.dashboard-primary:hover ~ .dashboard-drawer .dashboard-drawer-sheet {
       transform: translate(2px, -55px) rotate(2deg);
       transition: transform 250ms cubic-bezier(0.22, 0.75, 0.22, 1);

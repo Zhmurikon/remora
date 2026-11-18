@@ -80,6 +80,8 @@ describe('Курсы в кабинете', () => {
     mount();
     expect(await screen.findByText('Алгебра')).toBeTruthy();
     expect(await screen.findByText('Физика')).toBeTruthy();
+    expect(document.querySelector('.management-motion')).toBeTruthy();
+    expect(document.querySelectorAll('.manage-group-motion')).toHaveLength(2);
     expect(screen.queryByRole('link', { name: 'Учить весь курс' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Открыть курс' })).toBeNull();
     expect(screen.getByRole('link', { name: /Физика Механика/ }).getAttribute('href')).toBe(
@@ -224,6 +226,7 @@ describe('Курсы в кабинете', () => {
     } as never);
     vi.mocked(api.POST).mockResolvedValue({ data: course, response: new Response() } as never);
     mount('/courses/new');
+    expect(document.querySelector('.course-settings-motion')).toBeTruthy();
     await userEvent.type(screen.getByLabelText('Название курса'), 'Алгебра');
     await userEvent.click(screen.getByRole('link', { name: /Первый набор/ }));
     await userEvent.selectOptions(screen.getByLabelText('Первый набор карточек'), 'set-1');

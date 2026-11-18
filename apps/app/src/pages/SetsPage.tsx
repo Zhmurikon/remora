@@ -1,6 +1,6 @@
 import type { components, ApiError } from '@remora/api-client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import {
@@ -29,6 +29,7 @@ export function SetsPage() {
   const [newFolder, setNewFolder] = useState('');
   const [sortMode, setSortMode] = useListSort('remora:sort:sets', 'custom', false);
   const [customOrder, setCustomOrder] = useCustomOrder('remora:order:sets');
+  const rowMotionScope = useRef(new Map<string, DOMRect>());
   const sets = useQuery({
     queryKey: ['sets'],
     queryFn: async () => {
@@ -205,7 +206,7 @@ export function SetsPage() {
     );
   }
   return (
-    <div className="management">
+    <div className="management management-motion">
       <ManageHeader title="Папки и сортировка наборов">
         <Link className="manage-link" to="/library/manage">
           Управлять сохранениями
@@ -234,7 +235,7 @@ export function SetsPage() {
       </div>
       {adding && (
         <form
-          className="manage-inline"
+          className="manage-inline manage-folder-form"
           onSubmit={(e) => {
             e.preventDefault();
             const title = newFolder.trim();
@@ -288,7 +289,7 @@ export function SetsPage() {
       ) : pending ? (
         <p role="status">Загружаем наборы…</p>
       ) : (
-        <>
+        <div className="manage-groups">
           {search && !visible.length && !(origin !== 'saved' && archive.length) && (
             <p className="manage-note">Наборы не найдены.</p>
           )}
@@ -321,6 +322,7 @@ export function SetsPage() {
                   },
                 }}
                 actions={real ? folderActions(group.id, group.title) : undefined}
+                motion
               >
                 {!items.length && <p className="manage-note">Здесь пока нет наборов.</p>}
                 <OrderedRows
@@ -329,6 +331,8 @@ export function SetsPage() {
                   onOrder={setCustomOrder}
                   custom={sortMode === 'custom'}
                   onMoveFolder={moveToFolder}
+                  motion
+                  motionScope={rowMotionScope}
                 >
                   {(item) => (
                     <>
@@ -413,6 +417,7 @@ export function SetsPage() {
               title="Архив"
               count={archive.length}
               initialOpen={!!search}
+              motion
             >
               {hasNoVisibleSets(origin, 'archived', archive.length, 0) && (
                 <p className="manage-note">Архив пуст.</p>
@@ -469,7 +474,7 @@ export function SetsPage() {
               ))}
             </ManageGroup>
           )}
-        </>
+        </div>
       )}
     </div>
   );

@@ -6,7 +6,7 @@ import {
   cardCount,
 } from '../features/library/ManagementList';
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { ListSort, sortItems, useCustomOrder, useListSort } from '../features/library/ListSort';
@@ -24,6 +24,7 @@ export function CoursesPage() {
   const [origin, setOrigin] = useState<'all' | 'owned' | 'saved'>('all');
   const [sortMode, setSortMode] = useListSort('remora:sort:courses', 'custom', false);
   const [customOrder, setCustomOrder] = useCustomOrder('remora:order:courses');
+  const rowMotionScope = useRef(new Map<string, DOMRect>());
   const courses = useQuery({
     queryKey: ['courses'],
     queryFn: async () => {
@@ -81,7 +82,7 @@ export function CoursesPage() {
     custom: sortMode === 'custom',
   };
   return (
-    <div className="management">
+    <div className="management management-motion">
       <ManageHeader title="Сортировка курсов">
         <a className="manage-link" href={WEB_URL + '/kursy'}>
           Найти курсы
@@ -125,10 +126,10 @@ export function CoursesPage() {
       ) : courses.isPending || savedCourses.isPending ? (
         <p role="status">Загружаем курсы…</p>
       ) : (
-        <>
+        <div className="manage-groups">
           {owned.length > 0 && (
-            <ManageGroup title="Свои курсы" count={owned.length}>
-              <OrderedRows {...ordering} items={owned}>
+            <ManageGroup title="Свои курсы" count={owned.length} motion>
+              <OrderedRows {...ordering} items={owned} motion motionScope={rowMotionScope}>
                 {(course) => (
                   <>
                     <Link className="manage-title" draggable={false} to={'/courses/' + course.id}>
@@ -143,8 +144,8 @@ export function CoursesPage() {
             </ManageGroup>
           )}
           {saved.length > 0 && (
-            <ManageGroup title="Сохранённые курсы" count={saved.length}>
-              <OrderedRows {...ordering} items={saved}>
+            <ManageGroup title="Сохранённые курсы" count={saved.length} motion>
+              <OrderedRows {...ordering} items={saved} motion motionScope={rowMotionScope}>
                 {(course) => (
                   <>
                     <Link
@@ -176,7 +177,7 @@ export function CoursesPage() {
                   : 'Ваш первый курс'}
             </p>
           )}
-        </>
+        </div>
       )}
     </div>
   );

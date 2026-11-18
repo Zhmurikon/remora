@@ -160,11 +160,15 @@ export function CourseCopyPage() {
     slug +
     (selected ? '#article-' + selected.id : '');
   return (
-    <div className="management">
+    <div className="management management-motion course-copy-motion">
       <ManageHeader title={copyInfo.heading} />
-      {query.isPending && <p role="status">Загружаем курс…</p>}
+      {query.isPending && (
+        <p role="status" className="course-copy-status">
+          Загружаем курс…
+        </p>
+      )}
       {query.isError && (
-        <p role="alert">
+        <p role="alert" className="course-copy-status">
           {query.error.message}{' '}
           <button className="manage-link" onClick={() => void query.refetch()}>
             Повторить
@@ -173,9 +177,11 @@ export function CourseCopyPage() {
       )}
       {query.data &&
         (invalid ? (
-          <p role="alert">Материал не найден в этом курсе.</p>
+          <p role="alert" className="course-copy-status">
+            Материал не найден в этом курсе.
+          </p>
         ) : (
-          <section className="manage-copy">
+          <section className="manage-copy course-copy-card">
             <h2>{selected?.title ?? query.data.title}</h2>
             <p className="manage-meta">
               {query.data.author.display_name || '@' + query.data.author.username} ·{' '}
@@ -186,7 +192,7 @@ export function CourseCopyPage() {
               Вы сможете редактировать копию независимо от оригинала. Учебный прогресс автора не
               переносится.
             </p>
-            <div className="manage-inline">
+            <div className="manage-inline course-copy-action">
               {setId ? (
                 <CopySetButton key={setId} setId={setId} />
               ) : (
@@ -198,7 +204,7 @@ export function CourseCopyPage() {
                 />
               )}
             </div>
-            <p className="manage-meta">
+            <p className="manage-meta course-copy-hint">
               Чтобы учиться по оригиналу и получать обновления, сохраните материал на{' '}
               <a href={sourceUrl}>странице курса</a>.
             </p>

@@ -60,9 +60,16 @@ it('показывает дневную цель, серию, уровень и 
   renderOverview();
 
   expect(await screen.findByText('Дневная цель')).toBeTruthy();
-  expect(screen.getByLabelText('Дневная цель выполнена на 60%')).toBeTruthy();
+  const dailyGoal = screen.getByLabelText('Дневная цель выполнена на 60%');
+  const dailyGoalFill = dailyGoal.querySelector('.dashboard-progress-fill') as HTMLElement;
+  expect(dailyGoalFill.style.transform).toBe('scaleX(0.6)');
+  expect(dailyGoalFill.style.width).toBe('');
   expect(screen.getByText('Текущая серия')).toBeTruthy();
   expect(screen.getByText('250 / 300 XP')).toBeTruthy();
+  const levelProgress = screen.getByRole('progressbar', { name: 'Прогресс уровня 2' });
+  const levelProgressFill = levelProgress.querySelector('.dashboard-progress-fill') as HTMLElement;
+  expect(levelProgressFill.style.transform).toBe('scaleX(0.83)');
+  expect(levelProgressFill.style.width).toBe('');
   expect(await screen.findByLabelText('22 сентября 2026 г.: 18 карточек, 160 XP')).toBeTruthy();
   expect(api.GET).toHaveBeenCalledWith('/api/v1/retention/activity', {
     params: { query: { from: '2026-06-08', to: '2026-09-23' } },

@@ -1,9 +1,11 @@
 import { pluralWithCount } from '@remora/core';
 import {
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   type HTMLAttributes,
+  type MutableRefObject,
   type PointerEvent,
   type ReactNode,
 } from 'react';
@@ -61,6 +63,7 @@ export function ManageGroup({
   folder,
   actions,
   dropProps,
+  motion = false,
 }: {
   title: string;
   count: number;
@@ -69,12 +72,18 @@ export function ManageGroup({
   folder?: string;
   actions?: ReactNode;
   dropProps?: HTMLAttributes<HTMLButtonElement>;
+  motion?: boolean;
 }) {
   const [open, setOpen] = useState(initialOpen);
+  const [dropActive, setDropActive] = useState(false);
   const id = useId();
+  const canAcceptDrop = (types: readonly string[]) => types.includes('text/remora-set-id');
   return (
-    <section className="manage-group">
-      <div className="manage-band" data-open={open}>
+    <section
+      className={motion ? 'manage-group manage-group-motion' : 'manage-group'}
+      data-manage-folder={folder}
+    >
+      <div className="manage-band" data-open={open} data-drop-active={dropActive || undefined}>
         <h2>
           <button
             type="button"
@@ -83,6 +92,22 @@ export function ManageGroup({
             onClick={() => setOpen(!open)}
             data-folder={folder}
             {...dropProps}
+            onDragEnter={(event) => {
+              dropProps?.onDragEnter?.(event);
+              if (canAcceptDrop(event.dataTransfer.types)) setDropActive(true);
+            }}
+            onDragOver={(event) => {
+              dropProps?.onDragOver?.(event);
+              if (event.defaultPrevented) setDropActive(true);
+            }}
+            onDragLeave={(event) => {
+              dropProps?.onDragLeave?.(event);
+              if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropActive(false);
+            }}
+            onDrop={(event) => {
+              setDropActive(false);
+              dropProps?.onDrop?.(event);
+            }}
           >
             <svg className="manage-chevron" viewBox="0 0 16 16" aria-hidden="true">
               <path d="m6 3 5 5-5 5" />
@@ -98,9 +123,21 @@ export function ManageGroup({
         </h2>
         {open && actions}
       </div>
-      <div id={id} hidden={!open}>
-        {children}
-      </div>
+      {motion ? (
+        <div
+          id={id}
+          className="manage-group-body"
+          data-open={open}
+          aria-hidden={!open}
+          inert={!open}
+        >
+          <div className="manage-group-clip">{children}</div>
+        </div>
+      ) : (
+        <div id={id} hidden={!open}>
+          {children}
+        </div>
+      )}
     </section>
   );
 }
@@ -112,6 +149,8 @@ export function OrderedRows<T extends { id: string; title: string }>({
   custom,
   children,
   onMoveFolder,
+  motion = false,
+  motionScope,
 }: {
   items: T[];
   fullOrder: string[];
@@ -119,6 +158,8 @@ export function OrderedRows<T extends { id: string; title: string }>({
   custom: boolean;
   children: (item: T) => ReactNode;
   onMoveFolder?: (id: string, folder: string) => void;
+  motion?: boolean;
+  motionScope?: MutableRefObject<Map<string, DOMRect>>;
 }) {
   const ids = items.map((item) => item.id);
   const move = (id: string, direction: -1 | 1) =>
@@ -126,9 +167,43 @@ export function OrderedRows<T extends { id: string; title: string }>({
   const drop = (id: string, target: string, after: boolean) =>
     onOrder(moveCustomItemTo(fullOrder, id, target, after));
   const drag = useDragOrder(drop, ids, move);
+  const rows = useRef<HTMLDivElement>(null);
+  const localPositions = useRef(new Map<string, DOMRect>());
   const touch = useRef<{ id: string; x: number; y: number; active: boolean } | null>(null);
+  const [touchDraggingId, setTouchDraggingId] = useState<string | null>(null);
   const [marker, setMarker] = useState<{ id: string; after: boolean } | null>(null);
   const [announcement, setAnnouncement] = useState('');
+  useLayoutEffect(() => {
+    const elements = [
+      ...(rows.current?.querySelectorAll<HTMLElement>(':scope > [data-row-id]') ?? []),
+    ];
+    const positions = motionScope?.current ?? localPositions.current;
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+
+    for (const element of elements)
+      element.getAnimations?.().forEach((animation) => animation.cancel());
+    const next = new Map(
+      elements.map((element) => [element.dataset.rowId ?? '', element.getBoundingClientRect()]),
+    );
+
+    if (motion && !reduce) {
+      for (const element of elements) {
+        const itemId = element.dataset.rowId;
+        if (!itemId || !element.animate) continue;
+        const before = positions.get(itemId);
+        const after = next.get(itemId);
+        if (!before || !after) continue;
+        const x = before.left - after.left;
+        const y = before.top - after.top;
+        if (Math.abs(x) < 0.5 && Math.abs(y) < 0.5) continue;
+        element.animate([{ transform: `translate(${x}px, ${y}px)` }, { transform: 'none' }], {
+          duration: 180,
+          easing: 'cubic-bezier(0.2, 0.75, 0.3, 1)',
+        });
+      }
+    }
+    for (const [itemId, rect] of next) positions.set(itemId, rect);
+  });
   function targetAt(event: PointerEvent) {
     const hit = document.elementFromPoint(event.clientX, event.clientY);
     const row = hit?.closest<HTMLElement>('[data-row-id]');
@@ -144,11 +219,12 @@ export function OrderedRows<T extends { id: string; title: string }>({
   }
   const resetTouch = () => {
     touch.current = null;
+    setTouchDraggingId(null);
     setMarker(null);
   };
   return (
     <>
-      <div className="manage-rows">
+      <div ref={rows} className="manage-rows">
         {items.map((item, index) => {
           const movable = Boolean(onMoveFolder);
           const attrs = custom ? drag.getDragProps(item.id, item.title) : {};
@@ -166,6 +242,7 @@ export function OrderedRows<T extends { id: string; title: string }>({
               {...attrs}
               className="manage-row"
               data-row-id={item.id}
+              data-dragged={drag.draggedId === item.id || touchDraggingId === item.id || undefined}
               draggable={custom || movable}
               onDragStart={(event) => {
                 attrs.onDragStart?.(event);
@@ -194,6 +271,7 @@ export function OrderedRows<T extends { id: string; title: string }>({
                     if (Math.hypot(event.clientX - current.x, event.clientY - current.y) > 5)
                       current.active = true;
                     if (current.active) {
+                      setTouchDraggingId(item.id);
                       if (event.clientY > window.innerHeight - 55) window.scrollBy(0, 12);
                       if (event.clientY < 65) window.scrollBy(0, -12);
                       setMarker(custom ? targetAt(event) : null);

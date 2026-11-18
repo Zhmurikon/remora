@@ -59,6 +59,9 @@ it('показывает изменения и применяет их по кн
   expect(screen.getByRole('link', { name: 'Найти курсы' }).getAttribute('href')).toBe(
     'http://localhost:3000/kursy',
   );
+  await screen.findByText('Набор');
+  expect(document.querySelector('.management-motion')).toBeTruthy();
+  expect(document.querySelector('.manage-group-motion')).toBeTruthy();
   await userEvent.click(await screen.findByRole('button', { name: 'Обновить «Набор»' }));
   expect(await screen.findByText('Добавлено карточек: 1')).toBeTruthy();
   await userEvent.click(screen.getByRole('button', { name: 'Применить обновление' }));

@@ -34,7 +34,7 @@ export function CoursePage() {
     },
   });
   return (
-    <div className="course-settings">
+    <div className="course-settings course-settings-motion">
       <Link to="/courses" className={linkStyle}>
         <span aria-hidden="true">←</span> Все курсы
       </Link>
@@ -54,7 +54,7 @@ export function CoursePage() {
 
 export function NewCoursePage() {
   return (
-    <div className="course-settings">
+    <div className="course-settings course-settings-motion">
       <Link to="/courses" className={linkStyle}>
         <span aria-hidden="true">←</span> Все курсы
       </Link>
