@@ -1,9 +1,10 @@
 import type { components } from '@remora/api-client';
 import { Button, Card, Input } from '@remora/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, downloadFile } from '../lib/api';
+import { ClassIcon } from '../features/classes/ClassNavigator';
 
 type Classroom = components['schemas']['ClassroomOut'];
 type Assignment = components['schemas']['AssignmentOut'];
@@ -23,215 +24,80 @@ const statusClasses: Record<AssignmentStatus, string> = {
   late: 'text-danger bg-danger-subtle',
 };
 
-export function ClassesPage() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [view, setView] = useState<'teaching' | 'learning'>('teaching');
-  const [title, setTitle] = useState('');
-  const [joinCode, setJoinCode] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const classes = useQuery({
-    queryKey: ['classes'],
-    queryFn: async () => {
-      const { data, error } = await api.GET('/api/v1/classes');
-      if (error) throw new Error(errorText(error));
-      return data;
-    },
-  });
-  const teaching = (classes.data ?? []).filter((item) => item.my_role !== 'student');
-  const learning = (classes.data ?? []).filter((item) => item.my_role === 'student');
-  const visible = view === 'teaching' ? teaching : learning;
-
-  useEffect(() => {
-    if (classes.data && teaching.length === 0 && learning.length > 0) setView('learning');
-  }, [classes.data, learning.length, teaching.length]);
-
-  async function createClass(event: FormEvent) {
-    event.preventDefault();
-    if (!title.trim()) return;
-    setBusy(true);
-    setMessage(null);
-    const { data, error } = await api.POST('/api/v1/classes', {
-      body: { title: title.trim(), description: '', requires_approval: false },
-    });
-    setBusy(false);
-    if (error) return setMessage(errorText(error));
-    await queryClient.invalidateQueries({ queryKey: ['classes'] });
-    navigate(`/classes/${data.id}`);
-  }
-
-  async function joinClass(event: FormEvent) {
-    event.preventDefault();
-    if (!joinCode.trim()) return;
-    setBusy(true);
-    setMessage(null);
-    const { data, error } = await api.POST('/api/v1/classes/join', {
-      body: { join_code: joinCode.trim().toUpperCase() },
-    });
-    setBusy(false);
-    if (error) return setMessage(errorText(error));
-    await queryClient.invalidateQueries({ queryKey: ['classes'] });
-    if (data.status === 'active') navigate(`/classes/${data.class_id}`);
-    else setMessage('Заявка отправлена. Класс появится после одобрения преподавателем.');
-  }
-
-  return (
-    <div>
-      <header className="max-w-3xl">
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Классы</h1>
-        <p className="text-fg-muted mt-3">
-          Выдавайте задания своим группам или продолжайте обучение в классах преподавателей.
-        </p>
-      </header>
-
-      <div
-        className="border-border mt-8 flex gap-1 border-b"
-        role="tablist"
-        aria-label="Роль в классах"
-      >
-        <RoleTab active={view === 'teaching'} onClick={() => setView('teaching')}>
-          Преподаю <span className="text-fg-subtle">{teaching.length}</span>
-        </RoleTab>
-        <RoleTab active={view === 'learning'} onClick={() => setView('learning')}>
-          Учусь <span className="text-fg-subtle">{learning.length}</span>
-        </RoleTab>
-      </div>
-
-      <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <section aria-live="polite">
-          {classes.isPending && <ClassListSkeleton />}
-          {classes.isError && (
-            <ErrorState title="Не удалось загрузить классы" retry={() => void classes.refetch()} />
-          )}
-          {classes.data && visible.length === 0 && (
-            <Card className="border-dashed p-8 text-center shadow-none">
-              <h2 className="text-xl font-semibold">
-                {view === 'teaching' ? 'Создайте первый класс' : 'Вступите по коду приглашения'}
-              </h2>
-              <p className="text-fg-muted mx-auto mt-2 max-w-md">
-                {view === 'teaching'
-                  ? 'Добавьте учебный набор, назначьте цель и следите за прогрессом в одной таблице.'
-                  : 'После вступления здесь появятся задания и ближайшие дедлайны.'}
-              </p>
-            </Card>
-          )}
-          <div className="divide-border divide-y">
-            {visible.map((classroom) => (
-              <Link
-                key={classroom.id}
-                to={`/classes/${classroom.id}`}
-                className="hover:bg-surface-muted focus-visible:ring-primary -mx-3 flex min-h-20 items-center justify-between gap-4 rounded-xl px-3 py-4 transition-colors focus-visible:outline-none focus-visible:ring-2"
-              >
-                <div className="min-w-0">
-                  <h2 className="truncate text-lg font-semibold">{classroom.title}</h2>
-                  <p className="text-fg-muted mt-1 line-clamp-1 text-sm">
-                    {classroom.description || roleLabels[classroom.my_role]}
-                  </p>
-                </div>
-                <span className="text-primary shrink-0 text-sm font-medium">Открыть</span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        <aside className="space-y-4">
-          {view === 'teaching' ? (
-            <Card className="p-5 shadow-none">
-              <h2 className="text-lg font-semibold">Новый класс</h2>
-              <form className="mt-4 space-y-4" onSubmit={(event) => void createClass(event)}>
-                <Input
-                  label="Название"
-                  placeholder="Например, 9Б — география"
-                  value={title}
-                  maxLength={160}
-                  onChange={(event) => setTitle(event.target.value)}
-                />
-                <Button
-                  type="submit"
-                  fullWidth
-                  className="min-h-11"
-                  loading={busy}
-                  disabled={!title.trim()}
-                >
-                  Создать класс
-                </Button>
-              </form>
-            </Card>
-          ) : (
-            <Card className="p-5 shadow-none">
-              <h2 className="text-lg font-semibold">Вступить в класс</h2>
-              <form className="mt-4 space-y-4" onSubmit={(event) => void joinClass(event)}>
-                <Input
-                  label="Код приглашения"
-                  placeholder="8 символов"
-                  value={joinCode}
-                  maxLength={12}
-                  className="uppercase"
-                  onChange={(event) => setJoinCode(event.target.value)}
-                />
-                <Button
-                  type="submit"
-                  fullWidth
-                  className="min-h-11"
-                  loading={busy}
-                  disabled={joinCode.trim().length < 8}
-                >
-                  Вступить
-                </Button>
-              </form>
-            </Card>
-          )}
-          {message && (
-            <p className="text-fg-muted text-sm" role="status">
-              {message}
-            </p>
-          )}
-        </aside>
-      </div>
-    </div>
-  );
-}
+export { ClassNavigator as ClassesPage } from '../features/classes/ClassNavigator';
 
 export function JoinClassPage() {
   const [searchParams] = useSearchParams();
+  const code = searchParams.get('code')?.trim().toUpperCase() ?? '';
+  return <ClassInvitation key={code} code={code} />;
+}
+
+function ClassInvitation({ code }: { code: string }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const code = searchParams.get('code')?.trim().toUpperCase() ?? '';
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const validCode = code.length >= 8 && code.length <= 12;
 
   async function join() {
-    if (code.length < 8) return setError('В ссылке нет действующего кода приглашения.');
+    if (busy || pending || !validCode) return;
     setBusy(true);
-    const result = await api.POST('/api/v1/classes/join', { body: { join_code: code } });
-    setBusy(false);
-    if (result.error) return setError(errorText(result.error));
-    await queryClient.invalidateQueries({ queryKey: ['classes'] });
-    if (result.data.status === 'active')
-      navigate(`/classes/${result.data.class_id}`, { replace: true });
-    else setError('Заявка отправлена. Преподаватель должен одобрить вступление.');
+    setError(null);
+    try {
+      const result = await api.POST('/api/v1/classes/join', { body: { join_code: code } });
+      if (result.error) throw new Error(errorText(result.error));
+      void queryClient.invalidateQueries({ queryKey: ['classes'] });
+      if (result.data.status === 'active')
+        navigate(`/classes/${result.data.class_id}`, { replace: true });
+      else setPending(true);
+    } catch (cause) {
+      setError(errorText(cause));
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
-    <div className="mx-auto max-w-xl py-8">
-      <Card className="p-6 sm:p-8">
-        <h1 className="text-2xl font-semibold">Приглашение в класс</h1>
+    <div className="class-invitation mx-auto max-w-xl py-8">
+      <Link className="classes-text-button mb-4" to="/classes">
+        <ClassIcon name="back" />
+        Все классы
+      </Link>
+      <Card className="p-6 shadow-none sm:p-8">
+        <h1 className="text-2xl font-medium">Приглашение в класс</h1>
         <p className="text-fg-muted mt-3">
           После вступления вы увидите материалы, задания и сроки их выполнения.
         </p>
         <div className="bg-surface-muted mt-6 rounded-xl p-4">
           <p className="text-fg-muted text-sm">Код приглашения</p>
-          <p className="mt-1 font-mono text-xl font-semibold tracking-wider">
+          <p className="mt-1 break-all font-mono text-xl font-medium tracking-wider">
             {code || 'Не указан'}
           </p>
         </div>
-        <Button className="mt-6" size="lg" loading={busy} onClick={() => void join()}>
-          Вступить в класс
+        <Button
+          className="mt-6"
+          size="lg"
+          loading={busy}
+          disabled={busy || pending || !validCode}
+          onClick={() => void join()}
+        >
+          {pending ? 'Заявка отправлена' : 'Вступить в класс'}
         </Button>
+        {!validCode && (
+          <p className="text-danger mt-4 text-sm" role="alert">
+            В ссылке нет действующего кода приглашения. Попросите преподавателя прислать новую
+            ссылку.
+          </p>
+        )}
         {error && (
           <p className="text-danger mt-4 text-sm" role="alert">
             {error}
+          </p>
+        )}
+        {pending && (
+          <p className="classes-notice" role="status">
+            Заявка отправлена. Класс появится после одобрения преподавателем.
           </p>
         )}
       </Card>
@@ -457,7 +323,7 @@ function TeacherClass({ classroom }: { classroom: components['schemas']['Classro
         classroom={classroom}
         actions={
           <>
-            {!classroom.is_read_only && (
+            {classroom.my_role === 'teacher' && !classroom.is_read_only && (
               <Button className="min-h-11" variant="secondary" onClick={() => void copyInvite()}>
                 Скопировать приглашение
               </Button>
@@ -905,28 +771,6 @@ function ClassHeader({ classroom, actions }: { classroom: Classroom; actions?: R
   );
 }
 
-function RoleTab({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      className={`min-h-11 border-b-2 px-4 text-sm font-medium ${active ? 'border-primary text-primary' : 'text-fg-muted hover:text-fg border-transparent'}`}
-    >
-      {children}
-    </button>
-  );
-}
-
 function SelectField({
   label,
   value,
@@ -1031,6 +875,8 @@ function formatDate(value: string) {
 }
 
 function errorText(error: unknown) {
+  if (error instanceof TypeError)
+    return 'Не удалось связаться с сервером. Проверьте соединение и попробуйте ещё раз.';
   return typeof error === 'object' && error !== null && 'message' in error
     ? String(error.message)
     : 'Не удалось выполнить запрос. Попробуйте ещё раз.';
@@ -1056,18 +902,6 @@ function ErrorState({
   );
 }
 
-function ClassListSkeleton() {
-  return (
-    <div className="space-y-3" aria-label="Загрузка классов" aria-busy="true">
-      {Array.from({ length: 3 }).map((_, index) => (
-        <div
-          key={index}
-          className="bg-surface-muted h-20 animate-pulse rounded-xl motion-reduce:animate-none"
-        />
-      ))}
-    </div>
-  );
-}
 function ClassPageSkeleton() {
   return (
     <div aria-label="Загрузка класса" aria-busy="true">

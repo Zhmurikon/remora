@@ -1,0 +1,17 @@
+{
+  "widths": [
+    320,
+    390,
+    768,
+    1024,
+    1200,
+    1440,
+    1920
+  ],
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "checks": "layout, focus, role tabs, archive, create retry, pending and active join, permissions, empty/error/retry, description, reduced motion",
+  "pageErrors": []
+}
