@@ -1,0 +1,494 @@
+[
+  {
+    "theme": "light",
+    "width": 320,
+    "sections": [
+      {
+        "id": "profile",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "password",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "study",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "data",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "api",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "bots",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "sessions",
+        "overflow": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "theme": "light",
+    "width": 390,
+    "sections": [
+      {
+        "id": "profile",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "password",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "study",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "data",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "api",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "bots",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "sessions",
+        "overflow": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "theme": "light",
+    "width": 768,
+    "sections": [
+      {
+        "id": "profile",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "password",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "study",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "data",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "api",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "bots",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "sessions",
+        "overflow": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "theme": "light",
+    "width": 1024,
+    "sections": [
+      {
+        "id": "profile",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "password",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "study",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "data",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "api",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "bots",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "sessions",
+        "overflow": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "theme": "light",
+    "width": 1440,
+    "sections": [
+      {
+        "id": "profile",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "password",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "study",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "data",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "api",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "bots",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "sessions",
+        "overflow": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "theme": "light",
+    "width": 1920,
+    "sections": [
+      {
+        "id": "profile",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "password",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "study",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "data",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "api",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "bots",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "sessions",
+        "overflow": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "width": 320,
+    "sections": [
+      {
+        "id": "profile",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "password",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "study",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "data",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "api",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "bots",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "sessions",
+        "overflow": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "width": 390,
+    "sections": [
+      {
+        "id": "profile",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "password",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "study",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "data",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "api",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "bots",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "sessions",
+        "overflow": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "width": 768,
+    "sections": [
+      {
+        "id": "profile",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "password",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "study",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "data",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "api",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "bots",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "sessions",
+        "overflow": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "width": 1024,
+    "sections": [
+      {
+        "id": "profile",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "password",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "study",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "data",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "api",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "bots",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "sessions",
+        "overflow": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "sections": [
+      {
+        "id": "profile",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "password",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "study",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "data",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "api",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "bots",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "sessions",
+        "overflow": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "width": 1920,
+    "sections": [
+      {
+        "id": "profile",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "password",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "study",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "data",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "api",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "bots",
+        "overflow": false,
+        "visible": true
+      },
+      {
+        "id": "sessions",
+        "overflow": false,
+        "visible": true
+      }
+    ]
+  }
+]

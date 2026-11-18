@@ -90,3 +90,34 @@ it('отзывает только после подтверждения', async 
     }),
   );
 });
+
+it('сохраняет новый секрет при отзыве другого токена и возвращает фокус после скрытия', async () => {
+  vi.mocked(api.GET).mockResolvedValue({
+    data: [
+      {
+        id: 'old',
+        name: 'Старый',
+        prefix: 'old',
+        scopes: [],
+        expires_at: '2099-01-01',
+        revoked_at: null,
+      },
+    ],
+  } as never);
+  vi.mocked(api.POST).mockResolvedValue({ data: { id: 'new', token: 'new-secret' } } as never);
+  vi.mocked(api.DELETE).mockResolvedValue({} as never);
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <ApiTokens />
+    </QueryClientProvider>,
+  );
+  await userEvent.type(screen.getByLabelText('Название токена'), 'Новый');
+  await userEvent.click(screen.getByRole('button', { name: 'Создать токен' }));
+  await screen.findByLabelText('Новый API-токен');
+  await userEvent.click(screen.getByRole('button', { name: 'Отозвать' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Да, отозвать' }));
+  await screen.findByText('Токен отозван. Новые запросы с ним отклоняются.');
+  expect((screen.getByLabelText('Новый API-токен') as HTMLInputElement).value).toBe('new-secret');
+  await userEvent.click(screen.getByRole('button', { name: 'Сохранено, скрыть' }));
+  expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'API и ИИ-агенты' }));
+});

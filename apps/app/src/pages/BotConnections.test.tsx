@@ -38,6 +38,7 @@ it('показывает одноразовую команду, не сохра�
   expect(JSON.stringify(cache.getQueryCache().getAll())).not.toContain('one-time-secret');
   await userEvent.click(screen.getByRole('button', { name: 'Скрыть код' }));
   expect(screen.queryByLabelText('Команда привязки')).toBeNull();
+  expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Боты Telegram и VK' }));
 });
 
 it('подтверждает отзыв и показывает сетевую ошибку', async () => {
@@ -49,7 +50,10 @@ it('подтверждает отзыв и показывает сетевую �
   setup();
   await userEvent.click(await screen.findByRole('button', { name: 'Отключить VK' }));
   expect(api.DELETE).not.toHaveBeenCalled();
+  expect(confirm).toHaveBeenCalledWith(
+    'Отключить VK? Бот потеряет доступ к аккаунту. Ваши материалы и прогресс останутся в «Запоминальне».',
+  );
   confirm.mockReturnValue(true);
   await userEvent.click(screen.getByRole('button', { name: 'Отключить VK' }));
-  await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Нет связи'));
+  await waitFor(() => expect(screen.getByRole('alert').textContent).toBe('Нет связи'));
 });

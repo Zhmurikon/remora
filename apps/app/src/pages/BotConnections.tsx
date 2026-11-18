@@ -1,8 +1,9 @@
 import type { components } from '@remora/api-client';
 import { Button, Card, Input } from '@remora/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
+import { SettingsFeedback } from '../features/settings/SettingsFeedback';
 
 type Platform = components['schemas']['BotPlatform'];
 type Code = components['schemas']['BotCodeCreated'] & { platform: Platform };
@@ -15,8 +16,10 @@ function errorText(error: unknown) {
 
 export function BotConnections() {
   const queryClient = useQueryClient();
+  const heading = useRef<HTMLHeadingElement>(null);
   const [code, setCode] = useState<Code | null>(null);
   const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const query = useQuery({
     queryKey: ['bot-connections'],
@@ -31,12 +34,14 @@ export function BotConnections() {
     if (!code) return;
     if (query.data?.some((link) => link.platform === code.platform)) {
       setCode(null);
+      setFailed(false);
       setMessage('Бот подключён.');
       return;
     }
     const timeout = window.setTimeout(
       () => {
         setCode(null);
+        setFailed(true);
         setMessage('Код истёк. Получите новый, если ещё не подключили бота.');
       },
       Math.max(0, Date.parse(code.expires_at) - Date.now()),
@@ -45,14 +50,17 @@ export function BotConnections() {
   }, [code, query.data]);
 
   async function create(platform: Platform) {
+    if (busy) return;
     setBusy(true);
     setMessage(null);
+    setFailed(false);
     setCode(null);
     try {
       const { data, error } = await api.POST('/api/v1/users/me/bots/code', { body: { platform } });
       if (error) throw new Error(errorText(error));
       setCode({ ...data, platform });
     } catch (error) {
+      setFailed(true);
       setMessage(
         error instanceof Error ? error.message : 'Не удалось получить код. Попробуйте ещё раз.',
       );
@@ -61,11 +69,17 @@ export function BotConnections() {
     }
   }
 
-  async function revoke(id: string) {
-    if (!window.confirm('Отключить бота? Ваши материалы и прогресс останутся в «Запоминальне».'))
+  async function revoke(id: string, platform: Platform) {
+    if (busy) return;
+    if (
+      !window.confirm(
+        `Отключить ${names[platform]}? Бот потеряет доступ к аккаунту. Ваши материалы и прогресс останутся в «Запоминальне».`,
+      )
+    )
       return;
     setBusy(true);
     setMessage(null);
+    setFailed(false);
     try {
       const { error } = await api.DELETE('/api/v1/users/me/bots/{link_id}', {
         params: { path: { link_id: id } },
@@ -74,6 +88,7 @@ export function BotConnections() {
       await queryClient.invalidateQueries({ queryKey: ['bot-connections'] });
       setMessage('Бот отключён.');
     } catch (error) {
+      setFailed(true);
       setMessage(
         error instanceof Error ? error.message : 'Не удалось отключить бота. Попробуйте ещё раз.',
       );
@@ -84,7 +99,9 @@ export function BotConnections() {
 
   return (
     <Card className="mt-6 p-6" id="bots">
-      <h2 className="text-xl font-semibold">Боты Telegram и VK</h2>
+      <h2 ref={heading} tabIndex={-1} className="text-xl font-semibold">
+        Боты Telegram и VK
+      </h2>
       <p className="text-fg-muted mt-2 text-sm">
         Свяжите аккаунт с ботом в личных сообщениях. После подключения можно учить карточки во всех
         пяти режимах, продолжать общую с кабинетом сессию и читать статьи курсов.
@@ -127,7 +144,7 @@ export function BotConnections() {
                   variant="secondary"
                   className="min-h-11"
                   disabled={busy}
-                  onClick={() => void (link ? revoke(link.id) : create(platform))}
+                  onClick={() => void (link ? revoke(link.id, platform) : create(platform))}
                 >
                   {link ? `Отключить ${names[platform]}` : `Подключить ${names[platform]}`}
                 </Button>
@@ -160,16 +177,21 @@ export function BotConnections() {
               Открыть {names[code.platform]}
             </a>
           )}
-          <Button variant="ghost" className="min-h-11" onClick={() => setCode(null)}>
+          <Button
+            variant="ghost"
+            className="min-h-11"
+            onClick={() => {
+              setCode(null);
+              heading.current?.focus();
+            }}
+          >
             Скрыть код
           </Button>
         </div>
       )}
-      {message && (
-        <p role="status" className="mt-4 text-sm">
-          {message}
-        </p>
-      )}
+      <SettingsFeedback
+        notice={message ? { kind: failed ? 'error' : 'success', text: message } : null}
+      />
     </Card>
   );
 }

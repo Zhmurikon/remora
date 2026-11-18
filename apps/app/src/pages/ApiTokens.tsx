@@ -1,9 +1,14 @@
 import type { components } from '@remora/api-client';
 import { Button, Card, Input } from '@remora/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { useAuthStore } from '../features/auth/auth-store';
 import { api } from '../lib/api';
+import {
+  SettingsFeedback,
+  useSettingsDirty,
+  settingsError,
+} from '../features/settings/SettingsFeedback';
 
 type Scope = components['schemas']['ApiTokenCreate']['scopes'][number];
 const permissions: { value: Scope; label: string; adminOnly?: boolean }[] = [
@@ -19,9 +24,14 @@ export function ApiTokens() {
   const cache = useQueryClient();
   const isAdmin = useAuthStore((state) => state.user?.role === 'admin');
   const availablePermissions = permissions.filter(({ adminOnly }) => !adminOnly || isAdmin);
-  const [secret, setSecret] = useState<string | null>(null);
+  const [secret, setSecret] = useState<{ id: string; token: string } | null>(null);
+  const [draftDirty, setDraftDirty] = useState(false);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const trigger = useRef<HTMLButtonElement | null>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
+  useSettingsDirty('api', secret !== null || draftDirty);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const query = useQuery({
     queryKey: ['api-tokens'],
@@ -33,9 +43,16 @@ export function ApiTokens() {
   });
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (busy) return;
     const form = new FormData(event.currentTarget);
+    if (!form.getAll('scope').length) {
+      setFailed(true);
+      setMessage('Выберите хотя бы одно право доступа.');
+      return;
+    }
     setBusy(true);
     setMessage('');
+    setFailed(false);
     try {
       const { data, error } = await api.POST('/api/v1/users/me/api-tokens', {
         body: {
@@ -44,29 +61,35 @@ export function ApiTokens() {
           scopes: form.getAll('scope') as Scope[],
         },
       });
-      if (error || !data) throw new Error('Не удалось создать токен. Выберите хотя бы одно право.');
+      if (error || !data) throw new Error(settingsError(error));
       // Секрет не попадает в кеш запросов или постоянное хранилище браузера.
-      setSecret(data.token);
+      setSecret({ id: data.id, token: data.token });
+      setDraftDirty(false);
       await cache.invalidateQueries({ queryKey: ['api-tokens'] });
     } catch (error) {
+      setFailed(true);
       setMessage(error instanceof Error ? error.message : 'Не удалось создать токен');
     } finally {
       setBusy(false);
     }
   }
   async function revoke(id: string) {
+    if (busy) return;
     setBusy(true);
     setMessage('');
+    setFailed(false);
     try {
       const { error } = await api.DELETE('/api/v1/users/me/api-tokens/{token_id}', {
         params: { path: { token_id: id } },
       });
       if (error) throw new Error('Не удалось отозвать токен');
       setConfirmId(null);
-      setSecret(null);
+      setSecret((current) => (current?.id === id ? null : current));
       await cache.invalidateQueries({ queryKey: ['api-tokens'] });
       setMessage('Токен отозван. Новые запросы с ним отклоняются.');
+      heading.current?.focus();
     } catch {
+      setFailed(true);
       setMessage('Не удалось отозвать токен. Попробуйте ещё раз.');
     } finally {
       setBusy(false);
@@ -74,7 +97,9 @@ export function ApiTokens() {
   }
   return (
     <Card className="mt-6 min-w-0 p-6">
-      <h2 className="text-xl font-semibold">API и ИИ-агенты</h2>
+      <h2 ref={heading} tabIndex={-1} className="text-xl font-semibold">
+        API и ИИ-агенты
+      </h2>
       <p className="text-fg-muted mt-2 text-sm">
         Подключите своего агента, чтобы собирать карточки и курсы из конспектов. Токен даёт доступ к
         выбранным действиям от вашего имени. Не отправляйте его в чат или репозиторий.
@@ -85,7 +110,7 @@ export function ApiTokens() {
           <Input
             className="min-h-11"
             label="Новый API-токен"
-            value={secret}
+            value={secret.token}
             readOnly
             type="password"
             autoComplete="off"
@@ -93,12 +118,16 @@ export function ApiTokens() {
           <div className="flex flex-wrap gap-3">
             <Button
               className="min-h-11"
-              onClick={() =>
-                void navigator.clipboard.writeText(secret).then(
-                  () => setMessage('Токен скопирован'),
-                  () => setMessage('Копирование недоступно. Выделите поле и скопируйте вручную.'),
-                )
-              }
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(secret.token);
+                  setFailed(false);
+                  setMessage('Токен скопирован');
+                } catch {
+                  setFailed(true);
+                  setMessage('Копирование недоступно. Выделите поле и скопируйте вручную.');
+                }
+              }}
             >
               Скопировать токен
             </Button>
@@ -108,6 +137,7 @@ export function ApiTokens() {
               onClick={() => {
                 setSecret(null);
                 setMessage('');
+                heading.current?.focus();
               }}
             >
               Сохранено, скрыть
@@ -115,8 +145,22 @@ export function ApiTokens() {
           </div>
         </div>
       ) : (
-        <form className="mt-5 space-y-4" onSubmit={(event) => void create(event)}>
-          <div className="grid gap-4 sm:grid-cols-2">
+        <form
+          className="mt-5 space-y-4"
+          onSubmit={(event) => void create(event)}
+          onChange={(event) => {
+            const values = new FormData(event.currentTarget);
+            const scopes = values.getAll('scope');
+            setDraftDirty(
+              Boolean(values.get('name')) ||
+                values.get('days') !== '90' ||
+                scopes.length !== 2 ||
+                !scopes.includes('materials:read') ||
+                !scopes.includes('materials:write'),
+            );
+          }}
+        >
+          <fieldset disabled={busy} className="grid gap-4 sm:grid-cols-2">
             <Input
               className="min-h-11"
               label="Название токена"
@@ -137,8 +181,8 @@ export function ApiTokens() {
                 <option value="365">1 год</option>
               </select>
             </label>
-          </div>
-          <fieldset>
+          </fieldset>
+          <fieldset disabled={busy}>
             <legend className="text-sm font-medium">Права доступа</legend>
             {availablePermissions.map(({ value, label }) => (
               <label key={value} className="flex min-h-11 items-center gap-3 text-sm">
@@ -158,9 +202,9 @@ export function ApiTokens() {
           </Button>
         </form>
       )}
-      <p role="status" className="mt-3 text-sm">
-        {message}
-      </p>
+      <SettingsFeedback
+        notice={message ? { kind: failed ? 'error' : 'success', text: message } : null}
+      />
       {query.isPending && <p className="text-fg-muted mt-4">Загружаем токены…</p>}
       {query.isError && (
         <p role="alert">
@@ -182,7 +226,9 @@ export function ApiTokens() {
               <p className="text-fg-muted mt-1 text-sm">
                 {token.revoked_at
                   ? 'Отозван'
-                  : `Действует до ${new Date(token.expires_at).toLocaleDateString('ru-RU')}`}
+                  : inactive
+                    ? 'Срок действия истёк'
+                    : `Действует до ${new Date(token.expires_at).toLocaleDateString('ru-RU')}`}
               </p>
               <p className="text-fg-muted mt-1 text-sm">
                 Последнее использование:{' '}
@@ -199,7 +245,7 @@ export function ApiTokens() {
               {!inactive &&
                 (confirmId === token.id ? (
                   <div className="mt-3 flex flex-wrap items-center gap-3">
-                    <span>Отключить этот токен?</span>
+                    <span>Отозвать «{token.name}»? Новые запросы с ним будут отклонены.</span>
                     <Button
                       className="min-h-11"
                       disabled={busy}
@@ -210,7 +256,11 @@ export function ApiTokens() {
                     <Button
                       className="min-h-11"
                       variant="secondary"
-                      onClick={() => setConfirmId(null)}
+                      disabled={busy}
+                      onClick={() => {
+                        setConfirmId(null);
+                        trigger.current?.focus();
+                      }}
                     >
                       Отмена
                     </Button>
@@ -220,7 +270,10 @@ export function ApiTokens() {
                     className="mt-3 min-h-11"
                     variant="secondary"
                     disabled={busy}
-                    onClick={() => setConfirmId(token.id)}
+                    onClick={(event) => {
+                      trigger.current = event.currentTarget;
+                      setConfirmId(token.id);
+                    }}
                   >
                     Отозвать
                   </Button>

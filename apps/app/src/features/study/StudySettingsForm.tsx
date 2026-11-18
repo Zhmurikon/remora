@@ -1,173 +1,235 @@
-/**
- * Настройки планировщика. Влияют только на плотность повторений — ни одна
- * из них не ограничивает доступ к обучению (docs/04-limits.md, раздел 3).
- */
-
-import type { ApiError } from '@remora/api-client';
+/** Настройки меняют расписание, но никогда не ограничивают доступ к обучению. */
+import type { components } from '@remora/api-client';
 import { STRICTNESS_LABELS, STRICTNESS_LEVELS, type Strictness } from '@remora/core';
 import { Button, Card, Input } from '@remora/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { api } from '../../lib/api';
 import {
-  DEFAULT_LEARN_PREFERENCES,
-  LearnSettingsControls,
-  type LearnPreferences,
-} from './LearnSettingsControls';
+  SettingsFeedback,
+  SettingsSaveBar,
+  useSettingsDirty,
+  settingsError,
+  type SettingsNotice,
+} from '../settings/SettingsFeedback';
+import { LearnSettingsControls } from './LearnSettingsControls';
+
+type StudySettings = components['schemas']['StudySettingsOut'];
 
 export function StudySettingsForm() {
-  const queryClient = useQueryClient();
-  const [message, setMessage] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [learn, setLearn] = useState<LearnPreferences>(DEFAULT_LEARN_PREFERENCES);
-
   const settings = useQuery({
     queryKey: ['study', 'settings'],
     queryFn: async () => {
       const { data, error } = await api.GET('/api/v1/study/settings');
-      if (error || !data) throw new Error('Не удалось загрузить настройки');
+      if (error || !data) throw new Error(settingsError(error));
       return data;
     },
   });
+  if (settings.isPending)
+    return (
+      <Card className="settings-card">
+        <h2>Обучение</h2>
+        <p role="status" className="mt-5">
+          Загружаем настройки обучения…
+        </p>
+      </Card>
+    );
+  if (!settings.data)
+    return (
+      <Card className="settings-card">
+        <h2>Обучение</h2>
+        <SettingsFeedback
+          notice={{ kind: 'error', text: 'Не удалось загрузить настройки обучения.' }}
+        />
+        <Button variant="secondary" onClick={() => void settings.refetch()}>
+          Повторить
+        </Button>
+      </Card>
+    );
+  return <StudySettingsFields initial={settings.data} />;
+}
 
-  useEffect(() => {
-    if (!settings.data) return;
-    setLearn({
-      questionTypes: settings.data.learn_question_types,
-      successesRequired: settings.data.learn_successes_required,
-      sessionSize: settings.data.learn_session_size,
-      typingCheck: settings.data.learn_typing_check,
-      matchPercent: settings.data.learn_match_percent,
-    });
-  }, [settings.data]);
-
+function StudySettingsFields({ initial }: { initial: StudySettings }) {
+  const cache = useQueryClient();
+  // Фоновая загрузка не должна перезаписывать уже изменённые пользователем поля.
+  const [saved, setSaved] = useState(initial);
+  const [draft, setDraft] = useState(initial);
+  const [notice, setNotice] = useState<SettingsNotice>(null);
+  const [saving, setSaving] = useState(false);
+  const [exerciseError, setExerciseError] = useState(false);
+  const dirty = JSON.stringify(saved) !== JSON.stringify(draft);
+  useSettingsDirty('study', dirty);
+  function change(patch: Partial<StudySettings>) {
+    setDraft((current) => ({ ...current, ...patch }));
+    setNotice(null);
+    setExerciseError(false);
+  }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSaving(true);
-    setMessage(null);
-    const form = new FormData(event.currentTarget);
-    if (learn.questionTypes.length === 0) {
-      setMessage('Выберите хотя бы один тип упражнения');
-      setSaving(false);
+    if (saving) return;
+    if (!draft.learn_question_types.length) {
+      setExerciseError(true);
+      setNotice({ kind: 'error', text: 'Выберите хотя бы один тип упражнения.' });
+      event.currentTarget.querySelector<HTMLInputElement>('input[type="checkbox"]')?.focus();
       return;
     }
-    const { error } = await api.PATCH('/api/v1/study/settings', {
-      body: {
-        // Удержание в интерфейсе — проценты: «90%» понятнее, чем «0.9».
-        fsrs_desired_retention: Number(form.get('retention')) / 100,
-        fsrs_max_interval_days: Number(form.get('max_interval')),
-        new_cards_per_day: Number(form.get('new_per_day')),
-        reviews_per_day: Number(form.get('reviews_per_day')),
-        daily_goal_cards: Number(form.get('daily_goal')),
-        answer_strictness: String(form.get('strictness')) as Strictness,
-        learn_question_types: learn.questionTypes,
-        learn_successes_required: learn.successesRequired,
-        learn_session_size: learn.sessionSize,
-        learn_typing_check: learn.typingCheck,
-        learn_match_percent: learn.matchPercent,
-      },
-    });
-    if (error) {
-      setMessage((error as ApiError).message ?? 'Не удалось сохранить');
-    } else {
-      setMessage('Настройки сохранены');
-      await queryClient.invalidateQueries({ queryKey: ['study'] });
+    setSaving(true);
+    setNotice(null);
+    try {
+      const { data, error } = await api.PATCH('/api/v1/study/settings', {
+        body: {
+          fsrs_desired_retention: draft.fsrs_desired_retention,
+          fsrs_max_interval_days: draft.fsrs_max_interval_days,
+          new_cards_per_day: draft.new_cards_per_day,
+          reviews_per_day: draft.reviews_per_day,
+          daily_goal_cards: draft.daily_goal_cards,
+          answer_strictness: draft.answer_strictness,
+          learn_question_types: draft.learn_question_types,
+          learn_successes_required: draft.learn_successes_required,
+          learn_session_size: draft.learn_session_size,
+          learn_typing_check: draft.learn_typing_check,
+          learn_match_percent: draft.learn_match_percent,
+        },
+      });
+      if (error) throw error;
+      const updated = data ?? draft;
+      setSaved(updated);
+      setDraft(updated);
+      cache.setQueryData(['study', 'settings'], updated);
+      setNotice({ kind: 'success', text: 'Настройки обучения сохранены' });
+      await cache.invalidateQueries({ queryKey: ['study'] });
+    } catch (error) {
+      setNotice({ kind: 'error', text: settingsError(error) });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
-
-  if (settings.isPending) {
-    return (
-      <Card className="p-6">
-        <p className="text-fg-muted">Загружаем настройки обучения…</p>
-      </Card>
-    );
-  }
-  if (!settings.data) {
-    return (
-      <Card className="p-6">
-        <p className="text-danger">Не удалось загрузить настройки обучения.</p>
-      </Card>
-    );
-  }
-
   return (
-    <Card className="p-6">
-      <h2 className="text-xl font-semibold">Обучение</h2>
-      <p className="text-fg-muted mt-1 text-sm">Настройки расписания и режима «Заучивание».</p>
-      <form className="mt-6 space-y-4" onSubmit={(event) => void submit(event)}>
-        <LearnSettingsControls value={learn} onChange={setLearn} />
-
-        <h3 className="pt-2 text-base font-semibold">Расписание повторений</h3>
-        <Input
-          label="Целевое удержание, %"
-          hint="Чем выше, тем чаще повторения. 90% — разумное значение по умолчанию."
-          name="retention"
-          type="number"
-          min={70}
-          max={98}
-          step={1}
-          defaultValue={Math.round(settings.data.fsrs_desired_retention * 100)}
-        />
-        <Input
-          label="Максимальный интервал, дней"
-          name="max_interval"
-          type="number"
-          min={1}
-          max={36500}
-          defaultValue={settings.data.fsrs_max_interval_days}
-        />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Input
-            label="Новых карточек в день"
-            name="new_per_day"
-            type="number"
-            min={0}
-            max={500}
-            defaultValue={settings.data.new_cards_per_day}
+    <Card className="settings-card">
+      <h2>Обучение</h2>
+      <p className="settings-description">Настройки расписания и режима «Заучивание».</p>
+      <form className="settings-form" onSubmit={(event) => void submit(event)}>
+        <fieldset disabled={saving} className="settings-fields">
+          <LearnSettingsControls
+            value={{
+              questionTypes: draft.learn_question_types,
+              successesRequired: draft.learn_successes_required,
+              sessionSize: draft.learn_session_size,
+              typingCheck: draft.learn_typing_check,
+              matchPercent: draft.learn_match_percent,
+            }}
+            onChange={(learn) =>
+              change({
+                learn_question_types: learn.questionTypes,
+                learn_successes_required: learn.successesRequired,
+                learn_session_size: learn.sessionSize,
+                learn_typing_check: learn.typingCheck,
+                learn_match_percent: learn.matchPercent,
+              })
+            }
           />
-          <Input
-            label="Повторений в день"
-            name="reviews_per_day"
-            type="number"
-            min={0}
-            max={2000}
-            defaultValue={settings.data.reviews_per_day}
-          />
-        </div>
-        <Input
-          label="Дневная цель, карточек"
-          name="daily_goal"
-          type="number"
-          min={1}
-          max={500}
-          defaultValue={settings.data.daily_goal_cards}
-        />
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="strictness" className="text-fg text-sm font-medium">
-            Строгость проверки ответов
-          </label>
-          <select
-            id="strictness"
-            name="strictness"
-            defaultValue={settings.data.answer_strictness}
-            className="border-border bg-surface text-fg h-10 w-full rounded-md border px-3 text-base"
-          >
-            {STRICTNESS_LEVELS.map((level) => (
-              <option key={level} value={level}>
-                {STRICTNESS_LABELS[level]}
-              </option>
-            ))}
-          </select>
-          <p className="text-fg-subtle text-sm">
-            «Строго» — только регистр, пробелы и ё. «Умеренно» — ещё пунктуация, артикли и одна
-            опечатка. «Мягко» — прощает две-три.
+          {exerciseError && (
+            <p className="text-danger text-sm">Нужно включить хотя бы одно упражнение.</p>
+          )}
+          <h3 className="settings-subheading">Расписание повторений</h3>
+          <p className="text-fg-muted text-sm">
+            Эти значения помогают планировать день. Вы всегда можете продолжить обучение сверх
+            расписания.
           </p>
-        </div>
-        {message && <p className="text-fg-muted text-sm">{message}</p>}
-        <Button type="submit" loading={saving}>
-          Сохранить
-        </Button>
+          <div className="settings-field-pair">
+            <Input
+              label="Новых карточек в день"
+              name="new_per_day"
+              type="number"
+              min={0}
+              max={500}
+              required
+              value={draft.new_cards_per_day}
+              onChange={(event) => change({ new_cards_per_day: Number(event.target.value) })}
+            />
+            <Input
+              label="Повторений в день"
+              name="reviews_per_day"
+              type="number"
+              min={0}
+              max={2000}
+              required
+              value={draft.reviews_per_day}
+              onChange={(event) => change({ reviews_per_day: Number(event.target.value) })}
+            />
+          </div>
+          <Input
+            label="Дневная цель, карточек"
+            name="daily_goal"
+            type="number"
+            min={1}
+            max={500}
+            required
+            value={draft.daily_goal_cards}
+            onChange={(event) => change({ daily_goal_cards: Number(event.target.value) })}
+          />
+          <details className="settings-advanced">
+            <summary>Точные настройки расписания и проверки</summary>
+            <div className="settings-fields">
+              <Input
+                label="Целевое удержание, %"
+                hint="Чем выше, тем чаще повторения. Рекомендуем 90%."
+                name="retention"
+                type="number"
+                min={70}
+                max={98}
+                step={1}
+                required
+                value={Math.round(draft.fsrs_desired_retention * 100)}
+                onChange={(event) =>
+                  change({ fsrs_desired_retention: Number(event.target.value) / 100 })
+                }
+              />
+              <Input
+                label="Максимальный интервал, дней"
+                name="max_interval"
+                type="number"
+                min={1}
+                max={36500}
+                required
+                value={draft.fsrs_max_interval_days}
+                onChange={(event) => change({ fsrs_max_interval_days: Number(event.target.value) })}
+              />
+              <div className="settings-fields">
+                <label htmlFor="strictness">Строгость проверки ответов</label>
+                <select
+                  id="strictness"
+                  name="strictness"
+                  value={draft.answer_strictness}
+                  onChange={(event) =>
+                    change({ answer_strictness: event.target.value as Strictness })
+                  }
+                >
+                  {STRICTNESS_LEVELS.map((level) => (
+                    <option key={level} value={level}>
+                      {STRICTNESS_LABELS[level]}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-fg-muted text-sm">
+                  «Строго» — только регистр, пробелы и ё. «Умеренно» — ещё пунктуация, артикли и
+                  одна опечатка. «Мягко» — прощает две-три.
+                </p>
+              </div>
+            </div>
+          </details>
+        </fieldset>
+        <SettingsFeedback notice={notice} />
+        <SettingsSaveBar
+          dirty={dirty}
+          saving={saving}
+          label="Сохранить обучение"
+          onCancel={() => {
+            setDraft(saved);
+            setNotice(null);
+            setExerciseError(false);
+          }}
+        />
       </form>
     </Card>
   );
