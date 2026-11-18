@@ -1,0 +1,6 @@
+{
+  "approved": true,
+  "approval": "Пользователь выбрал вариант А и разрешил вёрстку",
+  "implementation_override": "Одна общая иллюстрация-заглушка для всех достижений вместо индивидуальных рисунков",
+  "prompt_file": "a-illustrated.prompt.txt"
+}

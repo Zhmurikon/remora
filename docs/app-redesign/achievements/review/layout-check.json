@@ -1,0 +1,98 @@
+[
+  {
+    "theme": "light",
+    "cards": 20,
+    "columns": 1,
+    "overflow": false,
+    "uniqueImages": 1,
+    "width": 320
+  },
+  {
+    "theme": "light",
+    "cards": 20,
+    "columns": 1,
+    "overflow": false,
+    "uniqueImages": 1,
+    "width": 390
+  },
+  {
+    "theme": "light",
+    "cards": 20,
+    "columns": 2,
+    "overflow": false,
+    "uniqueImages": 1,
+    "width": 768
+  },
+  {
+    "theme": "light",
+    "cards": 20,
+    "columns": 2,
+    "overflow": false,
+    "uniqueImages": 1,
+    "width": 1024
+  },
+  {
+    "theme": "light",
+    "cards": 20,
+    "columns": 3,
+    "overflow": false,
+    "uniqueImages": 1,
+    "width": 1440
+  },
+  {
+    "theme": "light",
+    "cards": 20,
+    "columns": 3,
+    "overflow": false,
+    "uniqueImages": 1,
+    "width": 1920
+  },
+  {
+    "theme": "dark",
+    "cards": 20,
+    "columns": 1,
+    "overflow": false,
+    "uniqueImages": 1,
+    "width": 320
+  },
+  {
+    "theme": "dark",
+    "cards": 20,
+    "columns": 1,
+    "overflow": false,
+    "uniqueImages": 1,
+    "width": 390
+  },
+  {
+    "theme": "dark",
+    "cards": 20,
+    "columns": 2,
+    "overflow": false,
+    "uniqueImages": 1,
+    "width": 768
+  },
+  {
+    "theme": "dark",
+    "cards": 20,
+    "columns": 2,
+    "overflow": false,
+    "uniqueImages": 1,
+    "width": 1024
+  },
+  {
+    "theme": "dark",
+    "cards": 20,
+    "columns": 3,
+    "overflow": false,
+    "uniqueImages": 1,
+    "width": 1440
+  },
+  {
+    "theme": "dark",
+    "cards": 20,
+    "columns": 3,
+    "overflow": false,
+    "uniqueImages": 1,
+    "width": 1920
+  }
+]
