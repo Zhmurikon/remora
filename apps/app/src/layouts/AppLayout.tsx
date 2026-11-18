@@ -41,6 +41,7 @@ export function AppLayout() {
   ].some((path) => matchPath(path, location.pathname));
   const hasPaperShell =
     location.pathname === '/' ||
+    location.pathname === '/billing' ||
     location.pathname.startsWith('/classes') ||
     location.pathname === '/practice' ||
     location.pathname === '/achievements' ||

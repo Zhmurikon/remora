@@ -1,0 +1,586 @@
+.billing-page {
+  --rm-primary-hover: var(--rm-lecture-blue);
+  --rm-primary-fg: var(--rm-lecture-surface);
+  container-type: inline-size;
+  padding-bottom: 3rem;
+  font-family: Inter, 'Segoe UI', Arial, sans-serif;
+  color: rgb(var(--rm-lecture-ink));
+  font-size: 1rem;
+  line-height: 1.5;
+}
+.billing-page ::selection {
+  background: rgb(var(--rm-lecture-selected));
+  color: rgb(var(--rm-lecture-ink));
+}
+.billing-page :is(button, input):focus-visible {
+  outline: 2px solid rgb(var(--rm-lecture-action));
+  outline-offset: 4px;
+}
+.billing-page input {
+  caret-color: rgb(var(--rm-lecture-action));
+  min-height: 44px;
+}
+.billing-page button {
+  min-height: 44px;
+}
+.billing-page .billing-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+.billing-header {
+  border-bottom: 1px solid rgb(var(--rm-lecture-line));
+  padding-bottom: 1.5rem;
+}
+.billing-header h1 {
+  margin: 0;
+  font:
+    400 2.75rem/1.15 Georgia,
+    'Times New Roman',
+    serif;
+  letter-spacing: -0.03em;
+}
+.billing-header p {
+  max-width: 49rem;
+  margin: 0.875rem 0 0;
+  color: rgb(var(--rm-lecture-muted));
+  line-height: 1.6;
+}
+.billing-current {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.75rem;
+  margin-top: 1.5rem;
+  padding: 1.0625rem 1.375rem;
+  min-height: 5.5rem;
+  border: 1px solid rgb(var(--rm-lecture-line));
+  border-radius: 0.875rem;
+  background: rgb(var(--rm-lecture-paper));
+}
+.billing-current-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.125rem;
+}
+.billing-badge {
+  padding: 0.25rem 0.625rem;
+  border-radius: 0.4375rem;
+  font-size: 0.75rem;
+  color: rgb(var(--rm-lecture-blue));
+  background: rgb(var(--rm-lecture-selected));
+}
+.billing-current-detail {
+  margin-top: 0.1875rem;
+  font-size: 0.875rem;
+  color: rgb(var(--rm-lecture-muted));
+}
+.billing-guarantee {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  color: rgb(var(--rm-lecture-blue));
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+.billing-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1.5rem 0 1.125rem;
+  position: relative;
+  z-index: 2;
+}
+.billing-period-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.125rem;
+}
+.billing-period-group > p {
+  font-size: 0.8125rem;
+  color: rgb(var(--rm-lecture-muted));
+}
+.billing-period {
+  display: flex;
+  position: relative;
+  isolation: isolate;
+  padding: 4px;
+  border: 1px solid rgb(var(--rm-lecture-line));
+  border-radius: 0.75rem;
+  background: rgb(var(--rm-lecture-paper));
+}
+.billing-period::before {
+  content: '';
+  position: absolute;
+  inset: 4px auto 4px 4px;
+  width: 4.75rem;
+  border-radius: 0.5rem;
+  background: rgb(var(--rm-lecture-action));
+  transform: translateX(4.75rem);
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: -1;
+}
+.billing-period[data-period='month']::before {
+  transform: translateX(0);
+}
+.billing-period button {
+  width: 4.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: rgb(var(--rm-lecture-muted));
+  transition: color 120ms;
+}
+.billing-period button[aria-pressed='true'] {
+  color: rgb(var(--rm-lecture-surface));
+}
+.billing-period button:disabled {
+  cursor: wait;
+}
+.billing-promo {
+  position: relative;
+}
+.billing-promo-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgb(var(--rm-lecture-action));
+  font-size: 0.875rem;
+}
+.billing-promo-toggle .billing-icon {
+  width: 1rem;
+  height: 1rem;
+  transition: transform 150ms;
+}
+.billing-promo-toggle[aria-expanded='true'] .billing-icon {
+  transform: rotate(180deg);
+}
+.billing-promo-toggle:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.billing-promo-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.5rem);
+  width: 19rem;
+  max-width: calc(100vw - 3rem);
+  padding: 1.0625rem;
+  border: 1px solid rgb(var(--rm-lecture-line));
+  border-radius: 0.75rem;
+  background: rgb(var(--rm-lecture-surface));
+  animation: billing-promo-open 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.billing-promo-panel input {
+  border-color: rgb(var(--rm-lecture-line));
+  border-radius: 0.625rem;
+  background: rgb(var(--rm-lecture-surface));
+}
+.billing-promo-panel label {
+  font-weight: 400;
+}
+.billing-promo-panel p {
+  font-size: 0.8125rem;
+}
+.billing-plans {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.125rem;
+}
+.billing-plan {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 26.25rem;
+  padding: 1.4375rem;
+  border: 1px solid rgb(var(--rm-lecture-line));
+  border-radius: 1rem;
+  background: rgb(var(--rm-lecture-surface));
+}
+.billing-plan-plus {
+  background: rgb(var(--rm-lecture-paper));
+  border-color: rgb(var(--rm-lecture-action));
+}
+.billing-plan-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 3.375rem;
+  margin-bottom: 0.75rem;
+}
+.billing-plan-top h2 {
+  position: relative;
+  font:
+    400 1.875rem/1.2 Georgia,
+    'Times New Roman',
+    serif;
+}
+.billing-plan-top h2::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: -2px;
+  bottom: -8px;
+  height: 1px;
+  background: rgb(var(--rm-lecture-action));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.billing-plan-top img {
+  width: 4.1875rem;
+  height: 3.375rem;
+  object-fit: contain;
+  background: rgb(var(--rm-billing-illustration-paper));
+  border-radius: 0.5rem;
+  transform-origin: 50% 80%;
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.billing-price {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.3125rem;
+  min-height: 2.625rem;
+  font:
+    400 2.125rem/1.2 Georgia,
+    'Times New Roman',
+    serif;
+  font-variant-numeric: tabular-nums;
+}
+.billing-price > span {
+  display: inline-block;
+  white-space: nowrap;
+}
+.billing-plan-free .billing-price {
+  font-size: 1.8125rem;
+}
+.billing-price small {
+  font:
+    400 0.875rem/1.4 Inter,
+    'Segoe UI',
+    Arial,
+    sans-serif;
+  color: rgb(var(--rm-lecture-muted));
+}
+.billing-caption {
+  margin-top: 0.4375rem;
+  min-height: 1.375rem;
+  font-size: 0.8125rem;
+  color: rgb(var(--rm-lecture-muted));
+}
+.billing-plan ul {
+  display: grid;
+  gap: 0.6875rem;
+  margin: 1.25rem 0 1.5rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+.billing-plan li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.billing-plan li .billing-icon {
+  margin-top: 1px;
+  width: 1rem;
+  height: 1.125rem;
+  color: rgb(var(--rm-lecture-blue));
+}
+.billing-plan-action {
+  margin-top: auto;
+}
+.billing-page .billing-buy {
+  min-height: 44px;
+  height: auto;
+  padding: 0.6875rem 1rem;
+  border-radius: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.billing-plan:not(.billing-plan-plus) .billing-buy {
+  color: rgb(var(--rm-lecture-action));
+}
+.billing-page .billing-buy:disabled {
+  opacity: 1;
+  color: rgb(var(--rm-lecture-muted));
+  background: rgb(var(--rm-lecture-paper));
+  border: 1px solid rgb(var(--rm-lecture-line));
+}
+.billing-plan:has(.billing-buy:focus-visible) .billing-plan-top h2::after {
+  transform: scaleX(1);
+}
+.billing-plan-plus:has(.billing-buy:focus-visible) .billing-plan-top img {
+  transform: translateY(-3px) rotate(-2deg);
+}
+.billing-plan-pro:has(.billing-buy:focus-visible) .billing-plan-top img {
+  transform: translateY(-2px) rotate(1deg);
+}
+@media (hover: hover) {
+  .billing-plan:has(.billing-buy:not(:disabled):hover) .billing-plan-top h2::after {
+    transform: scaleX(1);
+  }
+  .billing-plan-plus:has(.billing-buy:not(:disabled):hover) .billing-plan-top img {
+    transform: translateY(-3px) rotate(-2deg);
+  }
+  .billing-plan-pro:has(.billing-buy:not(:disabled):hover) .billing-plan-top img {
+    transform: translateY(-2px) rotate(1deg);
+  }
+}
+.billing-payment-note {
+  margin-top: 0.75rem;
+  color: rgb(var(--rm-lecture-muted));
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+.billing-bottom {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.72fr);
+  gap: 2.375rem;
+  margin-top: 1.875rem;
+}
+.billing-bottom h2 {
+  font-size: 1.375rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.875rem;
+}
+.billing-history table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.billing-history th {
+  text-align: left;
+  font-weight: 400;
+  font-size: 0.75rem;
+  padding: 0 0.625rem 0.5625rem 0;
+  color: rgb(var(--rm-lecture-muted));
+}
+.billing-history td {
+  padding: 0.875rem 0.625rem 0.875rem 0;
+  border-top: 1px solid rgb(var(--rm-lecture-line));
+  vertical-align: middle;
+}
+.billing-history :is(th, td):last-child {
+  padding-right: 0;
+  text-align: right;
+}
+.billing-history time {
+  color: rgb(var(--rm-lecture-muted));
+  white-space: nowrap;
+}
+.billing-amount {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.billing-payment-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  color: rgb(var(--rm-lecture-muted));
+}
+.billing-payment-status .billing-icon {
+  width: 0.9375rem;
+  height: 0.9375rem;
+}
+.billing-payment-succeeded {
+  color: rgb(var(--rm-success));
+}
+.billing-payment-pending {
+  color: rgb(var(--rm-lecture-blue));
+}
+.billing-referral {
+  padding-left: 1.875rem;
+  border-left: 1px solid rgb(var(--rm-lecture-line));
+  min-width: 0;
+}
+.billing-referral > p {
+  font-size: 0.875rem;
+  color: rgb(var(--rm-lecture-muted));
+}
+.billing-referral-code {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding: 0 0.8125rem;
+  min-height: 46px;
+  border: 1px solid rgb(var(--rm-lecture-line));
+  border-radius: 0.625rem;
+  font-size: 0.875rem;
+}
+.billing-referral-code > span {
+  overflow-wrap: anywhere;
+}
+.billing-referral-code button {
+  display: flex;
+  align-items: center;
+  gap: 0.4375rem;
+  font-size: 0.8125rem;
+  color: rgb(var(--rm-lecture-action));
+}
+.billing-referral-code button .billing-icon {
+  width: 1.0625rem;
+  height: 1.0625rem;
+}
+.billing-copy-fallback {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+}
+.billing-bottom-empty {
+  grid-template-columns: minmax(0, 28rem);
+}
+.billing-bottom-empty .billing-referral {
+  padding-left: 0;
+  border: 0;
+}
+.billing-error {
+  margin: 1.5rem 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid rgb(var(--rm-danger));
+  border-radius: 0.875rem;
+  background: rgb(var(--rm-lecture-surface));
+}
+.billing-error > p:first-child {
+  color: rgb(var(--rm-danger));
+}
+.billing-error-hint {
+  margin-top: 0.25rem;
+  color: rgb(var(--rm-lecture-muted));
+  font-size: 0.875rem;
+}
+.billing-error button {
+  margin-top: 0.5rem;
+  padding-left: 0;
+  color: rgb(var(--rm-lecture-action));
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.billing-return {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid rgb(var(--rm-lecture-line));
+  border-radius: 0.875rem;
+}
+.billing-return p {
+  max-width: 43rem;
+  font-size: 0.875rem;
+  color: rgb(var(--rm-lecture-muted));
+}
+.billing-return button {
+  color: rgb(var(--rm-lecture-action));
+}
+.billing-skeleton {
+  color: rgb(var(--rm-lecture-muted));
+  font-size: 0.875rem;
+  background: rgb(var(--rm-lecture-paper));
+}
+@keyframes billing-promo-open {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@container (max-width: 54rem) {
+  .billing-plans {
+    grid-template-columns: 1fr;
+  }
+  .billing-plan {
+    min-height: 0;
+  }
+  .billing-plan-action {
+    padding-top: 0.25rem;
+  }
+  .billing-current {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+  .billing-bottom {
+    grid-template-columns: 1fr;
+    gap: 1.75rem;
+  }
+  .billing-referral {
+    border-left: 0;
+    padding-left: 0;
+    max-width: 32rem;
+  }
+}
+@container (max-width: 34rem) {
+  .billing-header h1 {
+    font-size: 2.125rem;
+  }
+  .billing-current {
+    padding: 1rem;
+  }
+  .billing-tools {
+    align-items: flex-start;
+  }
+  .billing-period-group {
+    width: 100%;
+    gap: 0.625rem;
+  }
+  .billing-promo-panel {
+    left: 0;
+    right: auto;
+  }
+  .billing-plan {
+    padding: 1.25rem;
+  }
+  .billing-history thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .billing-history :is(tbody, tr) {
+    display: block;
+  }
+  .billing-history tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.375rem 0.75rem;
+    padding: 0.875rem 0;
+    border-top: 1px solid rgb(var(--rm-lecture-line));
+  }
+  .billing-history td {
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+  .billing-history td:nth-child(2) {
+    text-align: right;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .billing-page *,
+  .billing-page *::before,
+  .billing-page *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+  .billing-plan-top img {
+    transform: none !important;
+  }
+}

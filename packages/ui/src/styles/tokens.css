@@ -51,6 +51,7 @@
   --rm-lecture-selected: 233 239 255;
   --rm-lecture-cream: 251 249 239;
   --rm-lecture-footer: 25 31 37;
+  --rm-billing-illustration-paper: 255 255 255;
 
   --rm-reading-paper: 250 247 241;
   --rm-reading-ink: 23 35 56;
@@ -114,6 +115,7 @@
   --rm-lecture-selected: 37 52 82;
   --rm-lecture-cream: 48 45 37;
   --rm-lecture-footer: 25 31 37;
+  --rm-billing-illustration-paper: 255 255 255;
 
   --rm-reading-paper: 24 28 38;
   --rm-reading-ink: 237 236 231;
@@ -176,6 +178,7 @@
     --rm-lecture-selected: 37 52 82;
     --rm-lecture-cream: 48 45 37;
     --rm-lecture-footer: 25 31 37;
+    --rm-billing-illustration-paper: 255 255 255;
 
     --rm-reading-paper: 24 28 38;
     --rm-reading-ink: 237 236 231;
