@@ -286,6 +286,9 @@ class AgentService:
                     )
                     self.db.add(article)
                 article.section_id = section.id
+                from app.services.note_links import before_article_change
+
+                await before_article_change(self.db, article, article_body.body)
                 article.title, article.body = article_body.title, article_body.body
                 article.position = article_position
                 await self.db.flush()

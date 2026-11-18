@@ -8,6 +8,7 @@ catalog, classes, assignments, gamification, billing, moderation.
 from fastapi import APIRouter
 
 from app.api.v1 import (
+    assistant,
     admin,
     admin_security,
     agent,
@@ -69,3 +70,5 @@ api_router.include_router(tts.router)
 api_router.include_router(printing.router)
 api_router.include_router(transcriptions.router)
 api_router.include_router(generations.router)
+
+api_router.include_router(assistant.router)

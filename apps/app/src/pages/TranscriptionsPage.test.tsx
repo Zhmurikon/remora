@@ -48,8 +48,8 @@ const paidEntitlements = {
   ...entitlements,
   plan_code: 'pro',
   plan_name: 'Pro',
-  features: { 'ai.transcription': true },
-  limits: { 'ai.transcription_minutes_per_week': 1500 },
+  features: { 'ai.transcription': true, 'ai.generation': true },
+  limits: { 'ai.transcription_minutes_per_week': 1500, 'ai.sources_per_task': 5 },
   remaining: { 'ai.transcription_minutes_per_week': 1500 },
 };
 
@@ -92,12 +92,20 @@ function renderPage(path = '/transcriptions') {
 }
 
 beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
   vi.clearAllMocks();
   mediaInfoMocks.factory.mockResolvedValue({
     analyzeData: mediaInfoMocks.analyzeData,
     close: mediaInfoMocks.close,
   });
   get.mockImplementation((path: string) => {
+    if (path === '/api/v1/assistant/tasks' || path.includes('/generations'))
+      return Promise.resolve({ data: [] });
     if (path === '/api/v1/transcriptions') return Promise.resolve({ data: [] });
     return Promise.resolve({ data: entitlements });
   });
@@ -114,14 +122,16 @@ describe('TranscriptionsPage', () => {
   it('показывает загрузку вместо пустого документа', async () => {
     renderPage();
 
-    expect(await screen.findByRole('heading', { name: 'Новая расшифровка' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Выбрать аудио или видео' })).toBeTruthy();
-    expect(screen.getByText('Перетащите файл сюда')).toBeTruthy();
-    expect(screen.getByText('0 из 0 минут осталось')).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Что будем изучать?' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Выбрать файл' })).toBeTruthy();
+    expect(screen.getByText('Перетащите файл сюда или выберите на устройстве')).toBeTruthy();
+    expect(screen.getByRole('combobox', { name: 'Куда сохранить конспект' })).toBeTruthy();
   });
 
   it('показывает редактор, действия и библиотеку готовых результатов', async () => {
     get.mockImplementation((path: string) => {
+      if (path === '/api/v1/assistant/tasks' || path.includes('/generations'))
+        return Promise.resolve({ data: [] });
       if (path === '/api/v1/transcriptions') return Promise.resolve({ data: [completed] });
       return Promise.resolve({ data: entitlements });
     });
@@ -129,19 +139,26 @@ describe('TranscriptionsPage', () => {
     renderPage(`/transcriptions/${completed.id}`);
 
     expect(await screen.findByDisplayValue(completed.title)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Расшифровка' }));
     expect(
       (screen.getByRole('textbox', { name: 'Текст расшифровки' }) as HTMLTextAreaElement).value,
     ).toBe(completed.result_text);
     expect(screen.getByRole('button', { name: 'Расшифровка .txt' })).toBeTruthy();
 
-    await user.click(screen.getByRole('button', { name: 'Открыть библиотеку' }));
-    expect(screen.getByRole('heading', { name: 'Библиотека конспектов' })).toBeTruthy();
-    expect(screen.getByText(completed.title)).toBeTruthy();
+    await user.click(screen.getByRole('link', { name: '← ИИ-помощник' }));
+    expect(await screen.findByText(completed.title)).toBeTruthy();
   });
 
   it('не затирает свежую правку запоздавшим ответом автосохранения', async () => {
     get.mockImplementation((path: string) =>
-      Promise.resolve({ data: path === '/api/v1/transcriptions' ? [completed] : entitlements }),
+      Promise.resolve({
+        data:
+          path === '/api/v1/transcriptions'
+            ? [completed]
+            : path === '/api/v1/billing/entitlements'
+              ? entitlements
+              : [],
+      }),
     );
     let resolveFirst!: (value: unknown) => void;
     patch.mockImplementationOnce(
@@ -154,6 +171,7 @@ describe('TranscriptionsPage', () => {
       Promise.resolve({ data: { ...completed, result_text: 'Свежая правка' } }),
     );
     renderPage(`/transcriptions/${completed.id}`);
+    await userEvent.click(await screen.findByRole('button', { name: 'Расшифровка' }));
     const input = await screen.findByRole('textbox', { name: 'Текст расшифровки' });
     fireEvent.change(input, { target: { value: 'Первая правка' } });
     await waitFor(() => expect(patch).toHaveBeenCalledTimes(1), { timeout: 2000 });
@@ -164,6 +182,56 @@ describe('TranscriptionsPage', () => {
     expect((input as HTMLTextAreaElement).value).toBe('Свежая правка');
     await waitFor(() => expect(patch).toHaveBeenCalledTimes(2), { timeout: 2000 });
     expect(patch.mock.calls[1]?.[1].body.result_text).toBe('Свежая правка');
+  });
+
+  it('принимает два документа на Plus без чтения длительности и без автоматической загрузки', async () => {
+    get.mockImplementation((path: string) =>
+      Promise.resolve({
+        data:
+          path === '/api/v1/billing/entitlements'
+            ? {
+                ...paidEntitlements,
+                limits: { ...paidEntitlements.limits, 'ai.sources_per_task': 2 },
+              }
+            : [],
+      }),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    const input = await screen.findByLabelText('Выбрать материалы');
+    await user.upload(input, [
+      new File(['one'], 'lecture.pdf', { type: 'application/pdf' }),
+      new File(['two'], 'slides.pptx'),
+    ]);
+    expect(await screen.findByText('2 из 2 источников')).toBeTruthy();
+    expect(mediaInfoMocks.factory).not.toHaveBeenCalled();
+    expect(post).not.toHaveBeenCalled();
+    await user.upload(input, new File(['three'], 'notes.txt', { type: 'text/plain' }));
+    expect(await screen.findByRole('alert')).toHaveProperty(
+      'textContent',
+      'В одной задаче доступно до 2 источников по вашему тарифу.',
+    );
+    expect(screen.getByRole('combobox', { name: 'Куда сохранить конспект' })).toHaveProperty(
+      'value',
+      'later',
+    );
+  });
+
+  it('не открывает прошлый документ вместо формы новой задачи', async () => {
+    get.mockImplementation((path: string) =>
+      Promise.resolve({
+        data:
+          path === '/api/v1/transcriptions'
+            ? [completed]
+            : path === '/api/v1/billing/entitlements'
+              ? paidEntitlements
+              : [],
+      }),
+    );
+    renderPage();
+    expect(await screen.findByRole('heading', { name: 'Что будем изучать?' })).toBeTruthy();
+    expect(screen.getByText(completed.title)).toBeTruthy();
+    expect(screen.queryByRole('textbox', { name: 'Текст расшифровки' })).toBeNull();
   });
 
   it('автоматически получает длительность из выбранного файла', async () => {
@@ -188,13 +256,13 @@ describe('TranscriptionsPage', () => {
     });
     const user = userEvent.setup();
     const view = renderPage();
-    await screen.findByRole('heading', { name: 'Новая расшифровка' });
+    await screen.findByRole('heading', { name: 'Что будем изучать?' });
 
     const input = view.container.querySelector<HTMLInputElement>('input[type="file"]');
     expect(input).toBeTruthy();
     await user.upload(input!, new File(['audio'], 'lecture.mp3', { type: 'audio/mpeg' }));
 
-    expect(await screen.findByText(/3 минуты/)).toBeTruthy();
+    expect(await screen.findByText(/КБ.*3 минуты/)).toBeTruthy();
     expect(screen.queryByLabelText('Длительность, минут')).toBeNull();
   });
 
@@ -206,14 +274,14 @@ describe('TranscriptionsPage', () => {
     });
     const user = userEvent.setup();
     const view = renderPage();
-    await screen.findByRole('heading', { name: 'Новая расшифровка' });
+    await screen.findByRole('heading', { name: 'Что будем изучать?' });
 
     const input = view.container.querySelector<HTMLInputElement>('input[type="file"]');
     expect(input).toBeTruthy();
     const file = new File(['transport stream'], 'lecture.ts', { type: 'video/mp2t' });
     await user.upload(input!, file);
 
-    expect(await screen.findByText(/63 минуты/)).toBeTruthy();
+    expect(await screen.findByText(/КБ.*63 минуты/)).toBeTruthy();
     expect(mediaInfoMocks.factory).toHaveBeenCalledWith(
       expect.objectContaining({ format: 'object', locateFile: expect.any(Function) }),
     );
@@ -221,7 +289,7 @@ describe('TranscriptionsPage', () => {
     expect(mediaInfoMocks.close).toHaveBeenCalledOnce();
   });
 
-  it('автоматически загружает файл напрямую в хранилище по подписанной ссылке', async () => {
+  it('после запуска задачи загружает файл напрямую в хранилище по подписанной ссылке', async () => {
     const job = {
       ...completed,
       id: '22222222-2222-4222-8222-222222222222',
@@ -235,6 +303,8 @@ describe('TranscriptionsPage', () => {
       upload_expires_at: '2026-10-30T00:00:00Z',
     } as const;
     get.mockImplementation((path: string) => {
+      if (path === '/api/v1/assistant/tasks' || path.includes('/generations'))
+        return Promise.resolve({ data: [] });
       if (path === '/api/v1/transcriptions') return Promise.resolve({ data: [] });
       if (path === '/api/v1/transcriptions/{job_id}/upload') {
         return Promise.resolve({
@@ -249,6 +319,8 @@ describe('TranscriptionsPage', () => {
       return Promise.resolve({ data: paidEntitlements });
     });
     post.mockImplementation((path: string) => {
+      if (path === '/api/v1/assistant/tasks' || path.includes('/generations'))
+        return Promise.resolve({ data: [] });
       if (path === '/api/v1/transcriptions') return Promise.resolve({ data: job });
       if (path === '/api/v1/transcriptions/{job_id}/upload/parts') {
         return Promise.resolve({
@@ -265,8 +337,9 @@ describe('TranscriptionsPage', () => {
       .mockResolvedValue(new Response(null, { status: 200 }));
     const user = userEvent.setup();
     const view = renderPage();
-    await screen.findByRole('heading', { name: 'Новая расшифровка' });
+    await screen.findByRole('heading', { name: 'Что будем изучать?' });
 
+    await user.click(screen.getByText('Дополнительные настройки'));
     await user.click(screen.getByRole('checkbox', { name: /Быстрый режим/ }));
     await user.click(screen.getByRole('checkbox', { name: /Временные метки/ }));
     await user.click(screen.getByRole('checkbox', { name: /Определять дикторов/ }));
@@ -275,6 +348,8 @@ describe('TranscriptionsPage', () => {
     const input = view.container.querySelector<HTMLInputElement>('input[type="file"]');
     await user.upload(input!, new File(['transport stream'], 'lecture.ts', { type: 'video/mp2t' }));
 
+    expect(post).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Создать конспект' }));
     await waitFor(() => {
       expect(post).toHaveBeenCalledWith(
         '/api/v1/transcriptions',

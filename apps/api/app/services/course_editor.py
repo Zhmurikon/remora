@@ -134,6 +134,9 @@ class CourseEditorService:
             article.position = -index
         for article in articles.values():
             if article.id not in article_ids:
+                from app.services.note_links import before_article_change
+
+                await before_article_change(self.db, article, article.body)
                 await self.db.delete(article)
         removed_article_ids = set(articles) - set(article_ids)
         if removed_article_ids:
@@ -178,6 +181,9 @@ class CourseEditorService:
                     )
                     self.db.add(article)
                 article.section_id = section.id
+                from app.services.note_links import before_article_change
+
+                await before_article_change(self.db, article, entry.body)
                 article.title, article.body = entry.title, entry.body
                 article.position = article_position
                 await self.db.flush()

@@ -70,7 +70,9 @@ async def process_generation(_context: dict[str, Any], job_id_value: str) -> Non
             job.output_tokens = int(usage["output_tokens"])
             job.estimated_cost_usd = provider.cost_usd(job.model, usage)
         job.markdown = markdown
-        job.cards = cards
+        job.cards = (
+            cards[: int((job.edit_metadata or {}).get("card_count", 12))] if cards else cards
+        )
         job.status = "failed" if error else "completed"
         job.error_message = error
         job.finished_at = datetime.now(UTC)

@@ -112,7 +112,12 @@ class AccountExportService:
                 _json(
                     {
                         key: [_row(item) for item in rows[key]]
-                        for key in ("transcriptions", "generations")
+                        for key in (
+                            "transcriptions",
+                            "generations",
+                            "assistant_tasks",
+                            "note_revisions",
+                        )
                     }
                 ),
             )

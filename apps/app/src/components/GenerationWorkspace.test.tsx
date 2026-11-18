@@ -18,6 +18,15 @@ vi.mock('../lib/api', () => ({
     PATCH: (...args: unknown[]) => patch(...args),
   },
 }));
+vi.mock('../features/article-editor/RichArticleEditor', () => ({
+  RichArticleEditor: ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
+    <textarea
+      aria-label="Markdown конспекта"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    />
+  ),
+}));
 type Job = components['schemas']['GenerationPublic'];
 const source = { id: 'source-id', title: 'Лекция' } as components['schemas']['TranscriptionPublic'];
 const entitlements = {
@@ -47,6 +56,7 @@ const note: Job = {
   created_at: '2026-10-30T10:00:00Z',
   updated_at: '2026-10-30T10:00:00Z',
   issues: [],
+  is_proposal: false,
 };
 function mount(kind: 'notes' | 'cards' = 'notes', paid = true) {
   const queryClient = new QueryClient({
@@ -147,7 +157,7 @@ describe('Генерация учебных материалов', () => {
     await userEvent.clear(textarea);
     await userEvent.type(textarea, '# Изменённый конспект');
     await waitFor(() =>
-      expect(sessionStorage.getItem('generation-draft:note-id')).toContain('Изменённый'),
+      expect(sessionStorage.getItem('ai-note:guest:note-id')).toContain('Изменённый'),
     );
     first.unmount();
     mount();

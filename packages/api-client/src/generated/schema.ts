@@ -1006,6 +1006,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/assistant/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Tasks */
+        get: operations["list_tasks_api_v1_assistant_tasks_get"];
+        put?: never;
+        /** Create Task */
+        post: operations["create_task_api_v1_assistant_tasks_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assistant/tasks/{task_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry Task */
+        post: operations["retry_task_api_v1_assistant_tasks__task_id__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/change-password": {
         parameters: {
             query?: never;
@@ -2134,6 +2169,74 @@ export interface paths {
         put?: never;
         /** Save Generation Set */
         post: operations["save_generation_set_api_v1_generations__job_id__save_set_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/generations/{note_id}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply Note */
+        post: operations["apply_note_api_v1_generations__note_id__apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/generations/{note_id}/course": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Attach Note */
+        post: operations["attach_note_api_v1_generations__note_id__course_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/generations/{note_id}/refine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refine Note */
+        post: operations["refine_note_api_v1_generations__note_id__refine_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/generations/{note_id}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Note Revisions */
+        get: operations["note_revisions_api_v1_generations__note_id__revisions_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5560,6 +5663,86 @@ export interface components {
          * @enum {string}
          */
         AssignmentProgressStatus: "not_started" | "in_progress" | "done" | "late";
+        /** AssistantCreate */
+        AssistantCreate: {
+            options?: components["schemas"]["AssistantOptions"];
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /**
+             * Result
+             * @default notes
+             * @enum {string}
+             */
+            result: "notes" | "both" | "cards" | "transcript";
+            /** Source Ids */
+            source_ids: string[];
+        };
+        /** AssistantOptions */
+        AssistantOptions: {
+            /**
+             * Card Count
+             * @default 12
+             */
+            card_count: number;
+            /** Course Id */
+            course_id?: string | null;
+            /**
+             * Course Title
+             * @default
+             */
+            course_title: string;
+            /**
+             * Destination
+             * @default later
+             * @enum {string}
+             */
+            destination: "later" | "new" | "existing";
+            /**
+             * Detail
+             * @default balanced
+             * @enum {string}
+             */
+            detail: "short" | "balanced" | "detailed";
+            /**
+             * Diagrams
+             * @default false
+             */
+            diagrams: boolean;
+            /**
+             * Formulas
+             * @default true
+             */
+            formulas: boolean;
+        };
+        /** AssistantPublic */
+        AssistantPublic: {
+            /** Cards Id */
+            cards_id: string | null;
+            /** Error Message */
+            error_message: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Note Id */
+            note_id: string | null;
+            options: components["schemas"]["AssistantOptions"];
+            /** Result */
+            result: string;
+            /**
+             * Source Id
+             * Format: uuid
+             */
+            source_id: string;
+            /** Source Ids */
+            source_ids: string[];
+            /** Status */
+            status: string;
+        };
         /** AttachmentDownload */
         AttachmentDownload: {
             /** Expires In */
@@ -7123,6 +7306,31 @@ export interface components {
         /** GenerationCreate */
         GenerationCreate: {
             /**
+             * Card Count
+             * @default 12
+             */
+            card_count: number;
+            /**
+             * Detail
+             * @default balanced
+             * @enum {string}
+             */
+            detail: "short" | "balanced" | "detailed";
+            /**
+             * Diagrams
+             * @default false
+             */
+            diagrams: boolean;
+            /**
+             * Formulas
+             * @default true
+             */
+            formulas: boolean;
+            /** Fragment */
+            fragment?: string | null;
+            /** Instruction */
+            instruction?: string | null;
+            /**
              * Is Public
              * @default true
              */
@@ -7139,11 +7347,19 @@ export interface components {
              * Format: uuid
              */
             request_id: string;
+            /** Revision */
+            revision?: string | null;
+            /** Source Ids */
+            source_ids?: string[] | null;
         };
         /** GenerationPublic */
         GenerationPublic: {
+            /** Article Id */
+            article_id?: string | null;
             /** Cards */
             cards: components["schemas"]["GeneratedCard"][] | null;
+            /** Course Id */
+            course_id?: string | null;
             /**
              * Created At
              * Format: date-time
@@ -7156,6 +7372,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Is Proposal
+             * @default false
+             */
+            is_proposal: boolean;
             /** Is Public */
             is_public: boolean;
             /** Issues */
@@ -7485,6 +7706,72 @@ export interface components {
          * @enum {string}
          */
         MediaStatus: "pending" | "ready" | "rejected";
+        /** NoteApplyRequest */
+        NoteApplyRequest: {
+            /**
+             * Proposal Id
+             * Format: uuid
+             */
+            proposal_id: string;
+            /**
+             * Revision
+             * Format: date-time
+             */
+            revision: string;
+        };
+        /** NoteCourseRequest */
+        NoteCourseRequest: {
+            /** Course Id */
+            course_id?: string | null;
+            /**
+             * Revision
+             * Format: date-time
+             */
+            revision: string;
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+        };
+        /** NoteRefineRequest */
+        NoteRefineRequest: {
+            /** Fragment */
+            fragment?: string | null;
+            /** Instruction */
+            instruction: string;
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /**
+             * Revision
+             * Format: date-time
+             */
+            revision: string;
+            /**
+             * Scope
+             * @default all
+             * @enum {string}
+             */
+            scope: "all" | "fragment";
+        };
+        /** NoteRevisionPublic */
+        NoteRevisionPublic: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Markdown */
+            markdown: string;
+        };
         /** NoteSitemapEntry */
         NoteSitemapEntry: {
             /**
@@ -8917,7 +9204,7 @@ export interface components {
              */
             content_type: string;
             /** Duration Seconds */
-            duration_seconds: number;
+            duration_seconds?: number | null;
             /**
              * Fast Mode
              * @default false
@@ -11325,6 +11612,90 @@ export interface operations {
             };
         };
     };
+    list_tasks_api_v1_assistant_tasks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssistantPublic"][];
+                };
+            };
+        };
+    };
+    create_task_api_v1_assistant_tasks_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssistantCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssistantPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_task_api_v1_assistant_tasks__task_id__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssistantPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     change_password_api_v1_auth_change_password_post: {
         parameters: {
             query?: never;
@@ -13700,6 +14071,142 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GenerationPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apply_note_api_v1_generations__note_id__apply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteApplyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerationPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attach_note_api_v1_generations__note_id__course_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteCourseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerationPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    refine_note_api_v1_generations__note_id__refine_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteRefineRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerationPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    note_revisions_api_v1_generations__note_id__revisions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteRevisionPublic"][];
                 };
             };
             /** @description Validation Error */

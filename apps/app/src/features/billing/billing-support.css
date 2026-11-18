@@ -1,0 +1,184 @@
+.billing-notice,
+.billing-quota,
+.billing-limit-dialog {
+  font:
+    1rem/1.5 Inter,
+    'Segoe UI',
+    Arial,
+    sans-serif;
+  color: rgb(var(--rm-lecture-ink));
+  background: rgb(var(--rm-lecture-paper));
+  border: 1px solid rgb(var(--rm-lecture-line));
+  border-radius: 0.875rem;
+  padding: 1.25rem;
+}
+.billing-notice {
+  margin-top: 1rem;
+}
+.billing-notice-heading,
+.billing-limit-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.billing-notice h3 {
+  font:
+    400 1.375rem/1.25 Georgia,
+    'Times New Roman',
+    serif;
+}
+.billing-notice img,
+.billing-limit-dialog img {
+  flex-shrink: 0;
+  object-fit: contain;
+  border-radius: 0.5rem;
+  background: rgb(var(--rm-billing-illustration-paper));
+}
+.billing-notice-description,
+.billing-quota p,
+.billing-limit-dialog p {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: rgb(var(--rm-lecture-muted));
+}
+.billing-notice-description {
+  margin-top: 0.625rem;
+}
+.billing-support-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: rgb(var(--rm-lecture-action));
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+  font-size: 0.875rem;
+}
+.billing-quota {
+  margin-top: 1rem;
+}
+.billing-quota h3 {
+  font:
+    400 1.375rem/1.25 Georgia,
+    'Times New Roman',
+    serif;
+  margin-bottom: 0.75rem;
+}
+.billing-quota meter {
+  display: block;
+  width: 100%;
+  height: 0.625rem;
+  margin: 0.75rem 0;
+  border: 0;
+  border-radius: 0.25rem;
+  background: rgb(var(--rm-lecture-line));
+}
+.billing-quota meter::-webkit-meter-bar {
+  background: rgb(var(--rm-lecture-line));
+  border: 0;
+}
+.billing-quota meter::-webkit-meter-optimum-value {
+  background: rgb(var(--rm-lecture-action));
+}
+.billing-quota meter::-moz-meter-bar {
+  background: rgb(var(--rm-lecture-action));
+}
+.billing-quota .billing-quota-reset {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+}
+.billing-limit-dialog {
+  margin: auto;
+  padding: 1.5rem;
+  width: min(32rem, calc(100% - 2rem));
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  background: rgb(var(--rm-lecture-surface));
+}
+.billing-limit-dialog::backdrop {
+  background: rgb(var(--rm-overlay) / 0.45);
+}
+.billing-limit-dialog h2 {
+  margin: 1.125rem 0 0.75rem;
+  font:
+    400 1.875rem/1.2 Georgia,
+    'Times New Roman',
+    serif;
+  letter-spacing: -0.025em;
+}
+.billing-limit-values {
+  margin: 1.25rem 0;
+  padding-block: 1rem;
+  border-block: 1px solid rgb(var(--rm-lecture-line));
+  font-size: 0.875rem;
+}
+.billing-limit-values div {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+}
+.billing-limit-values div + div {
+  margin-top: 0.75rem;
+}
+.billing-limit-values dt {
+  color: rgb(var(--rm-lecture-muted));
+}
+.billing-limit-values dd {
+  font-variant-numeric: tabular-nums;
+}
+.billing-limit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+.billing-support-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid rgb(var(--rm-lecture-line));
+  border-radius: 0.625rem;
+  color: rgb(var(--rm-lecture-action));
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.billing-support-primary {
+  background: rgb(var(--rm-lecture-action));
+  border-color: rgb(var(--rm-lecture-action));
+  color: rgb(var(--rm-lecture-surface));
+}
+.billing-support-button:hover,
+.billing-support-close:hover {
+  background: rgb(var(--rm-lecture-selected));
+}
+.billing-support-primary:hover {
+  background: rgb(var(--rm-lecture-blue));
+}
+.billing-support-close {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 0.625rem;
+}
+.billing-support-close svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+:is(.billing-notice, .billing-quota, .billing-limit-dialog) :is(button, a):focus-visible {
+  outline: 2px solid rgb(var(--rm-lecture-action));
+  outline-offset: 4px;
+}
+:is(.billing-notice, .billing-quota, .billing-limit-dialog) ::selection {
+  background: rgb(var(--rm-lecture-selected));
+  color: rgb(var(--rm-lecture-ink));
+}
+@media (max-width: 34rem) {
+  .billing-limit-actions {
+    flex-direction: column-reverse;
+  }
+}

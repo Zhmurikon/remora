@@ -25,6 +25,7 @@ const names: Record<Tool, string> = {
 };
 type Props = {
   value: string;
+  allowImages?: boolean;
   onChange: (s: string) => void;
   media: Record<string, ArticleMedia>;
   onImage: (id: string, m: ArticleMedia) => void;
@@ -354,14 +355,15 @@ export function RichArticleEditor(props: Props) {
               <span>Таблица</span>
             </>,
           )}
-          {tool(
-            'Вставить изображение',
-            <>
-              <CourseIcon name="image" />
-              <span>Изображение</span>
-            </>,
-            () => file.current?.click(),
-          )}
+          {props.allowImages !== false &&
+            tool(
+              'Вставить изображение',
+              <>
+                <CourseIcon name="image" />
+                <span>Изображение</span>
+              </>,
+              () => file.current?.click(),
+            )}
           {opener(
             'formula',
             <>
@@ -437,15 +439,17 @@ export function RichArticleEditor(props: Props) {
                   {names[k]}
                 </button>
               ))}
-              <button
-                type="button"
-                onClick={() => {
-                  setPopup(null);
-                  file.current?.click();
-                }}
-              >
-                Изображение
-              </button>
+              {props.allowImages !== false && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPopup(null);
+                    file.current?.click();
+                  }}
+                >
+                  Изображение
+                </button>
+              )}
             </>
           )}
           {popup.tool === 'table' && (

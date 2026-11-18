@@ -11,9 +11,14 @@ import {
 } from '../features/study/lecture-demo-draft';
 import { useAuthStore } from '../features/auth/auth-store';
 import { GenerationWorkspace } from '../components/GenerationWorkspace';
+import sourceArtwork from '../../../web/public/images/collections/study-folder.webp';
+import './ai-assistant.css';
+import { BillingNotice } from '../features/billing/BillingNotice';
+import { BillingLimitDialog } from '../features/billing/BillingLimitDialog';
 
 type Transcription = components['schemas']['TranscriptionPublic'];
 type Entitlements = components['schemas']['EntitlementsPublic'];
+type AssistantTask = components['schemas']['AssistantPublic'];
 type JobStatus = components['schemas']['TranscriptionStatus'];
 
 const CHUNK_BYTES = 16 * 1024 * 1024;
@@ -45,7 +50,8 @@ export function TranscriptionsPage() {
   const [search] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [creating, setCreating] = useState(jobId === 'new');
+  const [creating, setCreating] = useState(!jobId || jobId === 'new');
+  useEffect(() => setCreating(!jobId || jobId === 'new'), [jobId]);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [limitDetails, setLimitDetails] = useState<LimitDetails | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Transcription | null>(null);
@@ -69,14 +75,27 @@ export function TranscriptionsPage() {
     },
   });
 
+  const tasksQuery = useQuery({
+    queryKey: ['assistant-tasks'],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/assistant/tasks');
+      if (error || !data) throw new Error(apiMessage(error, 'Не удалось загрузить задачи'));
+      return data;
+    },
+    refetchInterval: (query) =>
+      query.state.data?.some((t) => !['completed', 'failed'].includes(t.status)) ? 2500 : false,
+  });
+  const childSources = new Set(
+    (tasksQuery.data ?? []).flatMap((t) => t.source_ids.filter((id) => id !== t.source_id)),
+  );
   const jobs = useMemo(() => jobsQuery.data ?? [], [jobsQuery.data]);
+  const historyJobs = jobs.filter((j) => !childSources.has(j.id));
   const selected = useMemo(() => {
     if (creating || jobId === 'new') return null;
     if (jobId) return jobs.find((job) => job.id === jobId) ?? null;
-    return jobs.find((job) => job.status === 'completed') ?? jobs[0] ?? null;
+    return null;
   }, [creating, jobId, jobs]);
-  const activeJobs = jobs.filter((job) => busyStatuses.has(job.status));
-  const showUploader = creating || jobId === 'new' || (!jobsQuery.isLoading && !selected);
+  const showUploader = creating || !jobId || jobId === 'new';
 
   function startCreating() {
     setCreating(true);
@@ -93,56 +112,107 @@ export function TranscriptionsPage() {
   async function refreshAfterUpload(job: Transcription) {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['transcriptions'] }),
+      queryClient.invalidateQueries({ queryKey: ['assistant-tasks'] }),
       queryClient.invalidateQueries({ queryKey: ['billing-entitlements'] }),
     ]);
     setCreating(false);
     navigate(`/transcriptions/${job.id}`);
   }
 
-  if (jobsQuery.isLoading) {
+  if (jobsQuery.isLoading || tasksQuery.isLoading) {
     return <PageMessage>Загружаем библиотеку…</PageMessage>;
   }
 
   return (
-    <div className="mx-auto max-w-[1440px]">
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="min-w-0">
-          {showUploader || selected?.status === 'uploading' ? (
-            <UploadWorkspace
-              draftId={jobId === 'new' ? search.get('draft') : null}
-              resumeJob={selected?.status === 'uploading' ? selected : undefined}
-              entitlements={entitlementsQuery.data}
-              onLimit={setLimitDetails}
-              onUploaded={(job) => void refreshAfterUpload(job)}
-              onOpenLibrary={() => setLibraryOpen(true)}
-            />
-          ) : selected ? (
-            <DocumentWorkspace
-              key={selected.id}
-              job={selected}
-              entitlements={entitlementsQuery.data}
-            />
-          ) : (
-            <PageMessage>Расшифровка не найдена.</PageMessage>
-          )}
-        </section>
-
-        <UtilityRail
-          selected={selected}
-          jobs={activeJobs}
+    <div className="ai-assistant">
+      {jobsQuery.isError ? (
+        <div className="ai-notice" role="alert">
+          Не удалось загрузить задачи.{' '}
+          <button onClick={() => void jobsQuery.refetch()}>Повторить</button>
+        </div>
+      ) : null}
+      {tasksQuery.isError ? (
+        <p className="ai-notice" role="alert">
+          Не удалось загрузить состояние задач.{' '}
+          <button onClick={() => void tasksQuery.refetch()}>Повторить</button>
+        </p>
+      ) : null}
+      {entitlementsQuery.isError ? (
+        <div className="ai-notice" role="alert">
+          Не удалось проверить доступ к генерации.{' '}
+          <button onClick={() => void entitlementsQuery.refetch()}>Повторить</button>
+        </div>
+      ) : null}
+      {showUploader || selected?.status === 'uploading' ? (
+        <UploadWorkspace
+          draftId={jobId === 'new' ? search.get('draft') : null}
+          resumeJob={selected?.status === 'uploading' ? selected : undefined}
           entitlements={entitlementsQuery.data}
-          onCreate={startCreating}
-          onOpenLibrary={() => setLibraryOpen(true)}
-          onOpenJob={openJob}
-          onDelete={setDeleteTarget}
+          onLimit={setLimitDetails}
+          onUploaded={(job) => void refreshAfterUpload(job)}
         />
-      </div>
+      ) : selected ? (
+        <DocumentWorkspace
+          key={selected.id}
+          job={selected}
+          task={tasksQuery.data?.find((t) => t.source_id === selected.id)}
+          allSources={jobs}
+          entitlements={entitlementsQuery.data}
+          onDelete={() => setDeleteTarget(selected)}
+        />
+      ) : (
+        <PageMessage>
+          Задача не найдена. <Link to="/transcriptions">Вернуться к ИИ-помощнику</Link>
+        </PageMessage>
+      )}
+      {showUploader ? (
+        <section className="ai-history" aria-labelledby="ai-history-title">
+          <header>
+            <h2 id="ai-history-title">Последние задачи</h2>
+            <button onClick={() => setLibraryOpen(true)}>Вся история →</button>
+          </header>
+          {!jobs.length && !jobsQuery.isError ? (
+            <p className="ai-muted">
+              Здесь появятся ваши материалы. Начните с загрузки материалов.
+            </p>
+          ) : null}
+          {historyJobs.slice(0, 5).map((job) => (
+            <button className="ai-history-row" key={job.id} onClick={() => openJob(job)}>
+              <Icon name="file" />
+              <span>
+                <strong>{job.title ?? job.filename}</strong>
+                <small>
+                  {formatDate(job.created_at)}
+                  {job.duration_seconds ? ` · ${formatDuration(job.duration_seconds)}` : ''}
+                </small>
+              </span>
+              <span className="ai-status">
+                {(() => {
+                  const task = tasksQuery.data?.find((t) => t.source_id === job.id);
+                  return task
+                    ? ({
+                        waiting: 'Изучаем материалы',
+                        notes: 'Готовим конспект',
+                        cards: 'Создаём карточки',
+                        completed: 'Результат готов',
+                        failed: 'Нужна ваша помощь',
+                      }[task.status] ?? task.status)
+                    : job.status === 'completed'
+                      ? 'Источник обработан'
+                      : statusLabels[job.status];
+                })()}
+              </span>
+              <span aria-hidden="true">↗</span>
+            </button>
+          ))}
+        </section>
+      ) : null}
 
       {libraryOpen ? (
-        <LibraryDrawer jobs={jobs} onClose={() => setLibraryOpen(false)} onOpen={openJob} />
+        <LibraryDrawer jobs={historyJobs} onClose={() => setLibraryOpen(false)} onOpen={openJob} />
       ) : null}
       {limitDetails ? (
-        <LimitDialog details={limitDetails} onClose={() => setLimitDetails(null)} />
+        <BillingLimitDialog details={limitDetails} onClose={() => setLimitDetails(null)} />
       ) : null}
       {deleteTarget ? (
         <DeleteDialog
@@ -166,14 +236,12 @@ function UploadWorkspace({
   entitlements,
   onLimit,
   onUploaded,
-  onOpenLibrary,
 }: {
   draftId: string | null;
   resumeJob?: Transcription;
   entitlements?: Entitlements;
   onLimit: (details: LimitDetails) => void;
   onUploaded: (job: Transcription) => void;
-  onOpenLibrary: () => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -181,6 +249,32 @@ function UploadWorkspace({
   const queryClient = useQueryClient();
   const [uploadJob, setUploadJob] = useState<Transcription | undefined>(resumeJob);
   const [file, setFile] = useState<File | null>(null);
+  const [result, setResult] = useState<'notes' | 'both' | 'cards' | 'transcript'>('notes');
+  const choosing = useRef(0);
+  const [attachments, setAttachments] = useState<{ file: File; duration: number | null }[]>([]);
+  const [destination, setDestination] = useState<'later' | 'new' | 'existing'>('later');
+  const [courseId, setCourseId] = useState('');
+  const [courseTitle, setCourseTitle] = useState('');
+  const [detail, setDetail] = useState<'short' | 'balanced' | 'detailed'>('balanced');
+  const [formulas, setFormulas] = useState(true);
+  const [diagrams, setDiagrams] = useState(false);
+  const [cardCount, setCardCount] = useState(12);
+  const [startingTask, setStartingTask] = useState(false);
+  const taskRequest = useRef(crypto.randomUUID());
+  const uploadedSources = useRef(new Map<File, Transcription>());
+  const pendingSources = useRef(new Map<File, Transcription>());
+  const courses = useQuery({
+    queryKey: ['assistant-courses'],
+    enabled: destination === 'existing',
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/courses');
+      if (error || !data) throw new Error('Не удалось загрузить курсы');
+      return data;
+    },
+  });
+  const sourceLimit = entitlements?.limits['ai.sources_per_task'] ?? 1;
+  const documentFile = (f: File) => /\.(pdf|pptx|docx|txt|md)$/i.test(f.name);
+
   const [language, setLanguage] = useState('ru');
   const [fastMode, setFastMode] = useState(false);
   const [phraseTimestamps, setPhraseTimestamps] = useState(false);
@@ -192,6 +286,19 @@ function UploadWorkspace({
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
   const currentJob = uploadJob ?? resumeJob;
+  useEffect(
+    () => () => {
+      abortRef.current?.abort();
+      choosing.current += 1;
+    },
+    [],
+  );
+  useEffect(() => {
+    if (!startingTask) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [startingTask]);
 
   const email = useAuthStore((state) => state.user?.email);
   const [draftFile, setDraftFile] = useState<File | null>(null);
@@ -224,47 +331,108 @@ function UploadWorkspace({
   }, [resumeJob]);
 
   async function chooseFile(next: File | undefined) {
-    if (!next || uploading) return;
+    if (next) await chooseFiles([next]);
+  }
+  async function chooseFiles(nextFiles: File[]) {
+    if (uploading || startingTask) return;
+    const selection = ++choosing.current;
     setError('');
-    setProgress(0);
-    if (next.size > MAX_FILE_BYTES) {
-      setError('Файл должен быть не больше 1 ГБ.');
+    if (attachments.length + nextFiles.length > Math.max(1, sourceLimit)) {
+      setError(`В одной задаче доступно до ${sourceLimit} источников по вашему тарифу.`);
       return;
     }
-    if (currentJob && (next.name !== currentJob.filename || next.size !== currentJob.size_bytes)) {
-      setError(`Выберите исходный файл «${currentJob.filename}» без изменений.`);
-      return;
-    }
-    setFile(next);
-    let detectedDuration: number;
-    if (currentJob?.duration_seconds) {
-      detectedDuration = currentJob.duration_seconds;
-      setDurationSeconds(detectedDuration);
-    } else {
-      setDurationSeconds(null);
-      setReadingDuration(true);
-      try {
-        detectedDuration = await readMediaDuration(next);
-        setDurationSeconds(detectedDuration);
-      } catch {
-        setError(
-          'Не удалось прочитать длительность. Проверьте, что файл содержит аудио или видео и не повреждён.',
-        );
-        return;
-      } finally {
-        setReadingDuration(false);
+    setReadingDuration(true);
+    const added: { file: File; duration: number | null }[] = [];
+    try {
+      for (const next of nextFiles) {
+        if (next.size === 0) throw new Error('Файл пуст. Выберите другой документ.');
+        if (next.size > (documentFile(next) ? 25 * 1024 * 1024 : MAX_FILE_BYTES))
+          throw new Error('Запись — до 1 ГБ, документ — до 25 МБ.');
+        if (
+          !documentFile(next) &&
+          !/^(audio|video)\//.test(next.type) &&
+          !/\.(aac|ac3|aiff|amr|ape|avi|flac|flv|m2ts|m4a|m4v|mkv|mov|mp3|mp4|mpeg|mpg|mts|ogg|opus|ts|vob|wav|webm|wma|wmv|3gp)$/i.test(
+            next.name,
+          )
+        )
+          throw new Error('Поддерживаются аудио, видео, PDF, PPTX, DOCX, TXT и Markdown.');
+        if (
+          currentJob &&
+          (next.name !== currentJob.filename || next.size !== currentJob.size_bytes)
+        )
+          throw new Error(`Выберите исходный файл «${currentJob.filename}».`);
+        const duration = documentFile(next)
+          ? null
+          : (currentJob?.duration_seconds ?? (await readMediaDuration(next)));
+        added.push({ file: next, duration });
       }
+      if (selection !== choosing.current) return;
+      setAttachments((previous) => [...previous, ...added]);
+      if (added[0]) {
+        setFile(added[0].file);
+        setDurationSeconds(added[0].duration);
+      }
+    } catch (caught) {
+      if (selection === choosing.current)
+        setError(caught instanceof Error ? caught.message : 'Не удалось прочитать файл');
+    } finally {
+      if (selection === choosing.current) setReadingDuration(false);
     }
-    await upload(next, detectedDuration);
+  }
+  async function startTask() {
+    if (!attachments.length || startingTask) return;
+    setStartingTask(true);
+    setError('');
+    try {
+      const sources: Transcription[] = [];
+      for (const attachment of attachments) {
+        let source = uploadedSources.current.get(attachment.file);
+        if (!source) source = await upload(attachment.file, attachment.duration);
+        if (!source) return;
+        uploadedSources.current.set(attachment.file, source);
+        sources.push(source);
+      }
+      const { data, error } = await api.POST('/api/v1/assistant/tasks', {
+        body: {
+          request_id: taskRequest.current,
+          source_ids: sources.map((source) => source.id),
+          result,
+          options: {
+            destination: result === 'transcript' ? 'later' : destination,
+            course_id: destination === 'existing' ? courseId : null,
+            course_title: courseTitle,
+            detail,
+            formulas,
+            diagrams,
+            card_count: cardCount,
+          },
+        },
+      });
+      if (error || !data)
+        throw new Error(
+          apiMessage(error, 'Не удалось запустить задачу. Файлы сохранены, повторите запуск.'),
+        );
+      try {
+        sessionStorage.setItem(`ai-result:${sources[0]!.id}`, result);
+      } catch {
+        /* Сценарий хранится также на сервере. */
+      }
+      if (draftId) void removeLectureDraft(draftId).catch(() => undefined);
+      onUploaded(sources[0]!);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Не удалось создать задачу');
+    } finally {
+      setStartingTask(false);
+    }
   }
 
   async function upload(selectedFile = file, selectedDuration = durationSeconds) {
     if (!selectedFile || uploading) return;
-    if (selectedDuration === null) {
+    if (selectedDuration === null && !documentFile(selectedFile)) {
       setError('Не удалось автоматически определить длительность записи.');
       return;
     }
-    const seconds = selectedDuration;
+    const seconds = selectedDuration ?? 0;
     const requested = Math.ceil(seconds / 60) * (fastMode ? FAST_MODE_MULTIPLIER : 1);
     const remaining = entitlements?.remaining[TRANSCRIPTION_LIMIT];
     if (!currentJob && remaining !== null && remaining !== undefined && remaining < requested) {
@@ -283,7 +451,15 @@ function UploadWorkspace({
     abortRef.current = controller;
     try {
       const totalParts = Math.ceil(selectedFile.size / CHUNK_BYTES);
-      let job = currentJob;
+      let job =
+        pendingSources.current.get(selectedFile) ??
+        (currentJob?.filename === selectedFile.name ? currentJob : undefined);
+      if (job) {
+        const latest = await api.GET('/api/v1/transcriptions/{job_id}', {
+          params: { path: { job_id: job.id } },
+        });
+        if (latest.data && latest.data.status !== 'uploading') return latest.data;
+      }
       if (!job) {
         const created = await api.POST('/api/v1/transcriptions', {
           body: {
@@ -291,7 +467,7 @@ function UploadWorkspace({
             content_type: selectedFile.type || 'application/octet-stream',
             size_bytes: selectedFile.size,
             total_parts: totalParts,
-            duration_seconds: seconds,
+            duration_seconds: documentFile(selectedFile) ? null : seconds,
             language: language || null,
             fast_mode: fastMode,
             phrase_timestamps: phraseTimestamps,
@@ -306,7 +482,8 @@ function UploadWorkspace({
           throw new Error(apiMessage(created.error, 'Не удалось создать расшифровку'));
         }
         job = created.data;
-        setUploadJob(job);
+        pendingSources.current.set(selectedFile, job);
+
         activeJobIdRef.current = job.id;
         await queryClient.invalidateQueries({ queryKey: ['transcriptions'] });
       }
@@ -348,10 +525,15 @@ function UploadWorkspace({
       if (completed.error || !completed.data) {
         throw new Error(apiMessage(completed.error, 'Не удалось запустить распознавание'));
       }
+      try {
+        sessionStorage.setItem(`ai-result:${job.id}`, result);
+      } catch {
+        /* Выбор результата не должен мешать загрузке. */
+      }
       activeJobIdRef.current = null;
       setUploadJob(undefined);
       if (draftId) void removeLectureDraft(draftId).catch(() => undefined);
-      onUploaded(completed.data);
+      return completed.data;
     } catch (caught) {
       controller.abort();
       if (caught instanceof DOMException && caught.name === 'AbortError') {
@@ -375,6 +557,9 @@ function UploadWorkspace({
         params: { path: { job_id: jobId } },
       });
       activeJobIdRef.current = null;
+      for (const [pendingFile, source] of pendingSources.current) {
+        if (source.id === jobId) pendingSources.current.delete(pendingFile);
+      }
       setUploadJob(undefined);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['transcriptions'] }),
@@ -385,196 +570,315 @@ function UploadWorkspace({
     setUploading(false);
   }
 
+  const permitted =
+    (attachments.every((a) => documentFile(a.file)) ||
+      entitlements?.features['ai.transcription'] === true) &&
+    (result === 'transcript' || entitlements?.features['ai.generation'] === true);
+  const launchLabel =
+    result === 'transcript'
+      ? 'Создать расшифровку'
+      : result === 'cards'
+        ? 'Создать карточки'
+        : result === 'both'
+          ? 'Создать конспект и карточки'
+          : 'Создать конспект';
   return (
     <div>
-      <button
-        type="button"
-        className="text-fg-muted hover:text-fg focus-visible:ring-primary mb-4 inline-flex min-h-11 items-center gap-2 rounded-lg px-1 text-sm font-medium focus-visible:outline-none focus-visible:ring-2"
-        onClick={onOpenLibrary}
-      >
-        <Icon name="back" />
-        Все конспекты
-      </button>
-      <header className="border-border bg-surface rounded-xl border px-5 py-4 sm:px-6">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          {currentJob ? 'Продолжить загрузку' : 'Новая расшифровка'}
-        </h1>
-        <p className="text-fg-muted mt-2">
+      <header className="ai-heading">
+        <p className="ai-eyebrow">ИИ-помощник</p>
+        <h1>{currentJob ? 'Продолжим загрузку' : 'Что будем изучать?'}</h1>
+        <p>
           {currentJob
-            ? `Повторно выберите файл «${currentJob.filename}» — загруженные части сохранятся.`
-            : 'Выберите аудио или видео — загрузка начнётся автоматически.'}
+            ? `Выберите исходный файл «${currentJob.filename}» — загруженные части сохранятся.`
+            : 'Загрузите материалы — получите понятный конспект и карточки.'}
         </p>
       </header>
-
-      <div className="border-border bg-surface mt-5 rounded-xl border p-4 sm:p-6">
-        {!currentJob ? (
-          <div className="mb-5 space-y-5">
-            <div className="max-w-sm">
-              <label className="text-sm font-medium">
+      <div className="ai-create-grid">
+        <section className="ai-sources" aria-label="Ваши материалы">
+          <h2>Ваши материалы</h2>
+          <div
+            className={`ai-dropzone ${dragging ? 'is-dragging' : ''}`}
+            onDragOver={(event) => {
+              event.preventDefault();
+              if (!uploading) setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(event: DragEvent<HTMLDivElement>) => {
+              event.preventDefault();
+              setDragging(false);
+              if (!uploading && !startingTask)
+                void chooseFiles(Array.from(event.dataTransfer.files));
+            }}
+          >
+            <img src={sourceArtwork} alt="" width="300" height="200" />
+            <h3>Добавьте файлы к задаче</h3>
+            <p>Перетащите файл сюда или выберите на устройстве</p>
+            <Button
+              variant="secondary"
+              disabled={uploading || readingDuration}
+              onClick={() => inputRef.current?.click()}
+            >
+              Выбрать файл
+            </Button>
+            <small>Аудио, видео, PDF, PPTX, DOCX и текст</small>
+          </div>
+          <input
+            ref={inputRef}
+            hidden
+            multiple
+            type="file"
+            aria-label="Выбрать материалы"
+            accept=".pdf,.pptx,.docx,.txt,.md,audio/*,video/*,.aac,.ac3,.aiff,.amr,.ape,.avi,.flac,.flv,.m2ts,.m4a,.m4v,.mkv,.mov,.mp3,.mp4,.mpeg,.mpg,.mts,.ogg,.opus,.ts,.vob,.wav,.webm,.wma,.wmv,.3gp"
+            onChange={(event: ChangeEvent<HTMLInputElement>) => {
+              void chooseFiles(Array.from(event.target.files ?? []));
+              event.target.value = '';
+            }}
+          />
+          {draftFile && !file ? (
+            <div className="ai-file">
+              <span>{draftFile.name}</span>
+              <button onClick={() => void chooseFile(draftFile)}>Использовать запись</button>
+            </div>
+          ) : null}
+          {attachments.map((attachment, index) => (
+            <div className="ai-file" key={index}>
+              <Icon name={documentFile(attachment.file) ? 'file' : 'audio'} />
+              <div>
+                <strong>{attachment.file.name}</strong>
+                <small>
+                  {formatBytes(attachment.file.size)}
+                  {attachment.duration
+                    ? ` · ${formatDuration(attachment.duration)}`
+                    : ' · Документ'}
+                </small>
+              </div>
+              <button
+                aria-label={`Убрать ${attachment.file.name}`}
+                disabled={uploading || startingTask || !!currentJob}
+                onClick={() => setAttachments((previous) => previous.filter((_, i) => i !== index))}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          {readingDuration ? <p role="status">Проверяем файлы…</p> : null}
+          <p className="ai-source-foot">
+            <span>
+              {attachments.length} из {sourceLimit} источников
+            </span>
+            <Link to="/billing">Лимиты тарифа</Link>
+          </p>
+          <p className="ai-muted ai-small">
+            Запись — до 1 ГБ. Документ — до 25 МБ. PDF должен содержать текст; сканы пока не
+            поддерживаются.
+          </p>
+          {error ? (
+            <p className="ai-notice" role="alert">
+              {error}
+            </p>
+          ) : null}
+          {uploading ? (
+            <div className="ai-upload-progress" role="status">
+              <progress aria-label="Загрузка записи" value={progress} max="100" />
+              <p>Загружено {progress}%</p>
+              <Button variant="secondary" onClick={() => void cancelUpload()}>
+                Отменить загрузку
+              </Button>
+            </div>
+          ) : null}
+        </section>
+        <section className="ai-setup" aria-label="Настройки результата">
+          <fieldset disabled={uploading || startingTask || !!currentJob}>
+            <legend>Что получить?</legend>
+            {(
+              [
+                ['notes', 'Конспект'],
+                ['both', 'Конспект и карточки'],
+                ['cards', 'Карточки'],
+              ] as const
+            ).map(([value, label]) => (
+              <label className={`ai-choice ${result === value ? 'is-selected' : ''}`} key={value}>
+                <input
+                  type="radio"
+                  name="ai-result"
+                  value={value}
+                  checked={result === value}
+                  onChange={() => setResult(value)}
+                />
+                {label}
+              </label>
+            ))}
+            <label className="ai-transcript-choice">
+              <input
+                type="radio"
+                name="ai-result"
+                checked={result === 'transcript'}
+                onChange={() => setResult('transcript')}
+              />{' '}
+              Только расшифровка
+            </label>
+          </fieldset>
+          {result !== 'transcript' ? (
+            <fieldset className="ai-destination" disabled={startingTask}>
+              <legend>Куда сохранить конспект?</legend>
+              <select
+                aria-label="Куда сохранить конспект"
+                value={destination}
+                onChange={(event) => setDestination(event.target.value as typeof destination)}
+              >
+                <option value="later">Решить позже</option>
+                <option value="new">В новый курс</option>
+                <option value="existing">В существующий курс</option>
+              </select>
+              {destination === 'new' ? (
+                <label className="ai-stack">
+                  Название курса
+                  <input
+                    className="ai-field"
+                    value={courseTitle}
+                    maxLength={160}
+                    onChange={(e) => setCourseTitle(e.target.value)}
+                    placeholder="Предложим по названию файла"
+                  />
+                </label>
+              ) : null}
+              {destination === 'existing' ? (
+                <label>
+                  Выберите курс
+                  <select
+                    aria-label="Существующий курс"
+                    value={courseId}
+                    onChange={(e) => setCourseId(e.target.value)}
+                  >
+                    <option value="">Выберите курс</option>
+                    {courses.data?.map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.title}
+                        {course.is_published ? ' · открытый курс' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {courses.isError ? (
+                    <button type="button" onClick={() => void courses.refetch()}>
+                      Повторить загрузку курсов
+                    </button>
+                  ) : null}
+                </label>
+              ) : null}
+              <p className="ai-muted ai-small">
+                {destination === 'later'
+                  ? 'Конспект сохранится только для вас. Добавить его в курс можно позже.'
+                  : 'Конспект станет уроком курса с тем же доступом. Правки будут общими.'}
+              </p>
+            </fieldset>
+          ) : null}
+          <details className="ai-advanced">
+            <summary>Дополнительные настройки</summary>
+            <div>
+              <label>
+                Подробность конспекта
+                <select value={detail} onChange={(e) => setDetail(e.target.value as typeof detail)}>
+                  <option value="short">Кратко</option>
+                  <option value="balanced">Сбалансированно</option>
+                  <option value="detailed">Подробно</option>
+                </select>
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formulas}
+                  onChange={(e) => setFormulas(e.target.checked)}
+                />{' '}
+                Добавлять формулы по теме
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={diagrams}
+                  onChange={(e) => setDiagrams(e.target.checked)}
+                />{' '}
+                Добавлять текстовые схемы и таблицы
+              </label>
+              <label>
+                Максимум карточек
+                <select value={cardCount} onChange={(e) => setCardCount(Number(e.target.value))}>
+                  {[3, 6, 9, 12].map((n) => (
+                    <option key={n}>{n}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
                 Язык записи
                 <select
-                  className="border-border bg-surface focus:border-primary focus:ring-primary mt-2 h-11 w-full rounded-lg border px-3 outline-none focus:ring-1"
                   value={language}
                   onChange={(event) => setLanguage(event.target.value)}
-                  disabled={uploading}
+                  disabled={uploading || !!currentJob}
                 >
                   <option value="ru">Русский</option>
                   <option value="en">Английский</option>
                   <option value="">Определить автоматически</option>
                 </select>
               </label>
-              <p className="text-fg-subtle mt-2 text-xs">
-                Пунктуация, заглавные буквы, числа и даты оформляются автоматически.
-              </p>
-            </div>
-
-            <fieldset>
-              <legend className="text-sm font-semibold">Дополнительные настройки</legend>
-              <div className="mt-3 grid gap-3 lg:grid-cols-3">
-                <TranscriptionOption
-                  checked={fastMode}
-                  onChange={setFastMode}
-                  title="Быстрый режим"
-                  badge="Расход ×4"
-                  description="Стандартная очередь SpeechKit вместо отложенной."
-                  disabled={uploading}
-                  warning
-                />
-                <TranscriptionOption
-                  checked={phraseTimestamps}
-                  onChange={setPhraseTimestamps}
-                  title="Временные метки"
-                  badge="Без доп. расхода"
-                  description="Добавить время начала к каждой распознанной фразе."
-                  disabled={uploading}
-                />
-                <TranscriptionOption
-                  checked={speakerLabeling}
-                  onChange={setSpeakerLabeling}
-                  title="Определять дикторов"
-                  badge="Без доп. расхода"
-                  description="Разделить монозапись максимум на двух говорящих."
-                  disabled={uploading}
-                />
-              </div>
-            </fieldset>
-
-            {fastMode ? (
-              <p className="bg-warning-subtle rounded-lg px-4 py-3 text-sm" role="status">
-                Быстрый режим расходует недельный лимит в 4 раза быстрее: 20 минут записи спишут 80
-                минут лимита.
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-        {draftFile && !uploading ? (
-          <div className="bg-primary-subtle mb-4 rounded-xl p-4">
-            <p className="break-words">Выбранная запись — {draftFile.name}</p>
-            <Button
-              className="mt-3"
-              disabled={readingDuration}
-              onClick={() => void chooseFile(draftFile)}
-            >
-              Расшифровать запись
-            </Button>
-          </div>
-        ) : null}
-        <div
-          role="button"
-          tabIndex={0}
-          aria-label="Выбрать аудио или видео"
-          className={`focus-visible:ring-primary flex min-h-[420px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-5 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 ${dragging ? 'border-primary bg-primary-subtle' : 'border-primary/60 hover:bg-primary-subtle/40'}`}
-          onClick={() => !uploading && inputRef.current?.click()}
-          onKeyDown={(event) => {
-            if (!uploading && (event.key === 'Enter' || event.key === ' ')) {
-              event.preventDefault();
-              inputRef.current?.click();
-            }
-          }}
-          onDragOver={(event) => {
-            event.preventDefault();
-            setDragging(true);
-          }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={(event: DragEvent<HTMLDivElement>) => {
-            event.preventDefault();
-            setDragging(false);
-            if (!uploading) void chooseFile(event.dataTransfer.files[0]);
-          }}
-        >
-          <span className="text-primary mb-5 grid h-16 w-16 place-items-center" aria-hidden="true">
-            <Icon name="upload" className="h-14 w-14" />
-          </span>
-          <h2 className="text-2xl font-semibold">Перетащите файл сюда</h2>
-          <p className="text-fg-muted mt-2">или выберите его на устройстве</p>
-          <Button type="button" className="mt-6 min-w-56" disabled={uploading}>
-            Выбрать файл
-          </Button>
-          <p className="text-fg-subtle mt-4 text-sm">
-            MP3, WAV, M4A, FLAC, MP4, MOV, MKV, AVI, WebM, TS/MTS/M2TS и другие · до 1 ГБ
-          </p>
-        </div>
-        <input
-          ref={inputRef}
-          hidden
-          type="file"
-          accept="audio/*,video/*,.aac,.ac3,.aiff,.amr,.ape,.avi,.flac,.flv,.m2ts,.m4a,.m4v,.mkv,.mov,.mp3,.mp4,.mpeg,.mpg,.mts,.ogg,.opus,.ts,.vob,.wav,.webm,.wma,.wmv,.3gp"
-          onChange={(event: ChangeEvent<HTMLInputElement>) =>
-            void chooseFile(event.target.files?.[0])
-          }
-        />
-
-        {file ? (
-          <div className="border-border bg-surface-muted mt-4 flex flex-wrap items-center gap-3 rounded-lg border p-3">
-            <Icon name="file" />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold">{file.name}</p>
-              <p className="text-fg-muted text-xs">
-                {formatBytes(file.size)}
-                {readingDuration
-                  ? ' · Определяем длительность…'
-                  : durationSeconds
-                    ? ` · ${formatDuration(durationSeconds)}`
-                    : ''}
-              </p>
-            </div>
-            <button
-              type="button"
-              className="text-fg-muted hover:text-danger min-h-11 rounded-lg px-3 text-sm"
-              onClick={() => setFile(null)}
-              disabled={uploading}
-            >
-              Убрать
-            </button>
-          </div>
-        ) : null}
-
-        {uploading ? (
-          <div className="mt-5" aria-live="polite">
-            <div className="bg-surface-muted h-2 overflow-hidden rounded-full">
-              <div
-                className="bg-primary h-full transition-[width]"
-                style={{ width: `${progress}%` }}
+              <TranscriptionOption
+                checked={fastMode}
+                onChange={setFastMode}
+                title="Быстрый режим"
+                badge="Расход ×4"
+                description="Запись попадёт в ускоренную очередь."
+                disabled={uploading || !!currentJob}
+                warning
               />
+              <TranscriptionOption
+                checked={phraseTimestamps}
+                onChange={setPhraseTimestamps}
+                title="Временные метки"
+                badge="Без доп. расхода"
+                description="Время начала каждой фразы."
+                disabled={uploading || !!currentJob}
+              />
+              <TranscriptionOption
+                checked={speakerLabeling}
+                onChange={setSpeakerLabeling}
+                title="Определять дикторов"
+                badge="Без доп. расхода"
+                description="До двух говорящих в монозаписи."
+                disabled={uploading || !!currentJob}
+              />
+              {fastMode ? (
+                <p className="ai-notice">Быстрый режим: 20 минут записи спишут 80 минут лимита.</p>
+              ) : null}
             </div>
-            <p className="text-fg-muted mt-2 text-sm">Загружено {progress}%</p>
-          </div>
-        ) : null}
-        {error ? (
-          <p className="text-danger mt-4 text-sm" role="alert">
-            {error}
-          </p>
-        ) : null}
-        <div className="mt-5 flex flex-wrap justify-end gap-3">
-          {uploading ? (
-            <Button variant="secondary" onClick={() => void cancelUpload()}>
-              Отменить загрузку
-            </Button>
+          </details>
+          <Button
+            fullWidth
+            disabled={
+              !attachments.length ||
+              readingDuration ||
+              uploading ||
+              startingTask ||
+              (result !== 'transcript' && destination === 'existing' && !courseId) ||
+              (!currentJob && !permitted)
+            }
+            onClick={() => void startTask()}
+          >
+            {uploading || startingTask
+              ? 'Подготавливаем…'
+              : currentJob
+                ? 'Продолжить загрузку'
+                : launchLabel}
+          </Button>
+          <details className="ai-limits">
+            <summary>Доступ и остаток лимита</summary>
+            <QuotaSummary entitlements={entitlements} />
+          </details>
+          {!entitlements ? (
+            <p className="ai-small ai-muted">Проверяем доступ к обработке…</p>
+          ) : !permitted ? (
+            <p className="ai-small ai-muted">
+              Для новой обработки нужна подписка. <Link to="/billing">Посмотреть тарифы</Link>
+            </p>
           ) : null}
-          {!uploading && error && file && durationSeconds !== null ? (
-            <Button onClick={() => void upload()}>Продолжить загрузку</Button>
-          ) : null}
-        </div>
+        </section>
       </div>
     </div>
   );
@@ -624,11 +928,25 @@ function TranscriptionOption({
 function DocumentWorkspace({
   job,
   entitlements,
+  onDelete,
+  task,
+  allSources,
 }: {
   job: Transcription;
+  task?: AssistantTask;
+  allSources: Transcription[];
   entitlements?: Entitlements;
+  onDelete: () => void;
 }) {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(() => {
+    if (task?.result === 'transcript') return 1;
+    if (task?.result === 'cards') return 3;
+    try {
+      return sessionStorage.getItem(`ai-result:${job.id}`) === 'transcript' ? 1 : 2;
+    } catch {
+      return 2;
+    }
+  });
   const queryClient = useQueryClient();
   const [title, setTitle] = useState(job.title ?? job.filename);
   const [text, setText] = useState(job.result_text ?? '');
@@ -681,101 +999,216 @@ function DocumentWorkspace({
   }, [job, queryClient, text, title]);
 
   const isBusy = busyStatuses.has(job.status);
+  const sourceReady =
+    title === (job.title ?? job.filename) &&
+    text === (job.result_text ?? '') &&
+    saveState !== 'error' &&
+    !!text.trim();
+  const resultQuery = useQuery({
+    queryKey: ['generations', job.id],
+    enabled: job.status === 'completed',
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/transcriptions/{source_id}/generations', {
+        params: { path: { source_id: job.id } },
+      });
+      if (error || !data) throw new Error(apiMessage(error, 'Не удалось загрузить результаты'));
+      return data;
+    },
+  });
+  const hasCards = resultQuery.data?.some((g) => g.kind === 'cards') ?? false;
+  const [autoCreateCards, setAutoCreateCards] = useState(false);
+  const [cardNoteId, setCardNoteId] = useState<string>();
+  const [taskError, setTaskError] = useState('');
+  const sourceActions = (
+    <div className="ai-source-actions">
+      {task?.source_ids
+        .filter((id) => id !== job.id)
+        .map((id) => {
+          const item = allSources.find((s) => s.id === id);
+          return item ? (
+            <details key={id}>
+              <summary>{item.filename}</summary>
+              <p className="ai-small">{item.result_text ?? statusLabels[item.status]}</p>
+            </details>
+          ) : null;
+        })}
+      <button className="ai-file-link" onClick={() => setStep(1)}>
+        <Icon name="audio" />
+        <span>{job.filename}</span>
+        <span aria-hidden="true">↗</span>
+      </button>
+      <details>
+        <summary>Расшифровка и выгрузка</summary>
+        <div className="ai-stack">
+          <button onClick={() => setStep(1)}>Открыть расшифровку</button>
+          <RailButton onClick={() => downloadText(job, 'txt')} icon="download">
+            Расшифровка .txt
+          </RailButton>
+          <RailButton onClick={() => downloadText(job, 'md')} icon="download">
+            Расшифровка .md
+          </RailButton>
+          {job.has_structured_result ? (
+            <RailButton onClick={() => void downloadStructuredResult(job)} icon="download">
+              Скачать данные .json
+            </RailButton>
+          ) : null}
+        </div>
+      </details>
+    </div>
+  );
   return (
     <div>
-      <Link
-        to="/transcriptions"
-        className="text-fg-muted hover:text-fg focus-visible:ring-primary mb-4 inline-flex min-h-11 items-center gap-2 rounded-lg px-1 text-sm font-medium focus-visible:outline-none focus-visible:ring-2"
-      >
-        <Icon name="back" />
-        Все конспекты
+      <Link to="/transcriptions" className="ai-back">
+        ← ИИ-помощник
       </Link>
-      <header className="border-border bg-surface rounded-xl border px-5 py-4 sm:px-6">
+      <header className="ai-heading ai-result-heading">
         <label className="sr-only" htmlFor="transcription-title">
-          Название расшифровки
+          Название материала
         </label>
         <input
           id="transcription-title"
-          className="text-fg focus:ring-primary w-full rounded-md bg-transparent text-2xl font-semibold tracking-tight outline-none focus:ring-2 sm:text-3xl"
           value={title}
           readOnly={job.status !== 'completed'}
           onChange={(event) => setTitle(event.target.value)}
         />
-        <div className="text-fg-muted mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-          <span>{formatDate(job.created_at)}</span>
-          {job.duration_seconds ? <span>· {formatDuration(job.duration_seconds)}</span> : null}
-          <span>· {statusLabels[job.status]}</span>
-          {job.fast_mode ? <span>· Быстрый режим</span> : null}
-          {job.phrase_timestamps ? <span>· С таймкодами</span> : null}
-          {job.speaker_labeling ? <span>· С дикторами</span> : null}
-          {saveState !== 'idle' ? (
-            <span
-              className={saveState === 'error' ? 'text-danger' : 'text-primary'}
-              aria-live="polite"
-            >
-              ·{' '}
-              {saveState === 'saving'
-                ? 'Сохраняем…'
-                : saveState === 'saved'
-                  ? 'Изменения сохранены'
-                  : 'Не удалось сохранить'}
-            </span>
-          ) : null}
-        </div>
+        <p>
+          {formatDate(job.created_at)}
+          {job.duration_seconds ? ` · ${formatDuration(job.duration_seconds)}` : ''}
+          {saveState === 'error'
+            ? ' · Не удалось сохранить название или расшифровку'
+            : saveState === 'saving'
+              ? ' · Сохраняем…'
+              : ''}
+        </p>
       </header>
-
-      <nav aria-label="Шаги подготовки материала" className="mt-5 grid grid-cols-3 gap-2">
-        {(['Расшифровка', 'Конспект', 'Карточки'] as const).map((label, index) => (
+      {task && task.status !== 'completed' ? (
+        <div className="ai-notice" role="status">
+          {task.status === 'failed'
+            ? task.error_message
+            : ({
+                waiting: 'Изучаем исходные материалы…',
+                notes: 'Готовим конспект…',
+                cards: 'Создаём карточки…',
+              }[task.status] ?? 'Обрабатываем задачу…')}
+          {task.status === 'failed' &&
+          allSources.some((s) => task.source_ids.includes(s.id) && s.status === 'failed') ? (
+            <Link to="/transcriptions">Загрузить исправленный файл в новую задачу</Link>
+          ) : task.status === 'failed' ? (
+            <button
+              onClick={async () => {
+                const { error } = await api.POST('/api/v1/assistant/tasks/{task_id}/retry', {
+                  params: { path: { task_id: task.id } },
+                });
+                if (error) setTaskError(apiMessage(error, 'Не удалось повторить'));
+                else await queryClient.invalidateQueries({ queryKey: ['assistant-tasks'] });
+              }}
+            >
+              Повторить задачу
+            </button>
+          ) : (
+            <span> Можно закрыть страницу и вернуться позже.</span>
+          )}
+        </div>
+      ) : null}
+      {taskError ? <p role="alert">{taskError}</p> : null}
+      <nav className="ai-result-tabs" aria-label="Материалы задачи">
+        <button
+          aria-pressed={step === 2}
+          disabled={job.status !== 'completed'}
+          onClick={() => setStep(2)}
+        >
+          Конспект
+        </button>
+        {!task ||
+        task.result === 'cards' ||
+        task.result === 'both' ||
+        hasCards ||
+        autoCreateCards ? (
           <button
-            key={label}
-            type="button"
-            aria-current={step === index + 1 ? 'step' : undefined}
-            disabled={index > 0 && job.status !== 'completed'}
-            onClick={() => setStep((index + 1) as 1 | 2 | 3)}
-            className={`focus-visible:ring-primary min-h-11 rounded-lg px-2 py-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 disabled:opacity-50 ${step === index + 1 ? 'bg-primary-subtle text-primary' : 'bg-surface text-fg-muted'}`}
+            aria-pressed={step === 3}
+            disabled={job.status !== 'completed'}
+            onClick={() => setStep(3)}
           >
-            {index + 1}. {label}
+            Карточки
           </button>
-        ))}
+        ) : null}
+        <button aria-pressed={step === 1} onClick={() => setStep(1)}>
+          Расшифровка
+        </button>
       </nav>
-      {step !== 1 ? (
+      {job.status === 'completed' && step !== 1 ? (
         <GenerationWorkspace
           key={`${job.id}:${step}`}
           source={job}
           kind={step === 2 ? 'notes' : 'cards'}
           entitlements={entitlements}
-          sourceReady={
-            title === (job.title ?? job.filename) &&
-            text === (job.result_text ?? '') &&
-            saveState !== 'error' &&
-            !!text.trim()
-          }
-          onNext={() => setStep(3)}
+          sourceReady={sourceReady}
+          onNext={(noteId) => {
+            setCardNoteId(noteId);
+            setAutoCreateCards(true);
+            setStep(3);
+          }}
+          autoCreateCards={autoCreateCards}
+          noteId={cardNoteId}
+          sourceIds={task?.source_ids}
+          sources={sourceActions}
+          taskPending={!!task && !['completed', 'failed'].includes(task.status)}
         />
       ) : (
-        <div className="border-border bg-surface mt-5 min-h-[640px] rounded-xl border">
-          {job.status === 'completed' ? (
-            <textarea
-              aria-label="Текст расшифровки"
-              className="selection:bg-primary-subtle selection:text-fg min-h-[638px] w-full resize-none rounded-xl bg-transparent px-5 py-6 text-base leading-7 outline-none sm:px-9 sm:py-8 lg:px-14"
-              value={text}
-              onChange={(event) => setText(event.target.value)}
-            />
-          ) : isBusy ? (
-            <ProcessingState job={job} />
-          ) : (
-            <div className="flex min-h-[638px] flex-col items-center justify-center px-6 text-center">
-              <span className="text-danger">
-                <Icon name="warning" className="h-12 w-12" />
-              </span>
-              <h2 className="mt-5 text-xl font-semibold">Не удалось обработать файл</h2>
-              <p className="text-fg-muted mt-2 max-w-md">
-                {job.error_message ?? 'Попробуйте загрузить запись ещё раз.'}
-              </p>
-            </div>
-          )}
+        <div className="ai-result-grid">
+          <section className="ai-document">
+            {job.status === 'completed' ? (
+              <>
+                <div className="ai-document-toolbar">
+                  <h2>Расшифровка</h2>
+                  <span aria-live="polite">
+                    {saveState === 'saving'
+                      ? 'Сохраняем…'
+                      : saveState === 'error'
+                        ? 'Не удалось сохранить'
+                        : 'Изменения сохраняются автоматически'}
+                  </span>
+                </div>
+                <textarea
+                  aria-label="Текст расшифровки"
+                  className="ai-transcript"
+                  value={text}
+                  onChange={(event) => setText(event.target.value)}
+                />
+              </>
+            ) : isBusy ? (
+              <ProcessingState job={job} />
+            ) : (
+              <div className="ai-empty">
+                <h2>Не удалось обработать запись</h2>
+                <p>{job.error_message ?? 'Попробуйте загрузить файл ещё раз.'}</p>
+                <Link to="/transcriptions">Загрузить другую запись</Link>
+              </div>
+            )}
+          </section>
+          <aside className="ai-result-rail">
+            <section>
+              <h2>Исходные материалы</h2>
+              {sourceActions}
+            </section>
+            <QuotaSummary entitlements={entitlements} />
+          </aside>
         </div>
       )}
+      <details className="ai-task-settings">
+        <summary>Управление задачей</summary>
+        <p>
+          Удаление задачи удалит исходную расшифровку и версии результатов. Сохранённые наборы
+          останутся.
+        </p>
+        {['uploading', 'queued', 'failed', 'completed'].includes(job.status) ? (
+          <Button variant="danger" onClick={onDelete}>
+            {job.status === 'queued' ? 'Отменить задание' : 'Удалить задачу'}
+          </Button>
+        ) : (
+          <p>Удаление станет доступно после обработки записи.</p>
+        )}
+      </details>
     </div>
   );
 }
@@ -800,134 +1233,49 @@ function ProcessingState({ job }: { job: Transcription }) {
   );
 }
 
-function UtilityRail({
-  selected,
-  jobs,
-  entitlements,
-  onCreate,
-  onOpenLibrary,
-  onOpenJob,
-  onDelete,
-}: {
-  selected: Transcription | null;
-  jobs: Transcription[];
-  entitlements?: Entitlements;
-  onCreate: () => void;
-  onOpenLibrary: () => void;
-  onOpenJob: (job: Transcription) => void;
-  onDelete: (job: Transcription) => void;
-}) {
-  const ready = selected?.status === 'completed';
-  return (
-    <aside className="space-y-5 xl:sticky xl:top-6">
-      <div className="border-border bg-surface rounded-xl border p-4">
-        <Button fullWidth onClick={onCreate}>
-          <Icon name="upload" />
-          Загрузить файл
-        </Button>
-        {ready ? (
-          <div className="mt-3 space-y-2">
-            <RailButton
-              onClick={() => void navigator.clipboard.writeText(selected.result_text ?? '')}
-              icon="copy"
-            >
-              Копировать расшифровку
-            </RailButton>
-            <RailButton onClick={() => downloadText(selected, 'txt')} icon="download">
-              Расшифровка .txt
-            </RailButton>
-            <RailButton onClick={() => downloadText(selected, 'md')} icon="download">
-              Расшифровка .md
-            </RailButton>
-            {selected.has_structured_result ? (
-              <RailButton onClick={() => void downloadStructuredResult(selected)} icon="download">
-                Скачать данные .json
-              </RailButton>
-            ) : null}
-            <button
-              type="button"
-              className="text-danger hover:bg-danger-subtle flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-medium transition-colors"
-              onClick={() => onDelete(selected)}
-            >
-              <Icon name="delete" />
-              Удалить расшифровку
-            </button>
-          </div>
-        ) : selected && ['uploading', 'queued', 'failed'].includes(selected.status) ? (
-          <button
-            type="button"
-            className="text-danger hover:bg-danger-subtle mt-3 flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-medium"
-            onClick={() => onDelete(selected)}
-          >
-            <Icon name="delete" />
-            {selected.status === 'failed' ? 'Удалить задание' : 'Отменить задание'}
-          </button>
-        ) : null}
-        <button
-          type="button"
-          className="text-primary hover:bg-primary-subtle mt-2 min-h-11 w-full rounded-lg px-3 text-left text-sm font-medium"
-          onClick={onOpenLibrary}
-        >
-          Открыть библиотеку
-        </button>
-      </div>
-
-      {jobs.length ? (
-        <div className="border-border bg-surface rounded-xl border">
-          <h2 className="px-4 pt-4 text-lg font-semibold">В обработке · {jobs.length}</h2>
-          <div className="divide-border mt-2 divide-y">
-            {jobs.slice(0, 4).map((job) => (
-              <button
-                key={job.id}
-                type="button"
-                className="hover:bg-surface-muted flex min-h-20 w-full items-start gap-3 px-4 py-3 text-left transition-colors"
-                onClick={() => onOpenJob(job)}
-              >
-                <Icon name="audio" className="mt-0.5 h-6 w-6 shrink-0" />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">
-                    {job.title ?? job.filename}
-                  </span>
-                  <span className="text-fg-muted mt-1 block text-xs">
-                    {statusLabels[job.status]}
-                  </span>
-                  <span className="bg-surface-muted mt-2 block h-1.5 overflow-hidden rounded-full">
-                    <span className="bg-primary block h-full w-2/3 animate-pulse rounded-full" />
-                  </span>
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      <QuotaSummary entitlements={entitlements} />
-    </aside>
-  );
-}
-
 function QuotaSummary({ entitlements }: { entitlements?: Entitlements }) {
   if (!entitlements) return null;
   const limit = entitlements.limits[TRANSCRIPTION_LIMIT];
   const remaining = entitlements.remaining[TRANSCRIPTION_LIMIT];
-  const used = entitlements.usage[TRANSCRIPTION_LIMIT] ?? 0;
-  const percent =
-    limit && limit > 0 ? Math.min((used / limit) * 100, 100) : limit === null ? 0 : 100;
   return (
-    <div className="border-border border-t px-1 pt-4">
-      <p className="text-sm font-medium">На этой неделе</p>
-      <p className="text-fg-muted mt-2 text-sm">
-        {limit === null ? 'Расшифровка без лимита' : `${remaining ?? 0} из ${limit} минут осталось`}
-      </p>
-      {limit !== null ? (
-        <div className="bg-surface-muted mt-3 h-1.5 overflow-hidden rounded-full">
-          <div className="bg-primary h-full rounded-full" style={{ width: `${100 - percent}%` }} />
-        </div>
+    <>
+      <section className="billing-quota" aria-label="Квота расшифровки">
+        <h3>На этой неделе</h3>
+        <p>
+          {limit === null
+            ? 'Расшифровка без лимита'
+            : `${remaining ?? 0} из ${limit} минут осталось`}
+        </p>
+        {typeof limit === 'number' && limit > 0 ? (
+          <meter
+            min={0}
+            max={limit}
+            value={Math.max(0, Math.min(remaining ?? 0, limit))}
+            aria-label="Оставшиеся минуты расшифровки"
+          />
+        ) : null}
+        <p>
+          Генерация:{' '}
+          {entitlements.remaining['ai.generation_tokens_per_week'] === null
+            ? 'без лимита'
+            : `${(entitlements.remaining['ai.generation_tokens_per_week'] ?? 0).toLocaleString('ru-RU')} токенов осталось`}
+          .
+        </p>
+        <p className="billing-quota-reset">
+          {formatReset(entitlements.resets_at[TRANSCRIPTION_LIMIT])}
+        </p>
+        {entitlements.features['ai.transcription'] ? (
+          <Link className="billing-support-link" to="/billing">
+            Тариф и подписка
+          </Link>
+        ) : null}
+      </section>
+      {!entitlements.features['ai.transcription'] ? (
+        <BillingNotice title="Расшифровка с ИИ">
+          Новые записи можно расшифровать на Plus и Pro. Уже готовые материалы остаются доступны.
+        </BillingNotice>
       ) : null}
-      <p className="text-fg-subtle mt-2 text-xs">
-        {formatReset(entitlements.resets_at[TRANSCRIPTION_LIMIT])}
-      </p>
-    </div>
+    </>
   );
 }
 
@@ -940,13 +1288,23 @@ function LibraryDrawer({
   onClose: () => void;
   onOpen: (job: Transcription) => void;
 }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const previous = document.activeElement;
+    dialog.current?.showModal();
+    return () => {
+      if (previous instanceof HTMLElement) previous.focus();
+    };
+  }, []);
   const [search, setSearch] = useState('');
   const filtered = jobs.filter((job) =>
     (job.title ?? job.filename).toLocaleLowerCase('ru').includes(search.toLocaleLowerCase('ru')),
   );
   return (
-    <div
-      className="fixed inset-0 z-50"
+    <dialog
+      ref={dialog}
+      onCancel={onClose}
+      className="ai-native-dialog"
       role="dialog"
       aria-modal="true"
       aria-labelledby="library-title"
@@ -1015,35 +1373,7 @@ function LibraryDrawer({
           )}
         </div>
       </section>
-    </div>
-  );
-}
-
-function LimitDialog({ details, onClose }: { details: LimitDetails; onClose: () => void }) {
-  const remaining = Math.max(details.limit - details.current, 0);
-  return (
-    <Modal title="Недостаточно минут" onClose={onClose}>
-      <p className="text-fg-muted">
-        Для этой записи нужно {details.requested} минут, а на текущей неделе осталось {remaining}.
-      </p>
-      <div className="bg-surface-muted mt-5 rounded-lg p-4 text-sm">
-        <p className="font-medium">
-          Лимит: {details.current} из {details.limit} минут использовано
-        </p>
-        <p className="text-fg-muted mt-1">{formatReset(details.resetsAt)}</p>
-      </div>
-      <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <Button variant="secondary" onClick={onClose}>
-          Закрыть
-        </Button>
-        <Link
-          to="/billing"
-          className="bg-primary text-primary-fg hover:bg-primary-hover inline-flex h-10 items-center justify-center rounded-md px-4 font-medium"
-        >
-          Повысить план
-        </Link>
-      </div>
-    </Modal>
+    </dialog>
   );
 }
 
@@ -1067,11 +1397,11 @@ function DeleteDialog({
   });
   const cancel = ['uploading', 'queued'].includes(job.status);
   return (
-    <Modal title={cancel ? 'Отменить задание?' : 'Удалить расшифровку?'} onClose={onClose}>
+    <Modal title={cancel ? 'Отменить задание?' : 'Удалить задачу?'} onClose={onClose}>
       <p className="text-fg-muted">
         {cancel
           ? 'Загрузка остановится, а зарезервированные минуты вернутся в недельный лимит.'
-          : 'Расшифровка, версии конспекта и черновики карточек будут удалены без восстановления. Сохранённые наборы останутся.'}
+          : 'Источники, версии конспекта и черновики карточек будут удалены без восстановления. Уроки в курсах и сохранённые наборы останутся.'}
       </p>
       {mutation.error ? (
         <p className="text-danger mt-4 text-sm" role="alert">
@@ -1099,9 +1429,19 @@ function Modal({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const previous = document.activeElement;
+    dialog.current?.showModal();
+    return () => {
+      if (previous instanceof HTMLElement) previous.focus();
+    };
+  }, []);
   return (
-    <div
-      className="bg-overlay/40 fixed inset-0 z-[60] grid place-items-center p-4"
+    <dialog
+      ref={dialog}
+      onCancel={onClose}
+      className="ai-native-dialog ai-native-modal p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
@@ -1122,7 +1462,7 @@ function Modal({
         </div>
         <div className="mt-4">{children}</div>
       </section>
-    </div>
+    </dialog>
   );
 }
 

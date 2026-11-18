@@ -264,6 +264,18 @@ async def process_transcription(_context: dict[str, Any], job_id_value: str) -> 
                         payload, _ = await storage.read(key, 16 * 1024 * 1024)
                         target.write(payload)
 
+            from app.services.assistant_documents import DOCUMENT_SUFFIXES, extract_document_async
+
+            if source_suffix in DOCUMENT_SUFFIXES:
+                extracted = await extract_document_async(source)
+                async with get_session_factory()() as db:
+                    document_job = await db.get(TranscriptionJob, job_id)
+                    if document_job:
+                        document_job.result_text = extracted
+                        document_job.status = TranscriptionStatus.completed
+                        document_job.finished_at = datetime.now(UTC)
+                        await db.commit()
+                return
             await _reconcile_transcription_quota(job_id, await _probe_duration(source))
 
             audio_codec = (
@@ -377,6 +389,8 @@ async def process_transcription(_context: dict[str, Any], job_id_value: str) -> 
                 job.error_message = (
                     "Длительность файла превышает доступный недельный лимит"
                     if isinstance(exc, AppError) and exc.code == "LIMIT_EXCEEDED"
+                    else exc.message
+                    if isinstance(exc, AppError)
                     else "Не удалось обработать файл. Проверьте его формат"
                 )
                 job.finished_at = datetime.now(UTC)
@@ -595,6 +609,12 @@ class WorkerSettings:
         process_generation,
     ]
     cron_jobs: ClassVar[list[object]] = [
+        cron(
+            "app.assistant_worker.advance_assistant_tasks",
+            minute=None,
+            second={5, 20, 35, 50},
+            run_at_startup=True,
+        ),
         cron(
             "app.generation_worker.recover_generations", minute=None, second=15, run_at_startup=True
         ),

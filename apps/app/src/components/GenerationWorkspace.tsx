@@ -1,10 +1,12 @@
 import type { components } from '@remora/api-client';
 import { Button, StudyNotesPreview } from '@remora/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { AssistantNoteEditor } from './AssistantNoteEditor';
 import { MaterialVisibility } from './MaterialVisibility';
+import { BillingNotice } from '../features/billing/BillingNotice';
 
 type Job = components['schemas']['GenerationPublic'];
 type Card = components['schemas']['GeneratedCard'];
@@ -40,12 +42,22 @@ export function GenerationWorkspace({
   sourceReady,
   entitlements,
   onNext,
+  sources,
+  taskPending = false,
+  autoCreateCards = false,
+  sourceIds,
+  noteId,
 }: {
+  sources?: ReactNode;
+  taskPending?: boolean;
+  autoCreateCards?: boolean;
+  sourceIds?: string[];
+  noteId?: string;
   source: Source;
   kind: 'notes' | 'cards';
   sourceReady: boolean;
   entitlements?: Entitlements;
-  onNext: () => void;
+  onNext: (noteId?: string) => void;
 }) {
   const queryClient = useQueryClient();
   const queryKey = ['generations', source.id];
@@ -63,11 +75,23 @@ export function GenerationWorkspace({
       if (error || !data) throw new Error(message(error));
       return data;
     },
-    refetchInterval: (query) => (query.state.data?.some(pending) ? 2500 : false),
+    refetchInterval: (query) => (taskPending || query.state.data?.some(pending) ? 2500 : false),
   });
-  const versions = jobs.data?.filter((job) => job.kind === kind) ?? [];
+  const versions =
+    jobs.data?.filter(
+      (job) =>
+        job.kind === kind &&
+        !job.is_proposal &&
+        (kind !== 'cards' || !noteId || job.parent_id === noteId),
+    ) ?? [];
   const selected = versions.find((job) => job.id === selectedId) ?? versions[0];
-  const notes = jobs.data?.find((job) => job.kind === 'notes' && job.status === 'completed');
+  const notes = jobs.data?.find(
+    (job) =>
+      job.kind === 'notes' &&
+      job.status === 'completed' &&
+      !job.is_proposal &&
+      (!noteId || job.id === noteId),
+  );
   const active = jobs.data?.some(pending) ?? false;
   const allowed = entitlements?.features['ai.generation'] === true;
   async function refresh() {
@@ -85,9 +109,14 @@ export function GenerationWorkspace({
           params: { path: { source_id: source.id } },
           body: {
             request_id: requestId.current,
+            detail: 'balanced',
+            formulas: true,
+            diagrams: false,
+            card_count: 12,
             is_public: kind !== 'notes' || newNotePublic,
             kind,
             parent_id: kind === 'cards' ? notes?.id : null,
+            source_ids: kind === 'notes' ? sourceIds : undefined,
           },
         },
       );
@@ -101,12 +130,81 @@ export function GenerationWorkspace({
       await refresh();
     },
   });
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (
+      autoCreateCards &&
+      kind === 'cards' &&
+      jobs.isSuccess &&
+      notes &&
+      allowed &&
+      !active &&
+      !taskPending &&
+      !selected &&
+      !autoStarted.current
+    ) {
+      autoStarted.current = true;
+      create.mutate();
+    }
+  }, [autoCreateCards, kind, jobs.isSuccess, notes, allowed, active, taskPending, selected]); // eslint-disable-line react-hooks/exhaustive-deps
   const completedCount =
     jobs.data?.filter((job) => job.status === 'completed' || job.status === 'failed').length ?? 0;
   useEffect(() => {
     void queryClient.invalidateQueries({ queryKey: ['billing-entitlements'] });
   }, [completedCount, queryClient]);
 
+  const versionControls = (
+    <div className="ai-stack">
+      <Button
+        variant="secondary"
+        disabled={!allowed || active || taskPending || create.isPending || !sourceReady}
+        onClick={() => create.mutate()}
+      >
+        Создать новую версию
+      </Button>
+      <MaterialVisibility
+        label="Доступ к новой версии"
+        isPublic={newNotePublic}
+        canHide={canHide}
+        onChange={setNewNotePublic}
+        disabled={active || create.isPending}
+      />
+      {versions.length > 1 ? (
+        <label>
+          Версия результата
+          <select
+            aria-label="Версия результата"
+            className="ai-field"
+            value={selected?.id}
+            onChange={(event) => setSelectedId(event.target.value)}
+          >
+            {versions.map((job, index) => (
+              <option value={job.id} key={job.id}>
+                {versions.length - index} · {new Date(job.created_at).toLocaleString('ru')}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+      <p className="ai-small ai-muted">
+        Новая генерация расходует квоту. Предыдущие результаты сохраняются.
+      </p>
+      {create.isError ? <p role="alert">{message(create.error)}</p> : null}
+    </div>
+  );
+  if (kind === 'notes' && selected?.status === 'completed')
+    return (
+      <AssistantNoteEditor
+        key={selected.id}
+        job={selected}
+        entitlements={entitlements}
+        sources={sources}
+        versions={versionControls}
+        onSaved={refresh}
+        onNext={() => onNext(selected.id)}
+        hasCards={jobs.data?.some((j) => j.kind === 'cards') ?? false}
+      />
+    );
   return (
     <section
       className="border-border bg-surface mt-5 rounded-xl border p-5 sm:p-8"
@@ -128,18 +226,18 @@ export function GenerationWorkspace({
         </p>
       ) : null}
       {!allowed && entitlements ? (
-        <p className="mt-3 text-sm">
-          Новая генерация доступна с подпиской.{' '}
-          <Link className="text-primary underline" to="/billing">
-            Посмотреть тарифы
-          </Link>
-        </p>
+        <BillingNotice title="Конспекты и карточки с ИИ">
+          Новая генерация доступна с подпиской. Готовые конспекты и карточки остаются доступны на
+          любом тарифе.
+        </BillingNotice>
       ) : null}
       {kind === 'cards' && !notes && !jobs.isLoading ? (
-        <p className="text-fg-muted mt-4">Сначала создайте конспект на шаге 2.</p>
+        <p className="text-fg-muted mt-4">
+          Сначала создайте конспект — он станет основой карточек.
+        </p>
       ) : null}
       {!sourceReady && kind === 'notes' ? (
-        <p className="text-warning mt-3 text-sm">Дождитесь сохранения расшифровки на шаге 1.</p>
+        <p className="text-warning mt-3 text-sm">Дождитесь сохранения исходного текста.</p>
       ) : null}
       {kind === 'notes' && (
         <MaterialVisibility
@@ -154,6 +252,7 @@ export function GenerationWorkspace({
         <Button
           disabled={
             !allowed ||
+            taskPending ||
             active ||
             create.isPending ||
             jobs.isLoading ||

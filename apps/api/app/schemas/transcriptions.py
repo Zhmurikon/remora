@@ -49,7 +49,7 @@ class UserTranscriptionCreate(BaseModel):
     content_type: str = Field(default="application/octet-stream", max_length=120)
     size_bytes: int = Field(gt=0, le=1024 * 1024 * 1024)
     total_parts: int = Field(gt=0, le=64)
-    duration_seconds: int = Field(gt=0, le=4 * 60 * 60)
+    duration_seconds: int | None = Field(default=None, gt=0, le=4 * 60 * 60)
     language: str | None = Field(default="ru", max_length=12)
     fast_mode: bool = False
     phrase_timestamps: bool = False

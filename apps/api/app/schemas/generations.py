@@ -53,6 +53,14 @@ class GenerationCreate(BaseModel):
     request_id: UUID
     kind: GenerationKind
     parent_id: UUID | None = None
+    source_ids: list[UUID] | None = Field(default=None, min_length=1, max_length=5)
+    instruction: str | None = Field(default=None, min_length=1, max_length=2000)
+    fragment: str | None = Field(default=None, min_length=1, max_length=100_000)
+    revision: datetime | None = None
+    detail: Literal["short", "balanced", "detailed"] = "balanced"
+    formulas: bool = True
+    diagrams: bool = False
+    card_count: int = Field(default=12, ge=3, le=12)
 
 
 class GenerationUpdate(BaseModel):
@@ -95,3 +103,6 @@ class GenerationPublic(BaseModel):
     created_at: datetime
     updated_at: datetime
     issues: list[str] = Field(default_factory=list)
+    course_id: UUID | None = None
+    article_id: UUID | None = None
+    is_proposal: bool = False

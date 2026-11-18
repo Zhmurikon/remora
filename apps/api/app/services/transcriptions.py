@@ -1,5 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from math import ceil
+from pathlib import Path
 from uuid import UUID
 
 from sqlalchemy import select
@@ -8,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.core.storage import get_object_storage
-from app.models.generations import GenerationJob
+from app.models.generations import AssistantTask, GenerationJob
 from app.models.transcriptions import TranscriptionJob, TranscriptionProvider, TranscriptionStatus
 from app.models.user import User
 from app.repositories.api_tokens import lock_request
@@ -20,6 +21,7 @@ from app.schemas.transcriptions import (
     TranscriptionUploadState,
     UserTranscriptionCreate,
 )
+from app.services.assistant_documents import DOCUMENT_SUFFIXES, MAX_DOCUMENT_BYTES
 from app.services.entitlements import Entitlements, week_period
 
 PART_BYTES = 16 * 1024 * 1024
@@ -45,16 +47,28 @@ class TranscriptionService:
     async def create_for_user(self, user: User, body: UserTranscriptionCreate) -> TranscriptionJob:
         if body.total_parts != ceil(body.size_bytes / PART_BYTES):
             raise ValidationError("Количество частей файла не соответствует его размеру")
-        quota_minutes = transcription_quota_minutes(body.duration_seconds, body.fast_mode)
-        period_key, resets_at = week_period()
-        await Entitlements(self.db).consume(
-            user,
-            "ai.transcription_minutes_per_week",
-            amount=quota_minutes,
-            period_key=period_key,
-            resets_at=resets_at,
-            counter_metric="ai_transcription_minutes",
+        document = Path(body.filename).suffix.lower() in DOCUMENT_SUFFIXES
+        if document:
+            await Entitlements(self.db).require_feature(user, "ai.generation")
+            if body.size_bytes > MAX_DOCUMENT_BYTES:
+                raise ValidationError("Документ должен быть не больше 25 МБ")
+        elif body.duration_seconds is None:
+            raise ValidationError("Укажите длительность аудио или видео")
+        quota_minutes = (
+            0
+            if document
+            else transcription_quota_minutes(body.duration_seconds or 0, body.fast_mode)
         )
+        period_key, resets_at = week_period()
+        if not document:
+            await Entitlements(self.db).consume(
+                user,
+                "ai.transcription_minutes_per_week",
+                amount=quota_minutes,
+                period_key=period_key,
+                resets_at=resets_at,
+                counter_metric="ai_transcription_minutes",
+            )
         job = TranscriptionJob(
             user_id=user.id,
             filename=body.filename,
@@ -220,6 +234,22 @@ class TranscriptionService:
     async def delete_for_user(self, user: User, job_id: UUID) -> None:
         await lock_request(self.db, user.id)
         job = await self.get_for_user(user, job_id)
+        task = await self.db.scalar(
+            select(AssistantTask).where(
+                AssistantTask.user_id == user.id,
+                AssistantTask.source_ids.contains([str(job_id)]),
+            )
+        )
+        if task:
+            if task.source_id != job_id:
+                raise ConflictError("Удалите задачу целиком, чтобы не потерять её источники")
+            if task.status not in {"completed", "failed"}:
+                raise ConflictError("Дождитесь завершения задачи перед удалением")
+            children = [UUID(key) for key in task.source_ids if key != str(job_id)]
+            await self.db.delete(task)
+            await self.db.flush()
+            for child_id in children:
+                await self.delete_for_user(user, child_id)
         active = await self.db.scalar(
             select(GenerationJob.id)
             .where(
