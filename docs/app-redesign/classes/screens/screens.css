@@ -1,0 +1,848 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  color: rgb(var(--rm-lecture-ink));
+  background: rgb(var(--rm-lecture-surface));
+  font:
+    16px/1.5 Inter,
+    'Segoe UI',
+    Arial,
+    sans-serif;
+}
+button,
+input {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+:root {
+  --ink: var(--rm-lecture-ink);
+  --muted: var(--rm-lecture-muted);
+  --blue: var(--rm-lecture-action);
+  --line: var(--rm-lecture-line);
+  --paper: var(--rm-lecture-paper);
+  --selected: var(--rm-lecture-selected);
+}
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+button {
+  border: 0;
+  background: none;
+  color: inherit;
+}
+svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+small,
+.muted {
+  color: rgb(var(--muted));
+}
+.board-head {
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  border-bottom: 1px solid rgb(var(--line));
+  background: rgb(var(--paper));
+}
+.board-head strong {
+  font-size: 21px;
+  font-weight: 500;
+}
+.board-head small {
+  font-size: 14px;
+}
+.screen {
+  height: 805px;
+  display: grid;
+  grid-template-columns: 232px 1fr;
+  border-bottom: 1px solid rgb(var(--line));
+}
+.rail {
+  background: rgb(var(--paper));
+  padding: 26px 16px 22px;
+  border-right: 1px solid rgb(var(--line));
+  display: flex;
+  flex-direction: column;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font:
+    23px Georgia,
+    serif;
+  letter-spacing: -0.8px;
+  padding: 0 3px;
+}
+.brand img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+.nav {
+  display: grid;
+  gap: 4px;
+  margin-top: 32px;
+}
+.nav a {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 13px;
+  border-radius: 20px;
+  font-size: 14px;
+  color: rgb(var(--muted));
+}
+.nav a.selected {
+  background: rgb(var(--selected));
+  color: rgb(var(--blue));
+}
+.nav a:nth-child(6) {
+  margin-top: 20px;
+}
+.rail-bottom {
+  margin-top: auto;
+  border-top: 1px solid rgb(var(--line));
+  padding-top: 20px;
+  font-size: 14px;
+}
+.person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 8px 18px;
+}
+.avatar {
+  height: 38px;
+  width: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 100%;
+  background: rgb(var(--selected));
+  color: rgb(var(--blue));
+}
+.person strong {
+  font-weight: 500;
+}
+.person small {
+  font-size: 12px;
+}
+.theme {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 6px 12px;
+  color: rgb(var(--muted));
+}
+.logout {
+  text-align: center;
+  margin-top: 16px;
+  color: rgb(var(--muted));
+}
+main {
+  padding: 28px 48px;
+  min-width: 0;
+}
+.page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid rgb(var(--line));
+}
+h1 {
+  font:
+    46px/1.14 Georgia,
+    serif;
+  letter-spacing: -1.6px;
+}
+.page-head p {
+  color: rgb(var(--muted));
+  margin-top: 12px;
+  font-size: 15px;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 10px;
+  background: rgb(var(--blue));
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.btn.secondary {
+  border: 1px solid rgb(var(--line));
+  background: rgb(var(--rm-lecture-surface));
+  color: rgb(var(--blue));
+}
+.text-btn {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgb(var(--blue));
+  font-size: 14px;
+  font-weight: 500;
+}
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 24px;
+  margin-bottom: 2px;
+}
+.section-head h2 {
+  font-size: 20px;
+  font-weight: 500;
+}
+.count {
+  font-size: 14px;
+  font-weight: 400;
+  color: rgb(var(--muted));
+  margin-left: 8px;
+}
+.screen {
+  height: auto;
+  min-height: 840px;
+}
+.rail {
+  position: relative;
+}
+.rail-bottom {
+  margin-top: 60px;
+}
+.rail .nav {
+  flex: 1;
+}
+.brand {
+  letter-spacing: -0.5px;
+}
+main {
+  padding: 20px 44px 36px;
+}
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgb(var(--blue));
+  font-size: 14px;
+  min-height: 44px;
+  margin-bottom: 14px;
+}
+.back svg {
+  transform: rotate(180deg);
+  width: 17px;
+}
+.page-head {
+  padding-bottom: 24px;
+  align-items: start;
+}
+.page-head .actions {
+  padding-top: 10px;
+}
+h1 {
+  font-size: 43px;
+  letter-spacing: -1.2px;
+}
+h2 {
+  font-size: 21px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+h3 {
+  font-size: 17px;
+  font-weight: 500;
+}
+strong {
+  font-weight: 500;
+}
+.role {
+  font-size: 14px;
+  color: rgb(var(--blue));
+  margin-top: 12px;
+}
+.page-head p {
+  line-height: 1.6;
+}
+.intro {
+  font-size: 14px;
+  line-height: 1.65;
+  color: rgb(var(--muted));
+  margin-top: 7px;
+}
+.pending {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  background: rgb(var(--selected));
+  border-radius: 12px;
+  margin-top: 24px;
+}
+.pending h3 {
+  font-size: 14px;
+  color: rgb(var(--blue));
+  margin-bottom: 4px;
+}
+.pending p {
+  font-size: 15px;
+}
+.section-head {
+  margin-top: 28px;
+  margin-bottom: 14px;
+}
+.table-scroll {
+  overflow: auto;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 14px;
+  text-align: left;
+}
+th {
+  font-weight: 500;
+  padding: 14px 18px;
+  background: rgb(var(--paper));
+  border-top: 1px solid rgb(var(--line));
+  border-bottom: 1px solid rgb(var(--line));
+}
+th:first-child {
+  width: 29%;
+}
+th:not(:first-child) {
+  width: 23.66%;
+}
+td {
+  padding: 14px 18px;
+  border-bottom: 1px solid rgb(var(--line));
+}
+td small,
+th small {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  margin-top: 4px;
+}
+.student-link {
+  color: rgb(var(--blue));
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 15px;
+}
+.student-link svg {
+  width: 13px;
+  height: 13px;
+}
+.status {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  border-radius: 5px;
+  padding: 6px 9px;
+  color: rgb(var(--muted));
+  background: rgb(var(--paper));
+}
+.status.work {
+  color: rgb(var(--blue));
+  background: rgb(var(--selected));
+}
+.status.done {
+  color: rgb(var(--ink));
+  background: rgb(var(--rm-success-subtle));
+}
+.status.late {
+  color: rgb(var(--ink));
+  background: rgb(var(--rm-danger-subtle));
+}
+.cell-value {
+  font-size: 12px;
+  color: rgb(var(--muted));
+  display: block;
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.helper {
+  font-size: 12px;
+  color: rgb(var(--muted));
+  margin-top: 12px;
+}
+.teacher-lower {
+  display: grid;
+  grid-template-columns: 390px minmax(0, 1fr);
+  gap: 36px;
+  margin-top: 32px;
+}
+.assignment-form {
+  padding: 24px;
+  border: 1px solid rgb(var(--line));
+  border-radius: 14px;
+  background: rgb(var(--paper));
+  align-self: start;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 95px;
+  gap: 14px 12px;
+  margin: 20px 0;
+}
+.form-grid .wide {
+  grid-column: 1/-1;
+}
+label,
+.add-label {
+  display: block;
+  font-size: 13px;
+}
+input,
+select {
+  font: inherit;
+  height: 44px;
+  width: 100%;
+  padding: 0 12px;
+  border: 1px solid rgb(var(--line));
+  border-radius: 8px;
+  color: rgb(var(--ink));
+  background: rgb(var(--rm-lecture-surface));
+  margin-top: 6px;
+  min-width: 0;
+  font-size: 14px;
+}
+.resources {
+  padding-top: 3px;
+}
+.set-list {
+  margin-top: 13px;
+}
+.material {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 0;
+  border-bottom: 1px solid rgb(var(--line));
+  min-width: 0;
+}
+.material > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.material strong {
+  font-size: 15px;
+  display: block;
+  line-height: 1.45;
+}
+.material small {
+  display: block;
+  font-size: 12px;
+  margin-top: 5px;
+}
+.material > svg {
+  width: 17px;
+  color: rgb(var(--blue));
+}
+.book-icon {
+  color: rgb(var(--blue));
+  display: flex;
+}
+.book-icon svg {
+  width: 21px;
+  height: 25px;
+}
+.add-label {
+  margin-top: 18px;
+}
+.add-material {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 6px;
+}
+.add-material select {
+  margin: 0;
+  flex: 1;
+}
+.errors {
+  margin-top: 30px;
+}
+.error-row {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid rgb(var(--line));
+}
+.error-row strong {
+  font-size: 14px;
+}
+.error-row p,
+.error-number small {
+  font-size: 12px;
+  color: rgb(var(--muted));
+  margin-top: 5px;
+  line-height: 1.5;
+}
+.error-number {
+  white-space: nowrap;
+  text-align: right;
+  font-size: 13px;
+}
+.error-number small {
+  display: block;
+}
+.states-board {
+  padding: 24px 32px 30px;
+  background: rgb(var(--paper));
+  border-top: 1px solid rgb(var(--line));
+}
+.states-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 22px;
+}
+.states-heading h2 {
+  font-size: 18px;
+}
+.states-heading small {
+  font-size: 13px;
+}
+.states {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+}
+.state {
+  border-left: 1px solid rgb(var(--line));
+  padding-left: 24px;
+}
+.state:first-child {
+  border: 0;
+  padding-left: 0;
+}
+.state h3 {
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+.state p {
+  font-size: 13px;
+  line-height: 1.65;
+  color: rgb(var(--muted));
+  margin-top: 8px;
+}
+.notice {
+  padding: 11px 12px;
+  background: rgb(var(--selected));
+  border-radius: 10px;
+  color: rgb(var(--blue));
+  font-size: 13px;
+  line-height: 1.6;
+}
+.notice strong {
+  display: block;
+}
+.student-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 310px;
+  gap: 44px;
+}
+.student-layout .section-head {
+  margin-bottom: 0;
+}
+.assignment {
+  padding: 23px 0;
+  border-bottom: 1px solid rgb(var(--line));
+}
+.assignment-top {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.assignment-top h3 {
+  font-size: 20px;
+}
+.assignment-top p {
+  font-size: 13px;
+  color: rgb(var(--muted));
+  margin-top: 6px;
+}
+.assignment-info {
+  font-size: 13px;
+  color: rgb(var(--muted));
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 20px 0 12px;
+}
+.meter {
+  height: 6px;
+  background: rgb(var(--line));
+  border-radius: 4px;
+  overflow: hidden;
+}
+.meter i {
+  display: block;
+  height: 100%;
+  background: rgb(var(--blue));
+  border-radius: 4px;
+}
+.meter.done i {
+  background: rgb(var(--rm-success));
+}
+.assignment-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  font-size: 13px;
+}
+.student-materials {
+  padding-left: 28px;
+  border-left: 1px solid rgb(var(--line));
+  margin-top: 30px;
+}
+.student-materials .material {
+  align-items: start;
+  padding: 20px 0;
+}
+.student-materials .book-icon {
+  padding-top: 2px;
+}
+.student-materials .material > svg {
+  width: 15px;
+  margin-top: 3px;
+}
+.student {
+  min-height: 1000px;
+}
+.report main {
+  padding-right: 110px;
+}
+.report .page-head {
+  padding-bottom: 28px;
+}
+.report-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 36px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid rgb(var(--line));
+}
+.report-summary p {
+  color: rgb(var(--muted));
+  font-size: 14px;
+  margin-top: 8px;
+}
+.completion {
+  display: flex;
+  gap: 5px;
+  width: 180px;
+}
+.completion span {
+  background: rgb(var(--line));
+  height: 6px;
+  flex: 1;
+  border-radius: 3px;
+}
+.completion .complete {
+  background: rgb(var(--rm-success));
+}
+.report-row {
+  padding: 28px 0;
+  border-bottom: 1px solid rgb(var(--line));
+}
+.report-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.report-title h3 {
+  font-size: 21px;
+}
+.report-row p {
+  font-size: 14px;
+  color: rgb(var(--muted));
+  margin-top: 9px;
+}
+.report-progress {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  margin: 20px 0 8px;
+}
+.report-progress .meter {
+  flex: 1;
+}
+.report-progress strong {
+  width: 100px;
+  text-align: right;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.report-row small {
+  font-size: 12px;
+}
+.report-foot {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+  color: rgb(var(--muted));
+  margin-top: 28px;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.report-foot svg {
+  width: 17px;
+  height: 17px;
+  margin-top: 3px;
+}
+.report {
+  min-height: 910px;
+}
+.invitation {
+  padding: 36px 44px 38px;
+  background: rgb(var(--paper));
+  border: 1px solid rgb(var(--line));
+  border-radius: 16px;
+  max-width: 570px;
+}
+.invite-layout {
+  display: grid;
+  grid-template-columns: 570px minmax(0, 1fr);
+  align-items: center;
+  gap: 62px;
+  margin: 42px 0 70px;
+}
+.invite-icon {
+  display: flex;
+  color: rgb(var(--blue));
+  margin-bottom: 25px;
+}
+.invite-icon svg {
+  width: 32px;
+  height: 32px;
+}
+.invitation h1 {
+  font-size: 43px;
+  line-height: 1.16;
+}
+.invite-intro {
+  font-size: 15px;
+  color: rgb(var(--muted));
+  margin-top: 20px;
+  line-height: 1.7;
+}
+.invite-code {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-block: 1px solid rgb(var(--line));
+  margin: 27px 0 24px;
+  padding: 20px 0;
+}
+.invite-code span {
+  font-size: 13px;
+  color: rgb(var(--muted));
+}
+.invite-code strong {
+  font-size: 21px;
+  letter-spacing: 1.5px;
+}
+.invitation .btn {
+  width: 100%;
+}
+.invite-help {
+  margin-top: 18px;
+  font-size: 13px;
+  color: rgb(var(--muted));
+  line-height: 1.65;
+}
+.invite-note {
+  max-width: 250px;
+}
+.invite-note h2 {
+  font-family: Georgia, serif;
+  font-size: 29px;
+  font-weight: 400;
+}
+.invite-note p {
+  font-size: 15px;
+  line-height: 1.8;
+  color: rgb(var(--muted));
+  margin-top: 16px;
+}
+.invite-note strong {
+  font-weight: 400;
+  color: rgb(var(--blue));
+}
+.note-rule {
+  width: 44px;
+  border-bottom: 1px solid rgb(var(--line));
+  margin-top: 28px;
+}
+.invitation.screen {
+  min-height: 840px;
+}
+.screen.invitation {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  max-width: none;
+  background: rgb(var(--rm-lecture-surface));
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid rgb(var(--blue));
+  outline-offset: 3px;
+}
+::selection {
+  background: rgb(var(--selected));
+}
+button {
+  cursor: default;
+}
+.rail .nav {
+  flex: 0;
+  align-content: start;
+}
+.rail-bottom {
+  margin-top: 90px;
+}
