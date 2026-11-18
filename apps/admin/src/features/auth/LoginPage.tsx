@@ -159,7 +159,9 @@ function Credentials(props: {
   return (
     <>
       <h1 className="text-2xl font-semibold tracking-tight">Вход для администратора</h1>
-      <p className="text-fg-muted mt-2 text-sm">Используйте отдельную учётную запись администратора.</p>
+      <p className="text-fg-muted mt-2 text-sm">
+        Используйте отдельную учётную запись администратора.
+      </p>
       <form className="mt-7 space-y-5" onSubmit={props.onSubmit}>
         <Input
           label="Электронная почта"

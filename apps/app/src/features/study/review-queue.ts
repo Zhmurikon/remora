@@ -87,10 +87,16 @@ async function run(): Promise<FlushResult> {
   let sent = 0;
   while (queue.reviews.length > 0) {
     const batch = queue.reviews.slice(0, MAX_BATCH);
-    const { error } = await api.POST('/api/v1/study/reviews', {
-      body: { session_id: queue.sessionId, reviews: batch },
-    });
-    if (error) return { sent, left: queue.reviews.length, ok: false };
+    try {
+      const { error } = await api.POST('/api/v1/study/reviews', {
+        body: { session_id: queue.sessionId, reviews: batch },
+      });
+      if (error) return { sent, left: pendingCount(), ok: false };
+    } catch {
+      // При обрыве fetch бросает исключение вместо ответа API. Сохраняем батч
+      // и возвращаем статус сбоя, чтобы интерфейс вышел из состояния отправки.
+      return { sent, left: pendingCount(), ok: false };
+    }
     // Читаем заново: пока шёл запрос, пользователь мог ответить ещё.
     const current = read();
     const remaining = current.reviews.slice(batch.length);

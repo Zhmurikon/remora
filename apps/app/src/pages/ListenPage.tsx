@@ -9,13 +9,14 @@
  */
 
 import { STRICTNESS_LABELS, checkAnswer, type AnswerResult } from '@remora/core';
-import { AudioPlayer, Badge, Button, Card, Input } from '@remora/ui';
+import { AudioPlayer, Button, Card, CardContent, Input } from '@remora/ui';
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Diff, SessionSummary } from '../features/study/SessionSummary';
-import { StudyShell } from '../features/study/StudyShell';
-import { answerLang, questionSide } from '../features/study/card-sides';
+import { StudyShell, StudyState } from '../features/study/StudyShell';
+import { useStudyTransition } from '../features/study/study-transition';
+import { answerLang, questionImage, questionSide } from '../features/study/card-sides';
 import { selectCurrent, useStudyStore, type QueueItem } from '../features/study/study-store';
 import {
   useStudySession,
@@ -55,9 +56,12 @@ export function ListenPage() {
   const index = useStudyStore((state) => state.index);
   const answers = useStudyStore((state) => state.answers);
   const sessionId = useStudyStore((state) => state.sessionId);
-  const current = useStudyStore(selectCurrent);
+  const activeItem = useStudyStore(selectCurrent);
+  const [answeredItem, setAnsweredItem] = useState<QueueItem | null>(null);
+  const current = answeredItem ?? activeItem;
   const answer = useStudyStore((state) => state.answer);
 
+  const { schedule, cancel } = useStudyTransition();
   const [typed, setTyped] = useState('');
   const [result, setResult] = useState<AnswerResult | null>(null);
   const [revealed, setRevealed] = useState(false);
@@ -68,17 +72,18 @@ export function ListenPage() {
 
   const queue = query.data?.queue;
   const audio = useAudio(current, 'question');
-  const nextAudio = useAudio(items[index + 1] ?? null, 'question');
+  const nextAudio = useAudio(items[index + (answeredItem ? 0 : 1)] ?? null, 'question');
 
   useEffect(() => {
     inputRef.current?.focus();
-  }, [index]);
+  }, [answeredItem, current?.card.id, index]);
 
   useEffect(() => {
     if (items.length > 0 && (finished || !current)) void finalizeSession();
   }, [current, finalizeSession, finished, items.length]);
 
   const next = useCallback(() => {
+    setAnsweredItem(null);
     setTyped('');
     setResult(null);
     setRevealed(false);
@@ -86,7 +91,7 @@ export function ListenPage() {
   }, []);
 
   const submit = useCallback(() => {
-    if (!current) return;
+    if (!current || result) return;
     // Проверяем против озвученной стороны: услышал — записал именно её.
     const expected = questionSide(current);
     const verdict = checkAnswer(typed, expected, {
@@ -94,6 +99,7 @@ export function ListenPage() {
       lang: answerLang(current, queue?.lang_definition, queue?.lang_term),
     });
     const correct = verdict.verdict !== 'incorrect';
+    setAnsweredItem(current);
     setResult(verdict);
     answer({
       item: current,
@@ -103,58 +109,75 @@ export function ListenPage() {
       durationMs: Date.now() - shownAt.current,
       requeue: !correct,
     });
-    if (correct) setTimeout(next, 600);
-  }, [answer, current, next, queue, typed]);
+    if (correct) schedule(next, 600);
+  }, [answer, current, next, queue, result, schedule, typed]);
 
-  if (status.isPending) return <p className="text-fg-muted">Проверяем озвучку…</p>;
-  if (status.data?.available === false) {
+  if (status.isPending) return <StudyState title="Проверяем озвучку" loading />;
+  if (status.isError || status.data?.available === false) {
     return (
-      <Card className="mx-auto max-w-lg p-8 text-center">
-        <p className="text-4xl" aria-hidden="true">
-          🔇
-        </p>
-        <h1 className="mt-4 text-xl font-semibold">Озвучка пока не подключена</h1>
-        <p className="text-fg-muted mt-2">
-          «Аудирование» заработает, как только к проекту подключат синтез речи. Остальные режимы
-          доступны как обычно.
-        </p>
-        <div className="mt-6 flex justify-center gap-3">
-          <Button
-            onClick={() =>
-              navigate(isFolder ? `/folders/${targetId}/learn` : `/sets/${targetId}/learn`)
-            }
-          >
-            Перейти к заучиванию
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => navigate(isFolder ? '/sets' : `/sets/${targetId}`)}
-          >
-            К набору
-          </Button>
-        </div>
-      </Card>
+      <StudyState
+        title={status.isError ? 'Не удалось проверить озвучку' : 'Озвучка пока недоступна'}
+        error={status.isError}
+        actions={
+          <>
+            {status.isError && (
+              <Button onClick={() => void status.refetch()}>Попробовать снова</Button>
+            )}
+            <Button
+              variant={status.isError ? 'secondary' : 'primary'}
+              onClick={() =>
+                navigate(isFolder ? `/folders/${targetId}/learn` : `/sets/${targetId}/learn`)
+              }
+            >
+              Перейти к заучиванию
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => navigate(isFolder ? '/sets/manage' : `/sets/${targetId}`)}
+            >
+              {isFolder ? 'К папкам' : 'К набору'}
+            </Button>
+          </>
+        }
+      >
+        Сейчас не получается воспроизвести карточки. Можно продолжить в другом режиме.
+      </StudyState>
     );
   }
 
-  if (query.isPending) return <p className="text-fg-muted">Собираем очередь…</p>;
-  if (query.isError) return <p className="text-danger">Не удалось загрузить очередь.</p>;
+  if (query.isPending) return <StudyState title="Готовим тренировку" loading />;
+  if (query.isError)
+    return (
+      <StudyState
+        title="Не удалось загрузить карточки"
+        error
+        actions={
+          <>
+            <Button onClick={() => void query.refetch()}>Попробовать снова</Button>
+            <Button
+              variant="ghost"
+              onClick={() => navigate(isFolder ? '/sets/manage' : `/sets/${targetId}`)}
+            >
+              К материалам
+            </Button>
+          </>
+        }
+      >
+        Проверьте подключение и попробуйте ещё раз.
+      </StudyState>
+    );
 
   if (items.length === 0) {
     return (
-      <Card className="mx-auto max-w-lg p-8 text-center">
-        <p className="text-4xl" aria-hidden="true">
-          🎧
-        </p>
-        <h1 className="mt-4 text-xl font-semibold">На сегодня всё повторено</h1>
+      <StudyState title="На сегодня всё повторено">
         <Button
           className="mt-6"
           variant="ghost"
-          onClick={() => navigate(isFolder ? '/sets' : `/sets/${targetId}`)}
+          onClick={() => navigate(isFolder ? '/sets/manage' : `/sets/${targetId}`)}
         >
-          К набору
+          {isFolder ? 'К папкам' : 'К набору'}
         </Button>
-      </Card>
+      </StudyState>
     );
   }
 
@@ -162,11 +185,12 @@ export function ListenPage() {
     return (
       <SessionSummary
         setId={targetId}
-        backHref={isFolder ? '/sets' : undefined}
-        backLabel={isFolder ? 'К папке' : undefined}
+        backHref={isFolder ? '/sets/manage' : undefined}
+        backLabel={isFolder ? 'К папкам' : undefined}
         answers={answers}
         onRestart={async () => {
           if (!(await finalizeSession())) return;
+          next();
           setFinished(false);
           await query.refetch();
         }}
@@ -179,20 +203,26 @@ export function ListenPage() {
 
   return (
     <StudyShell
-      title="Аудирование"
+      title="На слух"
       subtitle={`Запишите услышанное · проверка «${STRICTNESS_LABELS[
         queue?.answer_strictness ?? 'moderate'
       ].toLowerCase()}»`}
+      footer={
+        <p className="study-shortcuts">
+          <kbd>Enter</kbd> — проверить или продолжить
+        </p>
+      }
       done={index}
       total={items.length}
       onExit={() => {
+        cancel();
         void finalizeSession();
         setFinished(true);
       }}
     >
-      <Card className="p-6 sm:p-8">
-        <Badge tone="neutral">Слушайте и записывайте</Badge>
-        <div className="mt-5">
+      <Card className="study-question study-audio">
+        <p className="study-side">Слушайте и записывайте</p>
+        <div className="study-audio-control">
           {audio.isPending ? (
             <p className="text-fg-muted">Готовим озвучку…</p>
           ) : audio.data ? (
@@ -202,14 +232,38 @@ export function ListenPage() {
               trackId={`${current.card.id}:${current.direction}`}
             />
           ) : (
-            <p className="text-danger">Не удалось озвучить эту карточку.</p>
+            <div role="alert">
+              <p className="text-fg-muted">Не удалось озвучить эту карточку.</p>
+              <div className="study-actions">
+                <Button variant="secondary" onClick={() => void audio.refetch()}>
+                  Повторить озвучку
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() =>
+                    navigate(isFolder ? `/folders/${targetId}/write` : `/sets/${targetId}/write`)
+                  }
+                >
+                  Перейти к письму
+                </Button>
+              </div>
+            </div>
           )}
         </div>
-        {revealed && <p className="text-fg-muted mt-4 text-lg">{expected}</p>}
+        {revealed && (
+          <CardContent
+            value={expected}
+            type={current.card.content_type}
+            codeLanguage={current.card.code_language}
+            imageUrl={questionImage(current)}
+            imageAlt="Изображение вопроса"
+            className="mt-4 text-lg"
+          />
+        )}
       </Card>
 
       <form
-        className="mt-5"
+        className="study-answer-form"
         onSubmit={(event) => {
           event.preventDefault();
           if (wrong) next();
@@ -220,15 +274,18 @@ export function ListenPage() {
           ref={inputRef}
           value={typed}
           onChange={(event) => setTyped(event.target.value)}
-          placeholder="Что вы услышали"
+          label="Что вы услышали"
+          placeholder="Запишите слово или фразу"
           autoComplete="off"
           autoCapitalize="off"
           spellCheck={false}
           aria-label="Что вы услышали"
-          disabled={result?.verdict === 'correct'}
+          readOnly={result !== null}
         />
-        <div className="mt-3 flex flex-wrap gap-3">
-          <Button type="submit">{wrong ? 'Дальше' : 'Проверить'}</Button>
+        <div className="study-actions">
+          <Button type="submit" disabled={result !== null && !wrong}>
+            {wrong ? 'Дальше' : 'Проверить'}
+          </Button>
           {!result && (
             <Button type="button" variant="ghost" onClick={() => setRevealed(true)}>
               Показать текст
@@ -238,12 +295,14 @@ export function ListenPage() {
       </form>
 
       {result?.verdict === 'correct' && (
-        <Card className="border-success mt-5 p-5">
-          <p className="text-success font-medium">Верно</p>
+        <Card className="study-feedback study-feedback-success" role="status">
+          <p className="text-success study-feedback-title">
+            <span aria-hidden="true">✓</span> Верно
+          </p>
         </Card>
       )}
       {result?.verdict === 'typo' && (
-        <Card className="border-warning mt-5 p-5">
+        <Card className="study-feedback study-feedback-warning" role="status">
           <p className="text-warning font-medium">Почти — засчитано как опечатка</p>
           <p className="text-fg-muted mt-1 text-sm">
             Правильно: <span className="text-fg font-medium">{expected}</span>
@@ -251,11 +310,18 @@ export function ListenPage() {
         </Card>
       )}
       {wrong && (
-        <Card className="border-danger mt-5 p-5">
-          <p className="text-danger text-sm font-medium">Не совсем</p>
-          <p className="mt-2">
-            Правильно: <span className="font-medium">{expected}</span>
+        <Card className="study-feedback study-feedback-error" role="status">
+          <p className="text-danger study-feedback-title">
+            <span aria-hidden="true">↺</span> Повторим эту карточку
           </p>
+          <p className="mt-2 text-sm">Правильно:</p>
+          <CardContent
+            value={expected}
+            type={current.card.content_type}
+            codeLanguage={current.card.code_language}
+            imageUrl={questionImage(current)}
+            imageAlt="Изображение ответа"
+          />
           {typed && (
             <p className="text-fg-subtle mt-1 text-sm">
               Вы ввели: <Diff expected={expected} typed={typed} />

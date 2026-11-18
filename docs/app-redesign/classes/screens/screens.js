@@ -1,3 +1,4 @@
+/* global URLSearchParams, location, document */
 const I = {
   home: '<path d="m3 10 9-7 9 7v10h-6v-7H9v7H3z"/>',
   materials: '<rect x="6" y="3" width="12" height="18" rx="1"/><path d="M6 15h12M10 7h4"/>',

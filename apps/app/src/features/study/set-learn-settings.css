@@ -1,0 +1,122 @@
+.set-learn-settings {
+  min-width: 0;
+  padding-block: 0.5rem;
+  color: rgb(var(--rm-fg));
+}
+.set-learn-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.set-learn-heading h3,
+.set-learn-settings > h3 {
+  margin: 0;
+  font:
+    400 1.5rem/1.3 Georgia,
+    'Times New Roman',
+    serif;
+}
+.set-learn-origin {
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  background: rgb(var(--rm-primary-subtle));
+  color: rgb(var(--rm-primary));
+  font-size: 0.875rem;
+}
+.set-learn-intro {
+  margin-top: 0.75rem;
+  color: rgb(var(--rm-fg-muted));
+  line-height: 1.6;
+}
+.set-learn-fields {
+  min-width: 0;
+  margin-top: 1.75rem;
+  padding: 0;
+  border: 0;
+}
+.set-learn-fields > div {
+  display: grid;
+  gap: 1.5rem;
+}
+.set-learn-fields > div > * {
+  margin: 0;
+}
+.set-learn-fields fieldset {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+}
+.set-learn-fields legend {
+  margin-bottom: 0.5rem;
+  padding: 0;
+  font-weight: 500;
+}
+.set-learn-fields fieldset > div {
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+.set-learn-fields fieldset label {
+  min-height: 48px;
+  border-radius: 10px;
+  background: rgb(var(--rm-bg));
+}
+.set-learn-fields fieldset label:has(input:checked) {
+  border-color: rgb(var(--rm-primary) / 0.5);
+  background: rgb(var(--rm-primary-subtle) / 0.5);
+}
+.set-learn-settings :is(button, select, input:not([type='checkbox'])) {
+  min-height: 44px;
+  height: auto;
+  border-radius: 10px;
+  font-size: 1rem;
+}
+.set-learn-settings :is(button, select) {
+  padding-block: 0.6rem;
+}
+.set-learn-fields :is(input:not([type='checkbox']), select) {
+  background: rgb(var(--rm-bg));
+}
+.set-learn-settings .text-fg-subtle {
+  color: rgb(var(--rm-fg-muted));
+}
+.set-learn-settings :focus-visible {
+  outline: 2px solid rgb(var(--rm-primary));
+  outline-offset: 3px;
+}
+.set-learn-settings input {
+  accent-color: rgb(var(--rm-primary));
+  caret-color: rgb(var(--rm-primary));
+}
+.set-learn-reset {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgb(var(--rm-border));
+}
+.set-learn-reset h4 {
+  font-weight: 500;
+}
+.set-learn-reset p {
+  margin-top: 0.4rem;
+  color: rgb(var(--rm-fg-muted));
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+@media (max-width: 600px) {
+  .set-learn-settings .settings-save-actions {
+    width: 100%;
+  }
+  .set-learn-settings .settings-save-actions button {
+    flex: 1 1 8rem;
+  }
+  .set-learn-reset {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

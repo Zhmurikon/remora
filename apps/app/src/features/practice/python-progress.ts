@@ -1,6 +1,11 @@
 import type { PythonTask } from './python-tasks';
 
-const STORAGE_PREFIX = 'remora.practice.python.progress';
+import {
+  capturePythonProgressScope,
+  isPythonScopeCurrent,
+  pythonStorageKey,
+  type PythonProgressScope,
+} from './python-progress-scope';
 
 export type PythonTaskStatus = 'not_started' | 'in_progress' | 'solved';
 
@@ -15,12 +20,13 @@ export interface PythonTaskProgress {
 
 export function readPythonTaskProgress(
   task: PythonTask,
-  storage: Storage | null = browserStorage(),
+  scope: PythonProgressScope = capturePythonProgressScope(),
 ): PythonTaskProgress {
   const fallback = initialProgress(task);
-  if (!storage) return fallback;
+  const { storage } = scope;
+  if (!storage || !isPythonScopeCurrent(scope)) return fallback;
 
-  const key = progressKey(task);
+  const key = progressKey(task, scope);
   try {
     const raw = storage.getItem(key);
     if (!raw) return fallback;
@@ -40,31 +46,31 @@ export function readPythonTaskProgress(
 export function savePythonDraft(
   task: PythonTask,
   draft: string,
-  storage: Storage | null = browserStorage(),
+  scope: PythonProgressScope = capturePythonProgressScope(),
 ): PythonTaskProgress {
-  const current = readPythonTaskProgress(task, storage);
+  const current = readPythonTaskProgress(task, scope);
   const status =
     current.status === 'solved'
       ? 'solved'
       : current.status === 'not_started' && draft === task.starterCode
         ? 'not_started'
         : 'in_progress';
-  return writeProgress({ ...current, draft, status }, storage);
+  return writeProgress({ ...current, draft, status }, scope);
 }
 
 export function markPythonTaskStarted(
   task: PythonTask,
   draft: string,
-  storage: Storage | null = browserStorage(),
+  scope: PythonProgressScope = capturePythonProgressScope(),
 ): PythonTaskProgress {
-  const current = readPythonTaskProgress(task, storage);
+  const current = readPythonTaskProgress(task, scope);
   return writeProgress(
     {
       ...current,
       draft,
       status: current.status === 'solved' ? 'solved' : 'in_progress',
     },
-    storage,
+    scope,
   );
 }
 
@@ -72,9 +78,9 @@ export function recordPythonCheck(
   task: PythonTask,
   draft: string,
   passed: boolean,
-  storage: Storage | null = browserStorage(),
+  scope: PythonProgressScope = capturePythonProgressScope(),
 ): PythonTaskProgress {
-  const current = readPythonTaskProgress(task, storage);
+  const current = readPythonTaskProgress(task, scope);
   return writeProgress(
     {
       ...current,
@@ -82,12 +88,15 @@ export function recordPythonCheck(
       attempts: current.attempts + 1,
       status: passed || current.status === 'solved' ? 'solved' : 'in_progress',
     },
-    storage,
+    scope,
   );
 }
 
-export function pythonProgressSummary(tasks: readonly PythonTask[], storage?: Storage | null) {
-  const progress = tasks.map((task) => readPythonTaskProgress(task, storage ?? browserStorage()));
+export function pythonProgressSummary(
+  tasks: readonly PythonTask[],
+  scope: PythonProgressScope = capturePythonProgressScope(),
+) {
+  const progress = tasks.map((task) => readPythonTaskProgress(task, scope));
   return {
     progress,
     solved: progress.filter((item) => item.status === 'solved').length,
@@ -98,23 +107,24 @@ export function pythonProgressSummary(tasks: readonly PythonTask[], storage?: St
 export function replacePythonTaskProgress(
   task: PythonTask,
   progress: PythonTaskProgress,
-  storage: Storage | null = browserStorage(),
+  scope: PythonProgressScope = capturePythonProgressScope(),
 ): PythonTaskProgress {
   if (progress.taskId !== task.id || progress.taskVersion !== task.version) {
-    return readPythonTaskProgress(task, storage);
+    return readPythonTaskProgress(task, scope);
   }
-  persistProgress(progress, storage);
+  persistProgress(progress, scope);
   return progress;
 }
 
 export function deletePythonPracticeProgress(
   tasks: readonly PythonTask[],
-  storage: Storage | null = browserStorage(),
+  scope: PythonProgressScope = capturePythonProgressScope(),
 ): void {
-  if (!storage) return;
+  const { storage } = scope;
+  if (!storage || !isPythonScopeCurrent(scope)) return;
   for (const task of tasks) {
     try {
-      storage.removeItem(progressKey(task));
+      storage.removeItem(progressKey(task, scope));
     } catch {
       // Недоступное хранилище не должно мешать серверному сбросу прогресса.
       return;
@@ -133,17 +143,18 @@ function initialProgress(task: PythonTask): PythonTaskProgress {
   };
 }
 
-function writeProgress(progress: PythonTaskProgress, storage: Storage | null) {
+function writeProgress(progress: PythonTaskProgress, scope: PythonProgressScope) {
   const next = { ...progress, updatedAt: new Date().toISOString() };
-  persistProgress(next, storage);
+  persistProgress(next, scope);
   return next;
 }
 
-function persistProgress(progress: PythonTaskProgress, storage: Storage | null) {
-  if (!storage) return;
+function persistProgress(progress: PythonTaskProgress, scope: PythonProgressScope) {
+  const { storage } = scope;
+  if (!storage || !isPythonScopeCurrent(scope)) return;
   try {
     storage.setItem(
-      `${STORAGE_PREFIX}:${progress.taskId}:v${progress.taskVersion}`,
+      pythonStorageKey(scope, `progress:${progress.taskId}:v${progress.taskVersion}`),
       JSON.stringify(progress),
     );
   } catch {
@@ -151,8 +162,8 @@ function persistProgress(progress: PythonTaskProgress, storage: Storage | null) 
   }
 }
 
-function progressKey(task: PythonTask) {
-  return `${STORAGE_PREFIX}:${task.id}:v${task.version}`;
+function progressKey(task: PythonTask, scope: PythonProgressScope) {
+  return pythonStorageKey(scope, `progress:${task.id}:v${task.version}`);
 }
 
 function parseProgress(value: unknown, task: PythonTask): PythonTaskProgress | null {
@@ -179,13 +190,4 @@ function parseProgress(value: unknown, task: PythonTask): PythonTaskProgress | n
         ? item.updatedAt
         : new Date(0).toISOString(),
   };
-}
-
-function browserStorage(): Storage | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
 }

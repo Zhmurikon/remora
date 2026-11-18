@@ -1,7 +1,7 @@
 'use client';
 
-import { Button } from '@remora/ui';
 import { useEffect, useState } from 'react';
+import styles from './PublicAnalytics.module.css';
 
 type Choice = 'yes' | 'no' | 'ask';
 const storageKey = 'zapominalnya.analytics.v1';
@@ -139,12 +139,19 @@ export function PublicAnalytics({
     <aside
       aria-label={english ? 'Analytics preferences' : 'Настройки аналитики'}
       className={
-        settings
-          ? 'border-border bg-surface text-fg my-6 rounded-xl border p-4'
-          : 'border-border bg-surface text-fg fixed inset-x-3 bottom-3 z-50 max-w-md rounded-xl border p-4 shadow-lg sm:inset-x-6 sm:bottom-6'
+        settings ? `${styles.notice} ${styles.settings}` : `${styles.notice} ${styles.floating}`
       }
     >
-      <p className="text-sm leading-6">
+      <h2 className={styles.title}>
+        {settings
+          ? english
+            ? 'Analytics preferences'
+            : 'Настройки аналитики'
+          : english
+            ? 'Cookies for analytics'
+            : 'Cookie для аналитики'}
+      </h2>
+      <p className={styles.text}>
         {choice === 'ask'
           ? english
             ? 'May we use cookies to see which public pages people visit and how they find them?'
@@ -156,35 +163,22 @@ export function PublicAnalytics({
             : english
               ? 'Analytics is off.'
               : 'Аналитика выключена.'}
-        {!settings && (
-          <>
-            {' '}
-            <a className="text-primary underline" href={english ? '/en/privacy' : '/privacy'}>
-              {english ? 'Privacy policy' : 'Политика конфиденциальности'}
-            </a>
-          </>
-        )}
       </p>
-      <div className="mt-3 flex flex-wrap gap-2">
+      {!settings && (
+        <a className={styles.policy} href={english ? '/en/privacy' : '/privacy'}>
+          {english ? 'Privacy policy' : 'Политика конфиденциальности'}
+        </a>
+      )}
+      <div className={styles.actions}>
         {choice !== 'no' && (
-          <Button
-            type="button"
-            variant="secondary"
-            className="min-h-11 text-sm font-semibold"
-            onClick={() => choose('no')}
-          >
+          <button type="button" className={styles.decline} onClick={() => choose('no')}>
             {english ? 'Decline' : 'Отказаться'}
-          </Button>
+          </button>
         )}
         {choice !== 'yes' && (
-          <Button
-            type="button"
-            variant="primary"
-            className="min-h-11 text-sm font-semibold"
-            onClick={() => choose('yes')}
-          >
+          <button type="button" className={styles.allow} onClick={() => choose('yes')}>
             {english ? 'Allow' : 'Разрешить'}
-          </Button>
+          </button>
         )}
       </div>
     </aside>

@@ -1,0 +1,101 @@
+{
+  "layouts": [
+    {
+      "concept": "a",
+      "theme": "light",
+      "imageLoaded": true,
+      "overflow": false,
+      "popupFits": true,
+      "width": 320
+    },
+    {
+      "concept": "a",
+      "theme": "light",
+      "imageLoaded": true,
+      "overflow": false,
+      "popupFits": true,
+      "width": 1440
+    },
+    {
+      "concept": "a",
+      "theme": "dark",
+      "imageLoaded": true,
+      "overflow": false,
+      "popupFits": true,
+      "width": 320
+    },
+    {
+      "concept": "a",
+      "theme": "dark",
+      "imageLoaded": true,
+      "overflow": false,
+      "popupFits": true,
+      "width": 1440
+    },
+    {
+      "concept": "b",
+      "theme": "light",
+      "imageLoaded": true,
+      "overflow": false,
+      "popupFits": true,
+      "width": 320
+    },
+    {
+      "concept": "b",
+      "theme": "light",
+      "imageLoaded": true,
+      "overflow": false,
+      "popupFits": true,
+      "width": 1440
+    },
+    {
+      "concept": "b",
+      "theme": "dark",
+      "imageLoaded": true,
+      "overflow": false,
+      "popupFits": true,
+      "width": 320
+    },
+    {
+      "concept": "b",
+      "theme": "dark",
+      "imageLoaded": true,
+      "overflow": false,
+      "popupFits": true,
+      "width": 1440
+    },
+    {
+      "concept": "c",
+      "theme": "light",
+      "imageLoaded": true,
+      "overflow": false,
+      "popupFits": true,
+      "width": 320
+    },
+    {
+      "concept": "c",
+      "theme": "light",
+      "imageLoaded": true,
+      "overflow": false,
+      "popupFits": true,
+      "width": 1440
+    },
+    {
+      "concept": "c",
+      "theme": "dark",
+      "imageLoaded": true,
+      "overflow": false,
+      "popupFits": true,
+      "width": 320
+    },
+    {
+      "concept": "c",
+      "theme": "dark",
+      "imageLoaded": true,
+      "overflow": false,
+      "popupFits": true,
+      "width": 1440
+    }
+  ],
+  "singleMultipleCloseReopen": true
+}

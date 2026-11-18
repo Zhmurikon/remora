@@ -46,3 +46,18 @@ deploy/.update.lock
 apps/api/openapi.json
 .claude
 .codex/
+
+# Локальные снимки и видеозаписи проверок документации
+/docs/**/*.png
+/docs/**/*.jpg
+/docs/**/*.jpeg
+/docs/**/*.webp
+/docs/**/*.gif
+/docs/**/*.bmp
+/docs/**/*.tif
+/docs/**/*.tiff
+/docs/**/*.avif
+/docs/**/*.mp4
+/docs/**/*.webm
+/docs/**/*.mov
+/docs/**/*.mkv

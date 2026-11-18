@@ -1,0 +1,12 @@
+{
+  "keyboard": {
+    "sectionLinkFocusVisible": true,
+    "courseLinkFocusVisible": true,
+    "courseRowOutline": "solid",
+    "enterNavigatesToCourse": "http://localhost:3000/kurs/course-7499b5e0-0b85-4048-a5d6-f0b071e44af8",
+    "catalogLink": "http://localhost:3000/kursy"
+  },
+  "reducedMotion": { "matches": true, "arrowTransformOnHover": "none" },
+  "apiError": { "status": 503, "screen": "Не удалось загрузить профиль", "retryAfterRecovery": "Тестовый автор" },
+  "dataWrites": 0
+}

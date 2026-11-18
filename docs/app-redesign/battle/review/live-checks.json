@@ -1,0 +1,35 @@
+{
+  "checks": [
+    "login 0",
+    "login 1",
+    "login 2",
+    "clipboard success",
+    "clipboard failure and fallback",
+    "second player joins through invitation",
+    "third player rejected",
+    "same first prompt and options",
+    "offline answer persisted",
+    "reload sends persisted answer and restores next question",
+    "wait for opponent after last answer",
+    "both players see completed results",
+    "four personal review items",
+    "rematch new room",
+    "cancel leave keeps room",
+    "confirmed leave returns to set",
+    "invalid invitation",
+    "question image rendered",
+    "real draw within 500 ms",
+    "FSRS distribution unchanged"
+  ],
+  "errors": [],
+  "screenshots": [
+    "create-light-desktop.png",
+    "third-player.png",
+    "countdown-light-desktop.png",
+    "question-light-desktop.png",
+    "offline-answer.png",
+    "result-light-desktop.png",
+    "invalid-invite.png",
+    "draw-live.png"
+  ]
+}

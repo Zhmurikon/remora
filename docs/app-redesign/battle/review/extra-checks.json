@@ -1,0 +1,30 @@
+[
+  {
+    "check": "expired signed invitation rejected by local API",
+    "passed": true
+  },
+  {
+    "check": "create layout",
+    "theme": "light",
+    "width": 320,
+    "overflow": false
+  },
+  {
+    "check": "create layout",
+    "theme": "light",
+    "width": 1440,
+    "overflow": false
+  },
+  {
+    "check": "create layout",
+    "theme": "dark",
+    "width": 320,
+    "overflow": false
+  },
+  {
+    "check": "create layout",
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false
+  }
+]

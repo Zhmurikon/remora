@@ -1,6 +1,7 @@
+import { AuthorAchievements } from '../../../components/authors/AuthorAchievements';
 import { PublicAnalytics } from '../../../components/analytics/PublicAnalytics';
 import type { components } from '@remora/api-client';
-import { Badge, Card } from '@remora/ui';
+import { pluralWithCount } from '@remora/core';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -8,6 +9,8 @@ import { cache } from 'react';
 import { JsonLd } from '../../../components/JsonLd';
 import { absoluteUrl, DEFAULT_OG_IMAGE } from '../../../lib/seo';
 import { cachedPublicRead } from '../../../lib/cache';
+import { AuthorAvatar } from './AuthorAvatar';
+import './author-profile.css';
 
 const API_URL = process.env.API_INTERNAL_URL ?? 'http://localhost:8000';
 type Profile = components['schemas']['AuthorProfile'];
@@ -54,16 +57,9 @@ export async function generateMetadata({
 export default async function AuthorPage({ params }: { params: Promise<{ username: string }> }) {
   const profile = await loadProfile((await params).username);
   const name = profile.display_name || `@${profile.username}`;
-  const stats = [
-    ['Публикации', profile.stats.publications],
-    ['Сохранения', profile.stats.saves_received],
-    ['Лайки', profile.stats.likes_received],
-    ['Изучено карточек', profile.stats.cards_studied],
-    ['Серия занятий', `${profile.stats.current_streak_days} дн.`],
-  ] as const;
   const profileUrl = absoluteUrl(`/avtor/${profile.username}`);
   return (
-    <main className="mx-auto min-h-dvh max-w-6xl px-4 py-6 sm:px-8">
+    <main className="public-author">
       <PublicAnalytics path={`/avtor/${encodeURIComponent(profile.username)}`} />
       <JsonLd
         data={{
@@ -81,84 +77,105 @@ export default async function AuthorPage({ params }: { params: Promise<{ usernam
           },
         }}
       />
-      <nav aria-label="Основная навигация" className="flex items-center justify-between">
-        <Link
-          href="/"
-          className="text-primary inline-flex min-h-11 items-center text-xl font-semibold"
-        >
-          Запоминальня
-        </Link>
-        <Link href="/kursy" className="text-primary inline-flex min-h-11 items-center underline">
-          Каталог курсов
-        </Link>
-      </nav>
-      <header className="py-10 sm:py-12">
-        <p className="text-primary text-sm font-medium">Автор курсов</p>
-        <h1 className="mt-3 break-words text-4xl font-semibold tracking-tight sm:text-5xl">
-          {name}
-        </h1>
-        {profile.display_name && <p className="text-fg-muted mt-2">@{profile.username}</p>}
-        <p className="text-fg-muted mt-3 text-sm">
-          В «Запоминальне» с{' '}
-          {new Date(profile.joined_at).toLocaleDateString('ru-RU', { timeZone: 'UTC' })}
-        </p>
+      <header className="public-author-cover">
+        <div className="public-author-width">
+          <Link href="/kursy" className="public-author-link public-author-back">
+            ← Каталог курсов
+          </Link>
+          <div className="public-author-identity">
+            <AuthorAvatar name={name} src={profile.avatar_url} />
+            <div>
+              <p className="public-author-label">Автор курсов</p>
+              <h1>{name}</h1>
+              {profile.display_name && (
+                <p className="public-author-username">@{profile.username}</p>
+              )}
+              <p className="public-author-joined">
+                В «Запоминальне» с{' '}
+                <time dateTime={profile.joined_at}>
+                  {new Date(profile.joined_at).toLocaleDateString('ru-RU', { timeZone: 'UTC' })}
+                </time>
+              </p>
+            </div>
+          </div>
+          <nav className="public-author-sections" aria-label="Разделы профиля">
+            <a href="#author-courses" className="public-author-link">
+              Курсы <span>{profile.courses.length}</span>
+            </a>
+            <a href="#author-stats" className="public-author-link">
+              Достижения
+            </a>
+          </nav>
+        </div>
       </header>
-      <section aria-labelledby="author-stats" className="pb-10">
-        <h2 id="author-stats" className="text-2xl font-semibold">
-          Достижения
-        </h2>
-        <dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {stats.map(([label, value]) => (
-            <Card key={label}>
-              <dt className="text-fg-muted text-sm">{label}</dt>
-              <dd className="mt-2 text-2xl font-semibold">{value}</dd>
-            </Card>
-          ))}
-        </dl>
-        {profile.badges.length > 0 && (
-          <div className="mt-5 flex flex-wrap gap-2">
-            {profile.badges.map((badge) => (
-              <Badge key={badge.code}>{badge.title}</Badge>
-            ))}
+      <div className="public-author-width public-author-body">
+        <section aria-labelledby="author-courses" className="public-author-courses">
+          <div className="public-author-section-heading">
+            <h2 id="author-courses">Курсы автора</h2>
+            <p>
+              {pluralWithCount(profile.courses.length, [
+                'публичный курс',
+                'публичных курса',
+                'публичных курсов',
+              ])}
+            </p>
           </div>
-        )}
-      </section>
-      <section aria-labelledby="author-courses" className="pb-12">
-        <h2 id="author-courses" className="text-2xl font-semibold">
-          Курсы автора
-        </h2>
-        {profile.courses.length === 0 ? (
-          <Card className="mt-5">
-            <p className="text-fg-muted">Публичных курсов пока нет.</p>
-          </Card>
-        ) : (
-          <div className="mt-5 grid gap-5 sm:grid-cols-2">
-            {profile.courses.map((course) => (
-              <Card key={course.id} className="flex flex-col gap-3">
-                <div className="flex flex-wrap gap-2">
-                  {course.tags.map((tag) => (
-                    <Badge key={tag}>#{tag}</Badge>
-                  ))}
-                </div>
-                <h3 className="text-xl font-semibold">
-                  <Link
-                    className="inline-flex min-h-11 items-center hover:underline"
-                    href={`/kurs/${course.slug}`}
-                  >
-                    {course.title}
-                  </Link>
-                </h3>
-                {course.description && (
-                  <p className="text-fg-muted line-clamp-3">{course.description}</p>
-                )}
-                <p className="text-fg-muted mt-auto text-sm">
-                  Карточек: {course.cards_count} · Сохранений: {course.saves_count}
-                </p>
-              </Card>
-            ))}
-          </div>
-        )}
-      </section>
+          {profile.courses.length === 0 ? (
+            <div className="public-author-empty">
+              <p>Публичных курсов пока нет.</p>
+              <Link className="public-author-link" href="/kursy">
+                Найти курс в каталоге →
+              </Link>
+            </div>
+          ) : (
+            <ul className="public-author-course-list">
+              {profile.courses.map((course, index) => (
+                <li key={course.id}>
+                  <article className="public-author-course">
+                    <span className="public-author-course-number" aria-hidden="true">
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
+                    <div className="public-author-course-content">
+                      <h3>
+                        <Link href={`/kurs/${course.slug}`}>{course.title}</Link>
+                      </h3>
+                      {course.tags.length > 0 && (
+                        <ul className="public-author-tags" aria-label="Темы курса">
+                          {course.tags.map((tag) => (
+                            <li key={tag}>#{tag}</li>
+                          ))}
+                        </ul>
+                      )}
+                      {course.description && (
+                        <p className="public-author-course-description">{course.description}</p>
+                      )}
+                      <div className="public-author-course-meta">
+                        <span>Карточек: {course.cards_count}</span>
+                        <span>Сохранений: {course.saves_count}</span>
+                        {course.languages.length > 0 && (
+                          <span>Язык: {course.languages.join(', ').toUpperCase()}</span>
+                        )}
+                        <span>
+                          Обновлён{' '}
+                          <time dateTime={course.updated_at}>
+                            {new Date(course.updated_at).toLocaleDateString('ru-RU', {
+                              timeZone: 'UTC',
+                            })}
+                          </time>
+                        </span>
+                      </div>
+                    </div>
+                    <span className="public-author-course-arrow" aria-hidden="true">
+                      ↗
+                    </span>
+                  </article>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+        <AuthorAchievements stats={profile.stats} badges={profile.badges} />
+      </div>
     </main>
   );
 }

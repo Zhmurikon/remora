@@ -45,3 +45,28 @@ it('не загружает счётчик до согласия и отменя
   fireEvent.click(screen.getByRole('button', { name: 'Отказаться' }));
   expect(destruct).toHaveBeenCalledTimes(2);
 });
+
+it('запоминает отказ и не показывает уведомление при следующем открытии', () => {
+  const view = render(<PublicAnalytics path="/nabor/example" />);
+  expect(screen.getByRole('heading', { name: 'Cookie для аналитики' })).toBeTruthy();
+  expect(
+    screen.getByRole('link', { name: 'Политика конфиденциальности' }).getAttribute('href'),
+  ).toBe('/privacy');
+  fireEvent.click(screen.getByRole('button', { name: 'Отказаться' }));
+  expect(localStorage.getItem('zapominalnya.analytics.v1')).toBe('no');
+  expect(screen.queryByRole('complementary')).toBeNull();
+  view.unmount();
+  render(<PublicAnalytics path="/kursy" />);
+  expect(screen.queryByRole('complementary')).toBeNull();
+  expect(document.querySelector('script[src*="mc.yandex.ru"]')).toBeNull();
+});
+
+it('сохраняет английскую версию уведомления и ссылку на политику', () => {
+  render(<PublicAnalytics path="/en/terms" english />);
+  expect(screen.getByRole('heading', { name: 'Cookies for analytics' })).toBeTruthy();
+  expect(screen.getByRole('link', { name: 'Privacy policy' }).getAttribute('href')).toBe(
+    '/en/privacy',
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Decline' }));
+  expect(localStorage.getItem('zapominalnya.analytics.v1')).toBe('no');
+});

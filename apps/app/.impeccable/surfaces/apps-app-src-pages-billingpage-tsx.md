@@ -1,8 +1,8 @@
 ---
 version: 1
-slug: "apps-app-src-pages-billingpage-tsx"
-primary_target: "apps/app/src/pages/BillingPage.tsx"
-related_targets: ["apps/app/src/pages/billing.css"]
+slug: 'apps-app-src-pages-billingpage-tsx'
+primary_target: 'apps/app/src/pages/BillingPage.tsx'
+related_targets: ['apps/app/src/pages/billing.css']
 ---
 
 # BillingPage

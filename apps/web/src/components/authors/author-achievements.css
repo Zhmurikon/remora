@@ -1,0 +1,120 @@
+.author-achievements {
+  container-type: inline-size;
+  padding-bottom: 2.5rem;
+  color: rgb(var(--rm-lecture-ink));
+  overflow-wrap: anywhere;
+}
+.author-achievements-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+.author-achievements-heading h2 {
+  font:
+    400 1.875rem / 1.2 Georgia,
+    'Times New Roman',
+    serif;
+}
+.author-achievements-heading > span {
+  color: rgb(var(--rm-lecture-muted));
+  font-size: 0.875rem;
+}
+.author-achievements-metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin: 1.25rem 0 1.5rem;
+  padding: 1.25rem 0;
+  border-block: 1px solid rgb(var(--rm-lecture-line));
+}
+.author-achievements-metrics dt {
+  color: rgb(var(--rm-lecture-muted));
+  font-size: 0.875rem;
+}
+.author-achievements-metrics dd {
+  margin-top: 0.4rem;
+  font:
+    400 1.75rem / 1.2 Georgia,
+    'Times New Roman',
+    serif;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.author-achievements-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.author-achievements-list > li {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid rgb(var(--rm-lecture-line));
+  border-radius: 16px;
+  background: rgb(var(--rm-lecture-surface));
+}
+.author-achievement-art {
+  display: grid;
+  place-items: center;
+  height: 140px;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+}
+.author-achievement-art img {
+  width: 140px;
+  height: 140px;
+  max-width: 100%;
+  object-fit: contain;
+  /* Компенсируем прозрачные поля той же заглушки, что используется в кабинете. */
+  transform: scale(1.45);
+}
+.author-achievement-art img[data-artwork='individual'] {
+  transform: none;
+}
+.author-achievements-list h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.author-achievement-earned {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  color: rgb(var(--rm-lecture-action));
+  font-size: 0.875rem;
+}
+.author-achievement-earned svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.author-achievements-empty {
+  padding: 1rem 0;
+  color: rgb(var(--rm-lecture-muted));
+  font-size: 0.9375rem;
+}
+@container (max-width: 53rem) {
+  .author-achievements-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .author-achievements-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@container (max-width: 33rem) {
+  .author-achievements-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .author-achievements-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

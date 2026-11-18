@@ -1,7 +1,6 @@
 'use client';
 
 import { PlanIllustration } from './PlanIllustration';
-import { PricingActionInk } from './PricingActionInk';
 import { useState } from 'react';
 import { APP_URL } from '../../lib/auth-api';
 import {
@@ -31,9 +30,7 @@ export function PricingPlans() {
             Год
           </PeriodButton>
         </div>
-        <p className="pricing-payment-note">
-          Разовая оплата · без автопродления и неожиданных списаний
-        </p>
+        <p className="pricing-payment-note">Разовая оплата · без автосписаний</p>
       </div>
 
       <section className="pricing-plans" aria-label="Тарифы «Запоминальни»">
@@ -113,7 +110,7 @@ function PlanColumn({ plan, interval }: { plan: PublicPlan; interval: BillingInt
           href={free ? '/register' : `${APP_URL}/billing`}
         >
           {action}
-          <PricingActionInk label={action} />
+          <span className="pricing-action-line" aria-hidden="true" />
         </a>
         {!free && <small>Оформление продолжится в приложении</small>}
       </div>

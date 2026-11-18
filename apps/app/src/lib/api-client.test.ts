@@ -60,3 +60,24 @@ it('не повторяет запрос, если refresh не удался', a
   ).toBe(401);
   expect(fetchMock).toHaveBeenCalledTimes(1);
 });
+
+it('не повторяет запрос другого сеанса после отмены во время refresh', async () => {
+  const controller = new AbortController();
+  let finish!: (value: boolean) => void;
+  const refresh = vi.fn(
+    () =>
+      new Promise<boolean>((resolve) => {
+        finish = resolve;
+      }),
+  );
+  const fetchMock = vi.fn(async () => new Response('{}', { status: 401 }));
+  vi.stubGlobal('fetch', fetchMock);
+  const client = createApiClient({ baseUrl: 'http://localhost', onUnauthorized: refresh });
+  const request = client.GET('/api/v1/practice/python/progress', { signal: controller.signal });
+  const rejected = expect(request).rejects.toMatchObject({ name: 'AbortError' });
+  await vi.waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+  controller.abort();
+  finish(true);
+  await rejected;
+  expect(fetchMock).toHaveBeenCalledOnce();
+});

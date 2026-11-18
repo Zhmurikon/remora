@@ -53,7 +53,7 @@ export function EditorPopover({
   return createPortal(
     <div
       ref={panel}
-      className="ae-pop"
+      className="ae-pop materials-page"
       role="dialog"
       aria-label={label}
       onKeyDown={(e) => {
@@ -66,6 +66,6 @@ export function EditorPopover({
     >
       {children}
     </div>,
-    document.body,
+    anchor.closest('.dashboard-shell') ?? document.body,
   );
 }

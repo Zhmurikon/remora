@@ -1,12 +1,20 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { api } from '../lib/api';
 import { BotConnections } from './BotConnections';
 
 vi.mock('../lib/api', () => ({ api: { GET: vi.fn(), POST: vi.fn(), DELETE: vi.fn() } }));
+beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -46,14 +54,16 @@ it('подтверждает отзыв и показывает сетевую �
     data: [{ id: 'link', platform: 'vk', actor_id: '123' }],
   } as never);
   vi.mocked(api.DELETE).mockResolvedValue({ error: { message: 'Нет связи' } } as never);
-  const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
   setup();
   await userEvent.click(await screen.findByRole('button', { name: 'Отключить VK' }));
   expect(api.DELETE).not.toHaveBeenCalled();
-  expect(confirm).toHaveBeenCalledWith(
-    'Отключить VK? Бот потеряет доступ к аккаунту. Ваши материалы и прогресс останутся в «Запоминальне».',
-  );
-  confirm.mockReturnValue(true);
+  const dialog = screen.getByRole('alertdialog', { name: 'Отключить VK?' });
+  expect(document.activeElement).toBe(within(dialog).getByRole('button', { name: 'Отмена' }));
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Отмена' }));
+  expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Отключить VK' }));
   await userEvent.click(screen.getByRole('button', { name: 'Отключить VK' }));
+  await userEvent.click(
+    within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Отключить VK' }),
+  );
   await waitFor(() => expect(screen.getByRole('alert').textContent).toBe('Нет связи'));
 });

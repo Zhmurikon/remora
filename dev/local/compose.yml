@@ -34,7 +34,7 @@ x-api: &api
 x-ui: &ui
   <<: *runtime
   image: node:22.22.3-bookworm-slim
-  user: "${LOCAL_UID:?required}:${LOCAL_GID:?required}"
+  user: '${LOCAL_UID:?required}:${LOCAL_GID:?required}'
   environment: &ui-env
     HOME: /tmp
     NEXT_TELEMETRY_DISABLED: '1'
@@ -95,7 +95,8 @@ services:
       postgres: { condition: service_healthy }
   worker:
     <<: *api
-    command: [watchfiles, --target-type, command, --filter, python, "arq app.worker.WorkerSettings", app]
+    command:
+      [watchfiles, --target-type, command, --filter, python, 'arq app.worker.WorkerSettings', app]
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_started }

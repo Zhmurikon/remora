@@ -1,0 +1,118 @@
+{
+  "layouts": [
+    {
+      "theme": "light",
+      "badges": 2,
+      "imagesLoaded": true,
+      "metrics": 5,
+      "overflow": false,
+      "width": 320
+    },
+    {
+      "theme": "light",
+      "badges": 2,
+      "imagesLoaded": true,
+      "metrics": 5,
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "theme": "light",
+      "badges": 2,
+      "imagesLoaded": true,
+      "metrics": 5,
+      "overflow": false,
+      "width": 768
+    },
+    {
+      "theme": "light",
+      "badges": 2,
+      "imagesLoaded": true,
+      "metrics": 5,
+      "overflow": false,
+      "width": 1024
+    },
+    {
+      "theme": "light",
+      "badges": 2,
+      "imagesLoaded": true,
+      "metrics": 5,
+      "overflow": false,
+      "width": 1280
+    },
+    {
+      "theme": "light",
+      "badges": 2,
+      "imagesLoaded": true,
+      "metrics": 5,
+      "overflow": false,
+      "width": 1440
+    },
+    {
+      "theme": "light",
+      "badges": 2,
+      "imagesLoaded": true,
+      "metrics": 5,
+      "overflow": false,
+      "width": 1920
+    },
+    {
+      "theme": "dark",
+      "badges": 2,
+      "imagesLoaded": true,
+      "metrics": 5,
+      "overflow": false,
+      "width": 320
+    },
+    {
+      "theme": "dark",
+      "badges": 2,
+      "imagesLoaded": true,
+      "metrics": 5,
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "theme": "dark",
+      "badges": 2,
+      "imagesLoaded": true,
+      "metrics": 5,
+      "overflow": false,
+      "width": 768
+    },
+    {
+      "theme": "dark",
+      "badges": 2,
+      "imagesLoaded": true,
+      "metrics": 5,
+      "overflow": false,
+      "width": 1024
+    },
+    {
+      "theme": "dark",
+      "badges": 2,
+      "imagesLoaded": true,
+      "metrics": 5,
+      "overflow": false,
+      "width": 1280
+    },
+    {
+      "theme": "dark",
+      "badges": 2,
+      "imagesLoaded": true,
+      "metrics": 5,
+      "overflow": false,
+      "width": 1440
+    },
+    {
+      "theme": "dark",
+      "badges": 2,
+      "imagesLoaded": true,
+      "metrics": 5,
+      "overflow": false,
+      "width": 1920
+    }
+  ],
+  "blockText200Percent320": true,
+  "existingOuterPageText200Overflow": "Navigation and course cards outside the changed block overflow at 200% text."
+}

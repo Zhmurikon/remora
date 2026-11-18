@@ -29,22 +29,25 @@ export default async function CollectionPage({ params }: Props) {
   if (!collection) notFound();
   const result = await loadCollectionCourses(collection);
   return (
-    <>
+    <div className="collection-detail">
       <PublicAnalytics path={`/podborki/${encodeURIComponent(collection.slug)}`} />
       {result.ok && <JsonLd data={collectionsStructuredData(collection, result.courses)} />}
-      <nav className="blog-breadcrumbs" aria-label="Хлебные крошки">
-        <a href="/">Главная</a>
-        <span aria-hidden="true">/</span>
-        <a href="/podborki">Подборки</a>
-        <span aria-hidden="true">/</span>
-        <span aria-current="page">{collection.title}</span>
+      <nav className="collection-breadcrumbs" aria-label="Хлебные крошки">
+        <ol>
+          <li>
+            <a href="/">Главная</a>
+          </li>
+          <li>
+            <a href="/podborki">Подборки</a>
+          </li>
+          <li aria-current="page">{collection.title}</li>
+        </ol>
       </nav>
       <header className="collection-hero">
-        <div>
-          <span className="home-kicker">Выбор редакции</span>
+        <div className="collection-hero-copy">
           <h1>{collection.title}</h1>
-          <p>{collection.description}</p>
-          <p className="blog-meta">
+          <p className="collection-description-lead">{collection.description}</p>
+          <p className="collection-updated">
             Редакция «Запоминальни» · Обновлено{' '}
             <time dateTime={collection.updatedAt}>{formatBlogDate(collection.updatedAt)}</time>
           </p>
@@ -55,34 +58,39 @@ export default async function CollectionPage({ params }: Props) {
         <div className="collection-context">
           <h2 id="selected-courses">Что изучить</h2>
           <p>{collection.introduction}</p>
-          <p className="collection-hint">
+          <aside className="collection-hint">
             Курсы принадлежат их авторам. Сохраняйте нужные материалы в библиотеку и учитесь в своём
             темпе.
-          </p>
+          </aside>
         </div>
         {!result.ok ? (
-          <div className="collection-empty">
+          <div className="collection-result-state">
             <h3>Не удалось загрузить курсы</h3>
             <p role="alert">Материалы временно недоступны. Попробуйте обновить страницу.</p>
-            <a className="home-link" href={`/podborki/${collection.slug}`}>
-              Попробовать ещё раз →
+            <a className="collection-action" href={`/podborki/${collection.slug}`}>
+              Попробовать ещё раз
             </a>
           </div>
         ) : result.courses.length === 0 ? (
-          <div className="collection-empty">
+          <div className="collection-result-state">
             <h3>В подборке пока нет доступных курсов</h3>
             <p>Материалы могли быть сняты с публикации. Другие темы можно найти в каталоге.</p>
-            <a className="home-link" href="/kursy">
-              Перейти в каталог →
+            <a className="collection-action" href="/kursy">
+              Перейти в каталог
             </a>
           </div>
         ) : (
           <SelectedCourseCards collection={collection} courses={result.courses} />
         )}
       </section>
-      <a className="home-link collection-back" href="/podborki">
-        ← Все подборки
-      </a>
-    </>
+      <footer className="collection-closing">
+        <a className="collection-back" href="/podborki">
+          <span aria-hidden="true">←</span> Все подборки
+        </a>
+        <a className="collection-catalog-link" href="/kursy">
+          Найти курсы по другой теме <span aria-hidden="true">→</span>
+        </a>
+      </footer>
+    </div>
   );
 }

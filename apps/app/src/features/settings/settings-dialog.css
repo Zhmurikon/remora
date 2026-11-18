@@ -1,0 +1,95 @@
+.settings-dialog {
+  width: min(30rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  padding: 2rem;
+  overflow: auto;
+  border: 1px solid rgb(var(--rm-border));
+  border-radius: 16px;
+  color: rgb(var(--rm-fg));
+  background: rgb(var(--rm-bg));
+  overscroll-behavior: contain;
+  scrollbar-color: rgb(var(--rm-border)) transparent;
+  animation: settings-dialog-in 160ms ease-out;
+}
+.settings-dialog::backdrop {
+  background: rgb(var(--rm-overlay) / 0.4);
+}
+.settings-dialog h2 {
+  margin: 0;
+  font:
+    400 1.75rem/1.2 Georgia,
+    'Times New Roman',
+    serif;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.settings-dialog-copy {
+  margin-top: 1rem;
+  color: rgb(var(--rm-fg-muted));
+  font-size: 1rem;
+  line-height: 1.6;
+}
+.settings-dialog-copy p + p {
+  margin-top: 0.75rem;
+}
+.settings-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgb(var(--rm-border));
+}
+.settings-dialog button {
+  height: auto;
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
+  min-height: 44px;
+  white-space: normal;
+}
+.settings-dialog :focus-visible {
+  outline: 2px solid rgb(var(--rm-primary));
+  outline-offset: 3px;
+}
+.settings-dialog .settings-feedback {
+  margin-top: 1rem;
+  line-height: 1.5;
+}
+.settings-dialog .settings-feedback--error {
+  color: rgb(var(--rm-danger));
+}
+.settings-dialog ::selection {
+  background: rgb(var(--rm-primary) / 0.18);
+}
+@keyframes settings-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (max-width: 480px) {
+  .settings-dialog {
+    padding: 1.5rem;
+  }
+  .settings-dialog-actions {
+    flex-direction: column;
+  }
+  .settings-dialog-actions button {
+    width: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings-dialog {
+    animation: none;
+  }
+}
+
+.settings-dialog .bg-danger {
+  color: rgb(var(--rm-primary-fg));
+}

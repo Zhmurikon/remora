@@ -39,6 +39,21 @@ export function AppLayout() {
     '/courses/new',
     '/courses/:courseId/edit',
     '/courses/:courseId/structure',
+    '/courses/:courseId/materials/:articleId/edit',
+  ].some((path) => matchPath(path, location.pathname));
+  const isStudyPage = [
+    '/sets/:setId/learn',
+    '/sets/:setId/flashcards',
+    '/sets/:setId/write',
+    '/sets/:setId/listen',
+    '/sets/:setId/test',
+    '/sets/:setId/battle',
+    '/folders/:folderId/learn',
+    '/folders/:folderId/flashcards',
+    '/folders/:folderId/write',
+    '/folders/:folderId/listen',
+    '/courses/:courseId/learn',
+    '/battles/:battleId',
   ].some((path) => matchPath(path, location.pathname));
   const hasPaperShell =
     isTranscriptionsPath(location.pathname) ||
@@ -55,6 +70,7 @@ export function AppLayout() {
       matchPath(path, location.pathname),
     ) ||
     isCourseSettings ||
+    isStudyPage ||
     isSetDetail ||
     Boolean(matchPath('/sets/:setId/edit', location.pathname));
   const user = useAuthStore((state) => state.user);

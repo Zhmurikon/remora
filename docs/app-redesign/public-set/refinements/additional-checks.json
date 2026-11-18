@@ -1,0 +1,65 @@
+[
+  {
+    "path": "/privacy",
+    "theme": "light",
+    "width": 320,
+    "scroll": 305
+  },
+  {
+    "path": "/privacy",
+    "theme": "dark",
+    "width": 320,
+    "scroll": 305
+  },
+  {
+    "path": "/terms",
+    "theme": "light",
+    "width": 320,
+    "scroll": 305
+  },
+  {
+    "path": "/terms",
+    "theme": "dark",
+    "width": 320,
+    "scroll": 305
+  },
+  {
+    "path": "/",
+    "theme": "light",
+    "width": 320,
+    "scroll": 305,
+    "banner": true,
+    "counter": false
+  },
+  {
+    "path": "/",
+    "theme": "light",
+    "width": 1440,
+    "scroll": 1425,
+    "banner": true,
+    "counter": false
+  },
+  {
+    "path": "/",
+    "theme": "dark",
+    "width": 320,
+    "scroll": 305,
+    "banner": true,
+    "counter": false
+  },
+  {
+    "path": "/",
+    "theme": "dark",
+    "width": 1440,
+    "scroll": 1425,
+    "banner": true,
+    "counter": false
+  },
+  {
+    "text200": true,
+    "width": 320,
+    "scroll": 584,
+    "bannerHeight": 773.234375,
+    "screen": 900
+  }
+]

@@ -1,0 +1,15 @@
+
+> @remora/web@0.0.0 test /home/konkovyuriy/dev/remora/apps/web
+> vitest run "src/app/nabor"
+
+
+ RUN  v3.2.7 /home/konkovyuriy/dev/remora/apps/web
+
+ ✓ src/app/nabor/[slug]/page.test.tsx (11 tests) 440ms
+ ✓ src/app/nabor/[slug]/PublicSetCabinetLink.test.tsx (6 tests) 806ms
+   ✓ открывает именно этот набор после подтверждения доступа сервером  446ms
+
+ Test Files  2 passed (2)
+      Tests  17 passed (17)
+   Start at  11:28:09
+   Duration  5.93s (transform 1.97s, setup 243ms, collect 3.40s, tests 1.25s, environment 2.47s, prepare 513ms)

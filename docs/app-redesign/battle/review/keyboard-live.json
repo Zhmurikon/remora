@@ -1,0 +1,61 @@
+{
+  "checks": [
+    {
+      "participant": 1,
+      "question": 1,
+      "headingFocus": true,
+      "tabToAnswer": true,
+      "enter": true
+    },
+    {
+      "participant": 0,
+      "question": 1,
+      "headingFocus": true,
+      "tabToAnswer": true,
+      "enter": true
+    },
+    {
+      "participant": 1,
+      "question": 2,
+      "headingFocus": true,
+      "tabToAnswer": true,
+      "enter": true
+    },
+    {
+      "participant": 0,
+      "question": 2,
+      "headingFocus": true,
+      "tabToAnswer": true,
+      "enter": true
+    },
+    {
+      "participant": 1,
+      "question": 3,
+      "headingFocus": true,
+      "tabToAnswer": true,
+      "enter": true
+    },
+    {
+      "participant": 0,
+      "question": 3,
+      "headingFocus": true,
+      "tabToAnswer": true,
+      "enter": true
+    },
+    {
+      "participant": 1,
+      "question": 4,
+      "headingFocus": true,
+      "tabToAnswer": true,
+      "enter": true
+    },
+    {
+      "participant": 0,
+      "question": 4,
+      "headingFocus": true,
+      "tabToAnswer": true,
+      "enter": true
+    }
+  ],
+  "resultFocus": true
+}

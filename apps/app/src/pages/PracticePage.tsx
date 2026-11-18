@@ -26,6 +26,12 @@ import {
   syncPythonProgress,
 } from '../features/practice/python-progress-sync';
 import { api } from '../lib/api';
+import { useAuthStore } from '../features/auth/auth-store';
+import {
+  capturePythonProgressScope,
+  isPythonScopeCurrent,
+  pythonScopeRequest,
+} from '../features/practice/python-progress-scope';
 import './practice-workspace.css';
 
 const primaryLinkStyle = 'practice-primary';
@@ -34,6 +40,12 @@ const quietLinkStyle = 'practice-back';
 export { PracticePage } from './PracticeStartPage';
 
 export function PythonPracticePage() {
+  const userId = useAuthStore((state) => state.user?.id);
+  return <PythonPracticeCatalog key={userId ?? 'guest'} />;
+}
+
+function PythonPracticeCatalog() {
+  const [scope] = useState(() => capturePythonProgressScope());
   const [topic, setTopic] = useState('all');
   const [status, setStatus] = useState<PythonTaskStatus | 'all'>('all');
   const [syncState, setSyncState] = useState<'syncing' | 'synced' | 'offline'>('syncing');
@@ -43,7 +55,7 @@ export function PythonPracticePage() {
   const resetInProgress = useRef(false);
   const syncInProgress = useRef<Promise<unknown> | null>(null);
   const [, setSyncRevision] = useState(0);
-  const summary = pythonProgressSummary(pythonTasks);
+  const summary = pythonProgressSummary(pythonTasks, scope);
   const latest = summary.progress
     .filter((item) => item.status === 'in_progress')
     .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))[0];
@@ -70,7 +82,7 @@ export function PythonPracticePage() {
     const synchronize = async () => {
       if (resetInProgress.current) return;
       setSyncState('syncing');
-      const request = syncPythonProgress(pythonTasks);
+      const request = syncPythonProgress(pythonTasks, scope);
       syncInProgress.current = request;
       const result = await request;
       if (syncInProgress.current === request) syncInProgress.current = null;
@@ -84,17 +96,23 @@ export function PythonPracticePage() {
       active = false;
       window.removeEventListener('online', synchronize);
     };
-  }, [syncAttempt]);
+  }, [scope, syncAttempt]);
 
   async function resetPractice() {
+    if (!isPythonScopeCurrent(scope)) return;
+    const request = pythonScopeRequest(scope);
     resetInProgress.current = true;
     setResetState('pending');
     try {
       await syncInProgress.current;
-      const { error } = await api.DELETE('/api/v1/practice/python/progress');
+      request.signal.throwIfAborted();
+      const { error } = await api.DELETE('/api/v1/practice/python/progress', {
+        signal: request.signal,
+      });
+      request.signal.throwIfAborted();
       if (error) throw error;
-      clearPendingPythonProgress();
-      deletePythonPracticeProgress(pythonTasks);
+      clearPendingPythonProgress(scope);
+      deletePythonPracticeProgress(pythonTasks, scope);
       setTopic('all');
       setStatus('all');
       setSyncState('synced');
@@ -105,6 +123,7 @@ export function PythonPracticePage() {
       // При сбое оставляем и черновики, и очередь: сброс ещё не подтверждён сервером.
       setResetState('error');
     } finally {
+      request.dispose();
       resetInProgress.current = false;
     }
   }
@@ -153,7 +172,7 @@ export function PythonPracticePage() {
                 ? 'Синхронизируем…'
                 : syncState === 'synced'
                   ? 'Сохранено в аккаунте'
-                  : `Не удалось синхронизировать · в очереди ${pendingPythonProgressCount()}`}
+                  : `Не удалось синхронизировать · в очереди ${pendingPythonProgressCount(scope)}`}
             </span>
             {syncState === 'offline' && (
               <button type="button" onClick={() => setSyncAttempt((value) => value + 1)}>
@@ -341,6 +360,7 @@ function ProgressBadge({ status }: { status: PythonTaskStatus }) {
 }
 
 export function PythonTaskPage() {
+  const userId = useAuthStore((state) => state.user?.id);
   const { taskSlug = '' } = useParams();
   const task = findPythonTask(taskSlug);
 
@@ -412,17 +432,22 @@ export function PythonTaskPage() {
             <p>{task.hint}</p>
           </details>
         </div>
-        <PythonWorkspace key={`${task.id}:${task.version}`} task={task} nextTask={nextTask} />
+        <PythonWorkspace
+          key={`${userId}:${task.id}:${task.version}`}
+          task={task}
+          nextTask={nextTask}
+        />
       </div>
     </div>
   );
 }
 
 function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: PythonTask }) {
+  const [scope] = useState(() => capturePythonProgressScope());
   const runnerRef = useRef<PythonRunner | null>(null);
   const editedRef = useRef(false);
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [progress, setProgress] = useState(() => readPythonTaskProgress(task));
+  const [progress, setProgress] = useState(() => readPythonTaskProgress(task, scope));
   const [code, setCode] = useState(progress.draft);
   const [stdin, setStdin] = useState(task.examples[0]?.input ?? '');
   const [phase, setPhase] = useState<PythonRunnerPhase | 'idle'>('idle');
@@ -433,13 +458,13 @@ function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: Pyth
 
   useEffect(() => {
     let active = true;
-    void syncPythonProgress([task]).then((result) => {
+    void syncPythonProgress([task], scope).then((result) => {
       if (!active || !result.ok) return;
-      const synced = readPythonTaskProgress(task);
+      const synced = readPythonTaskProgress(task, scope);
       setProgress(synced);
       if (!editedRef.current) setCode(synced.draft);
     });
-    const flushOnline = () => void flushPythonProgress([task]);
+    const flushOnline = () => void flushPythonProgress([task], scope);
     window.addEventListener('online', flushOnline);
     return () => {
       active = false;
@@ -447,36 +472,41 @@ function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: Pyth
       if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
       window.removeEventListener('online', flushOnline);
     };
-  }, [task]);
+  }, [task, scope]);
 
   const updateProgress = useCallback(
     (next: PythonTaskProgress) => {
       setProgress(next);
-      queuePythonProgress(next);
+      queuePythonProgress(next, scope);
       if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
-      syncTimerRef.current = setTimeout(() => void flushPythonProgress([task]), 700);
+      syncTimerRef.current = setTimeout(() => void flushPythonProgress([task], scope), 700);
     },
-    [task],
+    [task, scope],
   );
 
   const run = useCallback(async () => {
+    if (!isPythonScopeCurrent(scope)) return;
     const runner = (runnerRef.current ??= new PythonRunner());
-    updateProgress(markPythonTaskStarted(task, code));
+    updateProgress(markPythonTaskStarted(task, code, scope));
     setResult(null);
     setOperation('run');
     setPhase('loading');
     const nextResult = await runner.run(code, stdin, setPhase, task.packages, task.files);
+    if (!isPythonScopeCurrent(scope)) return;
     setResult(nextResult);
     setPhase('idle');
-  }, [code, stdin, task, updateProgress]);
+  }, [code, stdin, task, scope, updateProgress]);
 
   async function check() {
+    if (!isPythonScopeCurrent(scope)) return;
     const runner = (runnerRef.current ??= new PythonRunner());
     setResult(null);
     setOperation('check');
     setPhase('loading');
     const nextResult = await runner.check(code, task.checks, setPhase, task.packages, task.files);
-    updateProgress(recordPythonCheck(task, code, nextResult.status === 'passed'));
+    if (!isPythonScopeCurrent(scope)) return;
+    updateProgress(recordPythonCheck(task, code, nextResult.status === 'passed', scope));
+    if (!isPythonScopeCurrent(scope)) return;
     setResult(nextResult);
     setPhase('idle');
   }
@@ -509,7 +539,7 @@ function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: Pyth
               onClick={() => {
                 setCode(task.starterCode);
                 editedRef.current = true;
-                updateProgress(savePythonDraft(task, task.starterCode));
+                updateProgress(savePythonDraft(task, task.starterCode, scope));
                 setResult(null);
               }}
             >
@@ -536,7 +566,7 @@ function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: Pyth
           onChange={(value) => {
             editedRef.current = true;
             setCode(value);
-            updateProgress(savePythonDraft(task, value));
+            updateProgress(savePythonDraft(task, value, scope));
             setResult(null);
           }}
         />

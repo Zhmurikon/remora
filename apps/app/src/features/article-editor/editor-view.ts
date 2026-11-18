@@ -1,15 +1,17 @@
 import { baseKeymap, chainCommands, exitCode, toggleMark } from 'prosemirror-commands';
 import { gapCursor } from 'prosemirror-gapcursor';
 import { history, undo, redo } from 'prosemirror-history';
+import { undoInputRule } from 'prosemirror-inputrules';
 import { keymap } from 'prosemirror-keymap';
 import { liftListItem, sinkListItem, splitListItem } from 'prosemirror-schema-list';
 import { EditorState, NodeSelection, Selection } from 'prosemirror-state';
-import { EditorView } from 'prosemirror-view';
+import { Decoration, DecorationSet, EditorView } from 'prosemirror-view';
 import type { Node as DocNode } from 'prosemirror-model';
 import type { ArticleMedia } from '@remora/ui';
 import { articleFormula } from '@remora/ui/article-formula';
 import { leaveTable, navigateCell } from './table';
 import { schema, openMarkdown, mediaId } from './markdown';
+import { markdownInputRules, parsePastedMarkdown } from './markdown-input';
 import 'prosemirror-view/style/prosemirror.css';
 import 'prosemirror-gapcursor/style/gapcursor.css';
 
@@ -37,17 +39,25 @@ export function makeView(
   }
   const view = new EditorView(host, {
     editable: () => !hooks.locked(),
-    attributes: {
+    attributes: (state) => ({
+      class: 'course-article',
+      'data-empty': String(
+        state.doc.childCount === 1 &&
+          state.doc.firstChild!.isTextblock &&
+          state.doc.firstChild!.content.size === 0,
+      ),
+      'aria-placeholder': 'Начните писать здесь',
       role: 'textbox',
       'aria-multiline': 'true',
       'aria-label': 'Теория статьи',
       spellcheck: 'true',
       lang: 'ru',
-    },
+    }),
     state: EditorState.create({
       doc: parsed.doc,
       plugins: [
         history(),
+        markdownInputRules(),
         keymap({
           'Mod-End': (state, dispatch) => {
             dispatch?.(state.tr.setSelection(Selection.atEnd(state.doc)).scrollIntoView());
@@ -57,6 +67,7 @@ export function makeView(
             dispatch?.(state.tr.setSelection(Selection.atStart(state.doc)).scrollIntoView());
             return true;
           },
+          Backspace: undoInputRule,
           'Mod-z': undo,
           'Mod-Shift-z': redo,
           'Mod-y': redo,
@@ -75,6 +86,22 @@ export function makeView(
         gapCursor(),
       ],
     }),
+    clipboardTextParser: parsePastedMarkdown,
+    decorations(state) {
+      const summaries: Decoration[] = [];
+      state.doc.descendants((node, pos) => {
+        const first = node.firstChild;
+        if (
+          node.type.name === 'blockquote' &&
+          first?.type.name === 'paragraph' &&
+          first.childCount === 1 &&
+          first.textContent === 'Коротко' &&
+          first.firstChild?.marks.some((mark) => mark.type.name === 'strong')
+        )
+          summaries.push(Decoration.node(pos, pos + node.nodeSize, { class: 'article-summary' }));
+      });
+      return DecorationSet.create(state.doc, summaries);
+    },
     nodeViews: {
       math_block: mathView,
       math_inline: mathView,

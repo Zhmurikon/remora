@@ -1,0 +1,15 @@
+{
+  "percentages": [
+    12.5,
+    50,
+    100,
+    200,
+    350,
+    1000,
+    1500
+  ],
+  "preservesCurrentTime": true,
+  "emptyAndZeroRestoreLastValid": true,
+  "keepsSpeedOnReplayAndVariantSwitch": true,
+  "mobile320NoOverflow": true
+}

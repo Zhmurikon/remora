@@ -84,8 +84,11 @@ describe('каталог задач Python', () => {
     ]) {
       await pyodide.loadPackage(resolve(import.meta.dirname, '../../../vendor/pyodide', file));
     }
-    pyodide.runPython('import pandas\nimport scipy\nimport matplotlib\nmatplotlib.use("Agg")');
-  }, 60_000);
+    // Первые импорты тяжёлых подмодулей относятся к подготовке среды, а не к решению задачи.
+    pyodide.runPython(
+      'import pandas\nimport scipy.stats\nimport matplotlib\nmatplotlib.use("Agg")\nimport matplotlib.pyplot as plt\n__warmup_figure = plt.figure()\n__warmup_figure.canvas.draw()\nplt.close(__warmup_figure)\ndel __warmup_figure',
+    );
+  }, 120_000);
 
   it('проверяется той же версией CPython, что и браузерный исполнитель', () => {
     expect(pyodide.runPython('import sys; sys.version')).toContain('3.14.2');

@@ -1,0 +1,346 @@
+[
+  {
+    "url": "/podborki",
+    "width": 320,
+    "scrollWidth": 305,
+    "headers": 1,
+    "title": "Меньше искать.Больше разбираться.",
+    "theme": "light",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/podborki",
+    "width": 1440,
+    "scrollWidth": 1425,
+    "headers": 1,
+    "title": "Меньше искать.Больше разбираться.",
+    "theme": "light",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/podborki",
+    "width": 320,
+    "scrollWidth": 305,
+    "headers": 1,
+    "title": "Меньше искать.Больше разбираться.",
+    "theme": "dark",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/podborki",
+    "width": 1440,
+    "scrollWidth": 1425,
+    "headers": 1,
+    "title": "Меньше искать.Больше разбираться.",
+    "theme": "dark",
+    "oldHeaders": 0
+  },
+  {
+    "path": "/podborki",
+    "menu": {
+      "expanded": "false",
+      "focus": "header-toggle inked"
+    }
+  },
+  {
+    "url": "/podborki/k-pervomu-zachetu",
+    "width": 320,
+    "scrollWidth": 305,
+    "headers": 1,
+    "title": "К первому зачёту",
+    "theme": "light",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/podborki/k-pervomu-zachetu",
+    "width": 1440,
+    "scrollWidth": 1425,
+    "headers": 1,
+    "title": "К первому зачёту",
+    "theme": "light",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/podborki/k-pervomu-zachetu",
+    "width": 320,
+    "scrollWidth": 305,
+    "headers": 1,
+    "title": "К первому зачёту",
+    "theme": "dark",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/podborki/k-pervomu-zachetu",
+    "width": 1440,
+    "scrollWidth": 1425,
+    "headers": 1,
+    "title": "К первому зачёту",
+    "theme": "dark",
+    "oldHeaders": 0
+  },
+  {
+    "path": "/podborki/k-pervomu-zachetu",
+    "menu": {
+      "expanded": "false",
+      "focus": "header-toggle inked"
+    }
+  },
+  {
+    "url": "/privacy",
+    "width": 320,
+    "scrollWidth": 305,
+    "headers": 1,
+    "title": "Политика конфиденциальности",
+    "theme": "light",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/privacy",
+    "width": 1440,
+    "scrollWidth": 1425,
+    "headers": 1,
+    "title": "Политика конфиденциальности",
+    "theme": "light",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/privacy",
+    "width": 320,
+    "scrollWidth": 305,
+    "headers": 1,
+    "title": "Политика конфиденциальности",
+    "theme": "dark",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/privacy",
+    "width": 1440,
+    "scrollWidth": 1425,
+    "headers": 1,
+    "title": "Политика конфиденциальности",
+    "theme": "dark",
+    "oldHeaders": 0
+  },
+  {
+    "path": "/privacy",
+    "menu": {
+      "expanded": "false",
+      "focus": "header-toggle inked"
+    }
+  },
+  {
+    "url": "/terms",
+    "width": 320,
+    "scrollWidth": 305,
+    "headers": 1,
+    "title": "Условия использования",
+    "theme": "light",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/terms",
+    "width": 1440,
+    "scrollWidth": 1425,
+    "headers": 1,
+    "title": "Условия использования",
+    "theme": "light",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/terms",
+    "width": 320,
+    "scrollWidth": 305,
+    "headers": 1,
+    "title": "Условия использования",
+    "theme": "dark",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/terms",
+    "width": 1440,
+    "scrollWidth": 1425,
+    "headers": 1,
+    "title": "Условия использования",
+    "theme": "dark",
+    "oldHeaders": 0
+  },
+  {
+    "path": "/terms",
+    "menu": {
+      "expanded": "false",
+      "focus": "header-toggle inked"
+    }
+  },
+  {
+    "url": "/en/privacy",
+    "width": 320,
+    "scrollWidth": 305,
+    "headers": 1,
+    "title": "Privacy Policy",
+    "theme": "light",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/en/privacy",
+    "width": 1440,
+    "scrollWidth": 1425,
+    "headers": 1,
+    "title": "Privacy Policy",
+    "theme": "light",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/en/privacy",
+    "width": 320,
+    "scrollWidth": 305,
+    "headers": 1,
+    "title": "Privacy Policy",
+    "theme": "dark",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/en/privacy",
+    "width": 1440,
+    "scrollWidth": 1425,
+    "headers": 1,
+    "title": "Privacy Policy",
+    "theme": "dark",
+    "oldHeaders": 0
+  },
+  {
+    "path": "/en/privacy",
+    "menu": {
+      "expanded": "false",
+      "focus": "header-toggle inked"
+    }
+  },
+  {
+    "url": "/en/terms",
+    "width": 320,
+    "scrollWidth": 305,
+    "headers": 1,
+    "title": "Terms of Use",
+    "theme": "light",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/en/terms",
+    "width": 1440,
+    "scrollWidth": 1425,
+    "headers": 1,
+    "title": "Terms of Use",
+    "theme": "light",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/en/terms",
+    "width": 320,
+    "scrollWidth": 305,
+    "headers": 1,
+    "title": "Terms of Use",
+    "theme": "dark",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/en/terms",
+    "width": 1440,
+    "scrollWidth": 1425,
+    "headers": 1,
+    "title": "Terms of Use",
+    "theme": "dark",
+    "oldHeaders": 0
+  },
+  {
+    "path": "/en/terms",
+    "menu": {
+      "expanded": "false",
+      "focus": "header-toggle inked"
+    }
+  },
+  {
+    "url": "/rasshifrovka",
+    "width": 320,
+    "scrollWidth": 305,
+    "headers": 1,
+    "title": "Превратите запись в аккуратный текст",
+    "theme": "light",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/rasshifrovka",
+    "width": 1440,
+    "scrollWidth": 1425,
+    "headers": 1,
+    "title": "Превратите запись в аккуратный текст",
+    "theme": "light",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/rasshifrovka",
+    "width": 320,
+    "scrollWidth": 305,
+    "headers": 1,
+    "title": "Превратите запись в аккуратный текст",
+    "theme": "dark",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/rasshifrovka",
+    "width": 1440,
+    "scrollWidth": 1425,
+    "headers": 1,
+    "title": "Превратите запись в аккуратный текст",
+    "theme": "dark",
+    "oldHeaders": 0
+  },
+  {
+    "path": "/rasshifrovka",
+    "menu": {
+      "expanded": "false",
+      "focus": ""
+    }
+  },
+  {
+    "url": "/rasshifrovka-yandex",
+    "width": 320,
+    "scrollWidth": 305,
+    "headers": 1,
+    "title": "Проверьте расшифровку через SpeechKit",
+    "theme": "light",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/rasshifrovka-yandex",
+    "width": 1440,
+    "scrollWidth": 1425,
+    "headers": 1,
+    "title": "Проверьте расшифровку через SpeechKit",
+    "theme": "light",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/rasshifrovka-yandex",
+    "width": 320,
+    "scrollWidth": 305,
+    "headers": 1,
+    "title": "Проверьте расшифровку через SpeechKit",
+    "theme": "dark",
+    "oldHeaders": 0
+  },
+  {
+    "url": "/rasshifrovka-yandex",
+    "width": 1440,
+    "scrollWidth": 1425,
+    "headers": 1,
+    "title": "Проверьте расшифровку через SpeechKit",
+    "theme": "dark",
+    "oldHeaders": 0
+  },
+  {
+    "path": "/rasshifrovka-yandex",
+    "menu": {
+      "expanded": "false",
+      "focus": ""
+    }
+  }
+]

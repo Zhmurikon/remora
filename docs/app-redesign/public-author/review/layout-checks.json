@@ -1,0 +1,416 @@
+[
+  {
+    "theme": "light",
+    "width": 320,
+    "result": {
+      "width": 320,
+      "documentWidth": 305,
+      "overflow": [],
+      "links": [
+        {
+          "href": "/kursy",
+          "height": 44
+        },
+        {
+          "href": "#author-courses",
+          "height": 44
+        },
+        {
+          "href": "#author-stats",
+          "height": 44
+        },
+        {
+          "href": "/kurs/course-7499b5e0-0b85-4048-a5d6-f0b071e44af8",
+          "height": 108
+        }
+      ],
+      "background": "rgb(251, 251, 249)"
+    }
+  },
+  {
+    "theme": "light",
+    "width": 390,
+    "result": {
+      "width": 390,
+      "documentWidth": 375,
+      "overflow": [],
+      "links": [
+        {
+          "href": "/kursy",
+          "height": 44
+        },
+        {
+          "href": "#author-courses",
+          "height": 44
+        },
+        {
+          "href": "#author-stats",
+          "height": 44
+        },
+        {
+          "href": "/kurs/course-7499b5e0-0b85-4048-a5d6-f0b071e44af8",
+          "height": 81
+        }
+      ],
+      "background": "rgb(251, 251, 249)"
+    }
+  },
+  {
+    "theme": "light",
+    "width": 768,
+    "result": {
+      "width": 768,
+      "documentWidth": 753,
+      "overflow": [],
+      "links": [
+        {
+          "href": "/kursy",
+          "height": 44
+        },
+        {
+          "href": "#author-courses",
+          "height": 44
+        },
+        {
+          "href": "#author-stats",
+          "height": 44
+        },
+        {
+          "href": "/kurs/course-7499b5e0-0b85-4048-a5d6-f0b071e44af8",
+          "height": 59.375
+        }
+      ],
+      "background": "rgb(251, 251, 249)"
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1024,
+    "result": {
+      "width": 1024,
+      "documentWidth": 1009,
+      "overflow": [],
+      "links": [
+        {
+          "href": "/kursy",
+          "height": 44
+        },
+        {
+          "href": "#author-courses",
+          "height": 44
+        },
+        {
+          "href": "#author-stats",
+          "height": 44
+        },
+        {
+          "href": "/kurs/course-7499b5e0-0b85-4048-a5d6-f0b071e44af8",
+          "height": 44
+        }
+      ],
+      "background": "rgb(251, 251, 249)"
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1440,
+    "result": {
+      "width": 1440,
+      "documentWidth": 1425,
+      "overflow": [],
+      "links": [
+        {
+          "href": "/kursy",
+          "height": 44
+        },
+        {
+          "href": "#author-courses",
+          "height": 44
+        },
+        {
+          "href": "#author-stats",
+          "height": 44
+        },
+        {
+          "href": "/kurs/course-7499b5e0-0b85-4048-a5d6-f0b071e44af8",
+          "height": 44
+        }
+      ],
+      "background": "rgb(251, 251, 249)"
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1920,
+    "result": {
+      "width": 1920,
+      "documentWidth": 1905,
+      "overflow": [],
+      "links": [
+        {
+          "href": "/kursy",
+          "height": 44
+        },
+        {
+          "href": "#author-courses",
+          "height": 44
+        },
+        {
+          "href": "#author-stats",
+          "height": 44
+        },
+        {
+          "href": "/kurs/course-7499b5e0-0b85-4048-a5d6-f0b071e44af8",
+          "height": 44
+        }
+      ],
+      "background": "rgb(251, 251, 249)"
+    }
+  },
+  {
+    "theme": "light",
+    "width": 3840,
+    "result": {
+      "width": 3840,
+      "documentWidth": 3825,
+      "overflow": [],
+      "links": [
+        {
+          "href": "/kursy",
+          "height": 44.625
+        },
+        {
+          "href": "#author-courses",
+          "height": 51
+        },
+        {
+          "href": "#author-stats",
+          "height": 51
+        },
+        {
+          "href": "/kurs/course-7499b5e0-0b85-4048-a5d6-f0b071e44af8",
+          "height": 63.109375
+        }
+      ],
+      "background": "rgb(251, 251, 249)"
+    }
+  },
+  {
+    "theme": "light",
+    "width": 320,
+    "textScale": "200%",
+    "result": {
+      "width": 320,
+      "documentWidth": 305,
+      "profileWidth": 305,
+      "overflow": []
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 320,
+    "result": {
+      "width": 320,
+      "documentWidth": 305,
+      "overflow": [],
+      "links": [
+        {
+          "href": "/kursy",
+          "height": 44
+        },
+        {
+          "href": "#author-courses",
+          "height": 44
+        },
+        {
+          "href": "#author-stats",
+          "height": 44
+        },
+        {
+          "href": "/kurs/course-7499b5e0-0b85-4048-a5d6-f0b071e44af8",
+          "height": 108
+        }
+      ],
+      "background": "rgb(20, 25, 28)"
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 390,
+    "result": {
+      "width": 390,
+      "documentWidth": 375,
+      "overflow": [],
+      "links": [
+        {
+          "href": "/kursy",
+          "height": 44
+        },
+        {
+          "href": "#author-courses",
+          "height": 44
+        },
+        {
+          "href": "#author-stats",
+          "height": 44
+        },
+        {
+          "href": "/kurs/course-7499b5e0-0b85-4048-a5d6-f0b071e44af8",
+          "height": 81
+        }
+      ],
+      "background": "rgb(20, 25, 28)"
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 768,
+    "result": {
+      "width": 768,
+      "documentWidth": 753,
+      "overflow": [],
+      "links": [
+        {
+          "href": "/kursy",
+          "height": 44
+        },
+        {
+          "href": "#author-courses",
+          "height": 44
+        },
+        {
+          "href": "#author-stats",
+          "height": 44
+        },
+        {
+          "href": "/kurs/course-7499b5e0-0b85-4048-a5d6-f0b071e44af8",
+          "height": 59.375
+        }
+      ],
+      "background": "rgb(20, 25, 28)"
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1024,
+    "result": {
+      "width": 1024,
+      "documentWidth": 1009,
+      "overflow": [],
+      "links": [
+        {
+          "href": "/kursy",
+          "height": 44
+        },
+        {
+          "href": "#author-courses",
+          "height": 44
+        },
+        {
+          "href": "#author-stats",
+          "height": 44
+        },
+        {
+          "href": "/kurs/course-7499b5e0-0b85-4048-a5d6-f0b071e44af8",
+          "height": 44
+        }
+      ],
+      "background": "rgb(20, 25, 28)"
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "result": {
+      "width": 1440,
+      "documentWidth": 1425,
+      "overflow": [],
+      "links": [
+        {
+          "href": "/kursy",
+          "height": 44
+        },
+        {
+          "href": "#author-courses",
+          "height": 44
+        },
+        {
+          "href": "#author-stats",
+          "height": 44
+        },
+        {
+          "href": "/kurs/course-7499b5e0-0b85-4048-a5d6-f0b071e44af8",
+          "height": 44
+        }
+      ],
+      "background": "rgb(20, 25, 28)"
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1920,
+    "result": {
+      "width": 1920,
+      "documentWidth": 1905,
+      "overflow": [],
+      "links": [
+        {
+          "href": "/kursy",
+          "height": 44
+        },
+        {
+          "href": "#author-courses",
+          "height": 44
+        },
+        {
+          "href": "#author-stats",
+          "height": 44
+        },
+        {
+          "href": "/kurs/course-7499b5e0-0b85-4048-a5d6-f0b071e44af8",
+          "height": 44
+        }
+      ],
+      "background": "rgb(20, 25, 28)"
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 3840,
+    "result": {
+      "width": 3840,
+      "documentWidth": 3825,
+      "overflow": [],
+      "links": [
+        {
+          "href": "/kursy",
+          "height": 44.625
+        },
+        {
+          "href": "#author-courses",
+          "height": 51
+        },
+        {
+          "href": "#author-stats",
+          "height": 51
+        },
+        {
+          "href": "/kurs/course-7499b5e0-0b85-4048-a5d6-f0b071e44af8",
+          "height": 63.109375
+        }
+      ],
+      "background": "rgb(20, 25, 28)"
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 320,
+    "textScale": "200%",
+    "result": {
+      "width": 320,
+      "documentWidth": 305,
+      "profileWidth": 305,
+      "overflow": []
+    }
+  }
+]

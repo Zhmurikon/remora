@@ -25,6 +25,7 @@ function memoryStorage(): Storage {
 
 const { clear, detachSession, enqueue, flush, pendingCount } = await import('./review-queue');
 const { finishSession } = await import('./use-study-session');
+const { useStudyStore } = await import('./study-store');
 
 function review(id: string) {
   return {
@@ -43,6 +44,7 @@ beforeEach(() => {
   vi.stubGlobal('localStorage', memoryStorage());
   post.mockReset();
   clear();
+  useStudyStore.getState().reset();
 });
 
 describe('очередь неотправленных ответов', () => {
@@ -91,6 +93,38 @@ describe('очередь неотправленных ответов', () => {
     expect(post).toHaveBeenCalledTimes(1);
     expect(first).toEqual(second);
     expect(pendingCount()).toBe(0);
+  });
+
+  it('после исключения fetch показывает offline и повторяет ответы с теми же ID', async () => {
+    post.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    enqueue(review('a'), 'session-1');
+
+    await expect(useStudyStore.getState().syncNow()).resolves.toBeUndefined();
+    expect(useStudyStore.getState()).toMatchObject({ sync: 'offline', pending: 1 });
+    expect(pendingCount()).toBe(1);
+
+    post.mockResolvedValue({ data: {} });
+    await useStudyStore.getState().syncNow();
+
+    expect(useStudyStore.getState()).toMatchObject({ sync: 'idle', pending: 0 });
+    expect(post.mock.calls[1]?.[1].body).toEqual(post.mock.calls[0]?.[1].body);
+    expect(pendingCount()).toBe(0);
+  });
+
+  it('при обрыве следующего батча учитывает новые ответы и сохраняет только неотправленные', async () => {
+    for (let i = 0; i < 101; i++) enqueue(review(String(i)), 'session-1');
+    post.mockResolvedValueOnce({ data: {} });
+    post.mockImplementationOnce(async () => {
+      enqueue(review('new'), 'session-1');
+      throw new TypeError('Failed to fetch');
+    });
+
+    await expect(flush()).resolves.toEqual({ sent: 100, left: 2, ok: false });
+    expect(pendingCount()).toBe(2);
+
+    post.mockResolvedValue({ data: {} });
+    await expect(flush()).resolves.toEqual({ sent: 2, left: 0, ok: true });
+    expect(post.mock.calls[2]?.[1].body.reviews).toEqual([review('100'), review('new')]);
   });
 
   it('не теряет ответы, добавленные во время отправки', async () => {
@@ -157,6 +191,16 @@ describe('очередь неотправленных ответов', () => {
 
   it('не закрывает сессию, если последний батч не отправился', async () => {
     post.mockResolvedValue({ error: { code: 'NETWORK' } });
+    enqueue(review('a'), 'session-1');
+
+    await expect(finishSession('session-1')).resolves.toBe(false);
+
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(pendingCount()).toBe(1);
+  });
+
+  it('не закрывает сессию при исключении fetch во время отправки ответов', async () => {
+    post.mockRejectedValue(new TypeError('Failed to fetch'));
     enqueue(review('a'), 'session-1');
 
     await expect(finishSession('session-1')).resolves.toBe(false);

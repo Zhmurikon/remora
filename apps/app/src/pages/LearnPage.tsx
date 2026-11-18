@@ -15,9 +15,9 @@ import {
   pluralWithCount,
   type Rating,
 } from '@remora/core';
-import { Badge, Button, Card, CardContent, Input } from '@remora/ui';
+import { Button, Card, CardContent, Input } from '@remora/ui';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Diff, SessionSummary } from '../features/study/SessionSummary';
 import {
   answerImage,
@@ -26,7 +26,8 @@ import {
   questionImage,
   questionSide,
 } from '../features/study/card-sides';
-import { StudyShell } from '../features/study/StudyShell';
+import { StudyHint, StudyShell, StudyState } from '../features/study/StudyShell';
+import { useStudyTransition } from '../features/study/study-transition';
 import { selectCurrent, useStudyStore, type QueueItem } from '../features/study/study-store';
 import {
   useStudySession,
@@ -46,6 +47,7 @@ export function LearnPage() {
   const targetId = setId ?? courseId ?? folderId ?? '';
   const isCourse = Boolean(courseId);
   const isFolder = Boolean(folderId);
+  const navigate = useNavigate();
   const [params] = useSearchParams();
   const direction = (params.get('direction') as StudyDirectionMode | null) ?? 'term_to_def';
 
@@ -67,12 +69,14 @@ export function LearnPage() {
   const answer = useStudyStore((state) => state.answer);
   const finalizeSession = useStudySessionFinalizer(sessionId);
 
+  const { schedule, cancel } = useStudyTransition();
   const [typed, setTyped] = useState('');
   const [checked, setChecked] = useState<CheckedAnswer | null>(null);
   const [roundBreak, setRoundBreak] = useState(false);
   const [finished, setFinished] = useState(false);
   const shownAt = useRef(Date.now());
   const inputRef = useRef<HTMLInputElement>(null);
+  const continueRef = useRef<HTMLButtonElement>(null);
 
   const pool = useMemo(
     () =>
@@ -161,13 +165,14 @@ export function LearnPage() {
     setChecked({ correct, value: typed, similarity });
     if (correct) {
       // Верный ввод — оценка «хорошо», карточка уходит по расписанию.
-      setTimeout(() => advance(3, true, typed), 450);
+      schedule(() => advance(3, true, typed), 450);
     }
-  }, [advance, checked, current, queue, typed]);
+  }, [advance, checked, current, queue, schedule, typed]);
 
   useEffect(() => {
-    if (kind === 'typing') inputRef.current?.focus();
-  }, [index, kind]);
+    if (kind === 'typing' && checked?.correct === false) continueRef.current?.focus();
+    else if (kind === 'typing' && !checked) inputRef.current?.focus();
+  }, [checked, current?.card.id, index, kind]);
 
   useEffect(() => {
     if (items.length > 0 && (finished || !current)) void finalizeSession();
@@ -175,6 +180,13 @@ export function LearnPage() {
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
+      if (
+        finished ||
+        roundBreak ||
+        (event.target instanceof HTMLElement &&
+          event.target.closest('input, textarea, select, [contenteditable="true"]'))
+      )
+        return;
       const position = Number(event.key);
       if (!Number.isInteger(position) || position < 1) return;
 
@@ -193,7 +205,7 @@ export function LearnPage() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [advance, checked, kind, options]);
+  }, [advance, checked, finished, kind, options, roundBreak]);
 
   function pick(option: string) {
     if (!current || checked) return;
@@ -201,26 +213,73 @@ export function LearnPage() {
     setChecked({ correct, value: option });
     // Выбор из вариантов маппится в two-way оценку: верно → «хорошо»,
     // неверно → «не помню». Промежуточных градаций тут нет.
-    setTimeout(() => advance(correct ? 3 : 1, correct, option), correct ? 450 : 1400);
+    schedule(() => advance(correct ? 3 : 1, correct, option), correct ? 450 : 1400);
   }
 
-  if (query.isPending) return <p className="text-fg-muted">Собираем очередь…</p>;
-  if (query.isError) return <p className="text-danger">Не удалось загрузить очередь.</p>;
+  if (query.isPending) return <StudyState title="Готовим тренировку" loading />;
+  if (query.isError)
+    return (
+      <StudyState
+        title="Не удалось загрузить карточки"
+        error
+        actions={
+          <>
+            <Button onClick={() => void query.refetch()}>Попробовать снова</Button>
+            <Button
+              variant="ghost"
+              onClick={() =>
+                navigate(
+                  isCourse
+                    ? `/courses/${targetId}`
+                    : isFolder
+                      ? '/sets/manage'
+                      : `/sets/${targetId}`,
+                )
+              }
+            >
+              К материалам
+            </Button>
+          </>
+        }
+      >
+        Проверьте подключение и попробуйте ещё раз.
+      </StudyState>
+    );
 
   if (items.length === 0)
-    return <p className="text-fg-muted">В этом наборе пока нет карточек для заучивания.</p>;
+    return (
+      <StudyState
+        title="Пока нечего повторять"
+        actions={
+          <Button
+            onClick={() =>
+              navigate(
+                isCourse ? `/courses/${targetId}` : isFolder ? '/sets/manage' : `/sets/${targetId}`,
+              )
+            }
+          >
+            К материалам
+          </Button>
+        }
+      >
+        Нет карточек для заучивания. Вернитесь к материалам, чтобы выбрать другой режим или добавить
+        карточки.
+      </StudyState>
+    );
 
   if (finished || !current) {
     const last = answers.at(-1);
     return (
       <SessionSummary
         setId={targetId}
-        backHref={isCourse ? '/courses' : isFolder ? '/sets' : undefined}
-        backLabel={isCourse ? 'К курсам' : isFolder ? 'К папке' : undefined}
+        backHref={isCourse ? `/courses/${targetId}` : isFolder ? '/sets/manage' : undefined}
+        backLabel={isCourse ? 'К курсу' : isFolder ? 'К папкам' : undefined}
         answers={answers}
         nextDueSeconds={nextDueSeconds(items, last?.cardId)}
         onRestart={async () => {
           if (!(await finalizeSession())) return;
+          setTyped('');
+          setChecked(null);
           setFinished(false);
           await query.refetch();
         }}
@@ -231,16 +290,12 @@ export function LearnPage() {
   if (roundBreak) {
     const done = index;
     return (
-      <Card className="mx-auto max-w-lg p-8 text-center">
-        <p className="text-4xl" aria-hidden="true">
-          ⚡
-        </p>
-        <h1 className="mt-4 text-xl font-semibold">Раунд пройден</h1>
+      <StudyState title="Раунд пройден">
         <p className="text-fg-muted mt-2">
           {pluralWithCount(done, ['карточка', 'карточки', 'карточек'])} позади, осталось{' '}
           {items.length - done}.
         </p>
-        <div className="mt-6 flex justify-center gap-3">
+        <div className="study-state-actions">
           <Button onClick={() => setRoundBreak(false)}>Продолжить</Button>
           <Button
             variant="ghost"
@@ -252,7 +307,7 @@ export function LearnPage() {
             Закончить
           </Button>
         </div>
-      </Card>
+      </StudyState>
     );
   }
 
@@ -273,23 +328,44 @@ export function LearnPage() {
           ? ` · успешно ${currentSuccesses} из ${queue?.learn_successes_required}`
           : ''
       }`}
+      footer={
+        <p className="study-shortcuts">
+          {kind === 'choice' ? (
+            <>
+              <kbd>1–4</kbd> выбрать ответ
+            </>
+          ) : kind === 'typing' ? (
+            <>
+              <kbd>Enter</kbd> проверить ответ
+            </>
+          ) : (
+            <>
+              <kbd>1–4</kbd> оценить ответ после открытия
+            </>
+          )}
+        </p>
+      }
       done={index}
       total={items.length}
       onExit={() => {
+        cancel();
+        if (checked && (kind === 'choice' || (kind === 'typing' && checked.correct === true))) {
+          advance(checked.correct ? 3 : 1, checked.correct === true, checked.value);
+        }
         void finalizeSession();
         setFinished(true);
       }}
     >
-      <Card className="p-6 sm:p-8">
-        <Badge tone="neutral">
+      <Card className="study-question">
+        <p className="study-side">
           {current.direction === 'term_to_def' ? 'Термин → определение' : 'Определение → термин'}
-        </Badge>
+        </p>
         {current.source_set_title && (
           <p className="text-fg-subtle mt-3 text-sm">
             {current.source_article_title ?? current.source_set_title}
           </p>
         )}
-        <div className="mt-5 text-2xl">
+        <div className="study-question-content">
           <CardContent
             value={question}
             type={current.card.content_type}
@@ -299,21 +375,23 @@ export function LearnPage() {
           />
         </div>
         {current.card.hint && !checked && (
-          <p className="text-fg-subtle mt-3 text-sm">Подсказка: {current.card.hint}</p>
+          <StudyHint key={current.card.id}>{current.card.hint}</StudyHint>
         )}
       </Card>
 
       {kind === 'choice' && (
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <div className="study-options">
           {options.map((option, position) => (
             <button
               key={option}
               type="button"
               onClick={() => pick(option)}
               disabled={checked !== null}
-              className={`focus-visible:ring-primary flex min-h-16 items-start gap-2 rounded-lg border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 ${optionStyle(option, expected, checked)}`}
+              className={`study-option ${optionStyle(option, expected, checked)}`}
             >
-              <span className="text-fg-subtle shrink-0 text-sm">{position + 1}</span>
+              <span className="study-option-number" aria-hidden="true">
+                {position + 1}
+              </span>
               <div className="min-w-0 flex-1">
                 <CardContent
                   value={option}
@@ -328,7 +406,7 @@ export function LearnPage() {
 
       {kind === 'typing' && (
         <form
-          className="mt-5"
+          className="study-answer-form"
           onSubmit={(event) => {
             event.preventDefault();
             if (checked?.correct === false) advance(1, false, checked.value);
@@ -339,16 +417,19 @@ export function LearnPage() {
             ref={inputRef}
             value={typed}
             onChange={(event) => setTyped(event.target.value)}
-            placeholder="Ваш ответ"
+            label="Ваш ответ"
+            placeholder="Введите ответ по памяти"
             autoComplete="off"
             autoCapitalize="off"
             spellCheck={false}
             aria-label="Ваш ответ"
             disabled={checked !== null}
           />
-          <div className="mt-3 flex flex-wrap gap-3">
+          <div className="study-actions">
             {!checked || checked.correct === false ? (
-              <Button type="submit">{checked?.correct === false ? 'Дальше' : 'Проверить'}</Button>
+              <Button type="submit" ref={continueRef}>
+                {checked?.correct === false ? 'Дальше' : 'Проверить'}
+              </Button>
             ) : null}
             {!checked && (
               <Button type="button" variant="ghost" onClick={() => advance(1, false, '')}>
@@ -357,12 +438,14 @@ export function LearnPage() {
             )}
           </div>
           {checked?.correct === null && (
-            <Card className="mt-4 p-5">
+            <Card className="study-feedback" role="status">
               <p className="text-fg-muted text-sm">Правильный ответ</p>
               <CardContent
                 value={expected}
                 type={current.card.content_type}
                 codeLanguage={current.card.code_language}
+                imageUrl={answerImage(current)}
+                imageAlt="Изображение ответа"
                 className="mt-1 font-medium"
               />
               <p className="text-fg-subtle mt-3 text-sm">
@@ -386,12 +469,13 @@ export function LearnPage() {
       )}
 
       {kind === 'recall' && (
-        <div className="mt-5">
+        <div className="study-recall">
           {!checked ? (
             <Button onClick={() => setChecked({ correct: true, value: '' })}>Показать ответ</Button>
           ) : (
             <>
-              <Card className="p-5">
+              <Card className="study-feedback" role="status">
+                <p className="study-side">Ответ</p>
                 <CardContent
                   value={expected}
                   type={current.card.content_type}
@@ -403,11 +487,11 @@ export function LearnPage() {
               <p className="text-fg-muted mt-4 text-sm">
                 Насколько легко вспомнилось? Клавиши 1–4.
               </p>
-              <div className="mt-2 grid gap-2 sm:grid-cols-4">
+              <div className="study-ratings">
                 {current.previews.map((preview) => (
                   <Button
                     key={preview.rating}
-                    variant={preview.rating >= 3 ? 'primary' : 'secondary'}
+                    variant={preview.rating === 3 ? 'primary' : 'secondary'}
                     onClick={() =>
                       advance(preview.rating as Rating, preview.rating >= 3, undefined)
                     }
@@ -428,9 +512,19 @@ export function LearnPage() {
         </div>
       )}
 
+      {checked?.correct === true && kind !== 'recall' && (
+        <div className="study-feedback study-feedback-success" role="status">
+          <p className="text-success study-feedback-title">
+            <span aria-hidden="true">✓</span> Верно
+          </p>
+        </div>
+      )}
+
       {checked?.correct === false && (
-        <Card className="border-danger mt-5 p-5">
-          <p className="text-danger text-sm font-medium">Не совсем</p>
+        <Card className="study-feedback study-feedback-error" role="status">
+          <p className="text-danger study-feedback-title">
+            <span aria-hidden="true">↺</span> Повторим эту карточку
+          </p>
           <p className="mt-2 text-sm">Правильно:</p>
           <CardContent
             value={expected}

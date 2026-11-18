@@ -1,0 +1,246 @@
+.shell,
+.state {
+  --state-paper: rgb(var(--rm-lecture-paper));
+  --state-surface: rgb(var(--rm-lecture-surface));
+  --state-ink: rgb(var(--rm-lecture-ink));
+  --state-muted: rgb(var(--rm-lecture-muted));
+  --state-blue: rgb(var(--rm-lecture-action));
+  --state-blue-deep: rgb(var(--rm-lecture-blue));
+  --state-line: rgb(var(--rm-lecture-line));
+  box-sizing: border-box;
+  color: var(--state-ink);
+  font:
+    1rem/1.55 Inter,
+    'Segoe UI',
+    Arial,
+    sans-serif;
+}
+
+.shell {
+  min-height: 100dvh;
+  background: var(--state-paper);
+}
+
+.shell *,
+.state *,
+.shell *::before,
+.state *::before,
+.shell *::after,
+.state *::after {
+  box-sizing: border-box;
+}
+
+.skip {
+  position: fixed;
+  top: 0.75rem;
+  left: 1rem;
+  z-index: 50;
+  min-height: 44px;
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--state-line);
+  border-radius: 0.625rem;
+  background: var(--state-surface);
+  color: var(--state-blue);
+  transform: translateY(-150%);
+}
+
+.skip:focus {
+  transform: translateY(0);
+}
+
+.state {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(16rem, 0.95fr);
+  align-items: center;
+  gap: clamp(2rem, 7vw, 7rem);
+  width: min(90%, 73.75rem);
+  min-height: clamp(32rem, 70dvh, 52rem);
+  margin-inline: auto;
+  padding-block: clamp(3rem, 8vw, 7rem);
+  overflow: hidden;
+}
+
+.copy {
+  min-width: 0;
+}
+
+.code {
+  width: max-content;
+  margin: 0 0 1rem;
+  color: var(--state-blue);
+  font:
+    italic 400 1.125em/1 Georgia,
+    'Times New Roman',
+    serif;
+}
+
+.state h1 {
+  max-width: 13ch;
+  margin: 0;
+  font:
+    400 clamp(2.5em, 5.2vw, 4.75em)/1.03 Georgia,
+    'Times New Roman',
+    serif;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.description {
+  max-width: 36rem;
+  margin: 1.5rem 0 0;
+  color: var(--state-muted);
+  font-size: 1.125em;
+  line-height: 1.65;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+  margin-top: 2rem;
+}
+
+.primary,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  max-width: 100%;
+  font: inherit;
+  font-weight: 650;
+  text-align: center;
+  cursor: pointer;
+}
+
+.primary {
+  padding: 0.75rem 1.5rem;
+  border: 1px solid var(--state-blue-deep);
+  border-radius: 0.65rem;
+  background: var(--state-blue-deep);
+  color: var(--state-surface);
+  text-decoration: none;
+}
+
+.primary:is(:hover, :focus-visible) {
+  background: var(--state-blue);
+  border-color: var(--state-blue);
+}
+
+.secondary {
+  color: var(--state-blue);
+  text-underline-offset: 0.3em;
+}
+
+.secondary:is(:hover, :focus-visible) {
+  color: var(--state-blue-deep);
+  text-decoration-thickness: 2px;
+}
+
+.primary:focus-visible,
+.secondary:focus-visible {
+  outline: 3px solid var(--state-blue);
+  outline-offset: 4px;
+}
+
+.illustration {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+}
+
+.illustration::before {
+  position: absolute;
+  inset: 8% 5% 4%;
+  z-index: -1;
+  border: 1px solid var(--state-line);
+  border-radius: 1.25rem;
+  background-color: rgb(var(--rm-lecture-cream));
+  content: '';
+  transform: rotate(1.8deg);
+}
+
+.illustration img {
+  display: block;
+  width: min(100%, 37rem);
+  height: auto;
+  transform: rotate(-1deg);
+}
+
+.paperNumber {
+  position: absolute;
+  top: 2%;
+  right: 5%;
+  color: rgb(var(--rm-lecture-blue) / 0.24);
+  font:
+    italic 400 clamp(3rem, 8vw, 6.5rem)/1 Georgia,
+    'Times New Roman',
+    serif;
+}
+
+[data-state='error'] .illustration img {
+  transform: rotate(1deg) translateY(0.5rem);
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(:root:not([data-theme='light'])) .illustration img {
+    filter: brightness(1.2) saturate(0.78);
+  }
+}
+
+:global([data-theme='dark']) .illustration img {
+  filter: brightness(1.2) saturate(0.78);
+}
+
+@media (min-width: 100rem) {
+  .state,
+  .shell {
+    font-size: clamp(1rem, min(1vw, 1.74svh), 2.125rem);
+  }
+}
+
+@media (max-width: 760px) {
+  .state {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+    padding-block: 3rem 4rem;
+  }
+
+  .illustration {
+    grid-row: 1;
+    width: min(100%, 28rem);
+    margin-inline: auto;
+  }
+
+  .copy {
+    grid-row: 2;
+  }
+
+  .state h1 {
+    font-size: clamp(2.35em, 12vw, 3.5em);
+  }
+}
+
+@media (max-width: 600px) {
+  .state {
+    width: calc(100% - 2rem);
+  }
+
+  .actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .primary,
+  .secondary {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skip {
+    transition: none;
+  }
+}

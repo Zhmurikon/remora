@@ -1,0 +1,158 @@
+[
+  {
+    "state": "empty",
+    "theme": "light",
+    "width": 320,
+    "result": {
+      "width": 320,
+      "documentWidth": 305,
+      "profileWidth": 305,
+      "h1": "Тестовый автор",
+      "courses": 0,
+      "overflow": []
+    }
+  },
+  {
+    "state": "empty",
+    "theme": "light",
+    "width": 1440,
+    "result": {
+      "width": 1440,
+      "documentWidth": 1425,
+      "profileWidth": 1425,
+      "h1": "Тестовый автор",
+      "courses": 0,
+      "overflow": []
+    }
+  },
+  {
+    "state": "empty",
+    "theme": "dark",
+    "width": 320,
+    "result": {
+      "width": 320,
+      "documentWidth": 305,
+      "profileWidth": 305,
+      "h1": "Тестовый автор",
+      "courses": 0,
+      "overflow": []
+    }
+  },
+  {
+    "state": "empty",
+    "theme": "dark",
+    "width": 1440,
+    "result": {
+      "width": 1440,
+      "documentWidth": 1425,
+      "profileWidth": 1425,
+      "h1": "Тестовый автор",
+      "courses": 0,
+      "overflow": []
+    }
+  },
+  {
+    "state": "minimal",
+    "theme": "light",
+    "width": 320,
+    "result": {
+      "width": 320,
+      "documentWidth": 305,
+      "profileWidth": 305,
+      "h1": "@fixture-minimal",
+      "courses": 1,
+      "overflow": []
+    }
+  },
+  {
+    "state": "minimal",
+    "theme": "light",
+    "width": 1440,
+    "result": {
+      "width": 1440,
+      "documentWidth": 1425,
+      "profileWidth": 1425,
+      "h1": "@fixture-minimal",
+      "courses": 1,
+      "overflow": []
+    }
+  },
+  {
+    "state": "minimal",
+    "theme": "dark",
+    "width": 320,
+    "result": {
+      "width": 320,
+      "documentWidth": 305,
+      "profileWidth": 305,
+      "h1": "@fixture-minimal",
+      "courses": 1,
+      "overflow": []
+    }
+  },
+  {
+    "state": "minimal",
+    "theme": "dark",
+    "width": 1440,
+    "result": {
+      "width": 1440,
+      "documentWidth": 1425,
+      "profileWidth": 1425,
+      "h1": "@fixture-minimal",
+      "courses": 1,
+      "overflow": []
+    }
+  },
+  {
+    "state": "long",
+    "theme": "light",
+    "width": 320,
+    "result": {
+      "width": 320,
+      "documentWidth": 305,
+      "profileWidth": 305,
+      "h1": "Александра-Екатерина Константинопольская — преподаватель прикладной математики",
+      "courses": 3,
+      "overflow": []
+    }
+  },
+  {
+    "state": "long",
+    "theme": "light",
+    "width": 1440,
+    "result": {
+      "width": 1440,
+      "documentWidth": 1425,
+      "profileWidth": 1425,
+      "h1": "Александра-Екатерина Константинопольская — преподаватель прикладной математики",
+      "courses": 3,
+      "overflow": []
+    }
+  },
+  {
+    "state": "long",
+    "theme": "dark",
+    "width": 320,
+    "result": {
+      "width": 320,
+      "documentWidth": 305,
+      "profileWidth": 305,
+      "h1": "Александра-Екатерина Константинопольская — преподаватель прикладной математики",
+      "courses": 3,
+      "overflow": []
+    }
+  },
+  {
+    "state": "long",
+    "theme": "dark",
+    "width": 1440,
+    "result": {
+      "width": 1440,
+      "documentWidth": 1425,
+      "profileWidth": 1425,
+      "h1": "Александра-Екатерина Константинопольская — преподаватель прикладной математики",
+      "courses": 3,
+      "overflow": []
+    }
+  }
+]

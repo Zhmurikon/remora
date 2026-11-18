@@ -224,47 +224,6 @@
   outline: 2px solid rgb(var(--rm-primary));
   outline-offset: 3px;
 }
-.settings-savebar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-top: 2rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid rgb(var(--rm-border));
-}
-.settings-save-status {
-  font-size: 0.85rem;
-  color: rgb(var(--rm-fg-muted));
-}
-.settings-save-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-.settings-save-actions button {
-  padding: 0.6rem 1rem;
-  border-radius: 10px;
-}
-.settings-feedback {
-  margin: 1.2rem 0;
-  padding: 0.9rem 1rem;
-  border: 1px solid;
-  border-radius: 10px;
-  font-size: 0.9rem;
-  line-height: 1.6;
-}
-.settings-feedback--error {
-  color: rgb(var(--rm-danger));
-  border-color: rgb(var(--rm-danger) / 0.4);
-  background: rgb(var(--rm-danger-subtle));
-}
-.settings-feedback--success {
-  color: rgb(var(--rm-fg));
-  border-color: rgb(var(--rm-success) / 0.4);
-  background: rgb(var(--rm-success-subtle));
-}
 .settings-privacy {
   display: flex;
   align-items: start;
@@ -405,7 +364,7 @@
     width: 100%;
   }
   .settings-save-actions button {
-    flex: 1;
+    flex: 1 1 9rem;
   }
   .settings-privacy {
     padding: 1rem;

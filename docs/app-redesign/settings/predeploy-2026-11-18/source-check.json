@@ -1,0 +1,59 @@
+[
+  {
+    "file": "apps/app/src/features/settings/SettingsFeedback.tsx",
+    "sha256": "00df8d0291f5bec86b5943827633f310fab6d52ec8d4532bdfff1cbe41cf34c2",
+    "matches_built_source": true
+  },
+  {
+    "file": "apps/app/src/features/settings/SettingsDialog.tsx",
+    "sha256": "55fb8fc1d6637115592ac86883d7c6dac03a990e5a98a5db7525255efa071974",
+    "matches_built_source": true
+  },
+  {
+    "file": "apps/app/src/features/settings/settings-navigation.ts",
+    "sha256": "74176ec0d4239030d4004a0587b47b413acc77766c6d154308a74f2032718d0b",
+    "matches_built_source": true
+  },
+  {
+    "file": "apps/app/src/features/settings/SettingsLeaveGuard.tsx",
+    "sha256": "293e952264526abb5b43000786e5024ea5d68894ee2ab9faa941815c9a15b73b",
+    "matches_built_source": true
+  },
+  {
+    "file": "apps/app/src/features/study/StudySettingsForm.tsx",
+    "sha256": "aab36540e0245feb4130e1c2be386c8eb570089c945f19b11f43e5cbf5dd8382",
+    "matches_built_source": true
+  },
+  {
+    "file": "apps/app/src/pages/ApiTokens.tsx",
+    "sha256": "fb2fba21a958b13b2653848fa09090e3fb69f870b92c2aadd46e5df82a5a6b45",
+    "matches_built_source": true
+  },
+  {
+    "file": "apps/app/src/pages/BotConnections.tsx",
+    "sha256": "ba508f9cb77c888a6fa15059e0feaff744139db938e2e028339c21e2f85b3a82",
+    "matches_built_source": true
+  },
+  {
+    "file": "apps/app/src/pages/SettingsPage.tsx",
+    "sha256": "1e5b779fb1ffd0d402a0bb1b9631c54d4ea1fddde1683065b0301dcec5916fa5",
+    "matches_built_source": true
+  },
+  {
+    "file": "apps/app/src/features/study/SetLearnSettings.tsx",
+    "sha256": "5895edc712967cffc69055821a07f6a1287dc8f37566f6e29243f0b5a08e0356",
+    "matches_built_source": true
+  },
+  {
+    "file": "apps/app/src/pages/settings.css",
+    "sha256": "1cd0068a0868fc21626290fb4b19657a3839a62fc8523fd122e13fd739d737be"
+  },
+  {
+    "file": "apps/app/src/features/settings/settings-feedback.css",
+    "sha256": "3255586c0053d29943da201dfe9f849bd939ca747b4304c3489a63cf3fed6cb4"
+  },
+  {
+    "file": "apps/app/src/features/settings/settings-dialog.css",
+    "sha256": "46accbf51d6aa37eecfec17c99585f0bbc4e08bfada58fda4fb1b25b88db43c9"
+  }
+]

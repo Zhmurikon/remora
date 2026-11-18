@@ -1,6 +1,7 @@
 import { PublicAnalytics } from '../../components/analytics/PublicAnalytics';
 import { JsonLd } from '../../components/JsonLd';
 import { CollectionCards } from '../../components/collections/CollectionCards';
+import './collection-index.css';
 import {
   collectionMetadata,
   collectionsStructuredData,
@@ -16,31 +17,47 @@ export default function CollectionsPage() {
     <>
       <PublicAnalytics path="/podborki" />
       <JsonLd data={collectionsStructuredData()} />
-      <header className="blog-intro">
-        <span className="home-kicker">Подборки «Запоминальни»</span>
-        <h1>
-          Меньше искать.
-          <br />
-          <span>Больше разбираться.</span>
-        </h1>
-        <p>
-          Курсы по одной теме, собранные редакцией. Выберите то, что интересно сейчас, и переходите
-          к учёбе.
-        </p>
-      </header>
-      <section aria-label="Редакционные подборки">
-        <CollectionCards collections={publishedCollections()} />
-      </section>
-      <aside className="blog-cta">
-        <div>
-          <span className="home-kicker">Свой материал</span>
-          <h2>Учитесь по своему конспекту</h2>
-          <p>Создайте карточки или импортируйте готовый набор.</p>
-        </div>
-        <a className="home-button" href="/register">
-          Создать карточки <span aria-hidden="true">→</span>
-        </a>
-      </aside>
+      <div className="collections-index">
+        <header className="collections-intro">
+          <div>
+            <h1>
+              Меньше искать.
+              <br />
+              <span>Больше разбираться.</span>
+            </h1>
+            <p>
+              Курсы по одной теме, собранные редакцией. Выберите то, что интересно сейчас, и
+              переходите к учёбе.
+            </p>
+          </div>
+          <img
+            className="collections-intro-art"
+            src="/lecture-demo/create-tray.webp"
+            width="494"
+            height="335"
+            alt=""
+          />
+        </header>
+        <section aria-label="Редакционные подборки">
+          <CollectionCards collections={publishedCollections()} />
+        </section>
+        <aside className="collections-create">
+          <img
+            src="/lecture-demo/pricing-cards.webp"
+            width="232"
+            height="184"
+            alt=""
+            loading="lazy"
+          />
+          <div>
+            <h2>Учитесь по своему конспекту</h2>
+            <p>Создайте карточки или импортируйте готовый набор.</p>
+          </div>
+          <a className="collections-button collections-button-outline" href="/register">
+            Создать карточки
+          </a>
+        </aside>
+      </div>
     </>
   );
 }

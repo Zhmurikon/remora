@@ -13,7 +13,7 @@ import {
   type SettingsNotice,
 } from '../features/settings/SettingsFeedback';
 import './settings.css';
-import { setSettingsPopGuard } from '../features/settings/settings-navigation';
+import { SettingsLeaveGuard } from '../features/settings/SettingsLeaveGuard';
 import { useAuthStore } from '../features/auth/auth-store';
 import { StudySettingsForm } from '../features/study/StudySettingsForm';
 import { api, clearAccessToken } from '../lib/api';
@@ -123,58 +123,6 @@ export function SettingsPage() {
     );
   }, []);
   const dirty = Object.values(dirtySections).some(Boolean);
-  useEffect(() => {
-    if (!dirty) return;
-    const warn = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = '';
-    };
-    const leave = (event: MouseEvent) => {
-      if (
-        event.button !== 0 ||
-        event.ctrlKey ||
-        event.metaKey ||
-        event.shiftKey ||
-        !(event.target instanceof Element)
-      )
-        return;
-      const anchor = event.target.closest<HTMLAnchorElement>('a[href]:not([target="_blank"])');
-      const logout = event.target.closest('button')?.textContent?.trim() === 'Выйти';
-      if (!anchor && !logout) return;
-      if (anchor && new URL(anchor.href).pathname === window.location.pathname) return;
-      if (!window.confirm('Изменения в настройках не сохранены. Уйти со страницы?')) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-    };
-    // Capture срабатывает раньше обработчика BrowserRouter, поэтому отмена «Назад»
-    // оставляет формы смонтированными и возвращает прежнюю запись истории.
-    const historyIndex = window.history.state?.idx as number | undefined;
-    let restoring = false;
-    const back = (event: PopStateEvent) => {
-      if (restoring) {
-        restoring = false;
-        event.stopImmediatePropagation();
-        return;
-      }
-      if (window.location.pathname.endsWith('/settings')) return;
-      const nextIndex = event.state?.idx as number | undefined;
-      if (historyIndex === undefined || nextIndex === undefined) return;
-      if (!window.confirm('Изменения в настройках не сохранены. Уйти со страницы?')) {
-        event.stopImmediatePropagation();
-        restoring = true;
-        window.history.go(historyIndex - nextIndex);
-      }
-    };
-    setSettingsPopGuard(back);
-    window.addEventListener('beforeunload', warn);
-    document.addEventListener('click', leave, true);
-    return () => {
-      setSettingsPopGuard(null);
-      window.removeEventListener('beforeunload', warn);
-      document.removeEventListener('click', leave, true);
-    };
-  }, [dirty]);
 
   const term = search.trim().toLocaleLowerCase('ru');
   const results = term
@@ -221,6 +169,7 @@ export function SettingsPage() {
 
   return (
     <SettingsDirtyContext.Provider value={reportDirty}>
+      <SettingsLeaveGuard dirty={dirty} />
       <div
         className="account-settings"
         onInvalidCapture={(event) => {

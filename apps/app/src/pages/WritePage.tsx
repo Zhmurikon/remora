@@ -7,13 +7,14 @@
  */
 
 import { STRICTNESS_LABELS, checkAnswer, pluralWithCount, type AnswerResult } from '@remora/core';
-import { Badge, Button, Card, CardContent, Input } from '@remora/ui';
+import { Button, Card, CardContent, Input } from '@remora/ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Diff, SessionSummary } from '../features/study/SessionSummary';
-import { StudyShell } from '../features/study/StudyShell';
+import { StudyHint, StudyShell, StudyState } from '../features/study/StudyShell';
+import { useStudyTransition } from '../features/study/study-transition';
 import { answerImage, answerSide, questionImage, questionSide } from '../features/study/card-sides';
-import { selectCurrent, useStudyStore } from '../features/study/study-store';
+import { selectCurrent, useStudyStore, type QueueItem } from '../features/study/study-store';
 import {
   useStudySession,
   useStudySessionFinalizer,
@@ -34,9 +35,12 @@ export function WritePage() {
   const index = useStudyStore((state) => state.index);
   const answers = useStudyStore((state) => state.answers);
   const sessionId = useStudyStore((state) => state.sessionId);
-  const current = useStudyStore(selectCurrent);
+  const activeItem = useStudyStore(selectCurrent);
+  const [answeredItem, setAnsweredItem] = useState<QueueItem | null>(null);
+  const current = answeredItem ?? activeItem;
   const answer = useStudyStore((state) => state.answer);
 
+  const { schedule, cancel } = useStudyTransition();
   const [typed, setTyped] = useState('');
   const [result, setResult] = useState<AnswerResult | null>(null);
   const [typoHint, setTypoHint] = useState<string | null>(null);
@@ -51,13 +55,14 @@ export function WritePage() {
 
   useEffect(() => {
     inputRef.current?.focus();
-  }, [index, result]);
+  }, [current?.card.id, index, result]);
 
   useEffect(() => {
     if (items.length > 0 && (finished || !current)) void finalizeSession();
   }, [current, finalizeSession, finished, items.length]);
 
   const next = useCallback(() => {
+    setAnsweredItem(null);
     setTyped('');
     setResult(null);
     setTypoHint(null);
@@ -65,7 +70,7 @@ export function WritePage() {
   }, []);
 
   const submit = useCallback(() => {
-    if (!current) return;
+    if (!current || result) return;
     const expected = answerSide(current);
     const verdict = checkAnswer(typed, expected, {
       strictness: queue?.answer_strictness ?? 'moderate',
@@ -80,6 +85,7 @@ export function WritePage() {
       return;
     }
     const correct = verdict.verdict === 'correct';
+    setAnsweredItem(current);
     setResult(verdict);
     answer({
       item: current,
@@ -89,21 +95,36 @@ export function WritePage() {
       durationMs: Date.now() - shownAt.current,
       requeue: !correct,
     });
-    if (correct) setTimeout(next, 500);
-  }, [answer, answerLang, current, next, queue?.answer_strictness, typed]);
+    if (correct) schedule(next, 500);
+  }, [answer, answerLang, current, next, queue?.answer_strictness, result, schedule, typed]);
 
-  if (query.isPending) return <p className="text-fg-muted">Собираем очередь…</p>;
-  if (query.isError) return <p className="text-danger">Не удалось загрузить очередь.</p>;
+  if (query.isPending) return <StudyState title="Готовим тренировку" loading />;
+  if (query.isError)
+    return (
+      <StudyState
+        title="Не удалось загрузить карточки"
+        error
+        actions={
+          <>
+            <Button onClick={() => void query.refetch()}>Попробовать снова</Button>
+            <Button
+              variant="ghost"
+              onClick={() => navigate(isFolder ? '/sets/manage' : `/sets/${targetId}`)}
+            >
+              К материалам
+            </Button>
+          </>
+        }
+      >
+        Проверьте подключение и попробуйте ещё раз.
+      </StudyState>
+    );
 
   if (items.length === 0) {
     return (
-      <Card className="mx-auto max-w-lg p-8 text-center">
-        <p className="text-4xl" aria-hidden="true">
-          ✍️
-        </p>
-        <h1 className="mt-4 text-xl font-semibold">На сегодня всё повторено</h1>
+      <StudyState title="На сегодня всё повторено">
         <p className="text-fg-muted mt-2">Карточки вернутся, когда подойдёт срок повторения.</p>
-        <div className="mt-6 flex justify-center gap-3">
+        <div className="study-state-actions">
           <Button
             onClick={() =>
               navigate(
@@ -115,12 +136,12 @@ export function WritePage() {
           </Button>
           <Button
             variant="ghost"
-            onClick={() => navigate(isFolder ? '/sets' : `/sets/${targetId}`)}
+            onClick={() => navigate(isFolder ? '/sets/manage' : `/sets/${targetId}`)}
           >
-            К набору
+            {isFolder ? 'К папкам' : 'К набору'}
           </Button>
         </div>
-      </Card>
+      </StudyState>
     );
   }
 
@@ -128,11 +149,12 @@ export function WritePage() {
     return (
       <SessionSummary
         setId={targetId}
-        backHref={isFolder ? '/sets' : undefined}
-        backLabel={isFolder ? 'К папке' : undefined}
+        backHref={isFolder ? '/sets/manage' : undefined}
+        backLabel={isFolder ? 'К папкам' : undefined}
         answers={answers}
         onRestart={async () => {
           if (!(await finalizeSession())) return;
+          next();
           setFinished(false);
           await query.refetch();
         }}
@@ -150,21 +172,22 @@ export function WritePage() {
       done={index}
       total={items.length}
       onExit={() => {
+        cancel();
         void finalizeSession();
         setFinished(true);
       }}
       footer={
-        <p className="text-fg-subtle text-center text-sm">
-          Enter — проверить, дальше{' '}
+        <p className="study-shortcuts">
+          <kbd>Enter</kbd> — проверить или продолжить · осталось{' '}
           {pluralWithCount(items.length - index, ['карточка', 'карточки', 'карточек'])}
         </p>
       }
     >
-      <Card className="p-6 sm:p-8">
-        <Badge tone="neutral">
+      <Card className="study-question">
+        <p className="study-side">
           {current.direction === 'term_to_def' ? 'Термин → определение' : 'Определение → термин'}
-        </Badge>
-        <div className="mt-5 text-2xl">
+        </p>
+        <div className="study-question-content">
           <CardContent
             value={questionSide(current)}
             type={current.card.content_type}
@@ -174,12 +197,12 @@ export function WritePage() {
           />
         </div>
         {current.card.hint && !result && (
-          <p className="text-fg-subtle mt-3 text-sm">Подсказка: {current.card.hint}</p>
+          <StudyHint key={current.card.id}>{current.card.hint}</StudyHint>
         )}
       </Card>
 
       <form
-        className="mt-5"
+        className="study-answer-form"
         onSubmit={(event) => {
           event.preventDefault();
           if (wrong) next();
@@ -190,26 +213,30 @@ export function WritePage() {
           ref={inputRef}
           value={typed}
           onChange={(event) => setTyped(event.target.value)}
-          placeholder="Ваш ответ"
+          label="Ваш ответ"
+          placeholder="Введите ответ по памяти"
           autoComplete="off"
           autoCapitalize="off"
           spellCheck={false}
           aria-label="Ваш ответ"
-          error={typoHint ? 'Почти верно — проверьте написание и введите ещё раз' : undefined}
-          disabled={result?.verdict === 'correct'}
+          hint={typoHint ? 'Почти верно — проверьте написание и введите ещё раз' : undefined}
+          readOnly={result !== null}
         />
         {typoHint && (
           <p className="text-warning mt-2 text-sm">
             Вы ввели: <Diff expected={expected} typed={typoHint} />
           </p>
         )}
-        <div className="mt-3 flex flex-wrap gap-3">
-          <Button type="submit">{wrong ? 'Дальше' : 'Проверить'}</Button>
+        <div className="study-actions">
+          <Button type="submit" disabled={result !== null && !wrong}>
+            {wrong ? 'Дальше' : 'Проверить'}
+          </Button>
           {!result && (
             <Button
               type="button"
               variant="ghost"
               onClick={() => {
+                setAnsweredItem(current);
                 setResult({ verdict: 'incorrect', matched: null, distance: Infinity });
                 answer({
                   item: current,
@@ -228,8 +255,10 @@ export function WritePage() {
       </form>
 
       {result?.verdict === 'correct' && (
-        <Card className="border-success mt-5 p-5">
-          <p className="text-success font-medium">Верно</p>
+        <Card className="study-feedback study-feedback-success" role="status">
+          <p className="text-success study-feedback-title">
+            <span aria-hidden="true">✓</span> Верно
+          </p>
           {result.matched !== expected && (
             <p className="text-fg-muted mt-1 text-sm">
               Засчитан синоним: <span className="text-fg font-medium">{result.matched}</span>
@@ -239,8 +268,10 @@ export function WritePage() {
       )}
 
       {wrong && (
-        <Card className="border-danger mt-5 p-5">
-          <p className="text-danger text-sm font-medium">Не совсем</p>
+        <Card className="study-feedback study-feedback-error" role="status">
+          <p className="text-danger study-feedback-title">
+            <span aria-hidden="true">↺</span> Повторим эту карточку
+          </p>
           <p className="mt-2 text-sm">Правильно:</p>
           <CardContent
             value={expected}

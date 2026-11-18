@@ -34,7 +34,10 @@ function shell(width, height, body, title) {
 </svg>\n`;
 }
 
-const cover = shell(1920, 768, `
+const cover = shell(
+  1920,
+  768,
+  `
   <path d="M0 0h430l150 768H0z" fill="${palette.tealSoft}"/>
   <circle cx="1760" cy="56" r="250" fill="${palette.orangeSoft}"/>
   <g opacity=".78" transform="rotate(-7 186 486)">
@@ -62,7 +65,9 @@ const cover = shell(1920, 768, `
     <circle cx="250" cy="282" r="248" fill="${palette.surface}" stroke="${palette.border}" stroke-width="5"/>
     <image href="${mark}" x="30" y="60" width="440" height="440" preserveAspectRatio="xMidYMid meet"/>
   </g>
-`, 'Обложка сообщества Запоминальни');
+`,
+  'Обложка сообщества Запоминальни',
+);
 
 const avatar = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800" role="img" aria-label="Круглый аватар сообщества Запоминальни">
   <circle cx="400" cy="400" r="392" fill="${palette.tealSoft}"/>
@@ -80,7 +85,10 @@ const icons = {
 };
 
 function menuTile(key, title, number, accent) {
-  return shell(752, 512, `
+  return shell(
+    752,
+    512,
+    `
     <rect x="22" y="22" width="708" height="468" rx="44" fill="${palette.surface}" stroke="${palette.border}" stroke-width="4"/>
     <rect x="50" y="50" width="118" height="44" rx="22" fill="${accent}"/>
     <text x="109" y="80" text-anchor="middle" font-family="${font}" font-size="20" font-weight="700" fill="${palette.ink}">${number}</text>
@@ -88,10 +96,15 @@ function menuTile(key, title, number, accent) {
     <text x="54" y="420" font-family="${font}" font-size="48" font-weight="700" fill="${palette.ink}">${title}</text>
     <circle cx="677" cy="419" r="27" fill="${palette.teal}"/>
     <path d="M665 419h24m-10-10l10 10-10 10" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-  `, `Пункт меню: ${title}`);
+  `,
+    `Пункт меню: ${title}`,
+  );
 }
 
-const pinned = shell(1080, 1350, `
+const pinned = shell(
+  1080,
+  1350,
+  `
   <rect x="0" y="0" width="1080" height="30" fill="${palette.teal}"/>
   <circle cx="935" cy="120" r="190" fill="${palette.orangeSoft}"/>
   <text x="82" y="126" font-family="${font}" font-size="30" font-weight="700" letter-spacing="1.2" fill="${palette.teal}">ЗАПОМИНАЛЬНЯ</text>
@@ -120,11 +133,13 @@ const pinned = shell(1080, 1350, `
   <text x="396" y="1170" text-anchor="middle" font-family="${font}" font-size="25" font-weight="700" fill="#fff">Начните с одного небольшого набора</text>
   <rect x="770" y="1068" width="238" height="238" rx="34" fill="${palette.surface}"/>
   <image href="${compactMark}" x="779" y="1077" width="220" height="220" preserveAspectRatio="xMidYMid meet"/>
-`, 'Обложка закреплённой записи Запоминальни');
+`,
+  'Обложка закреплённой записи Запоминальни',
+);
 
 const assets = {
-  'cover': cover,
-  'avatar': avatar,
+  cover: cover,
+  avatar: avatar,
   'menu-start': menuTile('start', 'Начать учиться', '01', palette.tealSoft),
   'menu-how': menuTile('how', 'Как это работает', '02', palette.mint),
   'menu-materials': menuTile('materials', 'Полезные материалы', '03', palette.orangeSoft),

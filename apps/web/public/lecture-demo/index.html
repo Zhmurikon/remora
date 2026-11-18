@@ -456,26 +456,13 @@
           неделю.
         </p>
         <div class="pricing-plans">
-          <article class="pricing-plan">
+          <article data-plan="free" class="pricing-plan">
             <h3 lang="en">Free</h3>
             <div class="pricing-sheet">
               <div class="pricing-rate">
                 <p><strong>0&nbsp;₽</strong></p>
                 <div class="plan-art" aria-hidden="true">
                   <img src="./pricing-cards.webp" width="236" height="183" loading="lazy" alt="" />
-                  <svg viewBox="0 0 236 183" preserveAspectRatio="xMaxYMid meet" focusable="false">
-                    <g transform="matrix(1 .176 -.216 .985 74 46)">
-                      <g class="flip-answer">
-                        <rect class="answer-paper" width="151" height="99" rx="5" />
-                        <g class="answer-weather">
-                          <path
-                            d="M50 51c-10 0-11-16 1-17 0-16 23-20 28-7 11-8 24 1 22 10 11 1 11 14 0 14Z"
-                          />
-                          <path class="answer-drizzle" d="m63 59-3 7m15-7-3 7m15-7-3 7" />
-                        </g>
-                      </g>
-                    </g>
-                  </svg>
                 </div>
               </div>
               <ul>
@@ -483,9 +470,10 @@
                 <li>До 10 курсов и 20 наборов, включая свои и сохранённые.</li>
                 <li>Один класс до 30 учеников.</li>
               </ul>
+              <a class="pricing-buy" href="/register">Начать бесплатно</a>
             </div>
           </article>
-          <article class="pricing-plan pricing-plus">
+          <article data-plan="plus" class="pricing-plan pricing-plus">
             <h3 lang="en">Plus</h3>
             <div class="pricing-sheet">
               <div class="pricing-rate">
@@ -501,18 +489,6 @@
                     loading="lazy"
                     alt=""
                   />
-                  <svg viewBox="0 0 201 192" preserveAspectRatio="xMaxYMid meet" focusable="false">
-                    <defs>
-                      <path
-                        id="plus-curve"
-                        pathLength="1"
-                        d="M77 98C88 89 99 66 106 73S111 101 123 96Q130 94 145 79"
-                      />
-                    </defs>
-                    <use class="chart-trace" href="#plus-curve" />
-                    <use class="chart-tip" href="#plus-curve" />
-                    <g class="chart-caption"><path d="m63 116 31 6m-35 3 20 4" /></g>
-                  </svg>
                 </div>
               </div>
               <ul>
@@ -521,9 +497,10 @@
                 <li>Курсы и наборы без лимита. Можно скрыть свои материалы.</li>
                 <li>Несколько классов и отчёты по частым ошибкам.</li>
               </ul>
+              <a class="pricing-buy" href="/app/billing">Выбрать Plus</a>
             </div>
           </article>
-          <article class="pricing-plan">
+          <article data-plan="pro" class="pricing-plan">
             <h3 lang="en">Pro</h3>
             <div class="pricing-sheet">
               <div class="pricing-rate">
@@ -533,13 +510,6 @@
                 </p>
                 <div class="plan-art" aria-hidden="true">
                   <img src="./pricing-books.webp" width="207" height="196" loading="lazy" alt="" />
-                  <svg viewBox="0 0 207 196" preserveAspectRatio="xMaxYMid meet" focusable="false">
-                    <g class="book-ribbons">
-                      <g transform="matrix(1 .22 0 1 45 128)"><path d="M0 0h15v27l-7-6-8 5Z" /></g>
-                      <g transform="matrix(1 .22 0 1 69 106)"><path d="M0 0h14v26l-7-6-7 5Z" /></g>
-                      <g transform="matrix(1 .22 0 1 94 86)"><path d="M0 0h14v25l-7-6-7 5Z" /></g>
-                    </g>
-                  </svg>
                 </div>
               </div>
               <ul>
@@ -550,15 +520,16 @@
                   на Plus.
                 </li>
               </ul>
+              <a class="pricing-buy" href="/app/billing">Выбрать Pro</a>
             </div>
           </article>
         </div>
         <div class="pricing-actions">
-          <a href="/register" class="create-signup" data-sheet="blue">Создать бесплатный аккаунт</a>
           <a href="/tarify" class="pricing-compare line-action"
             ><span class="line-label">Сравнить тарифы</span></a
           >
         </div>
+        <p class="pricing-payment-note">Разовая оплата · без автосписаний. Обучение остаётся доступным на любом тарифе.</p>
         <p class="pricing-note">
           5 и 25 часов — объём записей при отложенной расшифровке. В быстром режиме одна минута
           записи расходует четыре минуты лимита.
@@ -753,6 +724,7 @@
             <ul>
               <li><a href="/terms">Условия использования</a></li>
               <li><a href="/privacy">Политика конфиденциальности</a></li>
+              <li><a href="/oplata-i-vozvrat">Условия оплаты и возврата</a></li>
               <li><a href="/tarify#pricing-faq-title">Вопросы об оплате</a></li>
             </ul>
           </nav>

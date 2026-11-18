@@ -13,6 +13,7 @@ type Plan = components['schemas']['PlanPublic'];
 type Interval = 'month' | 'year';
 type PaidPlan = 'plus' | 'pro';
 const planOrder = ['free', 'plus', 'pro'];
+const WEB_URL = import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000';
 const illustrations: Record<string, string> = {
   free: cardsImage,
   plus: notebookImage,
@@ -231,7 +232,8 @@ export function BillingPage() {
         {promoCode.trim()
           ? `Промокод «${promoCode.trim()}» будет проверен при переходе к оплате. `
           : 'Промокод учитывается при переходе к оплате. '}
-        Скидка или дополнительные дни — по условиям кода.
+        Скидка или дополнительные дни — по условиям кода.{' '}
+        <a href={`${WEB_URL}/oplata-i-vozvrat`}>Условия оплаты и возврата</a>
       </p>
 
       {overview.data && !overview.isError && (

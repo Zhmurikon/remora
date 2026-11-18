@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { FishMark } from '@remora/ui';
+import { PublicHeader } from '../../components/landing/PublicHeader';
 import { HomeTheme } from '../../components/home/HomeTheme';
 import '../home.css';
 import '../blog/blog.css';
@@ -7,43 +7,30 @@ import './collections.css';
 
 export default function CollectionsLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="home blog collections">
+    <>
       <a className="home-skip" href="#main-content">
         Перейти к содержимому
       </a>
-      <header className="blog-header home-shell">
-        <a className="home-brand" href="/" aria-label="Запоминальня — главная">
-          <FishMark />
-          Запоминальня
-        </a>
-        <nav aria-label="Основная навигация">
-          <a href="/kursy">Каталог</a>
-          <a href="/podborki" aria-current="location">
-            Подборки
+      <PublicHeader />
+      <div className="home blog collections">
+        <main className="home-shell" id="main-content">
+          {children}
+        </main>
+        <footer className="home-footer home-shell">
+          <a className="home-brand" href="/" aria-label="Запоминальня — главная">
+            <img src="/lecture-demo/remora-icon.png" width="32" height="32" alt="" />
+            Запоминальня
           </a>
-          <a href="/blog">Блог</a>
-          <a className="home-button home-button-small" href="/#demo">
-            Попробовать
-          </a>
-        </nav>
-      </header>
-      <main className="home-shell" id="main-content">
-        {children}
-      </main>
-      <footer className="home-footer home-shell">
-        <a className="home-brand" href="/" aria-label="Запоминальня — главная">
-          <FishMark />
-          Запоминальня
-        </a>
-        <span>Учиться в своём темпе.</span>
-        <HomeTheme />
-        <nav aria-label="Навигация в подвале">
-          <a href="/kursy">Каталог</a>
-          <a href="/blog">Блог</a>
-          <PublicAuthLink />
-        </nav>
-      </footer>
-    </div>
+          <span>Учиться в своём темпе.</span>
+          <HomeTheme />
+          <nav aria-label="Навигация в подвале">
+            <a href="/kursy">Каталог</a>
+            <a href="/blog">Блог</a>
+            <PublicAuthLink />
+          </nav>
+        </footer>
+      </div>
+    </>
   );
 }
 import { PublicAuthLink } from '../../components/auth/PublicSession';

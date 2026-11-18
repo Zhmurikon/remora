@@ -338,6 +338,21 @@
   font-size: 0.8125rem;
   overflow-wrap: anywhere;
 }
+.billing-payment-note a {
+  color: rgb(var(--rm-lecture-action));
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.24em;
+}
+.billing-payment-note a:hover {
+  color: rgb(var(--rm-lecture-action-hover));
+}
+.billing-payment-note a:focus-visible {
+  border-radius: 0.25rem;
+  outline: 2px solid rgb(var(--rm-lecture-action));
+  outline-offset: 3px;
+}
 .billing-bottom {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 0.72fr);

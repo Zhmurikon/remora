@@ -42,6 +42,13 @@ const session = {
   expires_at: '2099-01-01',
 };
 beforeEach(() => {
+  window.history.replaceState({ idx: 0 }, '', '/settings');
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
   vi.resetAllMocks();
   HTMLElement.prototype.scrollIntoView = vi.fn();
   vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) =>
@@ -135,7 +142,7 @@ it('не перезаписывает учебный черновик фонов
   const goal = await screen.findByLabelText('Дневная цель, карточек');
   fireEvent.change(goal, { target: { value: '35' } });
   cache.setQueryData(['study', 'settings'], { ...study, daily_goal_cards: 99 });
-  expect((goal as HTMLInputElement).value).toBe('35');
+  await waitFor(() => expect((goal as HTMLInputElement).value).toBe('35'));
   vi.mocked(api.PATCH).mockResolvedValue({ data: { ...study, daily_goal_cards: 35 } } as never);
   await userEvent.click(screen.getByRole('button', { name: 'Сохранить обучение' }));
   await screen.findByText('Настройки обучения сохранены');
@@ -211,7 +218,6 @@ it('перехватывает отменённый возврат по исто
   const { BrowserRouter, Routes, Route } = await import('react-router-dom');
   window.history.replaceState({ idx: 2 }, '', '/settings');
   const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
   const go = vi.spyOn(window.history, 'go').mockImplementation(() => {});
   render(
     <QueryClientProvider client={cache}>
@@ -226,7 +232,6 @@ it('перехватывает отменённый возврат по исто
   await userEvent.type(screen.getByLabelText('Отображаемое имя'), ' — черновик');
   window.history.replaceState({ idx: 1 }, '', '/materials');
   fireEvent(window, new PopStateEvent('popstate', { state: { idx: 1 } }));
-  expect(confirm).toHaveBeenCalledOnce();
   expect(go).toHaveBeenCalledWith(1);
   expect(screen.queryByText('Другая страница')).toBeNull();
   expect((screen.getByLabelText('Отображаемое имя') as HTMLInputElement).value).toBe(
@@ -234,9 +239,21 @@ it('перехватывает отменённый возврат по исто
   );
   window.history.replaceState({ idx: 2 }, '', '/settings');
   fireEvent(window, new PopStateEvent('popstate', { state: { idx: 2 } }));
+  expect(await screen.findByRole('alertdialog', { name: 'Уйти без сохранения?' })).toBeTruthy();
+  await userEvent.click(screen.getByRole('button', { name: 'Продолжить редактирование' }));
+  expect(screen.queryByRole('alertdialog')).toBeNull();
   const unload = new Event('beforeunload', { cancelable: true });
   window.dispatchEvent(unload);
   expect(unload.defaultPrevented).toBe(true);
+  window.history.replaceState({ idx: 1 }, '', '/materials');
+  fireEvent(window, new PopStateEvent('popstate', { state: { idx: 1 } }));
+  window.history.replaceState({ idx: 2 }, '', '/settings');
+  fireEvent(window, new PopStateEvent('popstate', { state: { idx: 2 } }));
+  await userEvent.click(screen.getByRole('button', { name: 'Уйти без сохранения' }));
+  expect(go).toHaveBeenLastCalledWith(-1);
+  window.history.replaceState({ idx: 1 }, '', '/materials');
+  fireEvent(window, new PopStateEvent('popstate', { state: { idx: 1 } }));
+  expect(await screen.findByText('Другая страница')).toBeTruthy();
 });
 
 it('меняет пароль отдельным запросом, очищает секреты только после успеха и обновляет сеансы', async () => {
@@ -301,4 +318,50 @@ it('привязывает серверные ошибки профиля к п�
   await screen.findByText('Укажите код языка длиной от 2 до 5 символов.');
   expect(screen.getByLabelText('Язык').getAttribute('aria-invalid')).toBe('true');
   expect(screen.getByLabelText('Часовой пояс').getAttribute('aria-invalid')).toBe('true');
+});
+
+it('отменяет переход по ссылке без потери ввода и продолжает его после подтверждения', async () => {
+  const { Routes, Route, Link } = await import('react-router-dom');
+  render(
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <MemoryRouter initialEntries={['/settings']}>
+        <Link to="/materials">К материалам</Link>
+        <Routes>
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/materials" element={<p>Материалы открыты</p>} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  await userEvent.type(screen.getByLabelText('Отображаемое имя'), ' — черновик');
+  await userEvent.click(screen.getByRole('link', { name: 'К материалам' }));
+  expect(screen.queryByText('Материалы открыты')).toBeNull();
+  expect(document.activeElement).toBe(
+    screen.getByRole('button', { name: 'Продолжить редактирование' }),
+  );
+  fireEvent(screen.getByRole('alertdialog'), new Event('cancel', { cancelable: true }));
+  expect(screen.queryByRole('alertdialog')).toBeNull();
+  expect(document.activeElement).toBe(screen.getByRole('link', { name: 'К материалам' }));
+  expect((screen.getByLabelText('Отображаемое имя') as HTMLInputElement).value).toContain(
+    'черновик',
+  );
+  await userEvent.click(screen.getByRole('link', { name: 'К материалам' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Уйти без сохранения' }));
+  expect(await screen.findByText('Материалы открыты')).toBeTruthy();
+});
+
+it('обновляет чистую учебную форму после изменения серверных настроек', async () => {
+  const cache = setup('#study');
+  const goal = await screen.findByLabelText('Дневная цель, карточек');
+  expect((goal as HTMLInputElement).value).toBe('20');
+  const { act } = await import('@testing-library/react');
+  await act(async () => {
+    cache.setQueryData(['study', 'settings'], { ...study, daily_goal_cards: 35 });
+  });
+  await waitFor(() => expect((goal as HTMLInputElement).value).toBe('35'));
+  expect(
+    (screen.getByRole('button', { name: 'Сохранить обучение' }) as HTMLButtonElement).disabled,
+  ).toBe(true);
 });

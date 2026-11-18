@@ -1,10 +1,11 @@
 .ae-page {
+  container: article-editor / inline-size;
   min-width: 0;
   color: rgb(var(--rm-fg));
   font-family: Inter, 'Segoe UI', Arial, sans-serif;
 }
 .ae-page :is(button, a, select, input, textarea):focus-visible,
-.ae-pop :is(button, a, input, textarea):focus-visible,
+.ae-pop :is(button, a, input, textarea, select):focus-visible,
 .ae-bubble button:focus-visible {
   outline: 2px solid rgb(var(--rm-primary));
   outline-offset: 2px;
@@ -214,7 +215,7 @@
 }
 .ae-paper {
   position: relative;
-  max-width: 49rem;
+  max-width: 46rem;
   margin: 1.6rem auto 3rem;
 }
 .ae-insert {
@@ -229,44 +230,60 @@
 .ae-paper .ProseMirror,
 .ae-preview {
   min-height: 20rem;
-  line-height: 1.75;
-  font: 1.05rem/1.75 var(--dashboard-serif, Georgia, serif);
   overflow-wrap: anywhere;
 }
-.ae-paper :is(.ProseMirror, .ae-preview) > * + * {
-  margin-top: 1rem;
-}
 .ae-paper .ProseMirror {
+  position: relative;
   outline: none;
   white-space: pre-wrap;
   scroll-margin-top: 8rem;
 }
+.ae-paper .ProseMirror[data-empty='true']::before {
+  content: attr(aria-placeholder);
+  position: absolute;
+  top: 0;
+  left: 0.3em;
+  color: rgb(var(--rm-fg-muted));
+  pointer-events: none;
+  user-select: none;
+}
+.ae-paper .ProseMirror[data-empty='true'][contenteditable='true']:not(.ProseMirror-focused)::after {
+  content: '';
+  position: absolute;
+  top: 0.35em;
+  left: 0;
+  width: 1px;
+  height: 1.15em;
+  background: rgb(var(--rm-primary));
+  pointer-events: none;
+  animation: ae-placeholder-caret 1.1s steps(1) infinite;
+}
+@keyframes ae-placeholder-caret {
+  50% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ae-paper .ProseMirror[data-empty='true'][contenteditable='true']:not(.ProseMirror-focused)::after {
+    animation: none;
+  }
+}
 .ae-paper .ProseMirror:focus-visible {
   box-shadow: -2px 0 rgb(var(--rm-primary-subtle));
 }
-.ae-paper .ProseMirror :is(h1, h2, h3, h4, h5, h6),
-.ae-preview :is(h2, h3, h4) {
-  font-weight: 500;
-  line-height: 1.28;
-  letter-spacing: -0.025em;
-}
 .ae-paper .ProseMirror h1 {
-  font-size: 2.1rem;
+  margin-block: 1.4em 0.45em;
+  font: normal 1.8em/1.25 var(--dashboard-serif);
+  letter-spacing: -0.02em;
 }
-.ae-paper .ProseMirror h2 {
-  font-size: 1.85rem;
-}
-.ae-paper .ProseMirror h3 {
-  font-size: 1.48rem;
-}
-.ae-paper .ProseMirror :is(h4, h5, h6) {
-  font-size: 1.16rem;
-  font-weight: 650;
-}
-.ae-paper blockquote {
-  border-left: 3px solid rgb(var(--rm-border));
-  padding: 0.45rem 1rem;
+.ae-paper .ProseMirror blockquote:not(.article-summary) {
+  border-left: 4px solid rgb(var(--rm-border));
+  padding-left: 1rem;
   color: rgb(var(--rm-fg-muted));
+  font-style: italic;
+}
+.ae-paper .ProseMirror li + li {
+  margin-top: 0.5rem;
 }
 .ae-paper ul,
 .ae-paper ol {
@@ -281,9 +298,7 @@
 .ae-paper pre,
 .ae-paper code,
 .ae-source {
-  font:
-    0.93rem/1.55 ui-monospace,
-    monospace;
+  font-family: ui-monospace, monospace;
   background: rgb(var(--rm-surface-muted));
 }
 .ae-paper pre {
@@ -294,19 +309,16 @@
 .ae-paper .ProseMirror table {
   width: 100%;
   border-collapse: collapse;
-  font:
-    0.92rem/1.5 Inter,
-    Arial,
-    sans-serif;
+  font: 0.875em/1.6 var(--rm-font-sans);
   table-layout: fixed;
 }
-.ae-paper :is(th, td) {
+.ae-paper .ProseMirror :is(th, td) {
   border: 1px solid rgb(var(--rm-border));
-  padding: 0.65rem;
+  padding: 0.5rem 0.75rem;
   vertical-align: top;
   text-align: left;
 }
-.ae-paper th {
+.ae-paper .ProseMirror th {
   background: rgb(var(--rm-surface-muted));
 }
 .ae-paper td:focus-within {
@@ -461,19 +473,6 @@ div.ae-math {
   }
   .ae-paper {
     margin-top: 1rem;
-  }
-  .ae-paper .ProseMirror {
-    font-size: 1rem;
-  }
-  .ae-paper .ProseMirror h1 {
-    font-size: 1.65rem;
-  }
-  .ae-paper .ProseMirror h2 {
-    font-size: 1.5rem;
-  }
-  .ae-paper th,
-  .ae-paper td {
-    padding: 0.35rem;
   }
   .ae-commands {
     justify-content: flex-end;

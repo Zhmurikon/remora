@@ -1,8 +1,10 @@
+import { paymentReturnDocument } from './payment-return';
+
 export const LEGAL_CONTACT_EMAIL = 'support@zapominalnya.ru';
 export const LEGAL_UPDATED_AT = '2026-10-02';
 
 export type LegalLanguage = 'ru' | 'en';
-export type LegalDocumentKind = 'privacy' | 'terms';
+export type LegalDocumentKind = 'privacy' | 'terms' | 'payment';
 
 interface LegalSection {
   title: string;
@@ -356,5 +358,6 @@ const termsEn: LegalDocument = {
 
 export function getLegalDocument(kind: LegalDocumentKind, language: LegalLanguage): LegalDocument {
   if (kind === 'privacy') return language === 'ru' ? privacyRu : privacyEn;
-  return language === 'ru' ? termsRu : termsEn;
+  if (kind === 'terms') return language === 'ru' ? termsRu : termsEn;
+  return paymentReturnDocument;
 }

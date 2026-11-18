@@ -1,0 +1,170 @@
+{
+  "layout": [
+    {
+      "theme": "light",
+      "animation": "none",
+      "bodyLocked": false,
+      "bottomGap": 16,
+      "fits": true,
+      "imageLoaded": true,
+      "modal": false,
+      "rightGap": 16,
+      "width": 320
+    },
+    {
+      "theme": "light",
+      "animation": "none",
+      "bodyLocked": false,
+      "bottomGap": 16,
+      "fits": true,
+      "imageLoaded": true,
+      "modal": false,
+      "rightGap": 16,
+      "width": 390
+    },
+    {
+      "theme": "light",
+      "animation": "none",
+      "bodyLocked": false,
+      "bottomGap": 16,
+      "fits": true,
+      "imageLoaded": true,
+      "modal": false,
+      "rightGap": 16,
+      "width": 768
+    },
+    {
+      "theme": "light",
+      "animation": "none",
+      "bodyLocked": false,
+      "bottomGap": 16,
+      "fits": true,
+      "imageLoaded": true,
+      "modal": false,
+      "rightGap": 16,
+      "width": 1024
+    },
+    {
+      "theme": "light",
+      "animation": "none",
+      "bodyLocked": false,
+      "bottomGap": 16,
+      "fits": true,
+      "imageLoaded": true,
+      "modal": false,
+      "rightGap": 16,
+      "width": 1280
+    },
+    {
+      "theme": "light",
+      "animation": "none",
+      "bodyLocked": false,
+      "bottomGap": 16,
+      "fits": true,
+      "imageLoaded": true,
+      "modal": false,
+      "rightGap": 16,
+      "width": 1440
+    },
+    {
+      "theme": "light",
+      "animation": "none",
+      "bodyLocked": false,
+      "bottomGap": 16,
+      "fits": true,
+      "imageLoaded": true,
+      "modal": false,
+      "rightGap": 16,
+      "width": 1920
+    },
+    {
+      "theme": "dark",
+      "animation": "none",
+      "bodyLocked": false,
+      "bottomGap": 16,
+      "fits": true,
+      "imageLoaded": true,
+      "modal": false,
+      "rightGap": 16,
+      "width": 320
+    },
+    {
+      "theme": "dark",
+      "animation": "none",
+      "bodyLocked": false,
+      "bottomGap": 16,
+      "fits": true,
+      "imageLoaded": true,
+      "modal": false,
+      "rightGap": 16,
+      "width": 390
+    },
+    {
+      "theme": "dark",
+      "animation": "none",
+      "bodyLocked": false,
+      "bottomGap": 16,
+      "fits": true,
+      "imageLoaded": true,
+      "modal": false,
+      "rightGap": 16,
+      "width": 768
+    },
+    {
+      "theme": "dark",
+      "animation": "none",
+      "bodyLocked": false,
+      "bottomGap": 16,
+      "fits": true,
+      "imageLoaded": true,
+      "modal": false,
+      "rightGap": 16,
+      "width": 1024
+    },
+    {
+      "theme": "dark",
+      "animation": "none",
+      "bodyLocked": false,
+      "bottomGap": 16,
+      "fits": true,
+      "imageLoaded": true,
+      "modal": false,
+      "rightGap": 16,
+      "width": 1280
+    },
+    {
+      "theme": "dark",
+      "animation": "none",
+      "bodyLocked": false,
+      "bottomGap": 16,
+      "fits": true,
+      "imageLoaded": true,
+      "modal": false,
+      "rightGap": 16,
+      "width": 1440
+    },
+    {
+      "theme": "dark",
+      "animation": "none",
+      "bodyLocked": false,
+      "bottomGap": 16,
+      "fits": true,
+      "imageLoaded": true,
+      "modal": false,
+      "rightGap": 16,
+      "width": 1920
+    }
+  ],
+  "text200": true,
+  "typingAndBackgroundClick": true,
+  "focusPreserved": true,
+  "escapeLocalAndRestoresFocus": true,
+  "nextAchievement": true,
+  "collectionNavigation": true,
+  "animation": [
+    {
+      "duration": 240,
+      "iterations": 1
+    }
+  ]
+}

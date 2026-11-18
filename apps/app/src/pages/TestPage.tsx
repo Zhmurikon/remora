@@ -18,6 +18,7 @@ import trueFalseImage from '../features/study/quiz-art/true-false.webp';
 import typingImage from '../features/study/quiz-art/typing.webp';
 import matchingImage from '../features/study/quiz-art/matching.webp';
 import './lesson-quiz.css';
+import '../features/study/study-modes.css';
 
 type TestConfig = components['schemas']['TestConfig'];
 type TestAttempt = components['schemas']['TestAttemptOut'];
@@ -56,17 +57,29 @@ const directionLabels: Record<NonNullable<TestConfig['direction']>, string> = {
   both: 'Оба направления',
 };
 
-export function TestPage({
-  setIdOverride,
-  embedded = false,
-  onActivityChange,
-  onCompleted,
-}: {
+interface TestPageProps {
   setIdOverride?: string;
   embedded?: boolean;
   onActivityChange?: (active: boolean) => void;
   onCompleted?: () => void;
-} = {}) {
+}
+
+export function TestPage(props: TestPageProps = {}) {
+  return props.embedded ? (
+    <TestContent {...props} />
+  ) : (
+    <section className="study-workspace study-test">
+      <TestContent {...props} />
+    </section>
+  );
+}
+
+function TestContent({
+  setIdOverride,
+  embedded = false,
+  onActivityChange,
+  onCompleted,
+}: TestPageProps) {
   const { setId: routeSetId = '' } = useParams();
   const setId = setIdOverride ?? routeSetId;
   const [attempt, setAttempt] = useState<TestAttempt | null>(null);

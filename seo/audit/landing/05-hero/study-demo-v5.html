@@ -1,200 +1,810 @@
 <!doctype html>
 <html lang="ru">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Запоминальня — демо по записи лекции</title>
-<style>
-:root {
-  color-scheme: light dark;
-  --ink:#172229; --muted:#57656d; --white:#fff; --paper:#fbfbf9; --line:#d9e1df;
-  --side:#f3f6f5; --soft:#e2f0ed; --teal:#126c65; --blue:#233d89; --dots:#e6e9ed;
-  --wrong:#934830; --wrong-bg:#fff1ec;
-  font:16px/1.5 "Inter","Segoe UI",Arial,sans-serif; color:var(--ink); background:var(--white);
-}
-* {box-sizing:border-box}
-body {margin:0}
-button,a {font:inherit}
-button {color:inherit; cursor:pointer}
-button:disabled {cursor:default}
-a {color:inherit;text-decoration:none}
-:focus-visible {outline:3px solid var(--blue);outline-offset:3px}
-header {max-width:1580px;margin:auto;display:flex;align-items:center;justify-content:space-between;padding:17px 5%;min-height:76px}
-.brand {font:29px Georgia,"Times New Roman",serif;letter-spacing:-.8px}
-header nav,.actions {display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-header a {font-size:14px;display:inline-flex;align-items:center;min-height:44px;padding:0 14px}
-header .signup {border:1px solid var(--line);border-radius:10px;padding:0 18px}
-main {margin:0 16px 16px;position:relative;isolation:isolate;overflow:hidden;border:1px solid var(--line);border-radius:24px;
-  background-color:var(--paper);background-image:radial-gradient(var(--dots) .8px,transparent .9px);background-size:9px 9px;padding:clamp(55px,5.8vw,94px) 28px 30px}
-.intro {position:relative;text-align:center;margin:0 auto}
-h1 {font:normal clamp(46px,4.9vw,80px)/.99 Georgia,"Times New Roman",serif;letter-spacing:-.043em;margin:0}
-h1 em {display:block;color:var(--blue);font-weight:400}
-.intro p {max-width:585px;margin:25px auto 0;color:var(--muted);font-size:18px;line-height:1.5}
-.art {position:absolute;z-index:-1;pointer-events:none;background-image:url("flashcards-centered-v4.png");background-repeat:no-repeat;
-  background-size:1110.2px 694.4px;mix-blend-mode:multiply}
-.botany {width:228px;height:351px;left:-58px;top:20px;background-position:0 -78px;
-  mask-image:linear-gradient(to right,#000 85%,transparent),linear-gradient(to bottom,transparent,#000 5%,#000 89%,transparent);mask-composite:intersect}
-.globe {width:255px;height:420px;right:-75px;top:115px;background-position:-858px -201px;
-  mask-image:linear-gradient(to right,transparent,#000 13%),linear-gradient(to bottom,transparent,#000 7%,#000 85%,transparent);mask-composite:intersect}
-.notebook {width:281px;height:200px;bottom:0;left:-106px;background-position:0 -494px;
-  mask-image:linear-gradient(to right,#000 75%,transparent),linear-gradient(to bottom,transparent,#000 20%);mask-composite:intersect}
-.demo {position:relative;max-width:900px;margin:clamp(45px,4.3vw,74px) auto 0;display:grid;grid-template-columns:192px 1fr;
-  overflow:hidden;background:var(--white);border:1px solid var(--line);border-radius:18px;box-shadow:0 12px 38px -18px #1c373d3b}
-aside {background:var(--side);border-right:1px solid var(--line);padding:25px 14px}
-.demo-brand {display:flex;gap:10px;align-items:center;margin:0 10px 32px;font-size:17px;font-weight:650;letter-spacing:-.035em}
-.demo-brand svg {width:25px;height:25px;color:var(--teal)}
-svg {width:19px;height:19px;flex:none;fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round}
-.group + .group {margin-top:28px}
-.group-label {color:var(--muted);font-size:12px;font-weight:600;margin:0 10px 5px}
-.mode {display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:8px 11px;border:none;border-radius:8px;background:transparent;text-align:left;font-size:14px}
-.mode[aria-current=page] {background:var(--soft);color:var(--teal);font-weight:650}
-.mode:hover,.path button:hover {background:var(--soft)}
-.workspace {padding:24px 32px 29px;min-width:0}
-.lecture-title {display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600}
-.lecture-title svg {color:var(--muted)}
-.path {display:flex;align-items:center;gap:6px;padding:0;margin:5px 0 21px;border-bottom:1px solid var(--line)}
-.path button {border:0;min-height:44px;background:none;padding:0 3px;font-size:13px;color:var(--muted)}
-.path button[aria-current=step] {color:var(--teal);font-weight:bold}
-.path span {color:var(--muted);font-size:13px}
-.meta {display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted);font-size:13px}
-.meter {display:inline-flex;gap:4px}
-.meter i {display:block;width:21px;height:4px;border-radius:2px;background:var(--line)}
-.meter i.on {background:var(--teal)}
-h2 {font-size:clamp(24px,2.05vw,33px);line-height:1.18;font-weight:620;letter-spacing:-.038em;margin:17px 0}
-.content {min-height:176px}
-.content p {margin:12px 0 19px}
-button.primary,button.secondary,.option {border-radius:9px;min-height:44px;padding:9px 15px;font-size:14px;font-weight:550}
-button.primary {background:var(--teal);color:var(--white);border:1px solid var(--teal)}
-button.secondary,.option {border:1px solid var(--line);background:var(--white)}
-button.primary:hover {filter:brightness(.92)}
-button.secondary:hover,.option:enabled:hover {border-color:var(--teal)}
-.options {display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.option {display:flex;align-items:center;text-align:left;gap:12px}
-.letter {font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:5px;width:23px;height:24px;display:grid;place-items:center}
-.option.correct {color:var(--teal);background:var(--soft);border-color:var(--teal)}
-.option.wrong {color:var(--wrong);background:var(--wrong-bg);border-color:var(--wrong)}
-.feedback,.hint {font-size:14px;color:var(--muted)}
-.hint {margin:0 0 18px}
-.notes {padding-left:20px;margin:0 0 20px}.notes li + li {margin-top:5px}
-blockquote {margin:0 0 18px;padding-left:14px;border-left:2px solid var(--line);line-height:1.65}
-.caption {display:flex;align-items:center;justify-content:center;gap:8px;text-align:center;margin:22px auto 0;font-size:13px;color:var(--muted)}
-.caption svg {width:15px;height:15px;color:var(--teal)}
-@media(max-width:1100px){.art{opacity:.72}.botany{left:-122px}.globe{right:-145px}.notebook{display:none}}
-@media(max-width:800px){main{padding:46px 17px 24px}.demo{grid-template-columns:155px 1fr}.workspace{padding:20px}.demo-brand{margin-left:3px}.art{display:none}aside{padding:21px 8px}}
-@media(max-width:620px){
- header{padding:8px 14px;min-height:65px}.brand{font-size:22px}header nav{gap:0}header a{font-size:13px;padding:0 8px}header .signup{padding:0 9px}
- main{margin:0 5px 5px;padding:37px 10px 22px;border-radius:17px}h1{font-size:clamp(32px,8.5vw,48px);line-height:1.04}
- .intro p{font-size:15px;max-width:34ch;margin-top:16px}.demo{display:block;margin-top:32px;border-radius:13px}
- aside{padding:8px;border:0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr;gap:2px}
- .demo-brand,.group-label{display:none}.group + .group{margin:0}.mode{font-size:13px}.workspace{padding:18px 15px 22px}
- .content{min-height:0}.path{gap:5px}.options{gap:7px}.option{gap:7px;padding:7px 8px}.caption{font-size:12px}.caption svg{display:none}
-}
-@media(prefers-color-scheme:dark){:root{--ink:#ebf0ef;--muted:#abb9bb;--white:#191f23;--paper:#14191c;--line:#354145;--side:#1f292b;--soft:#253f3f;--teal:#82c6bc;--blue:#b6c7ff;--dots:#283034;--wrong:#ffb5a0;--wrong-bg:#452e2a}.art{display:none}}
-</style>
-</head>
-<body>
-<header><span class="brand">Запоминальня</span><nav aria-label="Аккаунт"><a href="http://localhost:3000/login">Войти</a><a class="signup" href="http://localhost:3000/register">Создать аккаунт</a></nav></header>
-<main>
-<div class="art botany" aria-hidden="true"></div><div class="art globe" aria-hidden="true"></div><div class="art notebook" aria-hidden="true"></div>
-<div class="intro"><h1>Конспект и карточки<em>по записи вашей лекции</em></h1><p>Загрузите аудио или видео с пары. Соберите конспект и&nbsp;проверьте себя перед зачётом.</p></div>
-<section class="demo" aria-label="Демо по записи лекции">
-<aside><div class="demo-brand"><svg aria-hidden="true"><use href="#cards"/></svg>Мини-демо</div>
-<div class="group"><p class="group-label">Обучение</p>
-<button class="mode" data-view="learn"><svg aria-hidden="true"><use href="#cards"/></svg>Запоминание</button>
-<button class="mode" data-view="test"><svg aria-hidden="true"><use href="#test"/></svg>Тест</button></div>
-<div class="group"><p class="group-label">Материалы</p>
-<button class="mode" data-view="notes"><svg aria-hidden="true"><use href="#notes"/></svg>Конспекты</button>
-<button class="mode" data-view="lecture"><svg aria-hidden="true"><use href="#lecture"/></svg>Лекции</button></div></aside>
-<div class="workspace"><div class="lecture-title"><svg aria-hidden="true"><use href="#book"/></svg>География Японии</div>
-<nav class="path" aria-label="От записи к карточкам"><button data-view="lecture">Расшифровка</button><span aria-hidden="true">→</span><button data-view="notes">Конспект</button><span aria-hidden="true">→</span><button data-view="learn">Карточки</button></nav>
-<div class="content" id="content"></div></div></section>
-<p class="caption"><svg aria-hidden="true"><use href="#check"/></svg>Демо без регистрации. Своя запись — на Plus или Pro.</p>
-</main>
-<svg aria-hidden="true" width="0" height="0" style="position:absolute;width:0;height:0"><defs>
-<symbol id="cards" viewBox="0 0 24 24"><path d="m4 15-1-9 13-2 1 3"/><rect x="6" y="8" width="15" height="12" rx="2.5"/><path d="M10 12h7m-7 4h4"/></symbol>
-<symbol id="test" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="m7 8 1 1 2-2m2 1h5m-10 6 1 1 2-2m2 1h5"/></symbol>
-<symbol id="notes" viewBox="0 0 24 24"><path d="M6 3h11l3 4v13H6zM9 10h8m-8 4h6"/></symbol>
-<symbol id="lecture" viewBox="0 0 24 24"><path d="M3 10v4m4-7v10m5-15v19m5-15v11m4-8v5"/></symbol>
-<symbol id="book" viewBox="0 0 24 24"><path d="M12 6c-3-2-6-2-9-1v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1Zm0 0v14"/></symbol>
-<symbol id="check" viewBox="0 0 24 24"><path d="m4 12 5 5L20 6"/></symbol></defs></svg>
-<script>
-const cards = [
-  {question:'Какой город — столица Японии?', answer:'Токио', options:['Киото','Токио','Осака','Саппоро'], detail:'Столица Японии — Токио.'},
-  {question:'На каком острове находится Токио?', answer:'Хонсю', options:['Кюсю','Хоккайдо','Сикоку','Хонсю'], detail:'Токио расположен на острове Хонсю.'},
-  {question:'Какой из четырёх главных островов Японии самый северный?', answer:'Хоккайдо', options:['Хоккайдо','Хонсю','Сикоку','Кюсю'], detail:'Севернее остальных расположен Хоккайдо.'}
-];
-const content = document.querySelector('#content');
-const sessions = {
-  learn:{index:0, revealed:false, score:0},
-  test:{index:0, selected:null, score:0}
-};
-let view = 'learn';
-function action(label, name, primary=true) {
-  return '<button class="'+(primary?'primary':'secondary')+'" data-action="'+name+'">'+label+'</button>';
-}
-function title(text) { return '<h2 tabindex="-1">'+text+'</h2>'; }
-function study() {
-  const testing = view === 'test';
-  const session = sessions[view];
-  if (session.index === cards.length) {
-    return title(testing?'Тест завершён':'Карточки пройдены')+'<p>'+(testing?'Верных ответов: ':'Вспомнили без подсказки: ')+session.score+' из '+cards.length+'.</p><div class="actions">'+action('Пройти ещё раз','restart')+action('Открыть конспект','notes',false)+'</div>';
-  }
-  const card = cards[session.index];
-  const meter = cards.map((_,i)=>'<i class="'+(i<=session.index?'on':'')+'"></i>').join('');
-  let html = '<div class="meta"><span>'+(testing?'Вопрос':'Карточка')+' '+(session.index+1)+' из '+cards.length+'</span><span class="meter" aria-hidden="true">'+meter+'</span></div>'+title(card.question);
-  if (!testing) {
-    if (!session.revealed) return html+'<p class="hint">Вспомните ответ и проверьте себя.</p>'+action('Показать ответ','reveal');
-    return html+'<p><strong>'+card.answer+'</strong></p><div class="actions">'+action('Вспомнил','known')+action('Не вспомнил','missed',false)+'</div>';
-  }
-  html += '<div class="options">'+card.options.map((option,i)=>{
-    const answered = session.selected !== null;
-    let cls = '';
-    if (answered && option === card.answer) cls = ' correct';
-    else if (session.selected === i) cls = ' wrong';
-    return '<button class="option'+cls+'" data-option="'+i+'" '+(answered?'disabled':'')+'><span class="letter" aria-hidden="true">'+'АБВГ'[i]+'</span>'+option+'</button>';
-  }).join('')+'</div>';
-  if (session.selected !== null) {
-    html += '<p class="feedback" role="status">'+(card.options[session.selected]===card.answer?'Верно. ':'Не совсем. ')+card.detail+'</p>'+action(session.index+1===cards.length?'Показать результат':'Следующий вопрос','next');
-  }
-  return html;
-}
-function material() {
-  if (view==='lecture') return '<div class="meta">Фрагмент расшифровки</div>'+title('Где находится Токио?')+'<blockquote>Начнём со столицы. Токио расположен на Хонсю. А если посмотреть севернее, увидим Хоккайдо. Из четырёх главных островов Японии он самый северный.</blockquote>'+action('Собрать конспект','notes');
-  return '<div class="meta">Конспект по записи лекции</div>'+title('Столица и острова Японии')+'<ul class="notes"><li>Токио — столица Японии.</li><li>Город расположен на острове Хонсю.</li><li>Хоккайдо — самый северный из четырёх главных островов.</li></ul>'+action('Перейти к карточкам','learn');
-}
-function render(focusSelector) {
-  document.querySelectorAll('[data-view]').forEach(button=>{
-    const active = button.dataset.view === view || (view==='test' && button.closest('.path') && button.dataset.view==='learn');
-    if(active) button.setAttribute('aria-current',button.closest('.path')?'step':'page');
-    else button.removeAttribute('aria-current');
-  });
-  content.innerHTML = view==='test' || view==='learn' ? study() : material();
-  if (focusSelector) content.querySelector(focusSelector)?.focus({preventScroll:true});
-}
-document.querySelector('.demo').addEventListener('click',event=>{
-  const button=event.target.closest('button');
-  if (!button || button.disabled) return;
-  const name=button.dataset.view || button.dataset.action;
-  if (['learn','test','lecture','notes'].includes(name)) {
-    view=name; render('h2'); return;
-  }
-  const session=sessions[view];
-  if (button.dataset.option!==undefined && view==='test' && session.selected===null) {
-    session.selected=Number(button.dataset.option);
-    const card=cards[session.index];
-    if(card.options[session.selected]===card.answer) session.score++;
-    render('[data-action="next"]'); return;
-  }
-  if(name==='reveal'){session.revealed=true;render('[data-action="known"]');return;}
-  if(name==='restart'){session.index=0;session.score=0;}
-  else if (['known','missed','next'].includes(name)) {
-    if(name==='known') session.score++;
-    session.index++;
-  }
-  session.revealed=false;session.selected=null;
-  render('h2');
-});
-render();
-</script>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Запоминальня — демо по записи лекции</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --ink: #172229;
+        --muted: #57656d;
+        --white: #fff;
+        --paper: #fbfbf9;
+        --line: #d9e1df;
+        --side: #f3f6f5;
+        --soft: #e2f0ed;
+        --teal: #126c65;
+        --blue: #233d89;
+        --dots: #e6e9ed;
+        --wrong: #934830;
+        --wrong-bg: #fff1ec;
+        font:
+          16px/1.5 'Inter',
+          'Segoe UI',
+          Arial,
+          sans-serif;
+        color: var(--ink);
+        background: var(--white);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+      button,
+      a {
+        font: inherit;
+      }
+      button {
+        color: inherit;
+        cursor: pointer;
+      }
+      button:disabled {
+        cursor: default;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      :focus-visible {
+        outline: 3px solid var(--blue);
+        outline-offset: 3px;
+      }
+      header {
+        max-width: 1580px;
+        margin: auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 17px 5%;
+        min-height: 76px;
+      }
+      .brand {
+        font:
+          29px Georgia,
+          'Times New Roman',
+          serif;
+        letter-spacing: -0.8px;
+      }
+      header nav,
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      header a {
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        padding: 0 14px;
+      }
+      header .signup {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 0 18px;
+      }
+      main {
+        margin: 0 16px 16px;
+        position: relative;
+        isolation: isolate;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background-color: var(--paper);
+        background-image: radial-gradient(var(--dots) 0.8px, transparent 0.9px);
+        background-size: 9px 9px;
+        padding: clamp(55px, 5.8vw, 94px) 28px 30px;
+      }
+      .intro {
+        position: relative;
+        text-align: center;
+        margin: 0 auto;
+      }
+      h1 {
+        font:
+          normal clamp(46px, 4.9vw, 80px)/0.99 Georgia,
+          'Times New Roman',
+          serif;
+        letter-spacing: -0.043em;
+        margin: 0;
+      }
+      h1 em {
+        display: block;
+        color: var(--blue);
+        font-weight: 400;
+      }
+      .intro p {
+        max-width: 585px;
+        margin: 25px auto 0;
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.5;
+      }
+      .art {
+        position: absolute;
+        z-index: -1;
+        pointer-events: none;
+        background-image: url('flashcards-centered-v4.png');
+        background-repeat: no-repeat;
+        background-size: 1110.2px 694.4px;
+        mix-blend-mode: multiply;
+      }
+      .botany {
+        width: 228px;
+        height: 351px;
+        left: -58px;
+        top: 20px;
+        background-position: 0 -78px;
+        mask-image:
+          linear-gradient(to right, #000 85%, transparent),
+          linear-gradient(to bottom, transparent, #000 5%, #000 89%, transparent);
+        mask-composite: intersect;
+      }
+      .globe {
+        width: 255px;
+        height: 420px;
+        right: -75px;
+        top: 115px;
+        background-position: -858px -201px;
+        mask-image:
+          linear-gradient(to right, transparent, #000 13%),
+          linear-gradient(to bottom, transparent, #000 7%, #000 85%, transparent);
+        mask-composite: intersect;
+      }
+      .notebook {
+        width: 281px;
+        height: 200px;
+        bottom: 0;
+        left: -106px;
+        background-position: 0 -494px;
+        mask-image:
+          linear-gradient(to right, #000 75%, transparent),
+          linear-gradient(to bottom, transparent, #000 20%);
+        mask-composite: intersect;
+      }
+      .demo {
+        position: relative;
+        max-width: 900px;
+        margin: clamp(45px, 4.3vw, 74px) auto 0;
+        display: grid;
+        grid-template-columns: 192px 1fr;
+        overflow: hidden;
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        box-shadow: 0 12px 38px -18px #1c373d3b;
+      }
+      aside {
+        background: var(--side);
+        border-right: 1px solid var(--line);
+        padding: 25px 14px;
+      }
+      .demo-brand {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin: 0 10px 32px;
+        font-size: 17px;
+        font-weight: 650;
+        letter-spacing: -0.035em;
+      }
+      .demo-brand svg {
+        width: 25px;
+        height: 25px;
+        color: var(--teal);
+      }
+      svg {
+        width: 19px;
+        height: 19px;
+        flex: none;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.65;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .group + .group {
+        margin-top: 28px;
+      }
+      .group-label {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+        margin: 0 10px 5px;
+      }
+      .mode {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        min-height: 44px;
+        padding: 8px 11px;
+        border: none;
+        border-radius: 8px;
+        background: transparent;
+        text-align: left;
+        font-size: 14px;
+      }
+      .mode[aria-current='page'] {
+        background: var(--soft);
+        color: var(--teal);
+        font-weight: 650;
+      }
+      .mode:hover,
+      .path button:hover {
+        background: var(--soft);
+      }
+      .workspace {
+        padding: 24px 32px 29px;
+        min-width: 0;
+      }
+      .lecture-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .lecture-title svg {
+        color: var(--muted);
+      }
+      .path {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0;
+        margin: 5px 0 21px;
+        border-bottom: 1px solid var(--line);
+      }
+      .path button {
+        border: 0;
+        min-height: 44px;
+        background: none;
+        padding: 0 3px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .path button[aria-current='step'] {
+        color: var(--teal);
+        font-weight: bold;
+      }
+      .path span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .meter {
+        display: inline-flex;
+        gap: 4px;
+      }
+      .meter i {
+        display: block;
+        width: 21px;
+        height: 4px;
+        border-radius: 2px;
+        background: var(--line);
+      }
+      .meter i.on {
+        background: var(--teal);
+      }
+      h2 {
+        font-size: clamp(24px, 2.05vw, 33px);
+        line-height: 1.18;
+        font-weight: 620;
+        letter-spacing: -0.038em;
+        margin: 17px 0;
+      }
+      .content {
+        min-height: 176px;
+      }
+      .content p {
+        margin: 12px 0 19px;
+      }
+      button.primary,
+      button.secondary,
+      .option {
+        border-radius: 9px;
+        min-height: 44px;
+        padding: 9px 15px;
+        font-size: 14px;
+        font-weight: 550;
+      }
+      button.primary {
+        background: var(--teal);
+        color: var(--white);
+        border: 1px solid var(--teal);
+      }
+      button.secondary,
+      .option {
+        border: 1px solid var(--line);
+        background: var(--white);
+      }
+      button.primary:hover {
+        filter: brightness(0.92);
+      }
+      button.secondary:hover,
+      .option:enabled:hover {
+        border-color: var(--teal);
+      }
+      .options {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .option {
+        display: flex;
+        align-items: center;
+        text-align: left;
+        gap: 12px;
+      }
+      .letter {
+        font-size: 12px;
+        color: var(--muted);
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        width: 23px;
+        height: 24px;
+        display: grid;
+        place-items: center;
+      }
+      .option.correct {
+        color: var(--teal);
+        background: var(--soft);
+        border-color: var(--teal);
+      }
+      .option.wrong {
+        color: var(--wrong);
+        background: var(--wrong-bg);
+        border-color: var(--wrong);
+      }
+      .feedback,
+      .hint {
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .hint {
+        margin: 0 0 18px;
+      }
+      .notes {
+        padding-left: 20px;
+        margin: 0 0 20px;
+      }
+      .notes li + li {
+        margin-top: 5px;
+      }
+      blockquote {
+        margin: 0 0 18px;
+        padding-left: 14px;
+        border-left: 2px solid var(--line);
+        line-height: 1.65;
+      }
+      .caption {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        text-align: center;
+        margin: 22px auto 0;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .caption svg {
+        width: 15px;
+        height: 15px;
+        color: var(--teal);
+      }
+      @media (max-width: 1100px) {
+        .art {
+          opacity: 0.72;
+        }
+        .botany {
+          left: -122px;
+        }
+        .globe {
+          right: -145px;
+        }
+        .notebook {
+          display: none;
+        }
+      }
+      @media (max-width: 800px) {
+        main {
+          padding: 46px 17px 24px;
+        }
+        .demo {
+          grid-template-columns: 155px 1fr;
+        }
+        .workspace {
+          padding: 20px;
+        }
+        .demo-brand {
+          margin-left: 3px;
+        }
+        .art {
+          display: none;
+        }
+        aside {
+          padding: 21px 8px;
+        }
+      }
+      @media (max-width: 620px) {
+        header {
+          padding: 8px 14px;
+          min-height: 65px;
+        }
+        .brand {
+          font-size: 22px;
+        }
+        header nav {
+          gap: 0;
+        }
+        header a {
+          font-size: 13px;
+          padding: 0 8px;
+        }
+        header .signup {
+          padding: 0 9px;
+        }
+        main {
+          margin: 0 5px 5px;
+          padding: 37px 10px 22px;
+          border-radius: 17px;
+        }
+        h1 {
+          font-size: clamp(32px, 8.5vw, 48px);
+          line-height: 1.04;
+        }
+        .intro p {
+          font-size: 15px;
+          max-width: 34ch;
+          margin-top: 16px;
+        }
+        .demo {
+          display: block;
+          margin-top: 32px;
+          border-radius: 13px;
+        }
+        aside {
+          padding: 8px;
+          border: 0;
+          border-bottom: 1px solid var(--line);
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 2px;
+        }
+        .demo-brand,
+        .group-label {
+          display: none;
+        }
+        .group + .group {
+          margin: 0;
+        }
+        .mode {
+          font-size: 13px;
+        }
+        .workspace {
+          padding: 18px 15px 22px;
+        }
+        .content {
+          min-height: 0;
+        }
+        .path {
+          gap: 5px;
+        }
+        .options {
+          gap: 7px;
+        }
+        .option {
+          gap: 7px;
+          padding: 7px 8px;
+        }
+        .caption {
+          font-size: 12px;
+        }
+        .caption svg {
+          display: none;
+        }
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --ink: #ebf0ef;
+          --muted: #abb9bb;
+          --white: #191f23;
+          --paper: #14191c;
+          --line: #354145;
+          --side: #1f292b;
+          --soft: #253f3f;
+          --teal: #82c6bc;
+          --blue: #b6c7ff;
+          --dots: #283034;
+          --wrong: #ffb5a0;
+          --wrong-bg: #452e2a;
+        }
+        .art {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span class="brand">Запоминальня</span>
+      <nav aria-label="Аккаунт">
+        <a href="http://localhost:3000/login">Войти</a
+        ><a class="signup" href="http://localhost:3000/register">Создать аккаунт</a>
+      </nav>
+    </header>
+    <main>
+      <div class="art botany" aria-hidden="true"></div>
+      <div class="art globe" aria-hidden="true"></div>
+      <div class="art notebook" aria-hidden="true"></div>
+      <div class="intro">
+        <h1>Конспект и карточки<em>по записи вашей лекции</em></h1>
+        <p>
+          Загрузите аудио или видео с пары. Соберите конспект и&nbsp;проверьте себя перед зачётом.
+        </p>
+      </div>
+      <section class="demo" aria-label="Демо по записи лекции">
+        <aside>
+          <div class="demo-brand">
+            <svg aria-hidden="true"><use href="#cards" /></svg>Мини-демо
+          </div>
+          <div class="group">
+            <p class="group-label">Обучение</p>
+            <button class="mode" data-view="learn">
+              <svg aria-hidden="true"><use href="#cards" /></svg>Запоминание
+            </button>
+            <button class="mode" data-view="test">
+              <svg aria-hidden="true"><use href="#test" /></svg>Тест
+            </button>
+          </div>
+          <div class="group">
+            <p class="group-label">Материалы</p>
+            <button class="mode" data-view="notes">
+              <svg aria-hidden="true"><use href="#notes" /></svg>Конспекты
+            </button>
+            <button class="mode" data-view="lecture">
+              <svg aria-hidden="true"><use href="#lecture" /></svg>Лекции
+            </button>
+          </div>
+        </aside>
+        <div class="workspace">
+          <div class="lecture-title">
+            <svg aria-hidden="true"><use href="#book" /></svg>География Японии
+          </div>
+          <nav class="path" aria-label="От записи к карточкам">
+            <button data-view="lecture">Расшифровка</button><span aria-hidden="true">→</span
+            ><button data-view="notes">Конспект</button><span aria-hidden="true">→</span
+            ><button data-view="learn">Карточки</button>
+          </nav>
+          <div class="content" id="content"></div>
+        </div>
+      </section>
+      <p class="caption">
+        <svg aria-hidden="true"><use href="#check" /></svg>Демо без регистрации. Своя запись — на
+        Plus или Pro.
+      </p>
+    </main>
+    <svg aria-hidden="true" width="0" height="0" style="position: absolute; width: 0; height: 0">
+      <defs>
+        <symbol id="cards" viewBox="0 0 24 24">
+          <path d="m4 15-1-9 13-2 1 3" />
+          <rect x="6" y="8" width="15" height="12" rx="2.5" />
+          <path d="M10 12h7m-7 4h4" />
+        </symbol>
+        <symbol id="test" viewBox="0 0 24 24">
+          <rect x="4" y="3" width="16" height="18" rx="3" />
+          <path d="m7 8 1 1 2-2m2 1h5m-10 6 1 1 2-2m2 1h5" />
+        </symbol>
+        <symbol id="notes" viewBox="0 0 24 24"><path d="M6 3h11l3 4v13H6zM9 10h8m-8 4h6" /></symbol>
+        <symbol id="lecture" viewBox="0 0 24 24">
+          <path d="M3 10v4m4-7v10m5-15v19m5-15v11m4-8v5" />
+        </symbol>
+        <symbol id="book" viewBox="0 0 24 24">
+          <path d="M12 6c-3-2-6-2-9-1v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1Zm0 0v14" />
+        </symbol>
+        <symbol id="check" viewBox="0 0 24 24"><path d="m4 12 5 5L20 6" /></symbol>
+      </defs>
+    </svg>
+    <script>
+      const cards = [
+        {
+          question: 'Какой город — столица Японии?',
+          answer: 'Токио',
+          options: ['Киото', 'Токио', 'Осака', 'Саппоро'],
+          detail: 'Столица Японии — Токио.',
+        },
+        {
+          question: 'На каком острове находится Токио?',
+          answer: 'Хонсю',
+          options: ['Кюсю', 'Хоккайдо', 'Сикоку', 'Хонсю'],
+          detail: 'Токио расположен на острове Хонсю.',
+        },
+        {
+          question: 'Какой из четырёх главных островов Японии самый северный?',
+          answer: 'Хоккайдо',
+          options: ['Хоккайдо', 'Хонсю', 'Сикоку', 'Кюсю'],
+          detail: 'Севернее остальных расположен Хоккайдо.',
+        },
+      ];
+      const content = document.querySelector('#content');
+      const sessions = {
+        learn: { index: 0, revealed: false, score: 0 },
+        test: { index: 0, selected: null, score: 0 },
+      };
+      let view = 'learn';
+      function action(label, name, primary = true) {
+        return (
+          '<button class="' +
+          (primary ? 'primary' : 'secondary') +
+          '" data-action="' +
+          name +
+          '">' +
+          label +
+          '</button>'
+        );
+      }
+      function title(text) {
+        return '<h2 tabindex="-1">' + text + '</h2>';
+      }
+      function study() {
+        const testing = view === 'test';
+        const session = sessions[view];
+        if (session.index === cards.length) {
+          return (
+            title(testing ? 'Тест завершён' : 'Карточки пройдены') +
+            '<p>' +
+            (testing ? 'Верных ответов: ' : 'Вспомнили без подсказки: ') +
+            session.score +
+            ' из ' +
+            cards.length +
+            '.</p><div class="actions">' +
+            action('Пройти ещё раз', 'restart') +
+            action('Открыть конспект', 'notes', false) +
+            '</div>'
+          );
+        }
+        const card = cards[session.index];
+        const meter = cards
+          .map((_, i) => '<i class="' + (i <= session.index ? 'on' : '') + '"></i>')
+          .join('');
+        let html =
+          '<div class="meta"><span>' +
+          (testing ? 'Вопрос' : 'Карточка') +
+          ' ' +
+          (session.index + 1) +
+          ' из ' +
+          cards.length +
+          '</span><span class="meter" aria-hidden="true">' +
+          meter +
+          '</span></div>' +
+          title(card.question);
+        if (!testing) {
+          if (!session.revealed)
+            return (
+              html +
+              '<p class="hint">Вспомните ответ и проверьте себя.</p>' +
+              action('Показать ответ', 'reveal')
+            );
+          return (
+            html +
+            '<p><strong>' +
+            card.answer +
+            '</strong></p><div class="actions">' +
+            action('Вспомнил', 'known') +
+            action('Не вспомнил', 'missed', false) +
+            '</div>'
+          );
+        }
+        html +=
+          '<div class="options">' +
+          card.options
+            .map((option, i) => {
+              const answered = session.selected !== null;
+              let cls = '';
+              if (answered && option === card.answer) cls = ' correct';
+              else if (session.selected === i) cls = ' wrong';
+              return (
+                '<button class="option' +
+                cls +
+                '" data-option="' +
+                i +
+                '" ' +
+                (answered ? 'disabled' : '') +
+                '><span class="letter" aria-hidden="true">' +
+                'АБВГ'[i] +
+                '</span>' +
+                option +
+                '</button>'
+              );
+            })
+            .join('') +
+          '</div>';
+        if (session.selected !== null) {
+          html +=
+            '<p class="feedback" role="status">' +
+            (card.options[session.selected] === card.answer ? 'Верно. ' : 'Не совсем. ') +
+            card.detail +
+            '</p>' +
+            action(
+              session.index + 1 === cards.length ? 'Показать результат' : 'Следующий вопрос',
+              'next',
+            );
+        }
+        return html;
+      }
+      function material() {
+        if (view === 'lecture')
+          return (
+            '<div class="meta">Фрагмент расшифровки</div>' +
+            title('Где находится Токио?') +
+            '<blockquote>Начнём со столицы. Токио расположен на Хонсю. А если посмотреть севернее, увидим Хоккайдо. Из четырёх главных островов Японии он самый северный.</blockquote>' +
+            action('Собрать конспект', 'notes')
+          );
+        return (
+          '<div class="meta">Конспект по записи лекции</div>' +
+          title('Столица и острова Японии') +
+          '<ul class="notes"><li>Токио — столица Японии.</li><li>Город расположен на острове Хонсю.</li><li>Хоккайдо — самый северный из четырёх главных островов.</li></ul>' +
+          action('Перейти к карточкам', 'learn')
+        );
+      }
+      function render(focusSelector) {
+        document.querySelectorAll('[data-view]').forEach((button) => {
+          const active =
+            button.dataset.view === view ||
+            (view === 'test' && button.closest('.path') && button.dataset.view === 'learn');
+          if (active)
+            button.setAttribute('aria-current', button.closest('.path') ? 'step' : 'page');
+          else button.removeAttribute('aria-current');
+        });
+        content.innerHTML = view === 'test' || view === 'learn' ? study() : material();
+        if (focusSelector) content.querySelector(focusSelector)?.focus({ preventScroll: true });
+      }
+      document.querySelector('.demo').addEventListener('click', (event) => {
+        const button = event.target.closest('button');
+        if (!button || button.disabled) return;
+        const name = button.dataset.view || button.dataset.action;
+        if (['learn', 'test', 'lecture', 'notes'].includes(name)) {
+          view = name;
+          render('h2');
+          return;
+        }
+        const session = sessions[view];
+        if (button.dataset.option !== undefined && view === 'test' && session.selected === null) {
+          session.selected = Number(button.dataset.option);
+          const card = cards[session.index];
+          if (card.options[session.selected] === card.answer) session.score++;
+          render('[data-action="next"]');
+          return;
+        }
+        if (name === 'reveal') {
+          session.revealed = true;
+          render('[data-action="known"]');
+          return;
+        }
+        if (name === 'restart') {
+          session.index = 0;
+          session.score = 0;
+        } else if (['known', 'missed', 'next'].includes(name)) {
+          if (name === 'known') session.score++;
+          session.index++;
+        }
+        session.revealed = false;
+        session.selected = null;
+        render('h2');
+      });
+      render();
+    </script>
+  </body>
 </html>

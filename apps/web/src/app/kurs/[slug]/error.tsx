@@ -1,15 +1,29 @@
 'use client';
 
-import { Button } from '@remora/ui';
+import { useRouter } from 'next/navigation';
+import { startTransition } from 'react';
+import { PublicState } from '../../../components/landing/PublicState';
 
 export default function CourseError({ reset }: { reset: () => void }) {
+  const router = useRouter();
+  function retry() {
+    startTransition(() => {
+      router.refresh();
+      reset();
+    });
+  }
+
   return (
-    <main className="mx-auto max-w-xl space-y-4 px-4 py-16">
-      <h1 className="text-3xl font-semibold">Не удалось загрузить курс</h1>
-      <p className="text-fg-muted">Проверьте соединение и попробуйте ещё раз.</p>
-      <Button className="min-h-11" onClick={reset}>
-        Повторить
-      </Button>
+    <main>
+      <PublicState
+        variant="error"
+        title="Не удалось загрузить курс"
+        description="Проверьте соединение и попробуйте ещё раз. Ваши материалы и прогресс от этого не изменятся."
+        primaryLabel="Повторить"
+        onRetry={retry}
+        secondaryHref="/kursy"
+        secondaryLabel="Открыть каталог"
+      />
     </main>
   );
 }

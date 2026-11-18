@@ -125,7 +125,7 @@ const serializer: MarkdownSerializer = new MarkdownSerializer(
         row.forEach((c) => {
           const para = schema.nodes.paragraph!.create(null, c.content);
           const text = serializer.serialize(schema.topNodeType.create(null, para));
-          cells.push(text.replace(/(?<!\\)\|/g, '\\|').replace(/\n/g, ' '));
+          cells.push(text.replace(/\|/g, '\\|').replace(/\n/g, ' '));
           rules.push(
             ({ left: ':---', right: '---:', center: ':---:' } as Record<string, string>)[
               c.attrs.align

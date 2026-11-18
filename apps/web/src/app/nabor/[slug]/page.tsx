@@ -1,5 +1,8 @@
 import { PublicAnalytics } from '../../../components/analytics/PublicAnalytics';
-import { Badge, Card } from '@remora/ui';
+import { PublicHeader } from '../../../components/landing/PublicHeader';
+import { PublicCardTable } from './PublicCardTable';
+import { PublicSetCabinetLink } from './PublicSetCabinetLink';
+import './public-set.css';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
@@ -50,6 +53,19 @@ const loadSet = cache(async (slug: string): Promise<PublicSet | null> => {
   return (await response.json()) as PublicSet;
 });
 
+async function hasAuthorProfile(username: string): Promise<boolean> {
+  try {
+    // Профиль автора доступен не для каждого самостоятельного набора.
+    const response = await fetch(`${API_URL}/api/v1/authors/${encodeURIComponent(username)}`, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(5000),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -78,88 +94,112 @@ export default async function PublicSetPage({ params }: { params: Promise<{ slug
   if (!set) notFound();
   if (set.course_url) permanentRedirect(set.course_url);
   const authorName = set.author.display_name || `@${set.author.username}`;
+  const authorProfileAvailable = await hasAuthorProfile(set.author.username);
+  const authorContent = (
+    <>
+      <AuthorAvatar name={authorName} avatarUrl={set.author.avatar_url} />
+      <span>
+        <span className="ps-author-label">Автор набора</span>
+        <span className="ps-author-name">{authorName}</span>
+      </span>
+    </>
+  );
 
   return (
-    <main className="public-set-page min-h-dvh px-4 py-5 sm:px-6 sm:py-8">
-      {set.visibility === 'public' && (
-        <PublicAnalytics path={`/nabor/${encodeURIComponent(set.slug)}`} />
-      )}
-      <div className="mx-auto max-w-6xl">
-        <nav className="flex items-center justify-between py-2" aria-label="Основная навигация">
-          <Link href="/" className="flex items-center gap-3 text-lg font-semibold tracking-tight">
-            <span className="bg-primary text-primary-fg grid h-9 w-9 place-items-center rounded-xl">
-              R
-            </span>
-            Запоминальня
-          </Link>
-          <PublicAuthLink className="border-border bg-surface hover:bg-surface-muted inline-flex h-11 items-center rounded-full border px-5 text-sm font-medium transition-colors" />
-        </nav>
-
-        <header className="grid gap-8 pb-10 pt-14 lg:grid-cols-[1fr_auto] lg:items-end">
-          <div className="max-w-3xl">
-            <div className="flex flex-wrap items-center gap-3">
-              <Badge tone="primary">
-                {set.visibility === 'public' ? 'Публичный' : 'Доступ по ссылке'}
-              </Badge>
-              <span className="text-fg-muted text-sm">{formatCardCount(set.cards_count)}</span>
+    <>
+      <a className="ps-skip" href="#cards-heading">
+        К карточкам
+      </a>
+      <PublicHeader />
+      <main className="public-set-page">
+        {set.visibility === 'public' && (
+          <PublicAnalytics path={`/nabor/${encodeURIComponent(set.slug)}`} />
+        )}
+        <header className="ps-cover">
+          <div className="ps-width ps-cover-grid">
+            <div className="ps-heading">
+              <p className="ps-eyebrow">Набор карточек</p>
+              <h1>{set.title}</h1>
+              {set.description && <p className="ps-description">{set.description}</p>}
+              {authorProfileAvailable ? (
+                <Link
+                  className="ps-author"
+                  href={`/avtor/${encodeURIComponent(set.author.username)}`}
+                >
+                  {authorContent}
+                </Link>
+              ) : (
+                <div className="ps-author">{authorContent}</div>
+              )}
             </div>
-            <h1 className="mt-5 text-4xl font-semibold tracking-tight sm:text-5xl">{set.title}</h1>
-            {set.description && (
-              <p className="text-fg-muted mt-5 max-w-2xl whitespace-pre-wrap text-lg leading-8">
-                {set.description}
+            <aside className="ps-summary" aria-label="О наборе">
+              <p className="ps-count">{formatCardCount(set.cards_count)}</p>
+              <p className="ps-visibility">
+                {set.visibility === 'public' ? 'Публичный набор' : 'Доступ по ссылке'}
               </p>
-            )}
-            <div className="mt-7 flex items-center gap-3">
-              <AuthorAvatar name={authorName} avatarUrl={set.author.avatar_url} />
-              <div>
-                <p className="text-sm font-medium">{authorName}</p>
-                <p className="text-fg-subtle text-xs">Автор набора</p>
-              </div>
-            </div>
+              <p className="ps-summary-note">
+                {set.cards_count > 0
+                  ? 'Термины и определения можно читать без входа.'
+                  : 'Автор ещё не добавил карточки в этот набор.'}
+              </p>
+              {set.cards.length > 0 ? (
+                <a href="#cards-heading" className="ps-primary">
+                  Смотреть карточки <span aria-hidden="true">↓</span>
+                </a>
+              ) : (
+                <Link href="/kursy" className="ps-primary">
+                  Выбрать курс
+                </Link>
+              )}
+              <PublicSetCabinetLink setId={set.id} appUrl={APP_URL} />
+            </aside>
           </div>
-          <Link
-            href={`${APP_URL}/login`}
-            className="bg-primary text-primary-fg hover:bg-primary-hover inline-flex h-12 items-center justify-center rounded-full px-7 text-base font-semibold transition-colors"
-          >
-            Начать учиться
-          </Link>
         </header>
-
-        <section aria-labelledby="cards-heading" className="pb-20">
-          <div className="border-border mb-4 flex items-end justify-between border-b pb-4">
-            <div>
-              <p className="text-primary text-xs font-semibold uppercase tracking-[0.18em]">
-                Содержание
-              </p>
-              <h2 id="cards-heading" className="mt-1 text-2xl font-semibold">
-                Карточки набора
-              </h2>
-            </div>
-            {set.cards_count > set.cards.length && (
-              <span className="text-fg-muted text-sm">Показаны первые {set.cards.length}</span>
-            )}
+        <section aria-labelledby="cards-heading" className="ps-width ps-content">
+          <div className="ps-section-heading">
+            <h2 id="cards-heading" tabIndex={-1}>
+              Карточки набора
+            </h2>
+            <p>
+              {set.cards_count > set.cards.length
+                ? `Показаны первые ${set.cards.length} из ${set.cards_count}`
+                : formatCardCount(set.cards_count)}
+            </p>
           </div>
-          <ol className="space-y-3">
-            {set.cards.map((card, index) => (
-              <li key={card.id}>
-                <Card className="grid gap-5 p-5 sm:grid-cols-[44px_minmax(0,1fr)_minmax(0,1fr)] sm:p-6">
-                  <span className="text-fg-subtle pt-1 text-sm tabular-nums">
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
-                  <CardSide card={card} side="term" />
-                  <CardSide card={card} side="definition" />
-                </Card>
-              </li>
-            ))}
-          </ol>
-          {set.cards.length === 0 && (
-            <Card className="p-10 text-center">
-              <p className="text-fg-muted">Автор пока не добавил карточки.</p>
-            </Card>
+          {set.cards.length > 0 ? (
+            <PublicCardTable>
+              <ol className="ps-cards">
+                {set.cards.map((card, index) => (
+                  <li key={card.id} className="ps-card">
+                    <span className="ps-card-number" aria-label={`Карточка ${index + 1}`}>
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
+                    <CardSide card={card} side="term" />
+                    <CardSide card={card} side="definition" />
+                  </li>
+                ))}
+              </ol>
+            </PublicCardTable>
+          ) : (
+            <div className="ps-empty">
+              <h3>Карточек пока нет</h3>
+              <p>Здесь появятся термины и определения, когда автор добавит их в набор.</p>
+              <Link href="/kursy">
+                Посмотреть курсы в каталоге <span aria-hidden="true">→</span>
+              </Link>
+            </div>
           )}
+          <footer className="ps-footer">
+            {authorProfileAvailable && (
+              <Link href={`/avtor/${encodeURIComponent(set.author.username)}`}>
+                Другие материалы автора <span aria-hidden="true">→</span>
+              </Link>
+            )}
+            <Link href="/kursy">Каталог курсов</Link>
+          </footer>
         </section>
-      </div>
-    </main>
+      </main>
+    </>
   );
 }
 
@@ -170,22 +210,21 @@ function CardSide({ card, side }: { card: PublicCard; side: 'term' | 'definition
   const imageUrl = isTerm ? card.term_image_url : card.definition_image_url;
   return (
     <div
-      className={
-        isTerm ? '' : 'border-border border-t pt-5 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0'
-      }
+      className={`ps-side ps-side-${side}`}
+      role="group"
+      aria-label={isTerm ? 'Термин' : 'Определение'}
     >
+      <p className="ps-side-label">{isTerm ? 'Термин' : 'Определение'}</p>
       <PublicCardContent
         value={value}
         type={card.content_type}
         codeLanguage={card.code_language}
         imageUrl={imageUrl}
         imageAlt={isTerm ? `Термин: ${card.term}` : `Определение: ${card.definition}`}
-        className={isTerm ? 'font-medium' : 'text-fg-muted'}
+        className={isTerm ? 'ps-term' : 'ps-definition'}
       />
-      {transcription && <p className="text-fg-subtle mt-2 text-sm">[{transcription}]</p>}
-      {!isTerm && card.hint && (
-        <p className="text-fg-subtle mt-3 text-sm">Подсказка: {card.hint}</p>
-      )}
+      {transcription && <p className="ps-transcription">[{transcription}]</p>}
+      {!isTerm && card.hint && <p className="ps-hint">Подсказка: {card.hint}</p>}
     </div>
   );
 }
@@ -193,11 +232,11 @@ function CardSide({ card, side }: { card: PublicCard; side: 'term' | 'definition
 function AuthorAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
   if (avatarUrl) {
     // Аватар приходит из профиля автора и может храниться у внешнего провайдера.
-    return <img src={avatarUrl} alt="" className="h-10 w-10 rounded-full object-cover" />;
+    return <img src={avatarUrl} alt="" className="ps-avatar" />;
   }
   return (
-    <span className="bg-primary-subtle text-primary grid h-10 w-10 place-items-center rounded-full font-semibold">
-      {name.slice(0, 1).toUpperCase()}
+    <span className="ps-avatar ps-avatar-fallback" aria-hidden="true">
+      {name.replace(/^@/, '').slice(0, 1).toUpperCase()}
     </span>
   );
 }
@@ -215,4 +254,3 @@ function formatCardCount(count: number) {
           : 'карточек';
   return `${count} ${word}`;
 }
-import { PublicAuthLink } from '../../../components/auth/PublicSession';

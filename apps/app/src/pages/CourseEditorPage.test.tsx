@@ -1,14 +1,24 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { CourseEditorPage } from './CourseEditorPage';
-import { CourseCopyPage, CourseReaderPage, CopyCourseButton, CopySetButton } from './CourseReaderPage';
+import {
+  CourseReaderPage,
+  CourseCopyPage,
+  CopyCourseButton,
+  CopySetButton,
+} from './CourseReaderPage';
 import { ArticleContent } from '@remora/ui';
 import { api } from '../lib/api';
 import { AppLayout } from '../layouts/AppLayout';
+import { useAuthStore } from '../features/auth/auth-store';
+import {
+  readLocalArticleDrafts,
+  writeLocalArticleDraft,
+} from '../features/article-editor/local-drafts';
 
 vi.mock('../lib/api', () => ({ api: { GET: vi.fn(), POST: vi.fn(), PUT: vi.fn() } }));
 const course = {
@@ -25,6 +35,12 @@ const course = {
     },
   ],
 };
+function structureInput(value: unknown) {
+  return value as {
+    body: { revision: string; sections: typeof course.sections };
+    headers: Record<string, string>;
+  };
+}
 function mount(mode = 'structure') {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -33,12 +49,13 @@ function mount(mode = 'structure') {
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[`/courses/${course.id}/${mode}`]}>
         <Routes>
-          <Route
-            path="/courses/:courseId/materials/:articleId/edit"
-            element={<CourseEditorPage />}
-          />
           <Route path="/courses/:courseId/structure" element={<CourseEditorPage />} />
           <Route element={<AppLayout />}>
+            <Route
+              path="/courses/:courseId/materials/:articleId/edit"
+              element={<CourseEditorPage />}
+            />
+
             <Route path="/courses/:courseId" element={<CourseReaderPage />} />
             <Route path="/courses/:courseId/read" element={<CourseReaderPage />} />
           </Route>
@@ -51,6 +68,8 @@ function mount(mode = 'structure') {
 }
 beforeEach(() => {
   vi.resetAllMocks();
+  localStorage.clear();
+  useAuthStore.setState({ user: null });
   course.id = crypto.randomUUID();
   vi.mocked(api.GET).mockImplementation(
     async (path) =>
@@ -58,6 +77,60 @@ beforeEach(() => {
   );
 });
 afterEach(cleanup);
+
+it('записывает правки локально до запроса и удаляет копию после сохранения', async () => {
+  useAuthStore.setState({ user: { id: 'draft-owner' } as never });
+  vi.mocked(api.PUT).mockImplementation(
+    async (_path, options) =>
+      ({
+        data: { ...course, revision: 'v2', sections: structureInput(options).body.sections },
+        response: new Response(),
+      }) as never,
+  );
+  mount('materials/article/edit');
+  const title = await screen.findByRole('textbox', { name: 'Название статьи' });
+  fireEvent.change(title, { target: { value: 'Локальное название' } });
+  expect(api.PUT).not.toHaveBeenCalled();
+  expect(readLocalArticleDrafts('draft-owner', course.id)[0]).toMatchObject({
+    title: 'Локальное название',
+    body: 'Конспект',
+    base: { title: 'Определитель', body: 'Конспект' },
+  });
+  await userEvent.click(screen.getByRole('button', { name: 'Сохранить материал' }));
+  await screen.findByText('Материал сохранён');
+  expect(readLocalArticleDrafts('draft-owner', course.id)).toEqual([]);
+});
+
+it('восстанавливает конфликтующий черновик с обязательной ручной проверкой', async () => {
+  useAuthStore.setState({ user: { id: 'draft-owner' } as never });
+  writeLocalArticleDraft({
+    version: 1,
+    writer: 'closed-tab',
+    userId: 'draft-owner',
+    courseId: course.id,
+    articleId: 'article',
+    title: 'Восстановленное название',
+    body: 'Локальный текст',
+    base: { title: 'Определитель', body: 'Старая серверная версия' },
+    updatedAt: Date.now(),
+    needsReview: false,
+  });
+  mount('materials/article/edit');
+  await userEvent.click(await screen.findByRole('button', { name: 'Восстановить черновик' }));
+  expect(
+    await screen.findByText(/Статья на сервере изменилась после создания черновика/),
+  ).toBeTruthy();
+  expect((screen.getByRole('textbox', { name: 'Название статьи' }) as HTMLInputElement).value).toBe(
+    'Восстановленное название',
+  );
+  expect(
+    readLocalArticleDrafts('draft-owner', course.id).find((d) => d.writer !== 'closed-tab'),
+  ).toMatchObject({ body: 'Локальный текст', needsReview: true });
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 1400));
+  });
+  expect(api.PUT).not.toHaveBeenCalled();
+});
 
 it.each(['', 'read'])('открывает оглавление с навигацией кабинета: %s', async (path) => {
   mount(path);
@@ -108,6 +181,10 @@ it('сохраняет теорию на отдельной странице б�
     response: new Response(),
   } as never);
   mount('materials/article/edit');
+  expect(
+    screen.getByRole('navigation', { name: 'Основная навигация' }).closest('.dashboard-shell'),
+  ).toBeTruthy();
+  expect(document.querySelector('.dashboard-brand img')).toBeTruthy();
   await userEvent.click(await screen.findByRole('button', { name: 'Другие действия' }));
   await userEvent.click(screen.getByRole('button', { name: 'Исходный Markdown' }));
   await userEvent.type(screen.getByRole('textbox', { name: 'Исходный Markdown' }), ' дополнен');
@@ -396,6 +473,110 @@ it('проверяет квиз по набору урока и позволяе
   ).toBe(true);
   await userEvent.click(nextToolbar.getByRole('button', { name: 'Предыдущий урок' }));
   expect(await screen.findByText('Конспект')).toBeTruthy();
+});
+
+it('автосохраняет новые правки после ответа на предыдущий снимок, сохраняя ввод доступным', async () => {
+  let completeFirst!: (value: never) => void;
+  vi.mocked(api.PUT).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        completeFirst = resolve;
+      }),
+  );
+  vi.mocked(api.PUT).mockImplementation(
+    async (_path, options) =>
+      ({
+        data: { ...course, revision: 'v3', sections: structureInput(options).body.sections },
+        response: new Response(),
+      }) as never,
+  );
+  mount('materials/article/edit');
+  await userEvent.click(await screen.findByRole('button', { name: 'Другие действия' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Исходный Markdown' }));
+  const body = screen.getByRole('textbox', { name: 'Исходный Markdown' }) as HTMLTextAreaElement;
+  fireEvent.change(body, { target: { value: 'Первый снимок' } });
+  await waitFor(() => expect(api.PUT).toHaveBeenCalledTimes(1), { timeout: 2500 });
+  expect(body.disabled).toBe(false);
+  fireEvent.change(body, { target: { value: 'Первый снимок и продолжение' } });
+  await act(async () =>
+    completeFirst({
+      data: {
+        ...course,
+        revision: 'v2',
+        sections: structureInput(vi.mocked(api.PUT).mock.calls[0]![1]).body.sections,
+      },
+      response: new Response(),
+    } as never),
+  );
+  expect(body.value).toBe('Первый снимок и продолжение');
+  await waitFor(() => expect(api.PUT).toHaveBeenCalledTimes(2), { timeout: 2500 });
+  const sent = structureInput(vi.mocked(api.PUT).mock.calls[1]![1]).body;
+  expect(sent.revision).toBe('v2');
+  expect(sent.sections[0]!.articles[0]!.body).toBe('Первый снимок и продолжение');
+  await screen.findByText('Материал сохранён');
+}, 10000);
+
+it('после обрыва связи повторяет прежний запрос и затем автоматически сохраняет новые правки', async () => {
+  vi.mocked(api.PUT).mockRejectedValueOnce(new TypeError('Failed to fetch'));
+  vi.mocked(api.PUT).mockImplementation(
+    async (_path, options) =>
+      ({
+        data: { ...course, revision: 'v2', sections: structureInput(options).body.sections },
+        response: new Response(),
+      }) as never,
+  );
+  mount('materials/article/edit');
+  await userEvent.click(await screen.findByRole('button', { name: 'Другие действия' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Исходный Markdown' }));
+  const body = screen.getByRole('textbox', { name: 'Исходный Markdown' }) as HTMLTextAreaElement;
+  fireEvent.change(body, { target: { value: 'До обрыва' } });
+  await screen.findByRole('alert', {}, { timeout: 2500 });
+  fireEvent.change(body, { target: { value: 'После обрыва' } });
+  fireEvent(window, new Event('online'));
+  await waitFor(() => expect(api.PUT).toHaveBeenCalledTimes(3), { timeout: 3000 });
+  const calls = vi.mocked(api.PUT).mock.calls;
+  expect(structureInput(calls[0]![1]).body).toEqual(structureInput(calls[1]![1]).body);
+  expect(structureInput(calls[0]![1]).headers).toEqual(structureInput(calls[1]![1]).headers);
+  expect(structureInput(calls[2]![1]).headers).not.toEqual(structureInput(calls[1]![1]).headers);
+  expect(structureInput(calls[2]![1]).body.sections[0]!.articles[0]!.body).toBe('После обрыва');
+  expect(body.value).toBe('После обрыва');
+  await screen.findByText('Материал сохранён');
+}, 10000);
+
+it('сохраняет пробел в конце названия после ответа автосохранения', async () => {
+  vi.mocked(api.PUT).mockImplementation(async (_path, options) => {
+    const sections = structureInput(options).body.sections.map((s) => ({
+      ...s,
+      articles: s.articles.map((a) => ({ ...a, title: a.title.trim() })),
+    }));
+    return { data: { ...course, revision: 'v2', sections }, response: new Response() } as never;
+  });
+  mount('materials/article/edit');
+  const title = (await screen.findByRole('textbox', {
+    name: 'Название статьи',
+  })) as HTMLTextAreaElement;
+  fireEvent.change(title, { target: { value: 'Первое слово ' } });
+  await screen.findByText('Материал сохранён', {}, { timeout: 2500 });
+  expect(title.value).toBe('Первое слово ');
+});
+
+it('отправляет отложенные правки при закрытии страницы редактора', async () => {
+  vi.mocked(api.PUT).mockImplementation(
+    async (_path, options) =>
+      ({
+        data: { ...course, revision: 'v2', sections: structureInput(options).body.sections },
+        response: new Response(),
+      }) as never,
+  );
+  const page = mount('materials/article/edit');
+  const title = await screen.findByRole('textbox', { name: 'Название статьи' });
+  fireEvent.change(title, { target: { value: 'Правка перед уходом' } });
+  expect(api.PUT).not.toHaveBeenCalled();
+  page.unmount();
+  await waitFor(() => expect(api.PUT).toHaveBeenCalledTimes(1));
+  expect(
+    structureInput(vi.mocked(api.PUT).mock.calls[0]![1]).body.sections[0]!.articles[0]!.title,
+  ).toBe('Правка перед уходом');
 });
 
 it('ссылка на копию только статьи передаёт режим текста в API', async () => {

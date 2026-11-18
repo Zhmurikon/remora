@@ -97,6 +97,9 @@ describe('BillingPage', () => {
     expect(screen.getByText(/2.499.₽/)).toBeTruthy();
     expect(screen.getByText(/9.999.₽/)).toBeTruthy();
     expect(screen.getByText('Обучение без ограничений')).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: 'Условия оплаты и возврата' }).getAttribute('href'),
+    ).toBe('http://localhost:3000/oplata-i-vozvrat');
     expect(screen.getByText(/Карточки и все режимы обучения без ограничений/)).toBeTruthy();
     expect(screen.getByText('RMR-TEST1234')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Месяц' }));

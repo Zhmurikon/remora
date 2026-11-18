@@ -3,7 +3,7 @@ import type { components } from '@remora/api-client';
 import { STRICTNESS_LABELS, STRICTNESS_LEVELS, type Strictness } from '@remora/core';
 import { Button, Card, Input } from '@remora/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { api } from '../../lib/api';
 import {
   SettingsFeedback,
@@ -58,6 +58,12 @@ function StudySettingsFields({ initial }: { initial: StudySettings }) {
   const [saving, setSaving] = useState(false);
   const [exerciseError, setExerciseError] = useState(false);
   const dirty = JSON.stringify(saved) !== JSON.stringify(draft);
+  useEffect(() => {
+    if (!dirty && !saving) {
+      setSaved(initial);
+      setDraft(initial);
+    }
+  }, [initial, dirty, saving]);
   useSettingsDirty('study', dirty);
   function change(patch: Partial<StudySettings>) {
     setDraft((current) => ({ ...current, ...patch }));

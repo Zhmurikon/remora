@@ -8,7 +8,13 @@ import {
 } from './python-progress';
 import type { PythonTask } from './python-tasks';
 
-const QUEUE_KEY = 'remora.practice.python.pending-progress';
+import {
+  capturePythonProgressScope,
+  isPythonScopeCurrent,
+  pythonScopeRequest,
+  pythonStorageKey,
+  type PythonProgressScope,
+} from './python-progress-scope';
 
 type ServerProgress = components['schemas']['PythonProgressOut'];
 
@@ -23,54 +29,72 @@ export interface PythonSyncResult {
 
 export function queuePythonProgress(
   progress: PythonTaskProgress,
-  storage: Storage | null = browserStorage(),
+  scope: PythonProgressScope = capturePythonProgressScope(),
 ): void {
-  const queue = readQueue(storage).filter(
+  const queue = readQueue(scope).filter(
     (item) => item.taskId !== progress.taskId || item.taskVersion !== progress.taskVersion,
   );
   queue.push({ ...progress, mutationId: crypto.randomUUID() });
-  writeQueue(queue, storage);
+  writeQueue(queue, scope);
 }
 
-export function pendingPythonProgressCount(storage: Storage | null = browserStorage()): number {
-  return readQueue(storage).length;
+export function pendingPythonProgressCount(
+  scope: PythonProgressScope = capturePythonProgressScope(),
+): number {
+  return readQueue(scope).length;
 }
 
-export function clearPendingPythonProgress(storage: Storage | null = browserStorage()): void {
-  writeQueue([], storage);
+export function clearPendingPythonProgress(
+  scope: PythonProgressScope = capturePythonProgressScope(),
+): void {
+  writeQueue([], scope);
 }
 
-let flushInFlight: Promise<PythonSyncResult> | null = null;
+const flushes = new Map<
+  string,
+  { scope: PythonProgressScope; promise: Promise<PythonSyncResult> }
+>();
 
 export function flushPythonProgress(
   tasks: readonly PythonTask[],
-  storage: Storage | null = browserStorage(),
+  scope: PythonProgressScope = capturePythonProgressScope(),
 ): Promise<PythonSyncResult> {
-  flushInFlight ??= runFlush(tasks, storage)
-    .catch(() => ({ ok: false, pending: pendingPythonProgressCount(storage) }))
+  if (!isPythonScopeCurrent(scope)) return Promise.resolve({ ok: false, pending: 0 });
+  const key = `${scope.userId}:${scope.session}`;
+  const existing = flushes.get(key);
+  if (existing && existing.scope.storage === scope.storage) return existing.promise;
+  const promise = runFlush(tasks, scope)
+    .catch(() => ({ ok: false, pending: pendingPythonProgressCount(scope) }))
     .finally(() => {
-      flushInFlight = null;
+      if (flushes.get(key)?.promise === promise) flushes.delete(key);
     });
-  return flushInFlight;
+  flushes.set(key, { scope, promise });
+  return promise;
 }
 
 export async function syncPythonProgress(
   tasks: readonly PythonTask[],
-  storage: Storage | null = browserStorage(),
+  scope: PythonProgressScope = capturePythonProgressScope(),
 ): Promise<PythonSyncResult> {
+  const request = pythonScopeRequest(scope);
   try {
-    await flushPythonProgress(tasks, storage);
-    const { data, error } = await api.GET('/api/v1/practice/python/progress');
-    if (error || !data) return { ok: false, pending: pendingPythonProgressCount(storage) };
+    request.signal.throwIfAborted();
+    await flushPythonProgress(tasks, scope);
+    request.signal.throwIfAborted();
+    const { data, error } = await api.GET('/api/v1/practice/python/progress', {
+      signal: request.signal,
+    });
+    request.signal.throwIfAborted();
+    if (error || !data) return { ok: false, pending: pendingPythonProgressCount(scope) };
 
     const currentTasks = new Map(tasks.map((task) => [`${task.id}:${task.version}`, task]));
     for (const server of data) {
       const task = currentTasks.get(`${server.task_id}:${server.task_version}`);
       if (!task) continue;
-      const local = readPythonTaskProgress(task, storage);
+      const local = readPythonTaskProgress(task, scope);
       const merged = mergeProgress(local, fromServer(server));
-      replacePythonTaskProgress(task, merged, storage);
-      if (isLocalAhead(merged, fromServer(server))) queuePythonProgress(merged, storage);
+      replacePythonTaskProgress(task, merged, scope);
+      if (isLocalAhead(merged, fromServer(server))) queuePythonProgress(merged, scope);
     }
 
     for (const task of tasks) {
@@ -78,20 +102,22 @@ export async function syncPythonProgress(
         (item) => item.task_id === task.id && item.task_version === task.version,
       );
       if (!hasServer) {
-        const local = readPythonTaskProgress(task, storage);
+        const local = readPythonTaskProgress(task, scope);
         if (
           local.status !== 'not_started' ||
           local.attempts > 0 ||
           local.draft !== task.starterCode
         ) {
-          queuePythonProgress(local, storage);
+          queuePythonProgress(local, scope);
         }
       }
     }
-    return flushPythonProgress(tasks, storage);
+    return await flushPythonProgress(tasks, scope);
   } catch {
     // fetch отклоняет Promise при обрыве сети: оставляем черновики и очередь для повтора.
-    return { ok: false, pending: pendingPythonProgressCount(storage) };
+    return { ok: false, pending: pendingPythonProgressCount(scope) };
+  } finally {
+    request.dispose();
   }
 }
 
@@ -112,37 +138,46 @@ export function mergeProgress(
 
 async function runFlush(
   tasks: readonly PythonTask[],
-  storage: Storage | null,
+  scope: PythonProgressScope,
 ): Promise<PythonSyncResult> {
-  let queue = readQueue(storage);
-  while (queue.length > 0) {
-    const item = queue[0];
-    if (!item) break;
-    const { data, error } = await api.PUT('/api/v1/practice/python/progress/{task_id}', {
-      params: { path: { task_id: item.taskId } },
-      body: {
-        task_version: item.taskVersion,
-        status: item.status,
-        attempts: item.attempts,
-        draft: item.draft,
-        client_updated_at: item.updatedAt,
-        client_mutation_id: item.mutationId,
-      },
-    });
-    if (error || !data) return { ok: false, pending: queue.length };
+  const request = pythonScopeRequest(scope);
+  try {
+    request.signal.throwIfAborted();
+    let queue = readQueue(scope);
+    while (queue.length > 0) {
+      request.signal.throwIfAborted();
+      const item = queue[0];
+      if (!item) break;
+      const { data, error } = await api.PUT('/api/v1/practice/python/progress/{task_id}', {
+        signal: request.signal,
+        params: { path: { task_id: item.taskId } },
+        body: {
+          task_version: item.taskVersion,
+          status: item.status,
+          attempts: item.attempts,
+          draft: item.draft,
+          client_updated_at: item.updatedAt,
+          client_mutation_id: item.mutationId,
+        },
+      });
+      request.signal.throwIfAborted();
+      if (error || !data) return { ok: false, pending: queue.length };
 
-    const task = tasks.find(
-      (candidate) => candidate.id === item.taskId && candidate.version === item.taskVersion,
-    );
-    if (task) {
-      const local = readPythonTaskProgress(task, storage);
-      replacePythonTaskProgress(task, mergeProgress(local, fromServer(data)), storage);
+      const task = tasks.find(
+        (candidate) => candidate.id === item.taskId && candidate.version === item.taskVersion,
+      );
+      if (task) {
+        const local = readPythonTaskProgress(task, scope);
+        replacePythonTaskProgress(task, mergeProgress(local, fromServer(data)), scope);
+      }
+      const current = readQueue(scope);
+      queue = current.filter((candidate) => candidate.mutationId !== item.mutationId);
+      writeQueue(queue, scope);
     }
-    const current = readQueue(storage);
-    queue = current.filter((candidate) => candidate.mutationId !== item.mutationId);
-    writeQueue(queue, storage);
+    return { ok: true, pending: 0 };
+  } finally {
+    request.dispose();
   }
-  return { ok: true, pending: 0 };
 }
 
 function fromServer(progress: ServerProgress): PythonTaskProgress {
@@ -172,30 +207,25 @@ function statusRank(status: PythonTaskStatus) {
   return { not_started: 0, in_progress: 1, solved: 2 }[status];
 }
 
-function readQueue(storage: Storage | null): PendingProgress[] {
-  if (!storage) return [];
+function readQueue(scope: PythonProgressScope): PendingProgress[] {
+  const { storage } = scope;
+  if (!storage || !isPythonScopeCurrent(scope)) return [];
   try {
-    const parsed = JSON.parse(storage.getItem(QUEUE_KEY) ?? '[]') as unknown;
+    const parsed = JSON.parse(
+      storage.getItem(pythonStorageKey(scope, 'pending-progress')) ?? '[]',
+    ) as unknown;
     return Array.isArray(parsed) ? (parsed as PendingProgress[]) : [];
   } catch {
     return [];
   }
 }
 
-function writeQueue(queue: PendingProgress[], storage: Storage | null): void {
-  if (!storage) return;
+function writeQueue(queue: PendingProgress[], scope: PythonProgressScope): void {
+  const { storage } = scope;
+  if (!storage || !isPythonScopeCurrent(scope)) return;
   try {
-    storage.setItem(QUEUE_KEY, JSON.stringify(queue));
+    storage.setItem(pythonStorageKey(scope, 'pending-progress'), JSON.stringify(queue));
   } catch {
     // Недоступное хранилище не должно блокировать решение задачи.
-  }
-}
-
-function browserStorage(): Storage | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
   }
 }

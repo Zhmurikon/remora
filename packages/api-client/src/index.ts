@@ -39,6 +39,7 @@ export function createApiClient({ baseUrl, getAccessToken, onUnauthorized }: Cre
 
   const auth: Middleware = {
     async onRequest({ request }) {
+      request.signal.throwIfAborted();
       const token = getAccessToken?.();
       if (token) request.headers.set('Authorization', `Bearer ${token}`);
       if (onUnauthorized) retryRequests.set(request, request.clone());
@@ -46,7 +47,10 @@ export function createApiClient({ baseUrl, getAccessToken, onUnauthorized }: Cre
     },
     async onResponse({ request, response }) {
       if (response.status !== 401 || !onUnauthorized) return response;
+      request.signal.throwIfAborted();
       const refreshed = await onUnauthorized();
+      // Отмена при выходе из аккаунта должна запрещать повтор даже после успешного refresh.
+      request.signal.throwIfAborted();
       if (!refreshed) return response;
 
       const original = retryRequests.get(request);

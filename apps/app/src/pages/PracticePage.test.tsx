@@ -22,6 +22,7 @@ import {
   savePythonDraft,
 } from '../features/practice/python-progress';
 import { findPythonTask, pythonTasks } from '../features/practice/python-tasks';
+import { useAuthStore, type User } from '../features/auth/auth-store';
 import { api } from '../lib/api';
 import { AppLayout } from '../layouts/AppLayout';
 import { PracticePage, PythonPracticePage, PythonTaskPage } from './PracticePage';
@@ -50,6 +51,7 @@ function render(ui: ReactElement) {
 }
 
 beforeEach(() => {
+  useAuthStore.setState({ status: 'authenticated', user: { id: 'page-owner' } as User });
   syncMocks.sync.mockResolvedValue({ ok: true, pending: 0 });
   syncMocks.pendingCount.mockReturnValue(0);
   FakeBrowserWorker.instances = [];
@@ -64,6 +66,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  useAuthStore.getState().becomeGuest();
   vi.restoreAllMocks();
   syncMocks.clear.mockClear();
   localStorage.clear();
@@ -232,7 +235,7 @@ describe('раздел практики', () => {
   it('показывает локальный прогресс и фильтрует задачи по статусу', () => {
     const task = pythonTasks[0];
     if (!task) throw new Error('Нет демонстрационной задачи');
-    recordPythonCheck(task, 'print("готово")', true, localStorage);
+    recordPythonCheck(task, 'print("готово")', true);
     render(
       <MemoryRouter>
         <PythonPracticePage />
@@ -326,9 +329,59 @@ describe('раздел практики', () => {
     expect(screen.getByText('Решено 0 из 46')).toBeTruthy();
     expect(screen.queryByRole('alert')).toBeNull();
   });
+  it('поздний сброс прошлого аккаунта не удаляет прогресс нового', async () => {
+    const task = pythonTasks[0]!;
+    savePythonDraft(task, 'owner draft');
+    let finish!: (value: Awaited<ReturnType<typeof api.DELETE>>) => void;
+    const remove = vi.spyOn(api, 'DELETE').mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    render(
+      <MemoryRouter>
+        <PythonPracticePage />
+      </MemoryRouter>,
+    );
+    await screen.findByText('Сохранено в аккаунте');
+    fireEvent.click(screen.getByText('Сбросить практику'));
+    fireEvent.click(screen.getByRole('button', { name: 'Удалить прогресс практики' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Подтвердить удаление' }));
+    await waitFor(() => expect(remove).toHaveBeenCalledOnce());
+    const signal = (remove.mock.calls[0]?.[1] as unknown as { signal: AbortSignal }).signal;
+    await act(async () => {
+      useAuthStore.getState().authenticate({ id: 'other' } as User);
+      savePythonDraft(task, 'other draft');
+      finish({ data: undefined, response: new Response(null, { status: 204 }) });
+    });
+    expect(signal.aborted).toBe(true);
+    expect(readPythonTaskProgress(task).draft).toBe('other draft');
+  });
 });
 
 describe('демонстрационная задача', () => {
+  it('не переносит результат старого worker в аккаунт, открывший ту же задачу', async () => {
+    const task = pythonTasks[0]!;
+    savePythonDraft(task, 'owner private draft');
+    renderTask(`/practice/python/${task.slug}`);
+    fireEvent.click(screen.getByRole('button', { name: 'Проверить решение' }));
+    const worker = FakeBrowserWorker.instances[0];
+    await act(async () => useAuthStore.getState().authenticate({ id: 'other' } as User));
+    expect(screen.getByRole('textbox', { name: 'Код решения' }).textContent).toContain(
+      'name = input()',
+    );
+    act(() =>
+      worker?.emit({
+        type: 'result',
+        id: 1,
+        result: { status: 'passed', stdout: '', stderr: '', durationMs: 1, truncated: false },
+      }),
+    );
+    expect(readPythonTaskProgress(task).status).toBe('not_started');
+    expect(screen.queryByRole('heading', { name: 'Задача решена' })).toBeNull();
+  });
+
   it('имеет стабильный адрес и версию', () => {
     expect(pythonTasks).toHaveLength(46);
     expect(findPythonTask('privetstvie-po-imeni')).toMatchObject({
@@ -363,7 +416,7 @@ describe('демонстрационная задача', () => {
   it('восстанавливает черновик для текущей версии задачи', () => {
     const task = pythonTasks[0];
     if (!task) throw new Error('Нет демонстрационной задачи');
-    savePythonDraft(task, 'print("мой черновик")', localStorage);
+    savePythonDraft(task, 'print("мой черновик")');
 
     renderTask('/practice/python/privetstvie-po-imeni');
 
@@ -504,7 +557,7 @@ describe('демонстрационная задача', () => {
     expect(screen.getByRole('link', { name: 'Следующая задача' }).getAttribute('href')).toBe(
       '/practice/python/summa-dvuh-chisel',
     );
-    expect(readPythonTaskProgress(task, localStorage)).toMatchObject({
+    expect(readPythonTaskProgress(task)).toMatchObject({
       status: 'solved',
       attempts: 1,
     });

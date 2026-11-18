@@ -102,7 +102,7 @@
   }
 }
 @media (min-width: 100rem) {
-  :root:has(.landing-chrome) {
+  :root:has(.landing-chrome):not(:has(.public-course)) {
     font-size: clamp(100%, min(1vw, 1.74svh), 212.5%);
   }
   .landing-chrome .site-header {

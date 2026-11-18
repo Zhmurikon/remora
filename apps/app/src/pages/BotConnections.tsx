@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { SettingsFeedback } from '../features/settings/SettingsFeedback';
+import { SettingsDialog } from '../features/settings/SettingsDialog';
 
 type Platform = components['schemas']['BotPlatform'];
 type Code = components['schemas']['BotCodeCreated'] & { platform: Platform };
@@ -18,6 +19,7 @@ export function BotConnections() {
   const queryClient = useQueryClient();
   const heading = useRef<HTMLHeadingElement>(null);
   const [code, setCode] = useState<Code | null>(null);
+  const [revoking, setRevoking] = useState<{ id: string; platform: Platform } | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -71,12 +73,6 @@ export function BotConnections() {
 
   async function revoke(id: string, platform: Platform) {
     if (busy) return;
-    if (
-      !window.confirm(
-        `Отключить ${names[platform]}? Бот потеряет доступ к аккаунту. Ваши материалы и прогресс останутся в «Запоминальне».`,
-      )
-    )
-      return;
     setBusy(true);
     setMessage(null);
     setFailed(false);
@@ -86,7 +82,9 @@ export function BotConnections() {
       });
       if (error) throw new Error(errorText(error));
       await queryClient.invalidateQueries({ queryKey: ['bot-connections'] });
-      setMessage('Бот отключён.');
+      setMessage(`${names[platform]} отключён.`);
+      setRevoking(null);
+      requestAnimationFrame(() => heading.current?.focus());
     } catch (error) {
       setFailed(true);
       setMessage(
@@ -144,7 +142,13 @@ export function BotConnections() {
                   variant="secondary"
                   className="min-h-11"
                   disabled={busy}
-                  onClick={() => void (link ? revoke(link.id, platform) : create(platform))}
+                  onClick={() => {
+                    if (link) {
+                      setMessage(null);
+                      setFailed(false);
+                      setRevoking({ id: link.id, platform });
+                    } else void create(platform);
+                  }}
                 >
                   {link ? `Отключить ${names[platform]}` : `Подключить ${names[platform]}`}
                 </Button>
@@ -189,8 +193,27 @@ export function BotConnections() {
           </Button>
         </div>
       )}
+      {revoking && (
+        <SettingsDialog
+          title={`Отключить ${names[revoking.platform]}?`}
+          confirmLabel={`Отключить ${names[revoking.platform]}`}
+          busy={busy}
+          notice={failed && message ? { kind: 'error', text: message } : null}
+          onCancel={() => {
+            setRevoking(null);
+            setMessage(null);
+          }}
+          onConfirm={() => void revoke(revoking.id, revoking.platform)}
+        >
+          <p>
+            Бот {names[revoking.platform]} потеряет доступ к вашему аккаунту. Учиться через него
+            можно будет после повторного подключения.
+          </p>
+          <p>Материалы и прогресс останутся в «Запоминальне».</p>
+        </SettingsDialog>
+      )}
       <SettingsFeedback
-        notice={message ? { kind: failed ? 'error' : 'success', text: message } : null}
+        notice={!revoking && message ? { kind: failed ? 'error' : 'success', text: message } : null}
       />
     </Card>
   );

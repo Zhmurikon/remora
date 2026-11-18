@@ -1,8 +1,13 @@
 ---
 version: 1
-slug: "apps-app-src-pages-materialspage-tsx"
-primary_target: "apps/app/src/pages/MaterialsPage.tsx"
-related_targets: ["apps/app/src/pages/SetsPage.tsx","apps/app/src/pages/CoursesPage.tsx","apps/app/src/pages/LibraryPage.tsx"]
+slug: 'apps-app-src-pages-materialspage-tsx'
+primary_target: 'apps/app/src/pages/MaterialsPage.tsx'
+related_targets:
+  [
+    'apps/app/src/pages/SetsPage.tsx',
+    'apps/app/src/pages/CoursesPage.tsx',
+    'apps/app/src/pages/LibraryPage.tsx',
+  ]
 ---
 
 # Материалы кабинета

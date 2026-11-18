@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../features/auth/auth-store';
 import notebook from '../features/practice/assets/notebook.webp';
@@ -9,13 +9,23 @@ import {
   syncPythonProgress,
 } from '../features/practice/python-progress-sync';
 import { pythonTasks } from '../features/practice/python-tasks';
+import {
+  capturePythonProgressScope,
+  pythonStorageKey,
+} from '../features/practice/python-progress-scope';
 import './practice-start.css';
 
 export function PracticePage() {
   const userId = useAuthStore((state) => state.user?.id);
+  return <PracticeStart key={userId ?? 'guest'} userId={userId} />;
+}
+
+function PracticeStart({ userId }: { userId: string | undefined }) {
+  const [scope] = useState(() => capturePythonProgressScope());
   const sync = useQuery({
-    queryKey: ['practice', 'python', 'progress', userId],
-    queryFn: () => syncPythonProgress(pythonTasks),
+    queryKey: ['practice', 'python', 'progress', userId, scope.session],
+    queryFn: () => syncPythonProgress(pythonTasks, scope),
+    enabled: Boolean(userId),
     staleTime: 0,
     retry: false,
     networkMode: 'always',
@@ -26,16 +36,16 @@ export function PracticePage() {
   const { refetch } = sync;
   useEffect(() => {
     function onStorage(event: StorageEvent) {
-      if (event.key === null || event.key.startsWith('remora.practice.python.')) {
+      if (event.key === null || event.key.startsWith(pythonStorageKey(scope, ''))) {
         void refetch();
       }
     }
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, [refetch]);
+  }, [refetch, scope]);
 
   // Каталог и редактор сохраняют черновики локально: читаем их заново и при возврате назад.
-  const summary = pythonProgressSummary(pythonTasks);
+  const summary = pythonProgressSummary(pythonTasks, scope);
   const latest = summary.progress
     .filter((item) => item.status === 'in_progress')
     .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))[0];
@@ -48,7 +58,7 @@ export function PracticePage() {
   const loading = !hasLocalProgress && sync.isPending;
   const failed = sync.isError || sync.data?.ok === false;
   const localOnly = failed && !sync.isFetching;
-  const pending = pendingPythonProgressCount();
+  const pending = pendingPythonProgressCount(scope);
   const percent = total ? Math.round((summary.solved / total) * 100) : 0;
   const destination = next ? `/practice/python/${next.slug}` : '/practice/python';
   const action = complete

@@ -1,0 +1,22 @@
+{
+  "yuriy": {
+    "status": 200,
+    "head": [
+      "<title>yuriy konkov — автор курсов — Запоминальня</title>",
+      "<link rel=\"canonical\" href=\"http://localhost:3000/avtor/yuriy\"/>"
+    ],
+    "hasSSRName": true,
+    "hasSSRCourse": true,
+    "hasProfileLD": true
+  },
+  "deploy_292aa09edb74": {
+    "status": 404,
+    "head": [
+      "<meta name=\"robots\" content=\"noindex\"/>",
+      "<title>Запоминальня — карточки для заучивания</title>"
+    ],
+    "hasSSRName": false,
+    "hasSSRCourse": false,
+    "hasProfileLD": false
+  }
+}

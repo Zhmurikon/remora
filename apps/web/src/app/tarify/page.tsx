@@ -1,11 +1,10 @@
 import { PublicAnalytics } from '../../components/analytics/PublicAnalytics';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { JsonLd } from '../../components/JsonLd';
 import { LandingHeader } from '../../components/landing/LandingHeader';
 import { readLandingChrome } from '../../components/landing/readLandingChrome';
 import { HomeTheme } from '../../components/home/HomeTheme';
-import Image from 'next/image';
-import { PricingMotion } from '../../components/pricing/PricingMotion';
 import { PricingPlans } from '../../components/pricing/PricingPlans';
 import { absoluteUrl, DEFAULT_OG_IMAGE } from '../../lib/seo';
 import { publicPlans } from '../../lib/pricing';
@@ -69,7 +68,7 @@ const faqs = [
 export default function PricingPage() {
   const { header, footer } = readLandingChrome();
   return (
-    <PricingMotion>
+    <div className="pricing-route">
       <PublicAnalytics path="/tarify" />
       <a className="home-skip" href="#main-content">
         Перейти к содержимому
@@ -93,14 +92,11 @@ export default function PricingPage() {
       <main id="main-content" className="home pricing-page">
         <header className="pricing-hero">
           <div className="home-shell">
-            <h1>
-              Выучить своё <em>можно бесплатно</em>
-            </h1>
+            <h1>Тарифы Запоминальни</h1>
             <p>
-              Тарифы отличаются объёмом, автоматизацией и ИИ. <br />
-              Занятия и повторения бесплатны на каждом тарифе.
+              Учитесь бесплатно по своим материалам. Plus и Pro добавляют объём, автоматизацию и
+              ИИ-инструменты.
             </p>
-            <Image src="/lecture-demo/faq-pen.webp" alt="" width={165} height={165} unoptimized />
           </div>
         </header>
         <div className="home-shell">
@@ -154,13 +150,28 @@ export default function PricingPage() {
 
         <section className="pricing-faq home-shell" aria-labelledby="pricing-faq-title">
           <h2 id="pricing-faq-title">Вопросы об оплате</h2>
-          <div>
+          <div className="pricing-faq-content">
             {faqs.map(([question, answer]) => (
               <details key={question}>
-                <summary>{question}</summary>
+                <summary>
+                  {question}
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="m6 9 6 6 6-6"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </summary>
                 <p>{answer}</p>
               </details>
             ))}
+            <p className="pricing-legal-link">
+              Подробный порядок описан на странице{' '}
+              <Link href="/oplata-i-vozvrat">«Условия оплаты и возврата»</Link>.
+            </p>
           </div>
         </section>
         <div className="pricing-theme home-shell">
@@ -168,6 +179,6 @@ export default function PricingPage() {
         </div>
       </main>
       <div className="landing-chrome" dangerouslySetInnerHTML={{ __html: footer }} />
-    </PricingMotion>
+    </div>
   );
 }

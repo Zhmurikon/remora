@@ -1,6 +1,8 @@
 import { PublicAnalytics } from '../analytics/PublicAnalytics';
 import Link from 'next/link';
-import { FishMark } from '@remora/ui';
+import { HomeTheme } from '../home/HomeTheme';
+import { PublicFooter } from '../landing/PublicFooter';
+import { PublicHeader } from '../landing/PublicHeader';
 import {
   getLegalDocument,
   LEGAL_CONTACT_EMAIL,
@@ -8,114 +10,124 @@ import {
   type LegalDocumentKind,
   type LegalLanguage,
 } from '../../lib/legal';
+import { PAYMENT_RETURN_PATH, PAYMENT_RETURN_UPDATED_AT } from '../../lib/payment-return';
+import styles from './LegalPage.module.css';
 
 interface LegalPageProps {
   kind: LegalDocumentKind;
   language: LegalLanguage;
 }
 
-const paths = {
-  ru: { privacy: '/privacy', terms: '/terms' },
+const paths: Record<LegalLanguage, Partial<Record<LegalDocumentKind, string>>> = {
+  ru: { privacy: '/privacy', terms: '/terms', payment: PAYMENT_RETURN_PATH },
   en: { privacy: '/en/privacy', terms: '/en/terms' },
-} as const;
+};
 
 export function LegalPage({ kind, language }: LegalPageProps) {
   const document = getLegalDocument(kind, language);
   const otherLanguage = language === 'ru' ? 'en' : 'ru';
   const isRu = language === 'ru';
+  const currentPath = paths[language][kind];
+  const alternatePath = paths[otherLanguage][kind];
+  if (!currentPath) throw new Error('Для документа не настроен публичный путь');
+  const sectionIds = document.sections.map((_, index) => `legal-section-${index + 1}`);
 
   return (
-    <div lang={language} className="bg-bg text-fg min-h-dvh">
-      <a
-        href="#legal-content"
-        className="bg-surface text-primary focus-visible:ring-primary fixed left-4 top-4 z-50 -translate-y-24 rounded-lg px-4 py-3 font-semibold focus-visible:translate-y-0 focus-visible:outline-none focus-visible:ring-2"
-      >
+    <div lang={language} className={styles.page}>
+      <a href="#legal-content" className={styles.skip}>
         {isRu ? 'К содержанию' : 'Skip to content'}
       </a>
 
-      <header className="border-border border-b">
-        <div className="mx-auto flex min-h-20 max-w-5xl items-center justify-between gap-4 px-5 sm:px-8">
-          <Link
-            href="/"
-            className="focus-visible:ring-primary flex min-h-11 items-center gap-2 rounded-lg text-xl font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-            aria-label={isRu ? 'Запоминальня, на главную' : 'Zapominalnya, home'}
-          >
-            <FishMark className="h-11 w-11" />
-            <span>{isRu ? 'Запоминальня' : 'Zapominalnya'}</span>
-          </Link>
-          <Link
-            href={paths[otherLanguage][kind]}
-            hrefLang={otherLanguage}
-            className="border-border text-fg-muted hover:border-primary hover:text-primary focus-visible:ring-primary inline-flex min-h-11 items-center rounded-full border px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-          >
-            {isRu ? 'English' : 'Русский'}
-          </Link>
-        </div>
-      </header>
+      <div lang="ru">
+        <PublicHeader />
+      </div>
 
-      <main id="legal-content" className="mx-auto max-w-3xl px-5 py-14 sm:px-8 sm:py-20">
-        <p className="text-primary text-sm font-bold uppercase tracking-[0.14em]">
-          {document.eyebrow}
-        </p>
-        <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">{document.title}</h1>
-        <time
-          dateTime={kind === 'privacy' ? '2026-11-12' : LEGAL_UPDATED_AT}
-          className="text-fg-subtle mt-5 block text-sm"
-        >
-          {document.updated}
-        </time>
-        <p className="text-fg-muted mt-8 text-lg leading-8">{document.intro}</p>
+      <main id="legal-content" className={styles.main}>
+        <header className={styles.documentHeader}>
+          <nav
+            className={styles.documentNav}
+            aria-label={isRu ? 'Навигация по документам' : 'Document navigation'}
+          >
+            <Link href="/">{isRu ? 'Главная' : 'Home'}</Link>
+            <span aria-hidden="true">/</span>
+            <span>{document.eyebrow}</span>
+            {alternatePath && (
+              <Link href={alternatePath} hrefLang={otherLanguage} className={styles.language}>
+                {isRu ? 'English' : 'Русский'}
+              </Link>
+            )}
+          </nav>
+          <h1>{document.title}</h1>
+          <time
+            dateTime={
+              kind === 'privacy'
+                ? '2026-11-12'
+                : kind === 'payment'
+                  ? PAYMENT_RETURN_UPDATED_AT
+                  : LEGAL_UPDATED_AT
+            }
+            className={styles.updated}
+          >
+            {document.updated}
+          </time>
+          <p className={styles.intro}>{document.intro}</p>
+        </header>
 
-        <div className="mt-14 space-y-12">
-          <PublicAnalytics
-            path={paths[language][kind]}
-            settings={kind === 'privacy'}
-            english={!isRu}
-          />
-          {document.sections.map((section) => (
-            <section key={section.title}>
-              <h2 className="text-2xl font-bold tracking-tight">{section.title}</h2>
-              {section.paragraphs?.map((paragraph) => (
-                <p key={paragraph} className="text-fg-muted mt-4 leading-7">
-                  {paragraph}
-                </p>
+        <div className={styles.content}>
+          <nav className={styles.toc} aria-label={isRu ? 'Содержание' : 'Contents'}>
+            <h2>{isRu ? 'Содержание' : 'Contents'}</h2>
+            <ol>
+              {document.sections.map((section, index) => (
+                <li key={section.title}>
+                  <a href={`#${sectionIds[index]}`}>{section.title}</a>
+                </li>
               ))}
-              {section.bullets && (
-                <ul className="text-fg-muted mt-4 list-disc space-y-2 pl-6 leading-7">
-                  {section.bullets.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              )}
-              {section.contact && (
-                <a
-                  href={`mailto:${LEGAL_CONTACT_EMAIL}`}
-                  className="text-primary hover:text-primary-hover focus-visible:ring-primary mt-4 inline-flex min-h-11 items-center rounded-md font-semibold underline decoration-1 underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-                >
-                  {LEGAL_CONTACT_EMAIL}
-                </a>
-              )}
-            </section>
-          ))}
+            </ol>
+          </nav>
+          <article className={styles.sections}>
+            {document.sections.map((section, index) => (
+              <section className={styles.section} id={sectionIds[index]} key={section.title}>
+                <h2>{section.title}</h2>
+                {section.paragraphs?.map((paragraph) => (
+                  <p key={paragraph}>{paragraph}</p>
+                ))}
+                {section.bullets && (
+                  <ul>
+                    {section.bullets.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                )}
+                {section.contact && (
+                  <a href={`mailto:${LEGAL_CONTACT_EMAIL}`} className={styles.contact}>
+                    {LEGAL_CONTACT_EMAIL}
+                  </a>
+                )}
+              </section>
+            ))}
+          </article>
+        </div>
+
+        <PublicAnalytics path={currentPath} settings={kind === 'privacy'} english={!isRu} />
+
+        <nav
+          aria-label={isRu ? 'Юридические документы' : 'Legal documents'}
+          className={styles.documentLinks}
+        >
+          <Link href={paths[language].privacy!}>{isRu ? 'Конфиденциальность' : 'Privacy'}</Link>
+          <Link href={paths[language].terms!}>
+            {isRu ? 'Условия использования' : 'Terms of Use'}
+          </Link>
+          {isRu && <Link href={PAYMENT_RETURN_PATH}>Условия оплаты и возврата</Link>}
+        </nav>
+        <div className={styles.themeControl}>
+          <HomeTheme />
         </div>
       </main>
 
-      <footer className="border-border border-t">
-        <nav
-          aria-label={isRu ? 'Юридические документы' : 'Legal documents'}
-          className="text-fg-muted mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-5 py-8 text-sm sm:px-8"
-        >
-          <Link className="hover:text-primary py-3" href="/">
-            {isRu ? 'Главная' : 'Home'}
-          </Link>
-          <Link className="hover:text-primary py-3" href={paths[language].privacy}>
-            {isRu ? 'Конфиденциальность' : 'Privacy'}
-          </Link>
-          <Link className="hover:text-primary py-3" href={paths[language].terms}>
-            {isRu ? 'Условия использования' : 'Terms of Use'}
-          </Link>
-        </nav>
-      </footer>
+      <div lang="ru">
+        <PublicFooter className={styles.footer} />
+      </div>
     </div>
   );
 }

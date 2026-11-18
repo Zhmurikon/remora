@@ -1,0 +1,158 @@
+{
+  "checks": [
+    {
+      "state": "waiting",
+      "theme": "light",
+      "width": 1440,
+      "overflow": false,
+      "minButtonHeight": 44
+    },
+    {
+      "state": "waiting",
+      "theme": "light",
+      "width": 320,
+      "overflow": false,
+      "minButtonHeight": 44
+    },
+    {
+      "state": "waiting",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": false,
+      "minButtonHeight": 44
+    },
+    {
+      "state": "waiting",
+      "theme": "dark",
+      "width": 320,
+      "overflow": false,
+      "minButtonHeight": 44
+    },
+    {
+      "state": "active",
+      "theme": "light",
+      "width": 1440,
+      "overflow": false,
+      "minButtonHeight": 44
+    },
+    {
+      "state": "active",
+      "theme": "light",
+      "width": 320,
+      "overflow": false,
+      "minButtonHeight": 44
+    },
+    {
+      "state": "active",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": false,
+      "minButtonHeight": 44
+    },
+    {
+      "state": "active",
+      "theme": "dark",
+      "width": 320,
+      "overflow": false,
+      "minButtonHeight": 44
+    },
+    {
+      "state": "finished",
+      "theme": "light",
+      "width": 1440,
+      "overflow": false,
+      "minButtonHeight": 44
+    },
+    {
+      "state": "finished",
+      "theme": "light",
+      "width": 320,
+      "overflow": false,
+      "minButtonHeight": 44
+    },
+    {
+      "state": "finished",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": false,
+      "minButtonHeight": 44
+    },
+    {
+      "state": "finished",
+      "theme": "dark",
+      "width": 320,
+      "overflow": false,
+      "minButtonHeight": 44
+    },
+    {
+      "state": "expired",
+      "theme": "light",
+      "width": 1440,
+      "overflow": false,
+      "minButtonHeight": null
+    },
+    {
+      "state": "expired",
+      "theme": "light",
+      "width": 320,
+      "overflow": false,
+      "minButtonHeight": null
+    },
+    {
+      "state": "expired",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": false,
+      "minButtonHeight": null
+    },
+    {
+      "state": "expired",
+      "theme": "dark",
+      "width": 320,
+      "overflow": false,
+      "minButtonHeight": null
+    },
+    {
+      "state": "cancelled",
+      "theme": "light",
+      "width": 1440,
+      "overflow": false,
+      "minButtonHeight": null
+    },
+    {
+      "state": "cancelled",
+      "theme": "light",
+      "width": 320,
+      "overflow": false,
+      "minButtonHeight": null
+    },
+    {
+      "state": "cancelled",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": false,
+      "minButtonHeight": null
+    },
+    {
+      "state": "cancelled",
+      "theme": "dark",
+      "width": 320,
+      "overflow": false,
+      "minButtonHeight": null
+    },
+    {
+      "state": "active-200%",
+      "width": 320,
+      "overflow": false
+    },
+    {
+      "state": "keyboard",
+      "focus": {
+        "tag": "BUTTON",
+        "outline": "solid",
+        "animation": "none"
+      }
+    }
+  ],
+  "errors": []
+}

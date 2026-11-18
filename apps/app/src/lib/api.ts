@@ -1,4 +1,10 @@
 import { createApiClient } from '@remora/api-client';
+import { useAuthStore } from '../features/auth/auth-store';
+
+let authSession = 0;
+useAuthStore.subscribe((state, previous) => {
+  if (state.user?.id !== previous.user?.id || state.status !== previous.status) authSession += 1;
+});
 
 /**
  * Access-токен живёт только в памяти: в localStorage его класть нельзя (XSS).
@@ -11,6 +17,7 @@ export function setAccessToken(token: string | null): void {
 }
 
 export function clearAccessToken(): void {
+  authSession += 1;
   setAccessToken(null);
 }
 
@@ -18,31 +25,56 @@ export function clearAccessToken(): void {
  * Single-flight обновление токена: десять параллельных 401 не должны
  * породить десять запросов на refresh.
  */
-let refreshInFlight: Promise<boolean> | null = null;
+let refreshInFlight: { session: number; promise: Promise<boolean> } | null = null;
 
 async function refreshAccessToken(): Promise<boolean> {
-  refreshInFlight ??= (async () => {
+  if (refreshInFlight?.session === authSession) return refreshInFlight.promise;
+  const session = authSession;
+  const ownerId = useAuthStore.getState().user?.id;
+  const promise = (async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
         method: 'POST',
         credentials: 'include',
       });
+      if (session !== authSession) return false;
       if (!res.ok) {
         setAccessToken(null);
         return false;
       }
       const body = (await res.json()) as { access_token: string };
+      if (session !== authSession) return false;
+      // Cookie общая между вкладками: refresh не должен менять владельца открытого кабинета.
+      if (ownerId && tokenSubject(body.access_token) !== ownerId) {
+        clearAccessToken();
+        useAuthStore.getState().becomeGuest();
+        return false;
+      }
       setAccessToken(body.access_token);
       return true;
     } catch {
-      setAccessToken(null);
+      if (session === authSession) setAccessToken(null);
       return false;
     } finally {
-      refreshInFlight = null;
+      if (refreshInFlight?.session === session) refreshInFlight = null;
     }
   })();
+  refreshInFlight = { session, promise };
+  return promise;
+}
 
-  return refreshInFlight;
+function tokenSubject(token: string): string | null {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return null;
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const value = JSON.parse(
+      atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=')),
+    ) as { sub?: unknown };
+    return typeof value.sub === 'string' ? value.sub : null;
+  } catch {
+    return null;
+  }
 }
 
 export const API_BASE_URL = import.meta.env.VITE_API_URL ?? '';

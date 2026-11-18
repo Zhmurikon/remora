@@ -1,11 +1,15 @@
+import { PublicState } from '../../../components/landing/PublicState';
+
 export default function NotFound() {
   return (
-    <div className="blog-intro">
-      <h1>Подборка не найдена</h1>
-      <p>Возможно, она ещё не опубликована или больше недоступна.</p>
-      <a className="home-button" href="/podborki">
-        Все подборки
-      </a>
-    </div>
+    <PublicState
+      code="404"
+      title="Подборка не найдена"
+      description="Возможно, она ещё не опубликована или больше недоступна. Посмотрите другие редакционные папки или выберите курс в каталоге."
+      primaryHref="/podborki"
+      primaryLabel="Все подборки"
+      secondaryHref="/kursy"
+      secondaryLabel="Каталог курсов"
+    />
   );
 }

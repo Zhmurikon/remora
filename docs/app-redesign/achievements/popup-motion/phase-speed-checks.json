@@ -1,0 +1,18 @@
+[
+  {
+    "variant": "b",
+    "introPercent": 150,
+    "finalPercent": 100,
+    "finalStartsAtMs": 673.3333333333334,
+    "durationMs": 1313.3333333333337,
+    "manualChangePreservesFrame": true
+  },
+  {
+    "variant": "c",
+    "introPercent": 125,
+    "finalPercent": 100,
+    "finalStartsAtMs": 576.0,
+    "durationMs": 1306,
+    "manualChangePreservesFrame": true
+  }
+]

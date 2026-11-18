@@ -1,0 +1,162 @@
+[
+  {
+    "mode": "learn",
+    "scrollWidth": 320,
+    "smallButtons": [],
+    "theme": "light",
+    "title": "Заучивание",
+    "width": 320
+  },
+  {
+    "mode": "flashcards",
+    "scrollWidth": 320,
+    "smallButtons": [],
+    "theme": "light",
+    "title": "Карточки",
+    "width": 320
+  },
+  {
+    "mode": "listen",
+    "scrollWidth": 320,
+    "smallButtons": [],
+    "theme": "dark",
+    "title": "Озвучка пока недоступна",
+    "width": 320
+  },
+  {
+    "mode": "test",
+    "scrollWidth": 305,
+    "smallButtons": [],
+    "theme": "dark",
+    "title": "Тест",
+    "width": 320
+  },
+  {
+    "mode": "flashcards",
+    "scrollWidth": 320,
+    "smallButtons": [],
+    "theme": "dark",
+    "title": "Карточки",
+    "width": 320
+  },
+  {
+    "mode": "listen",
+    "scrollWidth": 320,
+    "smallButtons": [],
+    "theme": "light",
+    "title": "Озвучка пока недоступна",
+    "width": 320
+  },
+  {
+    "mode": "test",
+    "scrollWidth": 305,
+    "smallButtons": [],
+    "theme": "light",
+    "title": "Тест",
+    "width": 320
+  },
+  {
+    "mode": "learn",
+    "scrollWidth": 320,
+    "smallButtons": [],
+    "theme": "dark",
+    "title": "Заучивание",
+    "width": 320
+  },
+  {
+    "mode": "write",
+    "scrollWidth": 320,
+    "smallButtons": [],
+    "theme": "light",
+    "title": "Письмо",
+    "width": 320
+  },
+  {
+    "mode": "write",
+    "scrollWidth": 320,
+    "smallButtons": [],
+    "theme": "dark",
+    "title": "Письмо",
+    "width": 320
+  },
+  {
+    "mode": "learn",
+    "scrollWidth": 1440,
+    "smallButtons": [],
+    "theme": "light",
+    "title": "Заучивание",
+    "width": 1440
+  },
+  {
+    "mode": "listen",
+    "scrollWidth": 1440,
+    "smallButtons": [],
+    "theme": "dark",
+    "title": "Озвучка пока недоступна",
+    "width": 1440
+  },
+  {
+    "mode": "learn",
+    "scrollWidth": 1440,
+    "smallButtons": [],
+    "theme": "dark",
+    "title": "Заучивание",
+    "width": 1440
+  },
+  {
+    "mode": "listen",
+    "scrollWidth": 1440,
+    "smallButtons": [],
+    "theme": "light",
+    "title": "Озвучка пока недоступна",
+    "width": 1440
+  },
+  {
+    "mode": "flashcards",
+    "scrollWidth": 1440,
+    "smallButtons": [],
+    "theme": "dark",
+    "title": "Карточки",
+    "width": 1440
+  },
+  {
+    "mode": "flashcards",
+    "scrollWidth": 1440,
+    "smallButtons": [],
+    "theme": "light",
+    "title": "Карточки",
+    "width": 1440
+  },
+  {
+    "mode": "write",
+    "scrollWidth": 1440,
+    "smallButtons": [],
+    "theme": "light",
+    "title": "Письмо",
+    "width": 1440
+  },
+  {
+    "mode": "test",
+    "scrollWidth": 1440,
+    "smallButtons": [],
+    "theme": "light",
+    "title": "Тест",
+    "width": 1440
+  },
+  {
+    "mode": "write",
+    "scrollWidth": 1440,
+    "smallButtons": [],
+    "theme": "dark",
+    "title": "Письмо",
+    "width": 1440
+  },
+  {
+    "mode": "test",
+    "scrollWidth": 1440,
+    "smallButtons": [],
+    "theme": "dark",
+    "title": "Тест",
+    "width": 1440
+  }
+]

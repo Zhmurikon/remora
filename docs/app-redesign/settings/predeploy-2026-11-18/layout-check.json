@@ -1,0 +1,198 @@
+[
+  {
+    "theme": "light",
+    "width": 320,
+    "overflow": false,
+    "section": "profile",
+    "visible": true
+  },
+  {
+    "theme": "light",
+    "width": 320,
+    "overflow": false,
+    "section": "password",
+    "visible": true
+  },
+  {
+    "theme": "light",
+    "width": 320,
+    "overflow": false,
+    "section": "study",
+    "visible": true
+  },
+  {
+    "theme": "light",
+    "width": 320,
+    "overflow": false,
+    "section": "data",
+    "visible": true
+  },
+  {
+    "theme": "light",
+    "width": 320,
+    "overflow": false,
+    "section": "api",
+    "visible": true
+  },
+  {
+    "theme": "light",
+    "width": 320,
+    "overflow": false,
+    "section": "bots",
+    "visible": true
+  },
+  {
+    "theme": "light",
+    "width": 320,
+    "overflow": false,
+    "section": "sessions",
+    "visible": true
+  },
+  {
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "section": "profile",
+    "visible": true
+  },
+  {
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "section": "password",
+    "visible": true
+  },
+  {
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "section": "study",
+    "visible": true
+  },
+  {
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "section": "data",
+    "visible": true
+  },
+  {
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "section": "api",
+    "visible": true
+  },
+  {
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "section": "bots",
+    "visible": true
+  },
+  {
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "section": "sessions",
+    "visible": true
+  },
+  {
+    "theme": "dark",
+    "width": 320,
+    "overflow": false,
+    "section": "profile",
+    "visible": true
+  },
+  {
+    "theme": "dark",
+    "width": 320,
+    "overflow": false,
+    "section": "password",
+    "visible": true
+  },
+  {
+    "theme": "dark",
+    "width": 320,
+    "overflow": false,
+    "section": "study",
+    "visible": true
+  },
+  {
+    "theme": "dark",
+    "width": 320,
+    "overflow": false,
+    "section": "data",
+    "visible": true
+  },
+  {
+    "theme": "dark",
+    "width": 320,
+    "overflow": false,
+    "section": "api",
+    "visible": true
+  },
+  {
+    "theme": "dark",
+    "width": 320,
+    "overflow": false,
+    "section": "bots",
+    "visible": true
+  },
+  {
+    "theme": "dark",
+    "width": 320,
+    "overflow": false,
+    "section": "sessions",
+    "visible": true
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "section": "profile",
+    "visible": true
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "section": "password",
+    "visible": true
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "section": "study",
+    "visible": true
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "section": "data",
+    "visible": true
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "section": "api",
+    "visible": true
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "section": "bots",
+    "visible": true
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "section": "sessions",
+    "visible": true
+  }
+]

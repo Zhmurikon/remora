@@ -1,0 +1,68 @@
+   ▲ Next.js 15.5.25
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 7.8s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/31) ...
+   Generating static pages (7/31)
+   Generating static pages (15/31)
+   Generating static pages (23/31)
+ ✓ Generating static pages (31/31)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                       Size  First Load JS  Revalidate  Expire
+┌ ○ /_not-found                                  997 B         104 kB
+├ ○ /apple-icon.png                                0 B            0 B
+├ ƒ /avtor/[username]                          3.06 kB         122 kB
+├ ○ /blog                                       3.6 kB         114 kB          1m      1y
+├ ● /blog/[slug]                                3.4 kB         113 kB          1m      1y
+├   ├ /blog/kak-sozdat-kartochki                                               1m      1y
+├   ├ /blog/kak-vyuchit-bilety                                                 1m      1y
+├   └ /blog/kak-vyuchit-konspekt                                               1m      1y
+├ ● /blog/stranitsa/[page]                      3.6 kB         114 kB
+├ ○ /en/privacy                                2.47 kB         160 kB
+├ ○ /en/terms                                  2.47 kB         160 kB
+├ ○ /forgot-password                           2.98 kB         121 kB
+├ ○ /icon.svg                                      0 B            0 B
+├ ƒ /konspekt/[id]                               214 B         158 kB
+├ ƒ /kurs/[slug]                                6.5 kB         170 kB
+├ ƒ /kurs/[slug]/articles/[articleId]/cards      161 B         103 kB
+├ ƒ /kursy                                     3.44 kB         122 kB
+├ ○ /login                                     3.93 kB         122 kB
+├ ○ /manifest.webmanifest                        161 B         103 kB
+├ ƒ /nabor/[slug]                              6.06 kB         164 kB
+├ ○ /opengraph-image                             161 B         103 kB
+├ ○ /podborki                                  2.48 kB         112 kB
+├ ƒ /podborki/[slug]                           2.48 kB         112 kB
+├ ○ /privacy                                   2.47 kB         160 kB
+├ ƒ /rasshifrovka                                140 B         159 kB
+├ ƒ /rasshifrovka-yandex                         139 B         159 kB
+├ ƒ /rasshifrovka-yandex/api/access              161 B         103 kB
+├ ƒ /rasshifrovka-yandex/api/jobs/[[...path]]    161 B         103 kB
+├ ƒ /rasshifrovka/api/access                     161 B         103 kB
+├ ƒ /rasshifrovka/api/jobs/[[...path]]           161 B         103 kB
+├ ○ /register                                   3.8 kB         121 kB
+├ ○ /reset-password                             3.3 kB         121 kB
+├ ○ /robots.txt                                  161 B         103 kB
+├ ƒ /sitemap.xml                                 161 B         103 kB
+├ ○ /tarify                                    6.64 kB         126 kB
+├ ○ /terms                                     2.47 kB         160 kB
+└ ○ /verify-email                                968 B         119 kB
++ First Load JS shared by all                   103 kB
+  ├ chunks/633-64f3a104c2e081e2.js             46.2 kB
+  ├ chunks/aa120edd-c8cc5e855c533a22.js        54.2 kB
+  └ other shared chunks (total)                2.82 kB
+
+Route (pages)                                     Size  First Load JS
+┌ ○ /                                            10 kB         110 kB
+└   /_app                                          0 B        99.5 kB
++ First Load JS shared by all                   103 kB
+  ├ chunks/framework-b212563bc5edac61.js       59.5 kB
+  ├ chunks/main-db8a803ff6ca41c1.js            37.1 kB
+  └ other shared chunks (total)                6.73 kB
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand

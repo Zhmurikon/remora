@@ -7,6 +7,8 @@ import type { OutlineArticle, OutlineSection } from '../course-structure/order';
 import { EditorPopover } from './EditorPopover';
 import { RichArticleEditor } from './RichArticleEditor';
 import './article-editor.css';
+import '../../pages/materials.css';
+import '@remora/ui/styles/course-typography.css';
 
 type Props = {
   courseId: string;
@@ -15,6 +17,9 @@ type Props = {
   section: OutlineSection;
   dirty: boolean;
   saving: boolean;
+  restoring: boolean;
+  saveFailed: boolean;
+  autoSaveBlocked: boolean;
   notice: string;
   error: ReactNode;
   media: Record<string, ArticleMedia>;
@@ -29,6 +34,9 @@ export function ArticleWorkspace({
   section,
   dirty,
   saving,
+  restoring,
+  saveFailed,
+  autoSaveBlocked,
   notice,
   error,
   media,
@@ -57,21 +65,41 @@ export function ArticleWorkspace({
   const heading = body.match(/^(# +)([^\r\n]*)(\r?\n(?:[ \t]*\r?\n)*|$)/);
   const normalize = (v: string) => v.trim().replace(/^(\d+(?:\.\d+)*)\.?(?=\s)/, '$1');
   const prefix = heading && normalize(heading[2]!) === normalize(article.title) ? heading[0] : '';
-  const busy = saving || uploading,
+  const busy = uploading || restoring,
     valid = !!article.title.trim() && body.length <= 100000;
   useEffect(() => {
     function key(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
-        if (dirty && !busy && valid) save();
+        if (dirty && !busy && !saving && valid) save();
       }
     }
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
-  }, [save, dirty, busy, valid]);
+  }, [save, dirty, busy, saving, valid]);
+  const latestSave = useRef(save);
+  latestSave.current = save;
+  useEffect(() => {
+    if (!dirty || saving || busy || !valid || autoSaveBlocked) return;
+    const timer = window.setTimeout(() => latestSave.current(), saveFailed ? 5000 : 1200);
+    const reconnect = () => latestSave.current();
+    window.addEventListener('online', reconnect);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('online', reconnect);
+    };
+  }, [body, article.title, dirty, saving, busy, valid, autoSaveBlocked, saveFailed]);
+  const saveOnLeave = useRef(false);
+  saveOnLeave.current = dirty && !saving && !busy && valid && !autoSaveBlocked;
+  useEffect(
+    () => () => {
+      if (saveOnLeave.current) latestSave.current();
+    },
+    [],
+  );
   const read = '/courses/' + courseId + '/read?article=' + article.id;
   return (
-    <div className="ae-page">
+    <div className="ae-page materials-page">
       <nav className="ae-crumb" aria-label="Навигация по курсу">
         <Link to={`/courses/${courseId}/structure`}>← Структура курса</Link>
         <span aria-hidden="true">/</span>
@@ -146,7 +174,7 @@ export function ArticleWorkspace({
             type="button"
             aria-label="Сохранить материал"
             loading={saving}
-            disabled={!valid || busy || !dirty}
+            disabled={!valid || busy || saving || !dirty}
             onClick={save}
           >
             <CourseIcon name="save" />
@@ -178,13 +206,21 @@ export function ArticleWorkspace({
         </EditorPopover>
       )}
       <div role="status" className="ae-status">
-        {uploading
-          ? 'Загружаем изображение…'
-          : saving
-            ? 'Сохраняем…'
-            : dirty
-              ? 'Есть несохранённые изменения'
-              : notice}
+        {restoring
+          ? 'Восстанавливаем черновик…'
+          : uploading
+            ? 'Загружаем изображение…'
+            : saving
+              ? 'Сохраняем…'
+              : saveFailed
+                ? autoSaveBlocked
+                  ? 'Автосохранение остановлено'
+                  : 'Не удалось сохранить. Повторим автоматически…'
+                : dirty
+                  ? autoSaveBlocked
+                    ? 'Проверьте восстановленный текст и сохраните его'
+                    : 'Ожидаем автосохранения…'
+                  : notice || 'Все изменения сохранены'}
       </div>
       {!valid && (
         <p role="alert">
@@ -199,7 +235,7 @@ export function ArticleWorkspace({
           <button
             type="button"
             aria-pressed={mode !== 'preview'}
-            disabled={uploading}
+            disabled={busy}
             onClick={() => setMode('edit')}
           >
             <CourseIcon name="edit" />
@@ -209,7 +245,7 @@ export function ArticleWorkspace({
             type="button"
             aria-pressed={mode === 'preview'}
             aria-label="Предпросмотр теории"
-            disabled={uploading}
+            disabled={busy}
             onClick={() => setMode('preview')}
           >
             <CourseIcon name="eye" />
@@ -221,9 +257,9 @@ export function ArticleWorkspace({
             <CourseIcon name="clip" />
             Вложения
           </button>
-          <Link aria-label="Редактировать карточки" to={`/sets/${article.set_id}/edit`}>
+          <Link to={`/sets/${article.set_id}/edit`} target="_blank" rel="noopener noreferrer">
             <CourseIcon name="cards" />
-            Карточки урока
+            Карточки для запоминания
           </Link>
         </div>
       </div>
@@ -260,7 +296,7 @@ export function ArticleWorkspace({
         />
       )}
       {mode === 'preview' && (
-        <div className="ae-paper">
+        <div className="ae-paper course-reading">
           <ArticleContent
             value={body}
             headingLevel={2}

@@ -1,0 +1,350 @@
+.page {
+  --legal-paper: rgb(var(--rm-lecture-paper));
+  --legal-surface: rgb(var(--rm-lecture-surface));
+  --legal-ink: rgb(var(--rm-lecture-ink));
+  --legal-muted: rgb(var(--rm-lecture-muted));
+  --legal-blue: rgb(var(--rm-lecture-action));
+  --legal-blue-deep: rgb(var(--rm-lecture-blue));
+  --legal-line: rgb(var(--rm-lecture-line));
+  min-height: 100dvh;
+  overflow-wrap: anywhere;
+  background: var(--legal-paper);
+  color: var(--legal-ink);
+  font:
+    1rem/1.65 Inter,
+    'Segoe UI',
+    Arial,
+    sans-serif;
+}
+
+.page *,
+.page *::before,
+.page *::after {
+  box-sizing: border-box;
+}
+
+.page ::selection {
+  background: rgb(var(--rm-lecture-selected));
+  color: var(--legal-ink);
+}
+
+.skip {
+  position: fixed;
+  top: 0.75rem;
+  left: 1rem;
+  z-index: 60;
+  min-height: 44px;
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--legal-line);
+  border-radius: 0.625rem;
+  background: var(--legal-surface);
+  color: var(--legal-blue);
+  font-weight: 650;
+  transform: translateY(-150%);
+}
+
+.skip:focus {
+  transform: translateY(0);
+}
+
+.main {
+  width: min(calc(100% - 2rem), 73.75rem);
+  margin-inline: auto;
+  padding-block: clamp(3rem, 7vw, 6.5rem);
+}
+
+.documentHeader {
+  max-width: 52rem;
+}
+
+.documentNav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  color: var(--legal-muted);
+  font-size: 0.875rem;
+}
+
+.documentNav a,
+.language,
+.toc a,
+.contact,
+.documentLinks a {
+  text-underline-offset: 0.3em;
+}
+
+.documentNav a,
+.language,
+.toc a,
+.documentLinks a {
+  color: inherit;
+}
+
+.documentNav a:is(:hover, :focus-visible),
+.language:is(:hover, :focus-visible),
+.toc a:is(:hover, :focus-visible),
+.documentLinks a:is(:hover, :focus-visible) {
+  color: var(--legal-blue);
+  text-decoration: underline;
+}
+
+.documentNav span[aria-hidden='true'] {
+  color: var(--legal-line);
+}
+
+.language {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-left: auto;
+  padding-inline: 0.875rem;
+  border: 1px solid var(--legal-line);
+  border-radius: 0.625rem;
+  background: var(--legal-surface);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.documentHeader h1 {
+  max-width: 18ch;
+  margin: 0;
+  font:
+    400 clamp(2.5rem, 5.2vw, 4.5rem)/1.04 Georgia,
+    'Times New Roman',
+    serif;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.updated {
+  display: block;
+  margin-top: 1.25rem;
+  color: var(--legal-muted);
+  font-size: 0.875rem;
+}
+
+.intro {
+  max-width: 45rem;
+  margin: 1.75rem 0 0;
+  color: var(--legal-muted);
+  font-size: 1.125rem;
+  line-height: 1.65;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: minmax(11rem, 14rem) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(3rem, 8vw, 8rem);
+  margin-top: clamp(3.5rem, 8vw, 7rem);
+}
+
+.toc {
+  position: sticky;
+  top: 1.5rem;
+}
+
+.toc h2 {
+  margin: 0 0 0.75rem;
+  font:
+    400 1.35rem/1.25 Georgia,
+    'Times New Roman',
+    serif;
+}
+
+.toc ol {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--legal-line);
+  list-style: none;
+}
+
+.toc li {
+  border-bottom: 1px solid var(--legal-line);
+}
+
+.toc a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding-block: 0.55rem;
+  color: var(--legal-muted);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  text-decoration: none;
+}
+
+.sections {
+  min-width: 0;
+  max-width: 47rem;
+}
+
+.section {
+  scroll-margin-top: 2rem;
+  padding-block: 0 3.25rem;
+}
+
+.section + .section {
+  padding-top: 3.25rem;
+  border-top: 1px solid var(--legal-line);
+}
+
+.section h2 {
+  max-width: 29ch;
+  margin: 0;
+  font:
+    400 clamp(1.65rem, 2.5vw, 2rem)/1.2 Georgia,
+    'Times New Roman',
+    serif;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.section p,
+.section ul {
+  max-width: 70ch;
+  margin: 1rem 0 0;
+  color: var(--legal-muted);
+  font-size: 1.0625rem;
+  line-height: 1.78;
+}
+
+.section ul {
+  padding-left: 1.35rem;
+}
+
+.section li + li {
+  margin-top: 0.65rem;
+}
+
+.section li::marker {
+  color: var(--legal-blue);
+}
+
+.contact {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 1rem;
+  border-radius: 0.35rem;
+  color: var(--legal-blue);
+  font-weight: 650;
+}
+
+.documentLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  max-width: 47rem;
+  margin-left: auto;
+  padding-block: 1.5rem 0;
+  border-top: 1px solid var(--legal-line);
+  color: var(--legal-muted);
+  font-size: 0.875rem;
+}
+
+.documentLinks a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.themeControl {
+  display: flex;
+  justify-content: flex-end;
+  max-width: 47rem;
+  margin: 1rem 0 0 auto;
+}
+
+.themeControl :global(.home-theme) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--legal-muted);
+  font-size: 0.875rem;
+}
+
+.themeControl :global(.home-theme select) {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--legal-line);
+  border-radius: 0.625rem;
+  background: var(--legal-surface);
+  color: var(--legal-ink);
+  font: inherit;
+}
+
+.page :is(a, button):focus-visible {
+  outline: 3px solid var(--legal-blue);
+  outline-offset: 4px;
+}
+
+.footer {
+  margin-top: clamp(2rem, 5vw, 5rem);
+}
+
+@media (min-width: 100rem) {
+  .page {
+    font-size: clamp(1rem, min(1vw, 1.74svh), 2.125rem);
+  }
+}
+
+@media (max-width: 860px) {
+  .content {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2.5rem;
+  }
+
+  .toc {
+    position: static;
+  }
+
+  .toc ol {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 1.5rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .main {
+    padding-top: 2.5rem;
+  }
+
+  .documentNav {
+    align-items: flex-start;
+  }
+
+  .language {
+    width: max-content;
+    margin: 0.5rem 0 0;
+  }
+
+  .documentHeader h1 {
+    max-width: none;
+    font-size: clamp(2rem, 9vw, 2.75rem);
+    overflow-wrap: normal;
+  }
+
+  .toc ol {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .section,
+  .section + .section {
+    padding-block: 0 2.5rem;
+  }
+
+  .section + .section {
+    padding-top: 2.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skip {
+    transition: none;
+  }
+}

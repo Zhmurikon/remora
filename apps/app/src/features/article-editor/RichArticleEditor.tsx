@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { lift, setBlockType, toggleMark, wrapIn } from 'prosemirror-commands';
 import { undo, redo, undoDepth, redoDepth } from 'prosemirror-history';
@@ -24,8 +25,8 @@ const names: Record<Tool, string> = {
   insert: 'Вставить блок',
 };
 type Props = {
-  value: string;
   allowImages?: boolean;
+  value: string;
   onChange: (s: string) => void;
   media: Record<string, ArticleMedia>;
   onImage: (id: string, m: ArticleMedia) => void;
@@ -400,17 +401,21 @@ export function RichArticleEditor(props: Props) {
         }}
       />
       {error && !popup && <p role="alert">{error}</p>}
-      <div className="ae-paper">
+      <div className="ae-paper course-reading">
         <div className="ae-insert">{opener('insert', <span>＋</span>)}</div>
         <div ref={host} />
       </div>
-      {bubble && !popup && !props.busy && (
-        <div className="ae-bubble" style={{ left: bubble.x, top: bubble.y }}>
-          {bold()}
-          {italic()}
-          {opener('link', <CourseIcon name="link" />)}
-        </div>
-      )}
+      {bubble &&
+        !popup &&
+        !props.busy &&
+        createPortal(
+          <div className="ae-bubble materials-page" style={{ left: bubble.x, top: bubble.y }}>
+            {bold()}
+            {italic()}
+            {opener('link', <CourseIcon name="link" />)}
+          </div>,
+          host.current?.closest('.dashboard-shell') ?? document.body,
+        )}
       {popup && (
         <EditorPopover anchor={popup.anchor} label={names[popup.tool]} close={() => setPopup(null)}>
           {popup.tool === 'style' &&
