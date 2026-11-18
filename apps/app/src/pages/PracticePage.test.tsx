@@ -1,5 +1,14 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render as renderUI,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactElement } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
@@ -9,6 +18,7 @@ import type {
 import {
   readPythonTaskProgress,
   recordPythonCheck,
+  replacePythonTaskProgress,
   savePythonDraft,
 } from '../features/practice/python-progress';
 import { findPythonTask, pythonTasks } from '../features/practice/python-tasks';
@@ -30,6 +40,11 @@ vi.mock('../features/practice/python-progress-sync', () => ({
 }));
 
 const OriginalWorker = globalThis.Worker;
+
+function render(ui: ReactElement) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+  return renderUI(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+}
 
 beforeEach(() => {
   syncMocks.sync.mockResolvedValue({ ok: true, pending: 0 });
@@ -55,6 +70,112 @@ afterEach(() => {
 });
 
 describe('раздел практики', () => {
+  it('не выдаёт нулевой прогресс за данные аккаунта во время загрузки', async () => {
+    let finish!: () => void;
+    syncMocks.sync.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = () => resolve({ ok: true, pending: 0 });
+        }),
+    );
+    render(
+      <MemoryRouter>
+        <PracticePage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('heading', { name: 'Загружаем прогресс…' })).toBeTruthy();
+    expect(screen.queryByRole('progressbar')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Все 46 задач Python' })).toBeTruthy();
+    await act(async () => finish());
+    expect(
+      (await screen.findByRole('link', { name: 'Начать практику' })).getAttribute('href'),
+    ).toBe('/practice/python/privetstvie-po-imeni');
+  });
+
+  it('выбирает последний незавершённый черновик и сохраняет его при ошибке синхронизации', async () => {
+    const [first, second, third] = pythonTasks;
+    if (!first || !second || !third) throw new Error('Нет задач');
+    for (const [task, date] of [
+      [first, '2026-11-16'],
+      [second, '2026-11-17'],
+    ] as const) {
+      replacePythonTaskProgress(task, {
+        ...readPythonTaskProgress(task),
+        status: 'in_progress',
+        draft: 'my draft',
+        updatedAt: `${date}T00:00:00Z`,
+      });
+    }
+    recordPythonCheck(third, 'done', true);
+    syncMocks.sync.mockResolvedValueOnce({ ok: false, pending: 1 });
+    syncMocks.pendingCount.mockReturnValue(1);
+    render(
+      <MemoryRouter>
+        <PracticePage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('link', { name: 'Продолжить задачу' }).getAttribute('href')).toBe(
+      `/practice/python/${second.slug}`,
+    );
+    expect(await screen.findByText(/В этом браузере решено 1 из 46 задач/)).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toContain('В очереди: 1');
+    expect(readPythonTaskProgress(second).draft).toBe('my draft');
+    fireEvent.click(screen.getByRole('button', { name: 'Повторить синхронизацию' }));
+    await screen.findByText('Сохранено в аккаунте');
+    expect(screen.getByRole('link', { name: 'Продолжить задачу' }).getAttribute('href')).toBe(
+      `/practice/python/${second.slug}`,
+    );
+  });
+
+  it('показывает пришедший с сервера прогресс и переход к первой нерешённой задаче', async () => {
+    const [first, second] = pythonTasks;
+    if (!first || !second) throw new Error('Нет задач');
+    syncMocks.sync.mockImplementationOnce(async () => {
+      recordPythonCheck(first, 'saved on server', true);
+      return { ok: true, pending: 0 };
+    });
+    render(
+      <MemoryRouter>
+        <PracticePage />
+      </MemoryRouter>,
+    );
+    expect(
+      (await screen.findByRole('link', { name: 'Следующая задача' })).getAttribute('href'),
+    ).toBe(`/practice/python/${second.slug}`);
+    expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('1');
+  });
+
+  it('после решения всех задач предлагает каталог без сброса решений', async () => {
+    for (const task of pythonTasks) recordPythonCheck(task, 'saved solution', true);
+    render(
+      <MemoryRouter>
+        <PracticePage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('heading', { name: 'Все задачи решены' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Повторить задачи' }).getAttribute('href')).toBe(
+      '/practice/python',
+    );
+    expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('46');
+    await screen.findByText('Сохранено в аккаунте');
+    expect(pythonTasks.every((task) => readPythonTaskProgress(task).status === 'solved')).toBe(
+      true,
+    );
+  });
+
+  it('оставляет начало и каталог доступными после сетевого исключения', async () => {
+    syncMocks.sync.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    render(
+      <MemoryRouter>
+        <PracticePage />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('link', { name: 'Начать практику' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Все 46 задач Python' })).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toContain('Не удалось синхронизировать');
+    expect(screen.queryByText('Сохранено в аккаунте')).toBeNull();
+  });
+
   it('добавлен в основную навигацию', () => {
     render(
       <MemoryRouter initialEntries={['/practice']}>

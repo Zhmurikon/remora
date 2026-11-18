@@ -41,6 +41,7 @@ export function AppLayout() {
   ].some((path) => matchPath(path, location.pathname));
   const hasPaperShell =
     location.pathname === '/' ||
+    location.pathname === '/practice' ||
     location.pathname === '/achievements' ||
     isMaterialsPath(location.pathname) ||
     isCourseReader ||

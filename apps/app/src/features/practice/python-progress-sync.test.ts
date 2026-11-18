@@ -29,6 +29,25 @@ afterEach(() => {
 });
 
 describe('синхронизация прогресса Python', () => {
+  it('обрабатывает отклонённый fetch, сохраняя черновик и очередь до повторной отправки', async () => {
+    const storage = new MemoryStorage();
+    const local = progress({ draft: 'offline draft' });
+    replacePythonTaskProgress(currentTask, local, storage);
+    queuePythonProgress(local, storage);
+    apiMocks.put.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    expect(await flushPythonProgress([currentTask], storage)).toEqual({ ok: false, pending: 1 });
+    expect(readPythonTaskProgress(currentTask, storage).draft).toBe('offline draft');
+    expect(pendingPythonProgressCount(storage)).toBe(1);
+
+    apiMocks.put.mockResolvedValueOnce({ data: server({ draft: 'offline draft' }) });
+    apiMocks.get.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    expect(await syncPythonProgress([currentTask], storage)).toEqual({ ok: false, pending: 0 });
+    expect(readPythonTaskProgress(currentTask, storage).draft).toBe('offline draft');
+
+    apiMocks.get.mockResolvedValueOnce({ data: [server({ draft: 'offline draft' })] });
+    expect(await syncPythonProgress([currentTask], storage)).toEqual({ ok: true, pending: 0 });
+  });
+
   it('берёт лучший статус, максимум попыток и самый свежий черновик', () => {
     expect(
       mergeProgress(

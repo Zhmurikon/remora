@@ -32,55 +32,7 @@ const primaryLinkStyle =
 const quietLinkStyle =
   'text-primary inline-flex min-h-11 items-center rounded-lg underline underline-offset-4';
 
-export function PracticePage() {
-  return (
-    <div className="space-y-8">
-      <header>
-        <p className="text-primary text-sm font-medium">Учимся через действие</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Практика</h1>
-        <p className="text-fg-muted mt-3 max-w-2xl">
-          Решайте небольшие задачи, запускайте код прямо в браузере и сразу разбирайте ошибки.
-        </p>
-      </header>
-
-      <section aria-labelledby="trainers-title">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 id="trainers-title" className="text-2xl font-semibold">
-              Тренажёры
-            </h2>
-            <p className="text-fg-muted mt-1">Начнём с основ Python.</p>
-          </div>
-          <p className="text-fg-subtle text-sm">Доступен 1 тренажёр</p>
-        </div>
-
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <Link
-            to="/practice/python"
-            className="focus-visible:outline-primary rounded-lg focus-visible:outline focus-visible:outline-2"
-          >
-            <Card interactive className="h-full p-6">
-              <div className="flex items-start justify-between gap-4">
-                <span
-                  className="bg-primary-subtle text-primary grid h-14 w-14 shrink-0 place-items-center rounded-2xl font-mono text-xl font-semibold"
-                  aria-hidden="true"
-                >
-                  Py
-                </span>
-                <Badge tone="primary">Первый тренажёр</Badge>
-              </div>
-              <h3 className="mt-6 text-2xl font-semibold">Python</h3>
-              <p className="text-fg-muted mt-2">
-                Задачи по Python, анализу данных и визуализации — от основ до SciPy.
-              </p>
-              <p className="text-primary mt-6 font-medium">Открыть задачи →</p>
-            </Card>
-          </Link>
-        </div>
-      </section>
-    </div>
-  );
-}
+export { PracticePage } from './PracticeStartPage';
 
 export function PythonPracticePage() {
   const [topic, setTopic] = useState('all');

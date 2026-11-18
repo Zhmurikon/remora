@@ -51,7 +51,7 @@
   .arrow { display: inline-block; transition: transform 140ms ease-in }
   .hero[data-active=true] .primary { background: var(--hover) }
   .hero[data-active=true] .arrow { transform: translateX(3px); transition: transform 180ms cubic-bezier(.16,1,.3,1) }
-  .notebook { position: absolute; width: 250px; height: 250px; right: 23px; top: 50%; margin-top: -125px; pointer-events: none; transform-origin: 55% 85%; transition: transform 140ms ease-in }
+  .notebook { position: absolute; width: 250px; height: 250px; right: 23px; top: 50%; margin-top: -125px; transform-origin: 55% 85%; transition: transform 140ms ease-in }
   .notebook img, .notebook svg { position: absolute; inset: 0; width: 100%; height: 100% }
   .notebook svg { fill: none; stroke: #284bb2; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round }
   .notebook .base { opacity: .35; stroke-width: 3 }
@@ -209,6 +209,11 @@
     if (event.pointerType === 'mouse') { pointerInside = true; update(); }
   });
   action.addEventListener('pointerleave', () => { pointerInside = false; stop(); });
+  const notebook = document.querySelector('.notebook');
+  notebook.addEventListener('pointerenter', event => {
+    if (event.pointerType === 'mouse') { pointerInside = true; update(); }
+  });
+  notebook.addEventListener('pointerleave', () => { pointerInside = false; stop(); });
   action.addEventListener('focus', update);
   action.addEventListener('blur', stop);
   action.addEventListener('click', () => { if (!pointerInside && !action.matches(':focus-visible')) play(); });

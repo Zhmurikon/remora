@@ -9,7 +9,7 @@
 
 ## Поведение
 
-При наведении мыши на «Продолжить задачу» или видимом клавиатурном фокусе блокнот
+При наведении мыши на «Продолжить задачу», на сам блокнот или видимом клавиатурном фокусе блокнот
 поднимается на 3 px и поворачивается на −1° за 220 мс. Стрелка сдвигается на 3 px
 за 180 мс. Три чернильные строки проявляются через transform/opacity за 200 мс
 с задержками 0, 85 и 170 мс, затем появляется маленькая отметка с задержкой 270 мс.
@@ -47,5 +47,5 @@ API при 20 кадрах/с; GIF повторяет запись для про
 
 > Extract and recreate ONLY the small blue ballpoint spiral notepad illustration from the upper-right of this approved UI reference as a clean reusable illustration on TRUE transparent background. Preserve the same blue pen hatch drawing, portrait top spiral notebook in three-quarter view, leaning slightly back, pages and delicate ink shadow underneath. Enlarge to fill a square canvas with 12% transparent padding. The page must be ENTIRELY BLANK: remove the little lines and square on the paper. The white paper itself is opaque white, background surrounding the notebook transparent. No text, letters, code, checkmarks, interface, logo or other objects. This will be overlaid with animated vector pen marks. Position the front page near vertices (35%,25%), (77%,30%), (68%,78%), (20%,72%).
 
-Следующий этап — согласование движения и перенос выбранной композиции в стартовую
-страницу с настоящим прогрессом, затем проверка действий и переходов.
+Движение согласовано с дополнением: запускать его также при наведении на блокнот.
+Вариант А перенесён на сайт; [результат реализации и проверок](../review/README.md).

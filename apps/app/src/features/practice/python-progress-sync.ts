@@ -46,9 +46,11 @@ export function flushPythonProgress(
   tasks: readonly PythonTask[],
   storage: Storage | null = browserStorage(),
 ): Promise<PythonSyncResult> {
-  flushInFlight ??= runFlush(tasks, storage).finally(() => {
-    flushInFlight = null;
-  });
+  flushInFlight ??= runFlush(tasks, storage)
+    .catch(() => ({ ok: false, pending: pendingPythonProgressCount(storage) }))
+    .finally(() => {
+      flushInFlight = null;
+    });
   return flushInFlight;
 }
 
@@ -56,36 +58,41 @@ export async function syncPythonProgress(
   tasks: readonly PythonTask[],
   storage: Storage | null = browserStorage(),
 ): Promise<PythonSyncResult> {
-  await flushPythonProgress(tasks, storage);
-  const { data, error } = await api.GET('/api/v1/practice/python/progress');
-  if (error || !data) return { ok: false, pending: pendingPythonProgressCount(storage) };
+  try {
+    await flushPythonProgress(tasks, storage);
+    const { data, error } = await api.GET('/api/v1/practice/python/progress');
+    if (error || !data) return { ok: false, pending: pendingPythonProgressCount(storage) };
 
-  const currentTasks = new Map(tasks.map((task) => [`${task.id}:${task.version}`, task]));
-  for (const server of data) {
-    const task = currentTasks.get(`${server.task_id}:${server.task_version}`);
-    if (!task) continue;
-    const local = readPythonTaskProgress(task, storage);
-    const merged = mergeProgress(local, fromServer(server));
-    replacePythonTaskProgress(task, merged, storage);
-    if (isLocalAhead(merged, fromServer(server))) queuePythonProgress(merged, storage);
-  }
-
-  for (const task of tasks) {
-    const hasServer = data.some(
-      (item) => item.task_id === task.id && item.task_version === task.version,
-    );
-    if (!hasServer) {
+    const currentTasks = new Map(tasks.map((task) => [`${task.id}:${task.version}`, task]));
+    for (const server of data) {
+      const task = currentTasks.get(`${server.task_id}:${server.task_version}`);
+      if (!task) continue;
       const local = readPythonTaskProgress(task, storage);
-      if (
-        local.status !== 'not_started' ||
-        local.attempts > 0 ||
-        local.draft !== task.starterCode
-      ) {
-        queuePythonProgress(local, storage);
+      const merged = mergeProgress(local, fromServer(server));
+      replacePythonTaskProgress(task, merged, storage);
+      if (isLocalAhead(merged, fromServer(server))) queuePythonProgress(merged, storage);
+    }
+
+    for (const task of tasks) {
+      const hasServer = data.some(
+        (item) => item.task_id === task.id && item.task_version === task.version,
+      );
+      if (!hasServer) {
+        const local = readPythonTaskProgress(task, storage);
+        if (
+          local.status !== 'not_started' ||
+          local.attempts > 0 ||
+          local.draft !== task.starterCode
+        ) {
+          queuePythonProgress(local, storage);
+        }
       }
     }
+    return flushPythonProgress(tasks, storage);
+  } catch {
+    // fetch отклоняет Promise при обрыве сети: оставляем черновики и очередь для повтора.
+    return { ok: false, pending: pendingPythonProgressCount(storage) };
   }
-  return flushPythonProgress(tasks, storage);
 }
 
 export function mergeProgress(
