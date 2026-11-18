@@ -1,0 +1,940 @@
+.class-screen {
+  --cs-ink: var(--rm-lecture-ink);
+  --cs-muted: var(--rm-lecture-muted);
+  --cs-action: var(--rm-lecture-action);
+  --cs-line: var(--rm-lecture-line);
+  --cs-paper: var(--rm-lecture-paper);
+  --cs-surface: var(--rm-lecture-surface);
+  --cs-selected: var(--rm-lecture-selected);
+  color: rgb(var(--cs-ink));
+  min-width: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  scrollbar-color: rgb(var(--cs-line)) rgb(var(--cs-paper));
+}
+.class-screen :where(h1, h2, h3, p) {
+  margin: 0;
+}
+.class-screen :where(h1, h2, h3, strong) {
+  overflow-wrap: anywhere;
+}
+.class-screen h1 {
+  font:
+    400 43px/1.16 Georgia,
+    serif;
+  letter-spacing: -0.028em;
+}
+.class-screen h2 {
+  font-size: 21px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.class-screen h3 {
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.class-screen strong {
+  font-weight: 500;
+}
+.class-screen small {
+  color: rgb(var(--cs-muted));
+  font-size: 12px;
+}
+.class-screen svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.class-screen :where(button, a, input, select, [tabindex]):focus-visible {
+  outline: 2px solid rgb(var(--cs-action));
+  outline-offset: 3px;
+}
+.class-screen ::selection {
+  background: rgb(var(--cs-selected));
+  color: rgb(var(--cs-ink));
+}
+.cs-muted {
+  color: rgb(var(--cs-muted));
+}
+.cs-button,
+.cs-text-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 140ms ease-out,
+    color 140ms ease-out;
+}
+.cs-button {
+  padding: 10px 17px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: rgb(var(--cs-action));
+  color: rgb(var(--cs-surface));
+  text-align: center;
+}
+.cs-button:hover:not(:disabled) {
+  background: rgb(var(--rm-lecture-blue));
+}
+.cs-button.cs-secondary {
+  border-color: rgb(var(--cs-line));
+  background: rgb(var(--cs-surface));
+  color: rgb(var(--cs-action));
+}
+.cs-button.cs-secondary:hover:not(:disabled) {
+  background: rgb(var(--cs-selected));
+}
+.cs-text-button {
+  color: rgb(var(--cs-action));
+  background: transparent;
+  border: 0;
+  text-align: left;
+}
+.cs-text-button:hover:not(:disabled) {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.class-screen :where(button, input, select):disabled,
+.class-screen fieldset:disabled .cs-button {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.cs-back {
+  margin-bottom: 14px;
+  justify-content: flex-start;
+}
+.cs-back svg {
+  width: 17px;
+}
+.cs-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgb(var(--cs-line));
+}
+.cs-header > div:first-child {
+  min-width: 0;
+}
+.cs-role {
+  margin-top: 12px;
+  color: rgb(var(--cs-action));
+  font-size: 14px;
+}
+.cs-header p {
+  margin-top: 12px;
+  max-width: 68ch;
+  color: rgb(var(--cs-muted));
+  font-size: 15px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.cs-header-actions {
+  flex-shrink: 0;
+  max-width: 300px;
+  padding-top: 8px;
+}
+.cs-feedback {
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgb(var(--cs-action));
+  margin-top: 14px !important;
+  overflow-wrap: anywhere;
+}
+.cs-feedback.cs-error {
+  color: rgb(var(--cs-ink));
+  padding: 12px;
+  background: rgb(var(--rm-danger-subtle));
+  border-radius: 10px;
+}
+.cs-notice {
+  padding: 18px;
+  margin-top: 24px !important;
+  background: rgb(var(--cs-selected));
+  color: rgb(var(--cs-action));
+  border-radius: 12px;
+  font-size: 14px;
+}
+.cs-notice h2 {
+  font-size: 17px;
+}
+.cs-notice p {
+  margin-top: 7px;
+}
+.cs-pending {
+  margin-top: 24px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: rgb(var(--cs-selected));
+}
+.cs-pending h2 {
+  font-size: 14px;
+  color: rgb(var(--cs-action));
+}
+.cs-pending-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding-top: 6px;
+}
+.cs-pending-row p {
+  font-size: 15px;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.cs-pending-row span {
+  color: rgb(var(--cs-muted));
+  font-size: 13px;
+}
+.cs-pending-row .cs-button {
+  flex-shrink: 0;
+}
+.cs-progress-section {
+  margin-top: 28px;
+}
+.cs-section-head,
+.cs-title-count {
+  display: flex;
+  align-items: center;
+  gap: 10px 18px;
+  flex-wrap: wrap;
+}
+.cs-section-head {
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.cs-title-count {
+  gap: 8px 12px;
+}
+.cs-title-count > span {
+  font-size: 14px;
+  color: rgb(var(--cs-muted));
+}
+.cs-table-scroll {
+  overflow: auto;
+  max-width: 100%;
+  scrollbar-width: thin;
+  overscroll-behavior-x: contain;
+}
+.cs-table-scroll table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  text-align: left;
+  font-size: 14px;
+}
+.cs-table-scroll th,
+.cs-table-scroll td {
+  padding: 14px 18px;
+  border-bottom: 1px solid rgb(var(--cs-line));
+  min-width: 180px;
+  max-width: 300px;
+  overflow-wrap: anywhere;
+}
+.cs-table-scroll thead th {
+  font-weight: 500;
+  background: rgb(var(--cs-paper));
+  border-top: 1px solid rgb(var(--cs-line));
+}
+.cs-table-scroll small {
+  display: block;
+  margin-top: 4px;
+  font-weight: 400;
+}
+.cs-table-scroll th:first-child {
+  min-width: 220px;
+  width: 29%;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: rgb(var(--cs-surface));
+}
+.cs-table-scroll thead th:first-child {
+  background: rgb(var(--cs-paper));
+  z-index: 2;
+}
+.cs-table-scroll tbody th {
+  font-weight: 400;
+}
+.cs-table-scroll tbody th a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  gap: 7px;
+  color: rgb(var(--cs-action));
+  font-size: 15px;
+}
+.cs-table-scroll tbody th a:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.cs-table-scroll tbody th svg {
+  width: 13px;
+  height: 13px;
+}
+.cs-table-scroll tbody tr:hover :where(th, td) {
+  background: rgb(var(--cs-paper));
+}
+.cs-cell-value {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: rgb(var(--cs-muted));
+  font-variant-numeric: tabular-nums;
+}
+.cs-status {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 6px 9px;
+  border-radius: 5px;
+  font-size: 12px;
+  line-height: 1.2;
+  color: rgb(var(--cs-muted));
+  background: rgb(var(--cs-paper));
+}
+.cs-status-in_progress {
+  color: rgb(var(--cs-action));
+  background: rgb(var(--cs-selected));
+}
+.cs-status-done {
+  color: rgb(var(--cs-ink));
+  background: rgb(var(--rm-success-subtle));
+}
+.cs-status-late {
+  color: rgb(var(--cs-ink));
+  background: rgb(var(--rm-danger-subtle));
+}
+.cs-helper {
+  color: rgb(var(--cs-muted));
+  font-size: 12px;
+  margin-top: 12px !important;
+}
+.cs-teacher-lower {
+  display: grid;
+  grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
+  gap: 36px;
+  margin-top: 32px;
+}
+.cs-assignment-form {
+  padding: 24px;
+  border: 1px solid rgb(var(--cs-line));
+  border-radius: 14px;
+  background: rgb(var(--cs-paper));
+  align-self: start;
+  min-width: 0;
+}
+.cs-intro {
+  font-size: 14px;
+  line-height: 1.65;
+  color: rgb(var(--cs-muted));
+  margin-top: 7px !important;
+}
+.class-screen form {
+  min-width: 0;
+}
+.class-screen fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.cs-assignment-form form {
+  margin-top: 20px;
+}
+.cs-assignment-form fieldset {
+  display: grid;
+  gap: 16px;
+}
+.cs-assignment-form .cs-button {
+  justify-self: start;
+}
+.class-screen label {
+  display: block;
+  font-size: 13px;
+  min-width: 0;
+}
+.class-screen input,
+.class-screen select {
+  display: block;
+  width: 100%;
+  height: 44px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0 12px;
+  border: 1px solid rgb(var(--cs-line));
+  border-radius: 8px;
+  color: rgb(var(--cs-ink));
+  background: rgb(var(--cs-surface));
+  font: inherit;
+  font-size: 14px;
+  margin-top: 6px;
+  caret-color: rgb(var(--cs-action));
+}
+.class-screen input::placeholder {
+  color: rgb(var(--cs-muted));
+}
+.cs-goal-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 95px;
+  gap: 12px;
+}
+.cs-resources {
+  min-width: 0;
+  padding-top: 3px;
+}
+.cs-materials {
+  margin-top: 13px;
+}
+.cs-material {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 76px;
+  padding: 15px 0;
+  border-bottom: 1px solid rgb(var(--cs-line));
+}
+.cs-material:hover strong {
+  color: rgb(var(--cs-action));
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.cs-material > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.cs-material strong {
+  display: block;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.cs-material small {
+  display: block;
+  margin-top: 5px;
+}
+.cs-material > svg {
+  width: 17px;
+  color: rgb(var(--cs-action));
+}
+.cs-book-icon {
+  display: flex;
+  color: rgb(var(--cs-action));
+}
+.cs-book-icon svg {
+  width: 21px;
+  height: 25px;
+}
+.cs-add-material {
+  margin-top: 18px;
+}
+.cs-add-material fieldset {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.cs-add-material label {
+  flex: 1;
+}
+.cs-add-material .cs-button {
+  flex-shrink: 0;
+}
+.cs-help {
+  margin-top: 14px !important;
+  font-size: 13px;
+  color: rgb(var(--cs-muted));
+  line-height: 1.65;
+}
+.cs-help a {
+  color: rgb(var(--cs-action));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.cs-card-errors {
+  margin-top: 30px;
+}
+.cs-error-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid rgb(var(--cs-line));
+}
+.cs-error-row > div:first-child {
+  min-width: 0;
+}
+.cs-error-row strong {
+  font-size: 14px;
+}
+.cs-error-row p {
+  margin-top: 5px;
+  color: rgb(var(--cs-muted));
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.cs-error-number {
+  flex-shrink: 0;
+  text-align: right;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.cs-error-number small {
+  display: block;
+  margin-top: 5px;
+}
+.cs-without-form {
+  display: block;
+}
+.cs-without-form .cs-resources {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 36px;
+}
+.cs-without-form .cs-card-errors {
+  margin: 0;
+}
+.cs-student-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 310px;
+  gap: 44px;
+  margin-top: 30px;
+}
+.cs-student-materials {
+  border-left: 1px solid rgb(var(--cs-line));
+  padding-left: 28px;
+  min-width: 0;
+}
+.cs-student-materials .cs-material {
+  padding-block: 20px;
+}
+.cs-assignment {
+  padding: 24px 0;
+  border-bottom: 1px solid rgb(var(--cs-line));
+}
+.cs-row-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 18px;
+}
+.cs-row-title > div {
+  min-width: 0;
+}
+.cs-row-title p {
+  font-size: 13px;
+  color: rgb(var(--cs-muted));
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+.cs-assignment-info {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 13px;
+  color: rgb(var(--cs-muted));
+  margin: 20px 0 12px;
+}
+.cs-meter {
+  height: 6px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgb(var(--cs-line));
+}
+.cs-meter i {
+  display: block;
+  height: 100%;
+  background: rgb(var(--cs-action));
+  border-radius: inherit;
+}
+.cs-meter.cs-done i {
+  background: rgb(var(--rm-success));
+}
+.cs-assignment-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 16px;
+  font-size: 13px;
+  color: rgb(var(--cs-muted));
+}
+.cs-student-report {
+  max-width: 1054px;
+}
+.cs-report-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 36px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid rgb(var(--cs-line));
+}
+.cs-report-summary p {
+  color: rgb(var(--cs-muted));
+  font-size: 14px;
+  margin-top: 8px;
+}
+.cs-completion {
+  width: 180px;
+  height: 6px;
+  background: rgb(var(--cs-line));
+  border-radius: 3px;
+  overflow: hidden;
+}
+.cs-completion i {
+  display: block;
+  height: 100%;
+  background: rgb(var(--rm-success));
+}
+.cs-report-row {
+  padding: 28px 0;
+  border-bottom: 1px solid rgb(var(--cs-line));
+}
+.cs-report-row > p {
+  font-size: 14px;
+  color: rgb(var(--cs-muted));
+  margin-top: 9px;
+  overflow-wrap: anywhere;
+}
+.cs-report-row h3 {
+  font-size: 21px;
+}
+.cs-report-progress {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  margin: 20px 0 8px;
+}
+.cs-report-progress .cs-meter {
+  flex: 1;
+}
+.cs-report-progress strong {
+  min-width: 85px;
+  text-align: right;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.cs-report-foot {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: rgb(var(--cs-muted));
+  margin-top: 28px;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.cs-report-foot svg {
+  width: 17px;
+  height: 17px;
+  margin-top: 3px;
+}
+.cs-invite-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 570px) minmax(0, 250px);
+  gap: 62px;
+  align-items: center;
+  margin: 42px 0 60px;
+}
+.cs-invitation {
+  padding: 36px 44px 38px;
+  background: rgb(var(--cs-paper));
+  border: 1px solid rgb(var(--cs-line));
+  border-radius: 16px;
+  min-width: 0;
+}
+.cs-invite-icon {
+  display: flex;
+  color: rgb(var(--cs-action));
+  margin-bottom: 25px;
+}
+.cs-invite-icon svg {
+  width: 32px;
+  height: 32px;
+}
+.cs-invite-intro {
+  font-size: 15px;
+  color: rgb(var(--cs-muted));
+  line-height: 1.7;
+  margin-top: 20px !important;
+  max-width: 40ch;
+}
+.cs-invite-code {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  border-block: 1px solid rgb(var(--cs-line));
+  padding: 20px 0;
+  margin: 27px 0 24px;
+}
+.cs-invite-code span {
+  font-size: 13px;
+  color: rgb(var(--cs-muted));
+}
+.cs-invite-code strong {
+  font-size: 21px;
+  letter-spacing: 0.07em;
+  overflow-wrap: anywhere;
+}
+.cs-invitation .cs-button {
+  width: 100%;
+}
+.cs-invitation .cs-help {
+  max-width: 44ch;
+}
+.cs-invite-note h2 {
+  font:
+    400 29px/1.3 Georgia,
+    serif;
+}
+.cs-invite-note p {
+  font-size: 15px;
+  line-height: 1.8;
+  color: rgb(var(--cs-muted));
+  margin-top: 16px;
+}
+.cs-invite-note p:last-child {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid rgb(var(--cs-line));
+}
+.cs-invite-note strong {
+  color: rgb(var(--cs-action));
+  font-weight: 400;
+}
+.cs-empty,
+.cs-query-error {
+  padding: 24px 0;
+}
+.cs-empty h3,
+.cs-query-error h3 {
+  font-size: 17px;
+}
+.cs-empty p,
+.cs-query-error p,
+.cs-empty-copy {
+  font-size: 14px;
+  color: rgb(var(--cs-muted));
+  line-height: 1.65;
+  margin-top: 8px;
+}
+.cs-empty-copy {
+  padding: 16px 0;
+}
+.cs-query-error .cs-text-button {
+  margin-top: 8px;
+}
+.cs-skeleton {
+  display: grid;
+  gap: 20px;
+  padding: 28px 0;
+  min-height: 140px;
+}
+.cs-skeleton i,
+.cs-skeleton-page > div:first-child {
+  display: block;
+  height: 14px;
+  border-radius: 5px;
+  background: rgb(var(--cs-line));
+}
+.cs-skeleton i:nth-child(2) {
+  width: 82%;
+}
+.cs-skeleton i:last-child {
+  width: 64%;
+}
+.cs-skeleton-page > div:first-child {
+  height: 44px;
+  width: min(320px, 100%);
+  margin: 20px 0;
+}
+@media (max-width: 1199px) {
+  .cs-teacher-lower {
+    grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1fr);
+    gap: 24px;
+  }
+  .cs-assignment-form {
+    padding: 20px;
+  }
+  .cs-add-material fieldset {
+    flex-wrap: wrap;
+  }
+  .cs-add-material label {
+    flex-basis: 100%;
+  }
+  .cs-student-layout {
+    grid-template-columns: minmax(0, 1fr) 260px;
+    gap: 28px;
+  }
+  .cs-student-materials {
+    padding-left: 20px;
+  }
+  .cs-invite-layout {
+    gap: 36px;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  }
+  .cs-invitation {
+    padding: 30px;
+  }
+}
+@media (max-width: 950px) {
+  .cs-teacher-lower,
+  .cs-student-layout,
+  .cs-without-form .cs-resources {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+  }
+  .cs-student-materials {
+    padding: 24px 0 0;
+    border-left: 0;
+    border-top: 1px solid rgb(var(--cs-line));
+  }
+  .cs-header {
+    flex-direction: column;
+    gap: 14px;
+  }
+  .cs-header-actions {
+    padding: 0;
+    max-width: none;
+  }
+  .cs-invite-layout {
+    grid-template-columns: minmax(0, 570px);
+    gap: 32px;
+  }
+  .cs-invite-note {
+    max-width: 50ch;
+  }
+  .cs-add-material fieldset {
+    flex-wrap: nowrap;
+  }
+  .cs-add-material label {
+    flex-basis: auto;
+  }
+}
+@media (max-width: 600px) {
+  .class-screen h1 {
+    font-size: 32px;
+  }
+  .class-screen h2 {
+    font-size: 20px;
+  }
+  .cs-back {
+    margin-bottom: 12px;
+  }
+  .cs-header p {
+    font-size: 14px;
+  }
+  .cs-pending {
+    padding: 16px;
+  }
+  .cs-pending-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .cs-pending-row p {
+    flex-basis: 100%;
+  }
+  .cs-pending-row span {
+    display: block;
+  }
+  .cs-section-head {
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .cs-table-scroll th:first-child {
+    position: static;
+    min-width: 155px;
+    width: auto;
+  }
+  .cs-table-scroll th,
+  .cs-table-scroll td {
+    padding: 12px;
+  }
+  .cs-assignment-form {
+    padding: 18px;
+  }
+  .cs-goal-fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .class-screen input,
+  .class-screen select {
+    font-size: 16px;
+  }
+  .cs-add-material fieldset {
+    flex-wrap: wrap;
+  }
+  .cs-add-material label {
+    flex-basis: 100%;
+  }
+  .cs-row-title {
+    flex-wrap: wrap;
+  }
+  .cs-row-title h3 {
+    font-size: 19px;
+  }
+  .cs-assignment-bottom {
+    flex-wrap: wrap;
+  }
+  .cs-error-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .cs-error-number {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .cs-report-summary {
+    margin-top: 26px;
+  }
+  .cs-completion {
+    width: 80px;
+  }
+  .cs-report-progress {
+    gap: 16px;
+  }
+  .cs-report-row {
+    padding: 24px 0;
+  }
+  .cs-invite-layout {
+    margin: 20px 0 32px;
+  }
+  .cs-invitation {
+    padding: 24px 18px;
+  }
+  .cs-invitation h1 {
+    font-size: 30px;
+  }
+  .cs-invite-code {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .cs-invite-note h2 {
+    font-size: 27px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .class-screen :where(button, a) {
+    transition: none;
+  }
+}

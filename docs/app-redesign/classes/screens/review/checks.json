@@ -1,0 +1,343 @@
+{
+  "matrix": [
+    {
+      "screen": "teacher",
+      "theme": "light",
+      "width": 320,
+      "small": []
+    },
+    {
+      "screen": "teacher",
+      "theme": "light",
+      "width": 390,
+      "small": []
+    },
+    {
+      "screen": "teacher",
+      "theme": "light",
+      "width": 768,
+      "small": []
+    },
+    {
+      "screen": "teacher",
+      "theme": "light",
+      "width": 1024,
+      "small": []
+    },
+    {
+      "screen": "teacher",
+      "theme": "light",
+      "width": 1200,
+      "small": []
+    },
+    {
+      "screen": "teacher",
+      "theme": "light",
+      "width": 1440,
+      "small": []
+    },
+    {
+      "screen": "teacher",
+      "theme": "light",
+      "width": 1920,
+      "small": []
+    },
+    {
+      "screen": "teacher",
+      "theme": "dark",
+      "width": 320,
+      "small": []
+    },
+    {
+      "screen": "teacher",
+      "theme": "dark",
+      "width": 390,
+      "small": []
+    },
+    {
+      "screen": "teacher",
+      "theme": "dark",
+      "width": 768,
+      "small": []
+    },
+    {
+      "screen": "teacher",
+      "theme": "dark",
+      "width": 1024,
+      "small": []
+    },
+    {
+      "screen": "teacher",
+      "theme": "dark",
+      "width": 1200,
+      "small": []
+    },
+    {
+      "screen": "teacher",
+      "theme": "dark",
+      "width": 1440,
+      "small": []
+    },
+    {
+      "screen": "teacher",
+      "theme": "dark",
+      "width": 1920,
+      "small": []
+    },
+    {
+      "screen": "student",
+      "theme": "light",
+      "width": 320,
+      "small": []
+    },
+    {
+      "screen": "student",
+      "theme": "light",
+      "width": 390,
+      "small": []
+    },
+    {
+      "screen": "student",
+      "theme": "light",
+      "width": 768,
+      "small": []
+    },
+    {
+      "screen": "student",
+      "theme": "light",
+      "width": 1024,
+      "small": []
+    },
+    {
+      "screen": "student",
+      "theme": "light",
+      "width": 1200,
+      "small": []
+    },
+    {
+      "screen": "student",
+      "theme": "light",
+      "width": 1440,
+      "small": []
+    },
+    {
+      "screen": "student",
+      "theme": "light",
+      "width": 1920,
+      "small": []
+    },
+    {
+      "screen": "student",
+      "theme": "dark",
+      "width": 320,
+      "small": []
+    },
+    {
+      "screen": "student",
+      "theme": "dark",
+      "width": 390,
+      "small": []
+    },
+    {
+      "screen": "student",
+      "theme": "dark",
+      "width": 768,
+      "small": []
+    },
+    {
+      "screen": "student",
+      "theme": "dark",
+      "width": 1024,
+      "small": []
+    },
+    {
+      "screen": "student",
+      "theme": "dark",
+      "width": 1200,
+      "small": []
+    },
+    {
+      "screen": "student",
+      "theme": "dark",
+      "width": 1440,
+      "small": []
+    },
+    {
+      "screen": "student",
+      "theme": "dark",
+      "width": 1920,
+      "small": []
+    },
+    {
+      "screen": "report",
+      "theme": "light",
+      "width": 320,
+      "small": []
+    },
+    {
+      "screen": "report",
+      "theme": "light",
+      "width": 390,
+      "small": []
+    },
+    {
+      "screen": "report",
+      "theme": "light",
+      "width": 768,
+      "small": []
+    },
+    {
+      "screen": "report",
+      "theme": "light",
+      "width": 1024,
+      "small": []
+    },
+    {
+      "screen": "report",
+      "theme": "light",
+      "width": 1200,
+      "small": []
+    },
+    {
+      "screen": "report",
+      "theme": "light",
+      "width": 1440,
+      "small": []
+    },
+    {
+      "screen": "report",
+      "theme": "light",
+      "width": 1920,
+      "small": []
+    },
+    {
+      "screen": "report",
+      "theme": "dark",
+      "width": 320,
+      "small": []
+    },
+    {
+      "screen": "report",
+      "theme": "dark",
+      "width": 390,
+      "small": []
+    },
+    {
+      "screen": "report",
+      "theme": "dark",
+      "width": 768,
+      "small": []
+    },
+    {
+      "screen": "report",
+      "theme": "dark",
+      "width": 1024,
+      "small": []
+    },
+    {
+      "screen": "report",
+      "theme": "dark",
+      "width": 1200,
+      "small": []
+    },
+    {
+      "screen": "report",
+      "theme": "dark",
+      "width": 1440,
+      "small": []
+    },
+    {
+      "screen": "report",
+      "theme": "dark",
+      "width": 1920,
+      "small": []
+    },
+    {
+      "screen": "invitation",
+      "theme": "light",
+      "width": 320,
+      "small": []
+    },
+    {
+      "screen": "invitation",
+      "theme": "light",
+      "width": 390,
+      "small": []
+    },
+    {
+      "screen": "invitation",
+      "theme": "light",
+      "width": 768,
+      "small": []
+    },
+    {
+      "screen": "invitation",
+      "theme": "light",
+      "width": 1024,
+      "small": []
+    },
+    {
+      "screen": "invitation",
+      "theme": "light",
+      "width": 1200,
+      "small": []
+    },
+    {
+      "screen": "invitation",
+      "theme": "light",
+      "width": 1440,
+      "small": []
+    },
+    {
+      "screen": "invitation",
+      "theme": "light",
+      "width": 1920,
+      "small": []
+    },
+    {
+      "screen": "invitation",
+      "theme": "dark",
+      "width": 320,
+      "small": []
+    },
+    {
+      "screen": "invitation",
+      "theme": "dark",
+      "width": 390,
+      "small": []
+    },
+    {
+      "screen": "invitation",
+      "theme": "dark",
+      "width": 768,
+      "small": []
+    },
+    {
+      "screen": "invitation",
+      "theme": "dark",
+      "width": 1024,
+      "small": []
+    },
+    {
+      "screen": "invitation",
+      "theme": "dark",
+      "width": 1200,
+      "small": []
+    },
+    {
+      "screen": "invitation",
+      "theme": "dark",
+      "width": 1440,
+      "small": []
+    },
+    {
+      "screen": "invitation",
+      "theme": "dark",
+      "width": 1920,
+      "small": []
+    }
+  ],
+  "pageErrors": [],
+  "scenarios": "publication retry, set sharing, member approval, clipboard, XLSX fixture download, report navigation, role permissions, student links, invitation pending/active/invalid, empty states, error retry, keyboard, reduced motion",
+  "data": "isolated API fixtures; no real account mutations"
+}
