@@ -22,6 +22,7 @@ import {
   savePythonDraft,
 } from '../features/practice/python-progress';
 import { findPythonTask, pythonTasks } from '../features/practice/python-tasks';
+import { api } from '../lib/api';
 import { AppLayout } from '../layouts/AppLayout';
 import { PracticePage, PythonPracticePage, PythonTaskPage } from './PracticePage';
 
@@ -29,10 +30,12 @@ const syncMocks = vi.hoisted(() => ({
   flush: vi.fn().mockResolvedValue({ ok: true, pending: 0 }),
   pendingCount: vi.fn().mockReturnValue(0),
   queue: vi.fn(),
+  clear: vi.fn(),
   sync: vi.fn().mockResolvedValue({ ok: true, pending: 0 }),
 }));
 
 vi.mock('../features/practice/python-progress-sync', () => ({
+  clearPendingPythonProgress: syncMocks.clear,
   flushPythonProgress: syncMocks.flush,
   pendingPythonProgressCount: syncMocks.pendingCount,
   queuePythonProgress: syncMocks.queue,
@@ -61,6 +64,8 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
+  syncMocks.clear.mockClear();
   localStorage.clear();
   Object.defineProperty(globalThis, 'Worker', {
     configurable: true,
@@ -203,7 +208,7 @@ describe('раздел практики', () => {
     );
   });
 
-  it('показывает статический каталог задач', () => {
+  it('показывает каталог во время загрузки и настоящий прогресс после неё', async () => {
     render(
       <MemoryRouter>
         <PythonPracticePage />
@@ -215,6 +220,8 @@ describe('раздел практики', () => {
       '/practice/python/privetstvie-po-imeni',
     );
     expect(screen.getAllByText('46 задач')).toHaveLength(2);
+    expect(screen.queryByRole('progressbar')).toBeNull();
+    await screen.findByText('Сохранено в аккаунте');
     expect(
       screen
         .getByRole('progressbar', { name: 'Прогресс по задачам Python' })
@@ -241,7 +248,7 @@ describe('раздел практики', () => {
     });
     expect(screen.getByText('Нет задач с такими фильтрами')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Сбросить фильтры' }));
-    expect(screen.getByRole('link', { name: /Приветствие по имени/ })).toBeTruthy();
+    expect(screen.getAllByRole('link', { name: /Приветствие по имени/ }).length).toBeGreaterThan(0);
   });
 
   it('сообщает об офлайн-очереди, не блокируя каталог', async () => {
@@ -253,8 +260,71 @@ describe('раздел практики', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('Офлайн · в очереди 2')).toBeTruthy();
-    expect(screen.getByRole('link', { name: /Приветствие по имени/ })).toBeTruthy();
+    expect(await screen.findByText('Не удалось синхронизировать · в очереди 2')).toBeTruthy();
+    expect(screen.getAllByRole('link', { name: /Приветствие по имени/ }).length).toBeGreaterThan(0);
+  });
+  it('продолжает последний черновик независимо от фильтра', async () => {
+    const task = pythonTasks[3]!;
+    savePythonDraft(task, 'number = 8');
+    render(
+      <MemoryRouter>
+        <PythonPracticePage />
+      </MemoryRouter>,
+    );
+    await screen.findByText('Сохранено в аккаунте');
+    fireEvent.change(screen.getByRole('combobox', { name: 'Статус' }), {
+      target: { value: 'solved' },
+    });
+    expect(
+      screen.getByRole('link', { name: 'Продолжить: Чётное число' }).getAttribute('href'),
+    ).toBe(`/practice/python/${task.slug}`);
+    expect(screen.getByText('Показано 0 из 46')).toBeTruthy();
+  });
+
+  it('повторяет синхронизацию каталога после ошибки', async () => {
+    syncMocks.sync.mockResolvedValueOnce({ ok: false, pending: 0 });
+    render(
+      <MemoryRouter>
+        <PythonPracticePage />
+      </MemoryRouter>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Повторить' }));
+    expect(await screen.findByText('Сохранено в аккаунте')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Повторить' })).toBeNull();
+  });
+
+  it('не удаляет черновик при отмене и сетевом сбое, позволяет повторить сброс', async () => {
+    const task = pythonTasks[0]!;
+    savePythonDraft(task, 'print("бережём черновик")');
+    const remove = vi.spyOn(api, 'DELETE').mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    render(
+      <MemoryRouter>
+        <PythonPracticePage />
+      </MemoryRouter>,
+    );
+    await screen.findByText('Сохранено в аккаунте');
+    fireEvent.click(screen.getByText('Сбросить практику'));
+    fireEvent.click(screen.getByRole('button', { name: 'Удалить прогресс практики' }));
+    expect(remove).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Отмена' }));
+    expect(remove).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Удалить прогресс практики' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Подтвердить удаление' }));
+    expect(await screen.findByRole('alert')).toHaveProperty(
+      'textContent',
+      'Не удалось удалить прогресс. Проверьте соединение и повторите попытку.',
+    );
+    expect(readPythonTaskProgress(task).draft).toContain('бережём черновик');
+    expect(syncMocks.clear).not.toHaveBeenCalled();
+    remove.mockResolvedValueOnce({
+      data: undefined,
+      response: new Response(null, { status: 204 }),
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Подтвердить удаление' }));
+    await waitFor(() => expect(syncMocks.clear).toHaveBeenCalledOnce());
+    expect(readPythonTaskProgress(task).draft).toBe(task.starterCode);
+    expect(screen.getByText('Решено 0 из 46')).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });
 

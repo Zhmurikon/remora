@@ -45,6 +45,7 @@ export function AppLayout() {
     location.pathname === '/billing' ||
     location.pathname.startsWith('/classes') ||
     location.pathname === '/practice' ||
+    location.pathname.startsWith('/practice/') ||
     location.pathname === '/achievements' ||
     isMaterialsPath(location.pathname) ||
     isCourseReader ||

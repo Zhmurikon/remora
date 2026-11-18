@@ -26,11 +26,10 @@ import {
   syncPythonProgress,
 } from '../features/practice/python-progress-sync';
 import { api } from '../lib/api';
+import './practice-workspace.css';
 
-const primaryLinkStyle =
-  'bg-primary text-primary-fg hover:bg-primary-hover inline-flex min-h-11 items-center justify-center rounded-md px-4 font-medium transition-colors';
-const quietLinkStyle =
-  'text-primary inline-flex min-h-11 items-center rounded-lg underline underline-offset-4';
+const primaryLinkStyle = 'practice-primary';
+const quietLinkStyle = 'practice-back';
 
 export { PracticePage } from './PracticeStartPage';
 
@@ -38,12 +37,21 @@ export function PythonPracticePage() {
   const [topic, setTopic] = useState('all');
   const [status, setStatus] = useState<PythonTaskStatus | 'all'>('all');
   const [syncState, setSyncState] = useState<'syncing' | 'synced' | 'offline'>('syncing');
+  const [syncAttempt, setSyncAttempt] = useState(0);
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetState, setResetState] = useState<'idle' | 'pending' | 'error'>('idle');
   const resetInProgress = useRef(false);
   const syncInProgress = useRef<Promise<unknown> | null>(null);
   const [, setSyncRevision] = useState(0);
   const summary = pythonProgressSummary(pythonTasks);
+  const latest = summary.progress
+    .filter((item) => item.status === 'in_progress')
+    .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))[0];
+  const next = latest
+    ? pythonTasks.find((task) => task.id === latest.taskId)
+    : pythonTasks.find((_, index) => summary.progress[index]?.status !== 'solved');
+  const loading =
+    syncState === 'syncing' && !summary.progress.some((item) => Date.parse(item.updatedAt) > 0);
   const topics = [...new Set(pythonTasks.map((task) => task.topic))];
   const rows = pythonTasks
     .map((task, index) => ({ task, progress: summary.progress[index] }))
@@ -76,94 +84,113 @@ export function PythonPracticePage() {
       active = false;
       window.removeEventListener('online', synchronize);
     };
-  }, []);
+  }, [syncAttempt]);
 
   async function resetPractice() {
     resetInProgress.current = true;
     setResetState('pending');
-    await syncInProgress.current;
-    const { error } = await api.DELETE('/api/v1/practice/python/progress');
-    if (error) {
-      resetInProgress.current = false;
+    try {
+      await syncInProgress.current;
+      const { error } = await api.DELETE('/api/v1/practice/python/progress');
+      if (error) throw error;
+      clearPendingPythonProgress();
+      deletePythonPracticeProgress(pythonTasks);
+      setTopic('all');
+      setStatus('all');
+      setSyncState('synced');
+      setSyncRevision((value) => value + 1);
+      setConfirmReset(false);
+      setResetState('idle');
+    } catch {
+      // При сбое оставляем и черновики, и очередь: сброс ещё не подтверждён сервером.
       setResetState('error');
-      return;
+    } finally {
+      resetInProgress.current = false;
     }
-    clearPendingPythonProgress();
-    deletePythonPracticeProgress(pythonTasks);
-    setTopic('all');
-    setStatus('all');
-    setSyncState('synced');
-    setSyncRevision((value) => value + 1);
-    setConfirmReset(false);
-    setResetState('idle');
-    resetInProgress.current = false;
   }
 
   return (
-    <div className="space-y-7">
-      <header>
+    <div className="practice-page practice-catalog">
+      <header className="practice-page-header">
         <Link className={quietLinkStyle} to="/practice">
-          Все тренажёры
+          <span aria-hidden="true">←</span> Все тренажёры
         </Link>
-        <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-primary text-sm font-medium">Практика</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Python</h1>
-            <p className="text-fg-muted mt-3 max-w-2xl">
-              Пройдите путь от переменных и условий до NumPy, pandas, статистики SciPy и графиков
-              matplotlib. Задачи расположены от простого к сложному.
-            </p>
-          </div>
-          <Badge tone="primary" className="mt-1 px-3 py-1">
-            {pythonTasks.length} задач
-          </Badge>
+        <div className="practice-title-line">
+          <h1>Python</h1>
+          <span className="practice-count">{pythonTasks.length} задач</span>
         </div>
+        <p>
+          От переменных и условий до анализа данных и графиков. Задачи расположены от простого к
+          сложному.
+        </p>
       </header>
 
+      <section className="practice-progress" aria-label="Общий прогресс" aria-busy={loading}>
+        <div className="practice-progress-copy">
+          <div className="practice-progress-label">
+            <h2>
+              {loading
+                ? 'Загружаем прогресс…'
+                : `Решено ${summary.solved} из ${pythonTasks.length}`}
+            </h2>
+            {!loading && <span>{solvedPercent}%</span>}
+          </div>
+          {!loading && (
+            <div
+              className="practice-progress-track"
+              role="progressbar"
+              aria-label="Прогресс по задачам Python"
+              aria-valuemin={0}
+              aria-valuemax={pythonTasks.length}
+              aria-valuenow={summary.solved}
+            >
+              <div style={{ width: `${solvedPercent}%` }} />
+            </div>
+          )}
+          <div className="practice-sync" role="status">
+            <span>
+              {syncState === 'syncing'
+                ? 'Синхронизируем…'
+                : syncState === 'synced'
+                  ? 'Сохранено в аккаунте'
+                  : `Не удалось синхронизировать · в очереди ${pendingPythonProgressCount()}`}
+            </span>
+            {syncState === 'offline' && (
+              <button type="button" onClick={() => setSyncAttempt((value) => value + 1)}>
+                Повторить
+              </button>
+            )}
+          </div>
+        </div>
+        {!loading &&
+          (next ? (
+            <Link className={primaryLinkStyle} to={`/practice/python/${next.slug}`}>
+              <span>
+                {latest ? 'Продолжить' : summary.solved ? 'Следующая задача' : 'Начать'}:{' '}
+                {next.title}
+              </span>
+              <span aria-hidden="true">→</span>
+            </Link>
+          ) : (
+            <p className="practice-complete">
+              Все задачи решены.
+              <br />
+              Можно повторить любую из списка.
+            </p>
+          ))}
+      </section>
+
       <section aria-labelledby="tasks-title">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 id="tasks-title" className="text-2xl font-semibold">
-            Задачи
-          </h2>
-          <p className="text-fg-subtle text-sm">{pythonTasks.length} задач</p>
+        <div className="practice-list-heading">
+          <h2 id="tasks-title">Задачи</h2>
+          <p aria-live="polite">
+            {topic === 'all' && status === 'all'
+              ? `${pythonTasks.length} задач`
+              : `Показано ${rows.length} из ${pythonTasks.length}`}
+          </p>
         </div>
 
-        <Card className="mt-4 p-5">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h3 className="font-semibold">Общий прогресс</h3>
-              <p className="text-fg-muted mt-1 text-sm">
-                Решено {summary.solved} из {pythonTasks.length}
-                {summary.inProgress > 0 ? ` · в работе ${summary.inProgress}` : ''}
-              </p>
-            </div>
-            <div className="text-right">
-              <span className="text-primary block text-2xl font-semibold">{solvedPercent}%</span>
-              <span className="text-fg-subtle mt-1 block text-xs" aria-live="polite">
-                {syncState === 'syncing'
-                  ? 'Синхронизируем…'
-                  : syncState === 'synced'
-                    ? 'Сохранено в аккаунте'
-                    : `Офлайн · в очереди ${pendingPythonProgressCount()}`}
-              </span>
-            </div>
-          </div>
-          <div
-            className="bg-surface-muted mt-4 h-2 overflow-hidden rounded-full"
-            role="progressbar"
-            aria-label="Прогресс по задачам Python"
-            aria-valuemin={0}
-            aria-valuemax={pythonTasks.length}
-            aria-valuenow={summary.solved}
-          >
-            <div
-              className="bg-primary h-full rounded-full"
-              style={{ width: `${solvedPercent}%` }}
-            />
-          </div>
-        </Card>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-2" aria-label="Фильтры задач">
+        <div className="practice-filters" aria-label="Фильтры задач">
           <label className="text-sm font-medium">
             Тема
             <select
@@ -195,7 +222,7 @@ export function PythonPracticePage() {
         </div>
 
         {rows.length > 0 ? (
-          <ol className="mt-4 space-y-3">
+          <ol className="practice-task-list">
             {rows.map(({ task, progress }) => (
               <li key={task.id}>
                 <TaskCard task={task} progress={progress} number={pythonTasks.indexOf(task) + 1} />
@@ -203,7 +230,7 @@ export function PythonPracticePage() {
             ))}
           </ol>
         ) : (
-          <Card className="mt-4 p-8 text-center">
+          <Card className="practice-empty">
             <h3 className="text-xl font-semibold">Нет задач с такими фильтрами</h3>
             <p className="text-fg-muted mt-2">Измените тему или статус, чтобы увидеть задачи.</p>
             <Button
@@ -220,10 +247,8 @@ export function PythonPracticePage() {
         )}
       </section>
 
-      <section className="border-danger/40 border-t pt-7" aria-labelledby="reset-practice-title">
-        <h2 id="reset-practice-title" className="text-xl font-semibold">
-          Сбросить практику
-        </h2>
+      <details className="practice-reset">
+        <summary>Сбросить практику</summary>
         <p className="text-fg-muted mt-2 max-w-2xl">
           Все решения, черновики и отметки о выполнении задач Python будут удалены из аккаунта и
           этого браузера. Начисленный опыт сохранится.
@@ -263,7 +288,7 @@ export function PythonPracticePage() {
             Не удалось удалить прогресс. Проверьте соединение и повторите попытку.
           </p>
         )}
-      </section>
+      </details>
     </div>
   );
 }
@@ -280,28 +305,22 @@ function TaskCard({
   return (
     <Link
       to={`/practice/python/${task.slug}`}
-      className="focus-visible:outline-primary block rounded-lg focus-visible:outline focus-visible:outline-2"
+      className={`practice-task-row practice-task-row--${progress.status}`}
     >
-      <Card interactive className="flex items-start gap-4 p-5">
-        <span
-          className="bg-surface-muted text-fg-muted grid h-11 w-11 shrink-0 place-items-center rounded-xl font-semibold"
-          aria-hidden="true"
-        >
-          {number}
+      <span className="practice-task-number" aria-hidden="true">
+        {String(number).padStart(2, '0')}
+      </span>
+      <div className="practice-task-description">
+        <h3>{task.title}</h3>
+        <p>{task.summary}</p>
+        <span className="practice-task-meta">
+          {task.topic} <span aria-hidden="true">·</span> {task.difficulty}
         </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-lg font-semibold">{task.title}</h3>
-            <Badge>{task.difficulty}</Badge>
-            <ProgressBadge status={progress.status} />
-          </div>
-          <p className="text-fg-muted mt-1">{task.summary}</p>
-          <p className="text-fg-subtle mt-3 text-sm">{task.topic}</p>
-        </div>
-        <span className="text-primary mt-2 text-xl" aria-hidden="true">
-          →
-        </span>
-      </Card>
+      </div>
+      <ProgressBadge status={progress.status} />
+      <span className="practice-task-arrow" aria-hidden="true">
+        →
+      </span>
     </Link>
   );
 }
@@ -331,77 +350,68 @@ export function PythonTaskPage() {
   const functionTask = task.checks.every((check) => check.kind === 'function');
 
   return (
-    <div className="space-y-6">
-      <Link className={quietLinkStyle} to="/practice/python">
-        Все задачи Python
-      </Link>
-
-      <header>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge tone="primary">{task.topic}</Badge>
-          <Badge>{task.difficulty}</Badge>
+    <div className="practice-page practice-task">
+      <header className="practice-page-header">
+        <Link className={quietLinkStyle} to="/practice/python">
+          <span aria-hidden="true">←</span> Все задачи Python
+        </Link>
+        <h1>{task.title}</h1>
+        <div className="practice-task-context">
+          <p>
+            {task.topic} <span aria-hidden="true">·</span> {task.difficulty}
+          </p>
+          <span>
+            {taskIndex + 1} из {pythonTasks.length}
+          </span>
         </div>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{task.title}</h1>
-        <p className="text-fg-muted mt-3 max-w-3xl">{task.statement}</p>
       </header>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-        <div className="space-y-5">
-          <Card className="p-5">
-            <h2 className="text-xl font-semibold">Пример</h2>
-            {task.examples.map((example, index) => (
-              <dl key={`${example.input}-${index}`} className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div>
-                  <dt className="text-fg-muted text-sm font-medium">
-                    {functionTask ? 'Вызов' : 'Ввод'}
-                  </dt>
-                  <dd className="bg-surface-muted mt-2 overflow-x-auto rounded-lg p-3 font-mono text-sm">
-                    {example.input}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-fg-muted text-sm font-medium">
-                    {functionTask ? 'Результат' : 'Вывод'}
-                  </dt>
-                  <dd className="bg-surface-muted mt-2 overflow-x-auto rounded-lg p-3 font-mono text-sm">
-                    {example.output}
-                  </dd>
-                </div>
-              </dl>
-            ))}
-          </Card>
-
-          {task.files && (
-            <Card className="p-5">
-              <h2 className="text-xl font-semibold">Встроенные файлы</h2>
-              <p className="text-fg-muted mt-2 text-sm">
-                Эти CSV уже доступны коду по указанным именам.
-              </p>
-              <div className="mt-4 space-y-3">
-                {Object.entries(task.files).map(([name, content]) => (
-                  <details key={name} className="border-border rounded-lg border p-3">
-                    <summary className="focus-visible:outline-primary min-h-11 cursor-pointer rounded-md font-mono text-sm font-semibold focus-visible:outline focus-visible:outline-2">
-                      {name}
-                    </summary>
-                    <pre className="bg-surface-muted mt-2 max-h-72 overflow-auto rounded-lg p-3 font-mono text-xs leading-5">
-                      {content}
-                    </pre>
-                  </details>
+      <div className="practice-task-grid">
+        <div className="practice-instructions">
+          <section className="practice-condition" aria-labelledby="condition-title">
+            <h2 id="condition-title">Условие</h2>
+            <p>{task.statement}</p>
+          </section>
+          <section className="practice-examples" aria-labelledby="examples-title">
+            <h2 id="examples-title">{task.examples.length > 1 ? 'Примеры' : 'Пример'}</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">{functionTask ? 'Вызов' : 'Ввод'}</th>
+                  <th scope="col">{functionTask ? 'Результат' : 'Вывод'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {task.examples.map((example, index) => (
+                  <tr key={index}>
+                    <td>
+                      <pre>{example.input}</pre>
+                    </td>
+                    <td>
+                      <pre>{example.output}</pre>
+                    </td>
+                  </tr>
                 ))}
-              </div>
-            </Card>
+              </tbody>
+            </table>
+          </section>
+          {task.files && (
+            <section className="practice-files" aria-labelledby="files-title">
+              <h2 id="files-title">Встроенные файлы</h2>
+              <p>Эти CSV уже доступны коду по указанным именам.</p>
+              {Object.entries(task.files).map(([name, content]) => (
+                <details key={name}>
+                  <summary>{name}</summary>
+                  <pre>{content}</pre>
+                </details>
+              ))}
+            </section>
           )}
-
-          <Card className="bg-primary-subtle border-primary/20 p-5">
-            <details>
-              <summary className="focus-visible:outline-primary min-h-11 cursor-pointer rounded-md font-semibold focus-visible:outline focus-visible:outline-2">
-                Нужна подсказка?
-              </summary>
-              <p className="text-fg-muted mt-2 text-sm">{task.hint}</p>
-            </details>
-          </Card>
+          <details className="practice-hint">
+            <summary>Нужна подсказка?</summary>
+            <p>{task.hint}</p>
+          </details>
         </div>
-
         <PythonWorkspace key={`${task.id}:${task.version}`} task={task} nextTask={nextTask} />
       </div>
     </div>
@@ -476,20 +486,47 @@ function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: Pyth
   }
 
   return (
-    <div className="min-w-0 space-y-5">
-      <Card className="overflow-hidden p-0">
-        <div className="border-border flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
+    <div className="practice-workspace">
+      <Card className="practice-editor-panel">
+        <div className="practice-editor-heading">
           <div>
-            <h2 className="font-semibold">Код решения</h2>
-            <p className="text-fg-subtle text-sm">Ctrl/⌘ + Enter — запустить код</p>
+            <h2>Код решения</h2>
+            <div className="practice-libraries">
+              <span>Python</span>
+              {task.packages?.map((name) => (
+                <span key={name}>{name}</span>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="practice-editor-status">
             <ProgressBadge status={progress.status} />
-            <Badge>Python</Badge>
-            {task.packages?.includes('numpy') && <Badge>NumPy</Badge>}
-            {task.packages?.includes('pandas') && <Badge>pandas</Badge>}
-            {task.packages?.includes('scipy') && <Badge>SciPy</Badge>}
-            {task.packages?.includes('matplotlib') && <Badge>matplotlib</Badge>}
+            <Button
+              variant="ghost"
+              className="practice-reset-code"
+              aria-label="Сбросить код"
+              title="Вернуть исходный код задачи"
+              disabled={active || code === task.starterCode}
+              onClick={() => {
+                setCode(task.starterCode);
+                editedRef.current = true;
+                updateProgress(savePythonDraft(task, task.starterCode));
+                setResult(null);
+              }}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                aria-hidden="true"
+              >
+                <path
+                  d="M4 10a8 8 0 1 1 1 7M4 4v6h6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </Button>
           </div>
         </div>
         <PythonCodeEditor
@@ -504,20 +541,20 @@ function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: Pyth
           }}
         />
         {functionTask ? (
-          <div className="border-border border-t p-4">
+          <div className="practice-input">
             <p className="text-fg-muted text-sm">
               Автопроверка сама вызовет функцию с разными аргументами. Для пробного запуска можно
               временно добавить вызов print() в конец кода.
             </p>
           </div>
         ) : (
-          <div className="border-border border-t p-4">
+          <div className="practice-input">
             <label htmlFor="python-stdin" className="text-sm font-medium">
               Входные данные
             </label>
             <textarea
               id="python-stdin"
-              rows={3}
+              rows={2}
               className="border-border bg-surface mt-2 w-full resize-y rounded-xl border p-3 font-mono text-sm"
               value={stdin}
               spellCheck={false}
@@ -533,44 +570,35 @@ function PythonWorkspace({ task, nextTask }: { task: PythonTask; nextTask?: Pyth
             </p>
           </div>
         )}
-        <div className="border-border flex flex-wrap items-center gap-3 border-t p-4">
-          <Button className="min-h-11" disabled={active || !code.trim()} onClick={() => void run()}>
-            Запустить
-          </Button>
-          {active && (
-            <Button className="min-h-11" variant="secondary" onClick={stop}>
-              Остановить
+        <div className="practice-editor-actions">
+          <div className="practice-run-buttons">
+            <Button
+              variant="secondary"
+              disabled={active || !code.trim()}
+              onClick={() => void run()}
+            >
+              Запустить
             </Button>
-          )}
-          <Button
-            className="min-h-11"
-            variant="secondary"
-            disabled={active || !code.trim()}
-            onClick={() => void check()}
-          >
-            Проверить решение
-          </Button>
-          <Button
-            className="min-h-11"
-            variant="ghost"
-            disabled={active || code === task.starterCode}
-            onClick={() => {
-              setCode(task.starterCode);
-              editedRef.current = true;
-              updateProgress(savePythonDraft(task, task.starterCode));
-              setResult(null);
-            }}
-          >
-            Сбросить код
-          </Button>
-          <p className="text-fg-subtle text-sm">Проверок: {progress.attempts}</p>
+            {active && (
+              <Button variant="secondary" onClick={stop}>
+                Остановить
+              </Button>
+            )}
+            <Button disabled={active || !code.trim()} onClick={() => void check()}>
+              Проверить решение
+            </Button>
+          </div>
+          <div className="practice-editor-footnote">
+            <p>Ctrl/⌘ + Enter — запустить код</p>
+            <p>Проверок: {progress.attempts}</p>
+          </div>
         </div>
       </Card>
 
       <ExecutionOutput phase={phase} result={result} operation={operation} />
 
       {progress.status === 'solved' && (
-        <Card className="border-success/30 bg-success-subtle p-5">
+        <Card className="practice-solved">
           <h2 className="text-lg font-semibold">Задача решена</h2>
           <p className="text-fg-muted mt-2 text-sm">
             Решение и результат сохранены в этом браузере.
@@ -626,7 +654,7 @@ function ExecutionOutput({
   } as const;
 
   return (
-    <Card className="p-5" aria-live="polite">
+    <Card className="practice-output" aria-live="polite" aria-busy={phase !== 'idle'}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">
           {operation === 'check' ? 'Результат проверки' : 'Результат запуска'}
@@ -665,7 +693,7 @@ function ExecutionOutput({
           )}
           {result.stderr && <OutputBlock title="Ошибка" value={result.stderr} error />}
           {result.plots && result.plots.length > 0 && (
-            <div className="grid gap-4 sm:grid-cols-2" aria-label="Графики программы">
+            <div className="practice-plots" aria-label="Графики программы">
               {result.plots.map((plot, index) => (
                 <figure
                   key={`${plot.dataUrl.slice(-24)}-${index}`}
@@ -703,17 +731,13 @@ function CheckResults({
   status: PythonExecutionResult['status'];
 }) {
   return (
-    <ol className="space-y-3" aria-label="Проверочные сценарии">
+    <ol className="practice-checks" aria-label="Проверочные сценарии">
       {checks.map((check) => {
         const pythonError = !check.passed && status === 'runtime_error';
         return (
           <li
             key={check.name}
-            className={`rounded-xl border p-4 ${
-              check.passed
-                ? 'border-success/30 bg-success-subtle'
-                : 'border-danger/30 bg-danger-subtle'
-            }`}
+            className={check.passed ? 'practice-check--passed' : 'practice-check--failed'}
           >
             <div className="flex items-start gap-3">
               <span className={check.passed ? 'text-success' : 'text-danger'} aria-hidden="true">
@@ -762,7 +786,7 @@ function OutputBlock({
 
 function MissingTask() {
   return (
-    <Card className="mx-auto max-w-xl p-8 text-center" role="alert">
+    <Card className="practice-page practice-missing" role="alert">
       <span
         className="bg-surface-muted text-fg-muted mx-auto grid h-14 w-14 place-items-center rounded-2xl text-2xl"
         aria-hidden="true"
