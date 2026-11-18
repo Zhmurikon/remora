@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { api } from '../lib/api';
+import { achievementsQueryKey } from '../features/achievements/AchievementCelebration';
 import { AchievementsPage } from './AchievementsPage';
 
 vi.mock('../lib/api', () => ({
@@ -36,14 +37,14 @@ it('показывает открытые достижения и прогрес
         {
           code: 'reviews_10',
           title: 'Разминка',
-          description: 'Ответьте на 10 карточек',
+          description: 'Ответьте на 20 карточек',
           category: 'Обучение',
           icon: 'cards',
           unlocked: false,
           unlocked_at: null,
           seen: false,
           progress: 4,
-          target: 10,
+          target: 20,
         },
       ],
     },
@@ -65,7 +66,13 @@ it('показывает открытые достижения и прогрес
     '#achievement-category-0',
   );
   expect(screen.getByText('Получено')).toBeTruthy();
-  expect(screen.getByText('4 из 10')).toBeTruthy();
+  expect(screen.getByText('4 из 20')).toBeTruthy();
+  const illustrations = document.querySelectorAll<HTMLImageElement>(
+    '.achievement-illustration img',
+  );
+  expect(illustrations[0]?.dataset.artwork).toBe('individual');
+  expect(illustrations[1]?.dataset.artwork).toBe('individual');
+  expect(illustrations[0]?.getAttribute('src')).not.toBe(illustrations[1]?.getAttribute('src'));
   await waitFor(() => expect(api.GET).toHaveBeenCalledWith('/api/v1/retention/achievements'));
 });
 
@@ -91,6 +98,7 @@ it('повторяет неудавшийся запрос и показывае
   await userEvent.setup().click(screen.getByRole('button', { name: 'Повторить' }));
   expect(await screen.findByRole('heading', { name: 'Достижений пока нет' })).toBeTruthy();
   expect(screen.getByRole('progressbar').getAttribute('aria-valuetext')).toBe('0 из 0');
+  expect(screen.getByRole('progressbar').children.length).toBe(0);
   expect(screen.getByText('0%')).toBeTruthy();
   expect(screen.queryByRole('navigation', { name: 'Категории достижений' })).toBeNull();
   expect(api.GET).toHaveBeenCalledTimes(2);
@@ -146,4 +154,48 @@ it('сохраняет заголовок и доступное состояни
   renderPage();
   expect(screen.getByRole('heading', { name: 'Достижения' })).toBeTruthy();
   expect(screen.getByLabelText('Загрузка достижений').getAttribute('aria-busy')).toBe('true');
+});
+
+it('обновляет карточки шкалы от нулевой до полной коллекции без повторного создания полученных', async () => {
+  const items = Array.from({ length: 3 }, (_, index) => ({
+    code: `reviews_${index}`,
+    title: `Достижение ${index + 1}`,
+    description: 'Ответьте на карточки',
+    category: 'Обучение',
+    icon: 'cards',
+    unlocked: false,
+    unlocked_at: null,
+    seen: true,
+    progress: 0,
+    target: 10,
+  }));
+  const collection = { unlocked_count: 0, total_count: 3, newly_unlocked: [], items };
+  const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
+  client.setQueryData(achievementsQueryKey, collection);
+  render(
+    <QueryClientProvider client={client}>
+      <AchievementsPage />
+    </QueryClientProvider>,
+  );
+  const bar = screen.getByRole('progressbar', { name: 'Прогресс коллекции' });
+  const cards = Array.from(bar.children);
+  expect(cards.length).toBe(3);
+  expect(bar.querySelectorAll('[data-filled="true"]').length).toBe(0);
+  expect(screen.getByText('0%')).toBeTruthy();
+
+  for (const earned of [1, 3]) {
+    await act(async () => {
+      client.setQueryData(achievementsQueryKey, {
+        ...collection,
+        unlocked_count: earned,
+        items: items.map((item, index) => ({ ...item, unlocked: index < earned })),
+      });
+    });
+    await waitFor(() => expect(bar.getAttribute('aria-valuenow')).toBe(String(earned)));
+    expect(bar.querySelectorAll('[data-filled="true"]').length).toBe(earned);
+    cards.forEach((card, index) => expect(bar.children[index]).toBe(card));
+  }
+  expect(screen.getByText('100%')).toBeTruthy();
+  expect(bar.getAttribute('aria-valuetext')).toBe('3 из 3');
+  client.clear();
 });

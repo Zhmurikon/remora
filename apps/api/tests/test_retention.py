@@ -113,9 +113,7 @@ async def test_partial_activity_day_can_be_reused_as_freeze(
     headers = await _auth(client, "retention-partial-freeze")
     study_set = await _set_with_cards(client, headers, count=4)
     cards = study_set["cards"]
-    await client.patch(
-        "/api/v1/study/settings", headers=headers, json={"daily_goal_cards": 2}
-    )
+    await client.patch("/api/v1/study/settings", headers=headers, json={"daily_goal_cards": 2})
     today = datetime.now(UTC).date()
 
     response = await client.post(
@@ -198,33 +196,37 @@ async def test_achievements_are_retroactive_idempotent_and_acknowledged(
     _mock_send: AsyncMock, client: pytest.fixture
 ) -> None:
     headers = await _auth(client, "achievements")
-    study_set = await _set_with_cards(client, headers, count=10)
+    study_set = await _set_with_cards(client, headers, count=20)
 
     initial = (await client.get("/api/v1/retention/achievements", headers=headers)).json()
-    assert initial["total_count"] == 20
+    assert initial["total_count"] == 22
     assert initial["unlocked_count"] == 1
     assert [item["code"] for item in initial["newly_unlocked"]] == ["sets_1"]
-    assert next(item for item in initial["items"] if item["code"] == "reviews_10")[
-        "progress"
-    ] == 0
+    assert next(item for item in initial["items"] if item["code"] == "reviews_10")["progress"] == 0
+    definitions = {item["code"]: item for item in initial["items"]}
+    assert definitions["reviews_10"]["target"] == 20
+    assert definitions["reviews_67"]["target"] == 67
+    assert definitions["reviews_200"]["title"] == "Жених, приехал"
+    assert definitions["reviews_300"]["title"] == "Спартанец"
+    assert definitions["reviews_777"]["title"] == "Big Win"
+    assert "reviews_50" not in definitions
+    assert "reviews_100" not in definitions
 
-    acknowledged = await client.post(
-        "/api/v1/retention/achievements/acknowledge", headers=headers
-    )
+    acknowledged = await client.post("/api/v1/retention/achievements/acknowledge", headers=headers)
     assert acknowledged.status_code == 204
-    assert (
-        await client.get("/api/v1/retention/achievements", headers=headers)
-    ).json()["newly_unlocked"] == []
+    assert (await client.get("/api/v1/retention/achievements", headers=headers)).json()[
+        "newly_unlocked"
+    ] == []
 
     response = await client.post(
         "/api/v1/study/reviews",
         headers=headers,
         json={"reviews": [_review(card["id"]) for card in study_set["cards"]]},
     )
-    assert len(response.json()["accepted"]) == 10
+    assert len(response.json()["accepted"]) == 20
 
     earned = (await client.get("/api/v1/retention/achievements", headers=headers)).json()
-    assert earned["unlocked_count"] == 4  # набор, первый ответ, 10 ответов и 100 XP
+    assert earned["unlocked_count"] == 4  # набор, первый ответ, 20 ответов и 100 XP
     assert {item["code"] for item in earned["newly_unlocked"]} == {
         "first_review",
         "reviews_10",
@@ -234,9 +236,7 @@ async def test_achievements_are_retroactive_idempotent_and_acknowledged(
     assert repeated["unlocked_count"] == 4
 
     other_headers = await _auth(client, "achievements-other")
-    isolated = (
-        await client.get("/api/v1/retention/achievements", headers=other_headers)
-    ).json()
+    isolated = (await client.get("/api/v1/retention/achievements", headers=other_headers)).json()
     assert isolated["unlocked_count"] == 0
     assert isolated["newly_unlocked"] == []
     assert (await client.get("/api/v1/retention/achievements")).status_code == 401

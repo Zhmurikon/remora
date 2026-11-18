@@ -5,7 +5,7 @@ import {
   achievementsQueryKey,
   loadAchievements,
 } from '../features/achievements/AchievementCelebration';
-import achievementPlaceholder from '../features/achievements/assets/achievement-placeholder.webp';
+import { achievementArtwork } from '../features/achievements/achievement-art';
 import './achievements.css';
 
 type Achievement = components['schemas']['AchievementPublic'];
@@ -56,16 +56,10 @@ export function AchievementsPage() {
               Открыто <span>{number.format(collection.unlocked_count)}</span> из{' '}
               {number.format(collection.total_count)}
             </p>
-            <div className="achievements-summary-progress">
-              <span className="achievements-percent">
-                {Math.round(ratio(collection.unlocked_count, collection.total_count) * 100)}%
-              </span>
-              <AchievementProgress
-                label="Прогресс коллекции"
-                value={collection.unlocked_count}
-                target={collection.total_count}
-              />
-            </div>
+            <CollectionProgress value={collection.unlocked_count} target={collection.total_count} />
+            <span className="achievements-percent">
+              {Math.round(ratio(collection.unlocked_count, collection.total_count) * 100)}%
+            </span>
           </div>
 
           {categories.length === 0 ? (
@@ -117,10 +111,22 @@ export function AchievementsPage() {
 }
 
 function AchievementCard({ item }: { item: Achievement }) {
+  const artwork = achievementArtwork(item.code);
   return (
-    <article className="achievement-card" aria-labelledby={`achievement-${item.code}`}>
+    <article
+      className="achievement-card"
+      data-unlocked={item.unlocked}
+      aria-labelledby={`achievement-${item.code}`}
+    >
       <div className="achievement-illustration">
-        <img src={achievementPlaceholder} alt="" width={512} height={512} loading="lazy" />
+        <img
+          src={artwork.src}
+          alt=""
+          width={512}
+          height={512}
+          loading="lazy"
+          data-artwork={artwork.variant}
+        />
       </div>
       <h3 id={`achievement-${item.code}`}>{item.title}</h3>
       <p className="achievement-description">{item.description}</p>
@@ -157,6 +163,34 @@ function AchievementCard({ item }: { item: Achievement }) {
 
 function ratio(value: number, target: number) {
   return Math.min(1, Math.max(0, value / Math.max(1, target)));
+}
+
+function CollectionProgress({ value, target }: { value: number; target: number }) {
+  const total = Math.max(0, Math.floor(target));
+  const earned = Math.min(total, Math.max(0, Math.floor(value)));
+
+  return (
+    <div
+      className="collection-progress"
+      role="progressbar"
+      aria-label="Прогресс коллекции"
+      aria-valuenow={earned}
+      aria-valuemin={0}
+      aria-valuemax={Math.max(1, total)}
+      aria-valuetext={`${number.format(earned)} из ${number.format(total)}`}
+    >
+      {Array.from({ length: total }, (_, index) => (
+        <span
+          key={index}
+          className="collection-progress-card"
+          data-filled={index < earned}
+          aria-hidden="true"
+          // Ограничиваем волну, чтобы большой каталог не задерживал обратную связь.
+          style={{ animationDelay: `${Math.min(index * 24, 360)}ms` }}
+        />
+      ))}
+    </div>
+  );
 }
 
 function AchievementProgress({

@@ -1,0 +1,161 @@
+.achievement-motion {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 40;
+  width: 420px;
+  max-width: calc(100% - 2rem);
+  pointer-events: none;
+  perspective: 1000px;
+}
+.achievement-motion .achievement-notice {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  z-index: 2;
+  transform-origin: 78% 85%;
+  pointer-events: auto;
+}
+.achievement-motion .achievement-notice[inert] {
+  pointer-events: none;
+}
+.achievement-motion-effects {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  perspective: 900px;
+}
+.achievement-motion-effects[hidden] {
+  display: none;
+}
+.achievement-motion-paper {
+  position: absolute;
+  width: 110px;
+  height: 86px;
+  border: 1px solid rgb(var(--rm-lecture-line));
+  border-radius: 9px;
+  background: rgb(var(--rm-lecture-cream));
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transform-origin: center;
+  backface-visibility: visible;
+}
+.achievement-motion-paper img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+.achievement-motion-envelope {
+  position: absolute;
+  width: 244px;
+  height: 148px;
+  left: calc(50% - 122px);
+  bottom: 22px;
+  opacity: 0;
+  perspective: 700px;
+  isolation: isolate;
+}
+.achievement-motion-back {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgb(var(--rm-lecture-line));
+  border-radius: 10px;
+  background: rgb(var(--rm-lecture-selected));
+}
+.achievement-motion-flap {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 244px;
+  height: 92px;
+  background: rgb(var(--rm-lecture-action));
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  transform-origin: 50% 0;
+  z-index: 4;
+  backface-visibility: visible;
+}
+.achievement-motion-front {
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(0 0, 50% 58%, 100% 0, 100% 100%, 0 100%);
+  border-radius: 9px;
+  background: rgb(var(--rm-lecture-cream));
+  z-index: 3;
+  border-bottom: 1px solid rgb(var(--rm-lecture-line));
+}
+.achievement-motion-ticket {
+  position: absolute;
+  left: 18px;
+  bottom: 14px;
+  width: 208px;
+  height: 146px;
+  border: 1px solid rgb(var(--rm-lecture-line));
+  border-radius: 8px;
+  background: rgb(var(--rm-lecture-surface));
+  display: grid;
+  place-items: center;
+  z-index: 2;
+}
+.achievement-motion-ticket img {
+  width: 138px;
+  height: 138px;
+}
+.achievement-motion-seal {
+  position: absolute;
+  left: calc(50% - 19px);
+  top: 62px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgb(var(--rm-lecture-action));
+  color: rgb(var(--rm-lecture-surface));
+  display: grid;
+  place-items: center;
+  z-index: 5;
+}
+.achievement-motion-seal svg {
+  width: 21px;
+  height: 21px;
+}
+.achievement-motion-stamp {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 2px solid rgb(var(--rm-lecture-action));
+  border-radius: 50%;
+  background: rgb(var(--rm-lecture-surface));
+  color: rgb(var(--rm-lecture-action));
+  opacity: 0;
+}
+.achievement-motion-stamp svg {
+  width: 25px;
+  height: 25px;
+}
+/* Бумага обрезается у границы экрана и не создаёт горизонтальную прокрутку. */
+.achievement-motion-effects {
+  overflow: clip;
+  overflow-clip-margin: 120px;
+  clip-path: inset(-120px 0 -80px 0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .achievement-motion-effects {
+    display: none;
+  }
+  .achievement-motion .achievement-notice {
+    animation: achievement-notice-fade 150ms ease-out;
+  }
+}
+@keyframes achievement-notice-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
