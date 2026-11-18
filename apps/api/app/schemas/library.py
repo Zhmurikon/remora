@@ -4,9 +4,9 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
-from app.schemas.courses import CourseAuthor
+from app.schemas.courses import ArticleMediaRef, CourseAuthor
 
 
 class SetFolderChange(BaseModel):
@@ -16,6 +16,13 @@ class SetFolderChange(BaseModel):
 class LibrarySaveCreate(BaseModel):
     target_type: Literal["course", "article", "set"]
     target_id: UUID
+    text_only: bool = False
+
+    @model_validator(mode="after")
+    def text_requires_article(self) -> "LibrarySaveCreate":
+        if self.text_only and self.target_type != "article":
+            raise ValueError("Сохранение текста доступно только для статьи")
+        return self
 
 
 class LibraryItem(BaseModel):
@@ -34,6 +41,12 @@ class LibraryItem(BaseModel):
     saved_at: datetime
     accepted_at: datetime
     has_updates: bool
+
+
+class SavedArticleText(BaseModel):
+    title: str
+    body: str
+    media: list[ArticleMediaRef]
 
 
 class LibraryDiff(BaseModel):

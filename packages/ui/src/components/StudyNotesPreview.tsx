@@ -4,8 +4,10 @@ import { ArticleContent } from './ArticleContent';
 export function StudyNotesPreview({
   value,
   Content = ArticleContent,
+  articleTitle,
 }: {
   value: string;
+  articleTitle?: string;
   Content?: typeof ArticleContent;
 }) {
   const parts = value.split(/(<details>\s*<summary>[^<>]*<\/summary>[\s\S]*?<\/details>)/g);
@@ -31,7 +33,12 @@ export function StudyNotesPreview({
             </div>
           </details>
         ) : (
-          <Content key={index} value={markdown(part)} headingLevel={2} />
+          <Content
+            key={index}
+            value={markdown(part)}
+            headingLevel={2}
+            articleTitle={index === 0 ? articleTitle : undefined}
+          />
         );
       })}
     </div>

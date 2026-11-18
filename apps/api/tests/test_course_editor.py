@@ -240,6 +240,27 @@ async def test_copy_public_course_and_article_independent_and_idempotent(
     assert single.status_code == 201
     assert len(single.json()["sections"]) == 1
     assert len(single.json()["sections"][0]["articles"]) == 1
+    legacy_set = single.json()["sections"][0]["articles"][0]["set_id"]
+    assert (await client.get(f"/api/v1/sets/{legacy_set}", headers=learner)).json()[
+        "cards_count"
+    ] == 1
+    selected = {"article_id": course["sections"][0]["articles"][0]["id"], "text_only": True}
+    text_headers = {**learner, "Idempotency-Key": str(uuid4())}
+    text = await client.post(path, headers=text_headers, json=selected)
+    assert text.status_code == 201, text.text
+    [section] = text.json()["sections"]
+    [lesson] = section["articles"]
+    assert lesson["body"] == "Полный конспект"
+    assert (await client.get(f"/api/v1/sets/{lesson['set_id']}", headers=learner)).json()[
+        "cards"
+    ] == []
+    assert (await client.post(path, headers=text_headers, json=selected)).json() == text.json()
+    assert (
+        await client.post(path, headers=text_headers, json={"article_id": selected["article_id"]})
+    ).status_code == 409
+    assert (
+        await client.post(path, headers=text_headers, json={"text_only": True})
+    ).status_code == 422
     await client.post(f"/api/v1/courses/{course['id']}/unpublish", headers=owner)
     assert (
         await client.post(path, headers={**learner, "Idempotency-Key": str(uuid4())}, json={})

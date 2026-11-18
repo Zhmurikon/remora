@@ -41,7 +41,7 @@ from app.schemas.content import (
     SetDetail,
     SetUpdate,
 )
-from app.schemas.courses import CourseSummary
+from app.schemas.courses import CourseCopyRequest, CourseSummary
 from app.services.content import ContentService
 from app.services.courses import CourseService
 from app.services.entitlements import Entitlements
@@ -71,6 +71,9 @@ class AgentService:
         await token_repo.lock_request(self.db, user.id)
         # None — операция без тела: отпечаток определяется одним `operation`.
         payload = body.model_dump(mode="json") if body is not None else {}
+        # Старый запрос копирования должен находить тот же результат после добавления режима текста.
+        if isinstance(body, CourseCopyRequest) and not body.text_only:
+            payload.pop("text_only")
         if isinstance(body, AgentSetWrite) and "visibility" not in body.model_fields_set:
             payload.pop("visibility", None)
         if isinstance(body, AgentCourseWrite):

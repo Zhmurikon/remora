@@ -8,7 +8,7 @@ import { api } from '../lib/api';
 import { CourseAttachments } from '../components/CourseAttachments';
 import { ManageHeader } from '../features/library/ManagementList';
 import { MaterialDescription } from '../features/materials/MaterialDescription';
-import { ReaderIconButton } from '../components/ReaderIconButton';
+import { ReaderHeading, ReaderLayout, ReaderOutline, ReaderToolbar } from '@remora/ui/reader';
 import { SettingsIcon } from '../components/SettingsIcon';
 import bookImage from '../../../web/public/lecture-demo/course-books.webp';
 import './materials.css';
@@ -59,9 +59,11 @@ export function CopySetButton({ setId }: { setId: string }) {
 export function CopyCourseButton({
   courseId,
   articleId,
+  textOnly = false,
 }: {
   courseId: string;
   articleId?: string;
+  textOnly?: boolean;
 }) {
   const key = useRef(crypto.randomUUID());
   const navigate = useNavigate();
@@ -70,7 +72,7 @@ export function CopyCourseButton({
     mutationFn: async () => {
       const result = await api.POST('/api/v1/courses/{course_id}/copy', {
         params: { path: { course_id: courseId }, header: { 'idempotency-key': key.current } },
-        body: { article_id: articleId },
+        body: { article_id: articleId, text_only: textOnly },
         headers: { 'Idempotency-Key': key.current },
       });
       if (!result.data)
@@ -83,7 +85,8 @@ export function CopyCourseButton({
       client.setQueryData(['course', data.id], data);
       void client.invalidateQueries({ queryKey: ['courses'] });
       void client.invalidateQueries({ queryKey: ['sets'] });
-      navigate(`/courses/${data.id}/read`);
+      const newLessonId = textOnly ? data.sections[0]?.articles[0]?.id : undefined;
+      navigate(`/courses/${data.id}/read` + (newLessonId ? '?article=' + newLessonId : ''));
     },
   });
   return (
@@ -94,7 +97,11 @@ export function CopyCourseButton({
         loading={copy.isPending}
         onClick={() => copy.mutate()}
       >
-        {articleId ? 'Создать копию статьи с карточками' : 'Создать копию курса'}
+        {textOnly
+          ? 'Создать копию текста статьи'
+          : articleId
+            ? 'Создать копию статьи с карточками'
+            : 'Создать копию курса'}
       </Button>
       {copy.isError && (
         <p role="alert" className="text-danger">
@@ -110,6 +117,7 @@ export function CourseCopyPage() {
   const [params] = useSearchParams();
   const articleId = params.get('article') ?? undefined;
   const setId = params.get('set') ?? undefined;
+  const textOnly = Boolean(articleId) && params.get('text_only') === '1';
   const query = useQuery({
     queryKey: ['public-course', slug],
     queryFn: async () => {
@@ -123,7 +131,29 @@ export function CourseCopyPage() {
     setId ? article.set_id === setId : article.id === articleId,
   );
   const invalid = Boolean((setId || articleId) && !selected) || Boolean(setId && articleId);
-  const heading = setId ? 'Копия набора' : articleId ? 'Копия статьи с карточками' : 'Копия курса';
+  const copyKind = setId ? 'set' : textOnly ? 'text' : articleId ? 'article' : 'course';
+  const copyInfo = {
+    set: {
+      heading: 'Копия набора',
+      description:
+        'В ваших материалах появится самостоятельный публичный набор с карточками этого урока. Теория и остальные уроки в него не входят.',
+    },
+    text: {
+      heading: 'Копия текста статьи',
+      description:
+        'В ваших материалах появится публичный курс с одним уроком. В копию войдут текст и иллюстрации выбранной статьи.',
+    },
+    article: {
+      heading: 'Копия статьи с карточками',
+      description:
+        'В ваших материалах появится публичный курс с одним уроком. В него войдут текст выбранной статьи и её карточки.',
+    },
+    course: {
+      heading: 'Копия курса',
+      description:
+        'В ваших материалах появится публичный курс со всеми разделами, текстами уроков и карточками.',
+    },
+  }[copyKind];
   const sourceUrl =
     (import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000') +
     '/kurs/' +
@@ -131,7 +161,7 @@ export function CourseCopyPage() {
     (selected ? '#article-' + selected.id : '');
   return (
     <div className="management">
-      <ManageHeader title={heading} />
+      <ManageHeader title={copyInfo.heading} />
       {query.isPending && <p role="status">Загружаем курс…</p>}
       {query.isError && (
         <p role="alert">
@@ -151,13 +181,7 @@ export function CourseCopyPage() {
               {query.data.author.display_name || '@' + query.data.author.username} ·{' '}
               <a href={sourceUrl}>{selected ? query.data.title : 'Оригинал курса'}</a>
             </p>
-            <p>
-              {setId
-                ? 'В ваших материалах появится самостоятельный публичный набор с карточками этого урока. Теория и остальные уроки в него не входят.'
-                : articleId
-                  ? 'В ваших материалах появится публичный курс с одним уроком. В него войдут текст выбранной статьи и её карточки.'
-                  : 'В ваших материалах появится публичный курс со всеми разделами, текстами уроков и карточками.'}
-            </p>
+            <p>{copyInfo.description}</p>
             <p>
               Вы сможете редактировать копию независимо от оригинала. Учебный прогресс автора не
               переносится.
@@ -167,9 +191,10 @@ export function CourseCopyPage() {
                 <CopySetButton key={setId} setId={setId} />
               ) : (
                 <CopyCourseButton
-                  key={articleId ?? query.data.id}
+                  key={`${articleId ?? query.data.id}:${textOnly}`}
                   courseId={query.data.id}
                   articleId={articleId}
+                  textOnly={textOnly}
                 />
               )}
             </div>
@@ -229,102 +254,6 @@ function CourseActions({ course, primary = false }: { course: Course; primary?: 
         </Link>
       )}
     </div>
-  );
-}
-
-function ReaderOutline({
-  sections,
-  selected,
-  articleId,
-  mobileOpen,
-  onToggle,
-  onHide,
-  onSelect,
-}: {
-  sections: Section[];
-  selected?: Section;
-  articleId?: string;
-  mobileOpen: boolean;
-  onToggle: () => void;
-  onHide: () => void;
-  onSelect: (section: Section) => void;
-}) {
-  const outline = useRef<HTMLElement>(null);
-  const [expandedId, setExpandedId] = useState(selected?.id);
-  useEffect(() => setExpandedId(selected?.id), [selected?.id, articleId]);
-  useEffect(() => {
-    const list = outline.current;
-    const lesson = list?.querySelector('[aria-current="page"]');
-    if (!list?.clientHeight || !lesson) return;
-    // При смене урока прокручиваем только оглавление, сохраняя положение статьи.
-    const bounds = list.getBoundingClientRect();
-    const item = lesson.getBoundingClientRect();
-    if (item.top < bounds.top) list.scrollTop += item.top - bounds.top;
-    else if (item.bottom > bounds.bottom) list.scrollTop += item.bottom - bounds.bottom;
-  }, [articleId, expandedId, mobileOpen]);
-
-  const label = articleId ? 'Уроки курса' : 'Разделы курса';
-  return (
-    <aside className="reader-rail" data-open={mobileOpen}>
-      <div className="reader-rail-heading">
-        <h2>{label}</h2>
-        {articleId && (
-          <ReaderIconButton icon="outline" label="Скрыть список уроков" onClick={onHide} />
-        )}
-      </div>
-      <button
-        type="button"
-        className="reader-mobile-toggle"
-        aria-expanded={mobileOpen}
-        aria-controls="reader-outline"
-        onClick={onToggle}
-      >
-        {label}
-        <span className="material-caret" aria-hidden="true" />
-      </button>
-      <nav ref={outline} id="reader-outline" aria-label="Оглавление курса">
-        {sections.map((s, i) => {
-          const expanded = Boolean(articleId) && expandedId === s.id;
-          return (
-            <div key={s.id} className="reader-chapter">
-              <button
-                type="button"
-                className="reader-chapter-button"
-                data-selected={s.id === selected?.id}
-                aria-pressed={articleId ? undefined : s.id === selected?.id}
-                aria-expanded={articleId ? expanded : undefined}
-                onClick={() =>
-                  articleId ? setExpandedId(expanded ? undefined : s.id) : onSelect(s)
-                }
-              >
-                <span className="reader-number">{String(i + 1).padStart(2, '0')}</span>
-                <span>{s.title}</span>
-              </button>
-              {expanded &&
-                (s.articles.length ? (
-                  <ul className="reader-sublinks">
-                    {s.articles.map((a) => (
-                      <li key={a.id}>
-                        <Link
-                          to={`?article=${a.id}`}
-                          onClick={() => {
-                            if (mobileOpen) onToggle();
-                          }}
-                          aria-current={a.id === articleId ? 'page' : undefined}
-                        >
-                          {a.title}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="reader-meta">В этом разделе пока нет уроков.</p>
-                ))}
-            </div>
-          );
-        })}
-      </nav>
-    </aside>
   );
 }
 
@@ -409,25 +338,29 @@ function Reader({ course }: { course: Course }) {
   }
   const hideOutline = Boolean(active) && focusMode;
   return (
-    <div className="reader-page materials-page">
-      <header className="reader-top">
-        <div className="reader-crumbs">
-          <Link to="/courses">
-            <span aria-hidden="true">‹</span> Мои курсы
-          </Link>
-          <span aria-hidden="true">/</span>
-          {active ? (
-            <button aria-label="О курсе и оглавление" onClick={() => go()}>
-              О курсе<span className="reader-crumb-tail">&nbsp;и оглавление</span>
-            </button>
-          ) : (
-            <span>О курсе</span>
-          )}
-        </div>
-        {active && <CourseActions course={course} />}
-      </header>
-      <div className="reader-spread">
-        {!hideOutline && course.sections.length > 0 && (
+    <ReaderLayout
+      className="materials-page"
+      top={
+        <>
+          <div className="reader-crumbs">
+            <Link to="/courses">
+              <span aria-hidden="true">‹</span> Мои курсы
+            </Link>
+            <span aria-hidden="true">/</span>
+            {active ? (
+              <button aria-label="О курсе и оглавление" onClick={() => go()}>
+                О курсе<span className="reader-crumb-tail">&nbsp;и оглавление</span>
+              </button>
+            ) : (
+              <span>О курсе</span>
+            )}
+          </div>
+          {active && <CourseActions course={course} />}
+        </>
+      }
+      outline={
+        !hideOutline &&
+        course.sections.length > 0 && (
           <ReaderOutline
             sections={course.sections}
             selected={selected}
@@ -436,93 +369,104 @@ function Reader({ course }: { course: Course }) {
             onToggle={() => setMobileOpen(!mobileOpen)}
             onHide={toggleFocusMode}
             onSelect={selectSection}
+            lessonLink={(a, current, closeMenu) => (
+              <Link
+                to={`?article=${a.id}`}
+                onClick={closeMenu}
+                aria-current={current ? 'page' : undefined}
+              >
+                {a.title}
+              </Link>
+            )}
           />
-        )}
-        {!active ? (
-          <div className="reader-overview">
-            <header className="material-folder reader-cover">
-              <img className="material-cover" src={bookImage} width="90" height="100" alt="" />
-              <p className="reader-meta">
-                {pluralWithCount(course.sections.length, ['раздел', 'раздела', 'разделов'])} ·{' '}
-                {pluralWithCount(articles.length, ['урок', 'урока', 'уроков'])}
-              </p>
-              <h1 ref={heading} tabIndex={-1}>
-                {course.title}
-              </h1>
-              <MaterialDescription description={course.description}>
-                <CourseActions course={course} primary />
-              </MaterialDescription>
-            </header>
-            {params.has('article') && (
-              <p role="status">Этот урок не найден. Выберите другой в оглавлении.</p>
-            )}
-            {articles.length === 0 && (
-              <div className="reader-empty">
-                <p>В курсе пока нет уроков.</p>
-                {canEdit && (
-                  <Link className={courseLink} to={`/courses/${course.id}/structure`}>
-                    Добавить материалы
-                  </Link>
-                )}
-              </div>
-            )}
-            {selected && (
-              <section className="reader-section" aria-labelledby="reader-section-title">
-                <p className="reader-meta">
-                  Раздел {selectedIndex + 1} из {course.sections.length}
-                </p>
-                <h2 id="reader-section-title" ref={sectionHeading} tabIndex={-1}>
-                  {selected.title}
-                </h2>
-                {selected.articles.length > 0 ? (
-                  <ol className="reader-lessons">
-                    {selected.articles.map((a) => (
-                      <li key={a.id}>
-                        <Link to={`?article=${a.id}`}>
-                          {a.title}
-                          <span aria-hidden="true">›</span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
-                  <p className="reader-meta">В этом разделе пока нет уроков.</p>
-                )}
-                {nextSection && (
-                  <button
-                    className="reader-next-section"
-                    onClick={() => selectSection(nextSection)}
-                  >
-                    <small>Следующий раздел</small>
-                    {nextSection.title} <span aria-hidden="true">›</span>
-                  </button>
-                )}
-              </section>
-            )}
-            <details className="reader-files">
-              <summary>Вложения курса</summary>
-              <CourseAttachments courseId={course.id} canEdit={canEdit} />
-            </details>
-          </div>
-        ) : (
-          <article key={active.id} className="reader-article">
-            <header>
-              <p className="reader-meta">
-                Урок {index + 1} из {articles.length} · {section?.title}
-              </p>
-              <h1 ref={heading} tabIndex={-1}>
-                {active.title}
-              </h1>
-              {!quiz && (
-                <p className="reader-time">
-                  {active.body?.trim()
-                    ? `Около ${Math.max(1, Math.ceil(active.body.trim().split(/\s+/).length / 180))} мин чтения`
-                    : 'Материал без теории'}
-                </p>
+        )
+      }
+    >
+      {!active ? (
+        <div className="reader-overview">
+          <header className="material-folder reader-cover">
+            <img className="material-cover" src={bookImage} width="90" height="100" alt="" />
+            <p className="reader-meta">
+              {pluralWithCount(course.sections.length, ['раздел', 'раздела', 'разделов'])} ·{' '}
+              {pluralWithCount(articles.length, ['урок', 'урока', 'уроков'])}
+            </p>
+            <h1 ref={heading} tabIndex={-1}>
+              {course.title}
+            </h1>
+            <MaterialDescription description={course.description}>
+              <CourseActions course={course} primary />
+            </MaterialDescription>
+          </header>
+          {params.has('article') && (
+            <p role="status">Этот урок не найден. Выберите другой в оглавлении.</p>
+          )}
+          {articles.length === 0 && (
+            <div className="reader-empty">
+              <p>В курсе пока нет уроков.</p>
+              {canEdit && (
+                <Link className={courseLink} to={`/courses/${course.id}/structure`}>
+                  Добавить материалы
+                </Link>
               )}
-            </header>
-            <nav className="reader-tools" aria-label="Навигация по уроку">
-              <div className="reader-tabs" aria-label="Шаги урока">
+            </div>
+          )}
+          {selected && (
+            <section className="reader-section" aria-labelledby="reader-section-title">
+              <p className="reader-meta">
+                Раздел {selectedIndex + 1} из {course.sections.length}
+              </p>
+              <h2 id="reader-section-title" ref={sectionHeading} tabIndex={-1}>
+                {selected.title}
+              </h2>
+              {selected.articles.length > 0 ? (
+                <ol className="reader-lessons">
+                  {selected.articles.map((a) => (
+                    <li key={a.id}>
+                      <Link to={`?article=${a.id}`}>
+                        {a.title}
+                        <span aria-hidden="true">›</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="reader-meta">В этом разделе пока нет уроков.</p>
+              )}
+              {nextSection && (
+                <button className="reader-next-section" onClick={() => selectSection(nextSection)}>
+                  <small>Следующий раздел</small>
+                  {nextSection.title} <span aria-hidden="true">›</span>
+                </button>
+              )}
+            </section>
+          )}
+          <details className="reader-files">
+            <summary>Вложения курса</summary>
+            <CourseAttachments courseId={course.id} canEdit={canEdit} />
+          </details>
+        </div>
+      ) : (
+        <article key={active.id} className="reader-article">
+          <ReaderHeading
+            headingRef={heading}
+            title={active.title}
+            meta={
+              <>
+                Урок {index + 1} из {articles.length} · {section?.title}
+              </>
+            }
+          >
+            {!quiz && (
+              <p className="reader-time">
+                {active.body?.trim()
+                  ? `Около ${Math.max(1, Math.ceil(active.body.trim().split(/\s+/).length / 180))} мин чтения`
+                  : 'Материал без теории'}
+              </p>
+            )}
+          </ReaderHeading>
+          <ReaderToolbar
+            tabs={
+              <>
                 <button aria-current={!quiz ? 'step' : undefined} onClick={() => go(active.id)}>
                   Материал
                 </button>
@@ -532,135 +476,91 @@ function Reader({ course }: { course: Course }) {
                 >
                   Квиз
                 </button>
-              </div>
-              <div className="reader-options">
-                {hideOutline && (
-                  <ReaderIconButton
-                    icon="outline"
-                    label="Показать список уроков"
-                    onClick={toggleFocusMode}
-                  />
-                )}
-                {!quiz && (
-                  <button
-                    className="reader-control reader-type"
-                    aria-label="Крупный текст"
-                    title={largeText ? 'Обычный текст' : 'Крупный текст'}
-                    aria-pressed={largeText}
-                    onClick={() => setLargeText(!largeText)}
-                  >
-                    Аа
-                  </button>
-                )}
-              </div>
-              <div className="reader-movement">
-                <div className="reader-jumps" role="group" aria-label="Прокрутка урока">
-                  <ReaderIconButton
-                    icon="top"
-                    label="В начало страницы"
-                    onClick={() => window.scrollTo({ top: 0 })}
-                  />
-                  <ReaderIconButton
-                    icon="bottom"
-                    label="В конец страницы"
-                    onClick={() => window.scrollTo({ top: document.documentElement.scrollHeight })}
-                  />
-                </div>
-                <div className="reader-neighbors" role="group" aria-label="Соседние уроки">
-                  <ReaderIconButton
-                    icon="previous"
-                    label="Предыдущий урок"
-                    title={previousLesson?.title && `Предыдущий урок — ${previousLesson.title}`}
-                    disabled={!previousLesson}
-                    onClick={() => previousLesson && go(previousLesson.id)}
-                  />
-                  <ReaderIconButton
-                    icon="next"
-                    label="Следующий урок"
-                    title={nextLesson?.title && `Следующий урок — ${nextLesson.title}`}
-                    disabled={!nextLesson}
-                    onClick={() => nextLesson && go(nextLesson.id)}
-                  />
-                </div>
-              </div>
-            </nav>
-            {quiz ? (
-              <TestPage
-                key={active.id}
-                setIdOverride={active.set_id}
-                embedded
-                onActivityChange={(value) => {
-                  setQuizActive(value);
-                  if (value) setQuizFinished(false);
-                }}
-                onCompleted={() => setQuizFinished(true)}
-              />
-            ) : (
-              <>
-                <div className="course-reading" data-large={largeText}>
-                  {active.body ? (
-                    <ArticleContent
-                      value={active.body}
-                      headingLevel={2}
-                      articleTitle={active.title}
-                      media={Object.fromEntries(
-                        (active.media ?? []).map((item) => [item.id, item]),
-                      )}
-                    />
-                  ) : (
-                    <p className="text-fg-muted">
-                      Теория пока не добавлена. Можно сразу перейти к квизу.
-                    </p>
-                  )}
-                </div>
-                <details className="reader-files">
-                  <summary>Вложения урока</summary>
-                  <CourseAttachments courseId={course.id} articleId={active.id} canEdit={canEdit} />
-                </details>
-                <div className="bg-primary-subtle mt-10 rounded-2xl p-4 sm:p-6">
-                  <h2 className="text-xl font-semibold">Проверьте, что запомнили</h2>
-                  <p className="text-fg-muted mb-5 mt-2">
-                    Ответьте на вопросы по карточкам этого урока. После проверки вы увидите
-                    результат и разбор ошибок.
-                  </p>
-                  <Button onClick={() => go(active.id, 'quiz')}>Пройти квиз</Button>
-                </div>
-                <div className="mt-5 flex flex-wrap gap-x-5">
-                  <Link className={courseLink} to={`/sets/${active.set_id}/learn`}>
-                    Начать заучивание
-                  </Link>
-                  <Link className={courseLink} to={`/sets/${active.set_id}`}>
-                    Все режимы обучения
-                  </Link>
-                </div>
               </>
-            )}
-            {(!quiz || quizFinished) && (
-              <nav
-                aria-label="Переход между уроками"
-                className="border-border mt-8 flex flex-wrap justify-between gap-3 border-t pt-5"
-              >
-                <Button
-                  variant="ghost"
-                  disabled={!previousLesson}
-                  onClick={() => previousLesson && go(previousLesson.id)}
-                >
-                  Предыдущий урок
-                </Button>
-                {nextLesson ? (
-                  <Button variant="secondary" onClick={() => go(nextLesson.id)}>
-                    Следующий урок
-                  </Button>
+            }
+            largeText={largeText}
+            toggleText={quiz ? undefined : () => setLargeText(!largeText)}
+            showOutline={hideOutline ? toggleFocusMode : undefined}
+            neighbors={{
+              previous: previousLesson && {
+                title: previousLesson.title,
+                go: () => go(previousLesson.id),
+              },
+              next: nextLesson && { title: nextLesson.title, go: () => go(nextLesson.id) },
+            }}
+          />
+          {quiz ? (
+            <TestPage
+              key={active.id}
+              setIdOverride={active.set_id}
+              embedded
+              onActivityChange={(value) => {
+                setQuizActive(value);
+                if (value) setQuizFinished(false);
+              }}
+              onCompleted={() => setQuizFinished(true)}
+            />
+          ) : (
+            <>
+              <div className="course-reading" data-large={largeText}>
+                {active.body ? (
+                  <ArticleContent
+                    value={active.body}
+                    headingLevel={2}
+                    articleTitle={active.title}
+                    media={Object.fromEntries((active.media ?? []).map((item) => [item.id, item]))}
+                  />
                 ) : (
-                  <p className="text-fg-muted flex min-h-11 items-center">
-                    Это последний урок курса
+                  <p className="text-fg-muted">
+                    Теория пока не добавлена. Можно сразу перейти к квизу.
                   </p>
                 )}
-              </nav>
-            )}
-          </article>
-        )}
-      </div>
-    </div>
+              </div>
+              <details className="reader-files">
+                <summary>Вложения урока</summary>
+                <CourseAttachments courseId={course.id} articleId={active.id} canEdit={canEdit} />
+              </details>
+              <div className="bg-primary-subtle mt-10 rounded-2xl p-4 sm:p-6">
+                <h2 className="text-xl font-semibold">Проверьте, что запомнили</h2>
+                <p className="text-fg-muted mb-5 mt-2">
+                  Ответьте на вопросы по карточкам этого урока. После проверки вы увидите результат
+                  и разбор ошибок.
+                </p>
+                <Button onClick={() => go(active.id, 'quiz')}>Пройти квиз</Button>
+              </div>
+              <div className="mt-5 flex flex-wrap gap-x-5">
+                <Link className={courseLink} to={`/sets/${active.set_id}/learn`}>
+                  Начать заучивание
+                </Link>
+                <Link className={courseLink} to={`/sets/${active.set_id}`}>
+                  Все режимы обучения
+                </Link>
+              </div>
+            </>
+          )}
+          {(!quiz || quizFinished) && (
+            <nav
+              aria-label="Переход между уроками"
+              className="border-border mt-8 flex flex-wrap justify-between gap-3 border-t pt-5"
+            >
+              <Button
+                variant="ghost"
+                disabled={!previousLesson}
+                onClick={() => previousLesson && go(previousLesson.id)}
+              >
+                Предыдущий урок
+              </Button>
+              {nextLesson ? (
+                <Button variant="secondary" onClick={() => go(nextLesson.id)}>
+                  Следующий урок
+                </Button>
+              ) : (
+                <p className="text-fg-muted flex min-h-11 items-center">Это последний урок курса</p>
+              )}
+            </nav>
+          )}
+        </article>
+      )}
+    </ReaderLayout>
   );
 }

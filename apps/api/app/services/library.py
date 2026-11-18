@@ -22,9 +22,11 @@ from app.schemas.library import (
     LibraryItem,
     LibrarySaveCreate,
     LibraryState,
+    SavedArticleText,
     SavedCourseItem,
     SavedSetItem,
 )
+from app.services.courses import CourseService
 from app.services.entitlements import Entitlements
 from app.services.search_sync import queue_course
 
@@ -36,13 +38,21 @@ class LibraryService:
     async def save(self, user: User, body: LibrarySaveCreate) -> LibraryItem:
         await lock_request(self.db, user.id)
         existing = await repo.save_for_target(self.db, user.id, body.target_type, body.target_id)
-        if existing is not None:
+        if existing is not None and (
+            body.text_only or not existing.accepted_snapshot.get("text_only")
+        ):
             return await self._item(existing)
         course, article, study_set = await self._resolve(body.target_type, body.target_id)
         if course.owner_id == user.id:
             raise ConflictError("Собственный материал уже доступен в библиотеке")
-        snapshot = await self._snapshot(body.target_type, course, article, study_set)
+        snapshot = await self._snapshot(body.target_type, course, article, text_only=body.text_only)
         await Entitlements(self.db).check_library_snapshot(user, snapshot)
+        if existing is not None:
+            # Явное сохранение статьи с карточками расширяет прежнее сохранение одного текста.
+            existing.accepted_snapshot = snapshot
+            existing.accepted_at = datetime.now(UTC)
+            await self.db.flush()
+            return await self._item(existing, course=course, article=article, study_set=study_set)
         saved = LibrarySave(user_id=user.id)
         setattr(saved, f"{body.target_type}_id", body.target_id)
         if body.target_type == "course":
@@ -231,6 +241,19 @@ class LibraryService:
             saved_set_ids=[s.set_id for s in saves if s.set_id in set_ids],
         )
 
+    async def article_text(self, user: User, save_id: UUID) -> SavedArticleText:
+        saved = await repo.get_save(self.db, user.id, save_id)
+        if saved is None or not saved.article_id or not saved.accepted_snapshot.get("text_only"):
+            raise NotFoundError("Сохранённая статья не найдена")
+        course, _, _ = await self._resolve("article", saved.article_id)
+        accepted = saved.accepted_snapshot["articles"][0]
+        media = await CourseService(self.db).resolve_article_media(
+            {saved.article_id: accepted["body"]}, course.owner_id
+        )
+        return SavedArticleText(
+            title=accepted["title"], body=accepted["body"], media=media[saved.article_id]
+        )
+
     async def diff(self, user: User, save_id: UUID) -> LibraryDiff:
         saved = await repo.get_save(self.db, user.id, save_id)
         if saved is None:
@@ -286,18 +309,18 @@ class LibraryService:
         if course is None:
             course, article, study_set = await self._resolve(target_type, target_id)
         if not saved.accepted_snapshot:
-            saved.accepted_snapshot = await self._snapshot(target_type, course, article, study_set)
+            saved.accepted_snapshot = await self._snapshot(target_type, course, article)
             saved.accepted_at = saved.created_at
             await self.db.flush()
-        if article is None and target_type == "course":
-            articles = await course_repo.articles(self.db, course.id)
-        else:
-            articles = [article] if article else []
-        if study_set is None and article is not None:
-            study_set = await content_repo.get_set(self.db, article.set_id)
-        cards_count = study_set.cards_count if study_set else 0
-        if study_set is None:
-            for current_article in articles:
+        article_title = article.title if article else None
+        cards_count = 0
+        if saved.accepted_snapshot.get("text_only"):
+            study_set = None
+            article_title = saved.accepted_snapshot["articles"][0]["title"]
+        elif study_set is not None:
+            cards_count = study_set.cards_count
+        elif target_type == "course":
+            for current_article in await course_repo.articles(self.db, course.id):
                 current_set = await content_repo.get_set(self.db, current_article.set_id)
                 if current_set is not None:
                     cards_count += current_set.cards_count
@@ -313,7 +336,7 @@ class LibraryService:
             course_slug=course.slug,
             course_title=course.title,
             article_id=article.id if article else None,
-            article_title=article.title if article else None,
+            article_title=article_title,
             set_id=study_set.id if study_set else None,
             set_title=study_set.title if study_set else None,
             cards_count=cards_count,
@@ -326,15 +349,26 @@ class LibraryService:
         target_type = "course" if saved.course_id else "article" if saved.article_id else "set"
         target_id = saved.course_id or saved.article_id or saved.set_id
         assert target_id is not None
-        course, article, study_set = await self._resolve(target_type, target_id)
-        return await self._snapshot(target_type, course, article, study_set)
+        course, article, _ = await self._resolve(target_type, target_id)
+        return await self._snapshot(
+            target_type,
+            course,
+            article,
+            text_only=saved.accepted_snapshot.get("text_only", False),
+            # Ранние сохранения набора включали теорию в сравнение версий.
+            include_set_body=any(
+                "body" in item for item in saved.accepted_snapshot.get("articles", [])
+            ),
+        )
 
     async def _snapshot(
         self,
         target_type: str,
         course: Course,
         article: CourseArticle | None,
-        study_set: StudySet | None,
+        *,
+        text_only: bool = False,
+        include_set_body: bool = False,
     ) -> dict[str, Any]:
         articles = (
             await course_repo.articles(self.db, course.id)
@@ -343,6 +377,15 @@ class LibraryService:
         )
         result: list[dict[str, Any]] = []
         for current_article in articles:
+            if text_only:
+                result.append(
+                    {
+                        "id": str(current_article.id),
+                        "title": current_article.title,
+                        "body": current_article.body,
+                    }
+                )
+                continue
             material = await content_repo.get_set(self.db, current_article.set_id, with_cards=True)
             if material is None:
                 continue
@@ -350,7 +393,11 @@ class LibraryService:
                 {
                     "id": str(current_article.id),
                     "title": current_article.title,
-                    "body": current_article.body,
+                    **(
+                        {"body": current_article.body}
+                        if target_type != "set" or include_set_body
+                        else {}
+                    ),
                     "set": {
                         "id": str(material.id),
                         "title": material.title,
@@ -379,6 +426,7 @@ class LibraryService:
             )
         return {
             "target_type": target_type,
+            **({"text_only": True} if text_only else {}),
             "course": {
                 "id": str(course.id),
                 "title": course.title,
@@ -396,7 +444,7 @@ class LibraryService:
         removed = len(old_articles.keys() - new_articles.keys())
         articles_changed = sum(
             old_articles[key]["title"] != new_articles[key]["title"]
-            or old_articles[key]["body"] != new_articles[key]["body"]
+            or old_articles[key].get("body") != new_articles[key].get("body")
             for key in common
         )
         added_terms: list[str] = []
@@ -405,8 +453,8 @@ class LibraryService:
         for key in new_articles:
             if key not in old_articles:
                 continue
-            old_cards = {c["id"]: c for c in old_articles[key]["set"]["cards"]}
-            new_cards = {c["id"]: c for c in new_articles[key]["set"]["cards"]}
+            old_cards = {c["id"]: c for c in old_articles[key].get("set", {}).get("cards", [])}
+            new_cards = {c["id"]: c for c in new_articles[key].get("set", {}).get("cards", [])}
             for cid, card in new_cards.items():
                 if cid not in old_cards:
                     added_terms.append(card["term"])

@@ -41,3 +41,37 @@ export function articleMediaIds(value: string): string[] {
   walk(md.parse(value ?? '', {}));
   return ids;
 }
+
+export function prepareArticleHeadings(
+  tokens: Token[],
+  headingLevel: 2 | 3,
+  articleTitle?: string,
+) {
+  let headingOffset = headingLevel - 1;
+  if (articleTitle !== undefined) {
+    // Заголовок уже есть над текстом. В Markdown авторы иногда опускают номер урока или точку.
+    const normalize = (text: string) => text.trim().replace(/^(\d+(?:\.\d+)*)\.?(?=\s)/u, '$1');
+    const title = normalize(articleTitle);
+    if (
+      tokens[0]?.type === 'heading_open' &&
+      tokens[0].tag === 'h1' &&
+      tokens[1]?.type === 'inline' &&
+      (normalize(tokens[1].content) === title ||
+        tokens[1].content.trim() === title.replace(/^\d+(?:\.\d+)*\s+/u, ''))
+    )
+      tokens.splice(0, 3);
+    const levels = tokens
+      .filter((t) => t.type === 'heading_open')
+      .map((t) => Number(t.tag.slice(1)));
+    if (levels.length) headingOffset = headingLevel - Math.min(...levels);
+  }
+  return headingOffset;
+}
+
+export function isArticleSummary(tokens: Token[], index: number) {
+  return (
+    tokens[index]?.type === 'blockquote_open' &&
+    tokens[index + 1]?.type === 'paragraph_open' &&
+    tokens[index + 2]?.content === '**Коротко**'
+  );
+}

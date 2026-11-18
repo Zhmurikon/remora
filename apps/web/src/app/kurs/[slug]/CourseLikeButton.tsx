@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@remora/ui';
+import { CourseReactionIcon } from './CourseReactionIcon';
 import { useState } from 'react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
@@ -51,15 +51,30 @@ export function CourseLikeButton({ slug, initialCount, initialLiked }: Props) {
     }
   }
 
+  const label = liked ? 'Убрать лайк' : 'Нравится';
   return (
-    <div className="mt-5 flex flex-wrap items-center gap-3">
-      <Button type="button" variant="secondary" loading={loading} onClick={toggle}>
-        {liked ? 'Убрать лайк' : 'Нравится'}
-      </Button>
-      <span className="text-fg-muted" aria-live="polite">
+    <div className="course-like">
+      <button
+        type="button"
+        className="reader-control course-reaction"
+        disabled={loading}
+        aria-pressed={liked}
+        aria-label={label}
+        title={label}
+        aria-describedby="course-like-count"
+        onClick={toggle}
+      >
+        <CourseReactionIcon icon="heart" />
+        <span aria-hidden="true">{count}</span>
+      </button>
+      <span id="course-like-count" className="sr-only" aria-live="polite">
         Лайков: {count}
       </span>
-      {error && <p className="text-danger w-full text-sm">{error}</p>}
+      {error && (
+        <p role="alert" className="text-danger text-sm">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

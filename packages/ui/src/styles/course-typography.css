@@ -1,0 +1,88 @@
+.course-reading {
+  font: var(--reader-text-size, clamp(1.125rem, 2.05cqi, 1.25rem))/1.85
+    var(--reader-serif, Georgia, 'Times New Roman', serif);
+}
+.course-reading[data-large='true'] {
+  font-size: 1.45rem;
+}
+.course-reading .course-article {
+  max-width: none;
+  line-height: inherit;
+}
+.course-reading .course-article > * + * {
+  margin-top: 1.1em;
+}
+.course-reading .course-article :is(h2, h3, h4, h5, h6) {
+  margin-block: 1.4em 0.45em;
+  padding: 0;
+  font: normal 1.28em/1.25 var(--reader-serif, Georgia, 'Times New Roman', serif);
+  letter-spacing: -0.02em;
+  text-wrap: pretty;
+}
+.course-reading .course-article h2 {
+  font-size: 1.55em;
+}
+.course-reading .course-article :is(h2, h3, h4) + p {
+  margin-top: 0.5em;
+}
+.course-reading .course-article li::marker {
+  color: rgb(var(--rm-fg-muted));
+}
+.course-reading .rm-study-question + .rm-study-question {
+  margin-top: 0.5rem;
+}
+.course-reading .rm-study-question > summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  list-style: none;
+}
+.course-reading .rm-study-question > summary::-webkit-details-marker {
+  display: none;
+}
+.course-reading .rm-study-question > summary::after {
+  content: '';
+  flex: none;
+  align-self: center;
+  width: 0.5rem;
+  height: 0.5rem;
+  border: solid rgb(var(--rm-fg-muted));
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(-45deg);
+}
+.course-reading .rm-study-question[open] > summary::after {
+  transform: rotate(45deg);
+}
+.course-reading .rm-study-question > summary > :is(h2, h3, h4, h5, h6) {
+  margin: 0;
+  min-width: 0;
+  font: normal 1em/1.4 var(--reader-serif, Georgia, 'Times New Roman', serif);
+}
+.course-reading .course-article .article-summary {
+  border-radius: 12px;
+  background: color-mix(in srgb, rgb(var(--rm-primary-subtle)) 65%, rgb(var(--rm-surface)));
+  padding: 1.05em 1.3em;
+  font:
+    0.9em/1.65 Inter,
+    'Segoe UI',
+    Arial,
+    sans-serif;
+}
+.article-summary > p:first-child strong {
+  font: normal 1.5em/1.2 var(--reader-serif, Georgia, 'Times New Roman', serif);
+}
+.article-summary > ul {
+  margin-top: 0.75em;
+}
+.course-reading pre,
+.course-reading table {
+  font-size: 0.875em;
+  line-height: 1.6;
+}
+.course-reading table {
+  font-family: var(--rm-font-sans);
+}
+.course-reading :not(pre) > code {
+  font-size: 0.87em;
+}

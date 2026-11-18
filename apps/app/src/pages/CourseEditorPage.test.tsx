@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { CourseEditorPage } from './CourseEditorPage';
-import { CourseReaderPage, CopyCourseButton, CopySetButton } from './CourseReaderPage';
+import { CourseCopyPage, CourseReaderPage, CopyCourseButton, CopySetButton } from './CourseReaderPage';
 import { ArticleContent } from '@remora/ui';
 import { api } from '../lib/api';
 import { AppLayout } from '../layouts/AppLayout';
@@ -396,4 +396,30 @@ it('проверяет квиз по набору урока и позволяе
   ).toBe(true);
   await userEvent.click(nextToolbar.getByRole('button', { name: 'Предыдущий урок' }));
   expect(await screen.findByText('Конспект')).toBeTruthy();
+});
+
+it('ссылка на копию только статьи передаёт режим текста в API', async () => {
+  vi.mocked(api.GET).mockResolvedValue({
+    data: { ...course, author: { username: 'author' } },
+  } as never);
+  vi.mocked(api.POST).mockResolvedValue({ error: {} } as never);
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter initialEntries={['/courses/copy/sample?article=article&text_only=1']}>
+        <Routes>
+          <Route path="/courses/copy/:slug" element={<CourseCopyPage />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  await userEvent.click(await screen.findByRole('button', { name: 'Создать копию текста статьи' }));
+  expect(api.POST).toHaveBeenCalledWith(
+    '/api/v1/courses/{course_id}/copy',
+    expect.objectContaining({
+      body: { article_id: 'article', text_only: true },
+    }),
+  );
 });

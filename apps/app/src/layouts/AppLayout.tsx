@@ -27,6 +27,7 @@ export function AppLayout() {
   const [loggingOut, setLoggingOut] = useState(false);
   const location = useLocation();
   const isCourseReader =
+    Boolean(matchPath('/library/:saveId/read', location.pathname)) ||
     Boolean(matchPath('/courses/:courseId/read', location.pathname)) ||
     (Boolean(matchPath('/courses/:courseId', location.pathname)) &&
       !matchPath('/courses/new', location.pathname) &&

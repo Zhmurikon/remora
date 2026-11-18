@@ -19,10 +19,10 @@ it('обновляет лайк после refresh авторизации', asyn
   vi.stubGlobal('fetch', request);
   render(<CourseLikeButton slug="course" initialCount={3} initialLiked={false} />);
 
-  await userEvent.click(screen.getByRole('button', { name: 'Нравится' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Нравится', pressed: false }));
 
   expect(await screen.findByText('Лайков: 4')).toBeTruthy();
-  expect(screen.getByRole('button', { name: 'Убрать лайк' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Убрать лайк', pressed: true })).toBeTruthy();
   expect(request).toHaveBeenLastCalledWith(
     'http://localhost:8000/api/v1/courses/public/course/like',
     expect.objectContaining({ method: 'POST' }),

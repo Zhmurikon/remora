@@ -5,6 +5,7 @@ from uuid import uuid4
 
 from httpx import AsyncClient
 
+from tests.test_course_editor import save
 from tests.test_courses import allow_private, auth
 
 
@@ -293,3 +294,65 @@ async def test_move_set_changes_only_personal_folder(client: AsyncClient) -> Non
     assert (await client.get("/api/v1/library/sets", headers=learner)).json()[0][
         "folder_id"
     ] is None
+
+
+async def test_text_only_save_reads_accepted_lesson_without_card_access(
+    client: AsyncClient,
+) -> None:
+    owner = await auth(client, "textowner")
+    await allow_private(client, owner)
+    learner = await auth(client, "textreader")
+    stranger = await auth(client, "textstranger")
+    course = await _published_course(client, owner)
+    course_url = f"/api/v1/courses/{course['id']}"
+    editor = (await client.get(course_url + "/editor", headers=owner)).json()
+    lesson = editor["sections"][0]["articles"][0]
+    lesson["body"] = "Первый текст"
+    assert (await save(client, owner, editor, editor["sections"])).status_code == 200
+    article = {"target_type": "article", "target_id": lesson["id"]}
+    response = await client.post(
+        "/api/v1/library", headers=learner, json={**article, "text_only": True}
+    )
+    assert response.status_code == 201, response.text
+    item = response.json()
+    assert item["cards_count"] == 0 and item["set_id"] is None
+    path = f"/api/v1/library/{item['id']}"
+    assert (await client.get(path + "/article", headers=learner)).json() == {
+        "title": lesson["title"],
+        "body": "Первый текст",
+        "media": [],
+    }
+    assert (await client.get(path + "/article", headers=stranger)).status_code == 404
+    assert (await client.get(path + "/article")).status_code == 401
+    assert (await client.get("/api/v1/library/sets", headers=learner)).json() == []
+    set_id = lesson["set_id"]
+    queue_url = f"/api/v1/study/sets/{set_id}/queue"
+    assert (await client.get(queue_url, headers=learner)).status_code == 403
+    assert (
+        await client.put(
+            f"/api/v1/sets/{set_id}/cards",
+            headers=owner,
+            json={"cards": [{"term": "Другая", "definition": "Карточка"}]},
+        )
+    ).status_code == 200
+    assert not (await client.get(path + "/changes", headers=learner)).json()["has_updates"]
+    saved_set = await client.post(
+        "/api/v1/library", headers=learner, json={"target_type": "set", "target_id": set_id}
+    )
+    assert saved_set.status_code == 201
+    assert (await client.get(queue_url, headers=learner)).status_code == 200
+    editor = (await client.get(course_url + "/editor", headers=owner)).json()
+    editor["sections"][0]["articles"][0]["body"] = "Новый текст"
+    assert (await save(client, owner, editor, editor["sections"])).status_code == 200
+    assert not (
+        await client.get(f"/api/v1/library/{saved_set.json()['id']}/changes", headers=learner)
+    ).json()["has_updates"]
+    assert (await client.get(path + "/changes", headers=learner)).json()["articles_changed"] == 1
+    assert (await client.get(path + "/article", headers=learner)).json()["body"] == "Первый текст"
+    assert (await client.post(path + "/accept", headers=learner)).json()["set_id"] is None
+    assert (await client.get(path + "/article", headers=learner)).json()["body"] == "Новый текст"
+    await client.post(course_url + "/unpublish", headers=owner)
+    assert (await client.get(path + "/article", headers=learner)).status_code == 404
+    await client.post(course_url + "/publish", headers=owner, json={})
+    upgrade = await client.post("/api/v1/library", headers=learner, json=article)
+    assert upgrade.json()["id"] == item["id"] and upgrade.json()["set_id"] == set_id

@@ -25,7 +25,9 @@
     "./assets/zapominalnya-logo-stacked.png": "./src/assets/zapominalnya-logo-stacked.png",
     "./assets/zapominalnya-logo-stacked-inverse.svg": "./src/assets/zapominalnya-logo-stacked-inverse.svg",
     "./assets/zapominalnya-logo-stacked-inverse.png": "./src/assets/zapominalnya-logo-stacked-inverse.png",
-    "./styles/tokens.css": "./src/styles/tokens.css"
+    "./styles/tokens.css": "./src/styles/tokens.css",
+    "./reader": "./src/components/ReaderLayout.tsx",
+    "./styles/course-typography.css": "./src/styles/course-typography.css"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

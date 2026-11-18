@@ -3,7 +3,7 @@ import MarkdownIt from 'markdown-it';
 import { articleStudyBlocks } from './article-study-blocks';
 import './article-study.css';
 import { markdownMath } from './markdown-math';
-import { mediaId } from './article-markdown';
+import { isArticleSummary, mediaId, prepareArticleHeadings } from './article-markdown';
 import type { ArticleMedia } from './ArticleContent';
 import './card-content.css';
 import 'katex/dist/katex.min.css';
@@ -14,7 +14,11 @@ export type { ArticleMedia } from './ArticleContent';
 
 // Этот рендерер намеренно не использует клиентский ArticleContent: исходный Markdown,
 // markdown-it и KaTeX остаются на сервере публичной страницы даже для большого курса.
-function createRenderer(media: Record<string, ArticleMedia>, headingLevel: 2 | 3) {
+function createRenderer(
+  media: Record<string, ArticleMedia>,
+  headingLevel: 2 | 3,
+  articleTitle?: string,
+) {
   const renderer = new MarkdownIt({
     html: false,
     linkify: true,
@@ -25,20 +29,23 @@ function createRenderer(media: Record<string, ArticleMedia>, headingLevel: 2 | 3
     .use(articleStudyBlocks);
   const links: boolean[] = [];
 
+  renderer.core.ruler.push('reader_headings', ({ tokens }) => {
+    const offset = prepareArticleHeadings(tokens, headingLevel, articleTitle);
+    for (const token of tokens) {
+      if (token.type === 'heading_open' || token.type === 'heading_close')
+        token.tag = 'h' + Math.min(6, offset + Number(token.tag.slice(1)));
+    }
+  });
   renderer.renderer.rules.heading_open = (tokens, index) => {
-    const token = tokens[index]!;
-    const sourceLevel = Number(token.tag.slice(1));
-    const level = Math.min(6, headingLevel - 1 + sourceLevel);
-    const size = level <= 2 ? 'text-2xl' : level === 3 ? 'text-xl' : 'text-lg';
-    return `<h${level} class="${size} pt-3 font-semibold">`;
-  };
-  renderer.renderer.rules.heading_close = (tokens, index) => {
-    const sourceLevel = Number(tokens[index]!.tag.slice(1));
-    return `</h${Math.min(6, headingLevel - 1 + sourceLevel)}>`;
+    const tag = tokens[index]!.tag;
+    const size = tag === 'h2' ? 'text-2xl' : tag === 'h3' ? 'text-xl' : 'text-lg';
+    return `<${tag} class="${size} pt-3 font-semibold">`;
   };
   renderer.renderer.rules.paragraph_open = () => '<p class="whitespace-pre-wrap">';
-  renderer.renderer.rules.blockquote_open = () =>
-    '<blockquote class="border-border text-fg-muted border-l-4 pl-4 italic">';
+  renderer.renderer.rules.blockquote_open = (tokens, index) =>
+    articleTitle !== undefined && isArticleSummary(tokens, index)
+      ? '<blockquote class="article-summary">'
+      : '<blockquote class="border-border text-fg-muted border-l-4 pl-4 italic">';
   renderer.renderer.rules.bullet_list_open = () => '<ul class="list-disc space-y-2 pl-6">';
   renderer.renderer.rules.ordered_list_open = () => '<ol class="list-decimal space-y-2 pl-6">';
   renderer.renderer.rules.hr = () => '<hr class="border-border border-t">';
@@ -106,15 +113,17 @@ function renderFormula(value: string, display: boolean): string {
 export function ArticleContentServer({
   value,
   headingLevel = 3,
+  articleTitle,
   media = {},
   className = '',
 }: {
   value: string;
   headingLevel?: 2 | 3;
+  articleTitle?: string;
   media?: Record<string, ArticleMedia>;
   className?: string;
 }) {
-  const markup = createRenderer(media, headingLevel).render(value ?? '');
+  const markup = createRenderer(media, headingLevel, articleTitle).render(value ?? '');
   return (
     <div
       className={`course-article max-w-prose space-y-4 break-words leading-relaxed ${className}`}

@@ -2345,6 +2345,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/library/{save_id}/article": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Сохранённый текст статьи */
+        get: operations["read_saved_article_api_v1_library__save_id__article_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/library/{save_id}/changes": {
         parameters: {
             query?: never;
@@ -6712,6 +6729,11 @@ export interface components {
         CourseCopyRequest: {
             /** Article Id */
             article_id?: string | null;
+            /**
+             * Text Only
+             * @default false
+             */
+            text_only: boolean;
         };
         /** CourseCreate */
         CourseCreate: {
@@ -7409,6 +7431,11 @@ export interface components {
              * @enum {string}
              */
             target_type: "course" | "article" | "set";
+            /**
+             * Text Only
+             * @default false
+             */
+            text_only: boolean;
         };
         /** LibraryState */
         LibraryState: {
@@ -7989,6 +8016,15 @@ export interface components {
             reviewed_at: string;
             /** Updates Schedule */
             updates_schedule?: boolean | null;
+        };
+        /** SavedArticleText */
+        SavedArticleText: {
+            /** Body */
+            body: string;
+            /** Media */
+            media: components["schemas"]["ArticleMediaRef"][];
+            /** Title */
+            title: string;
         };
         /** SavedCourseItem */
         SavedCourseItem: {
@@ -14029,6 +14065,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LibraryItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_saved_article_api_v1_library__save_id__article_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                save_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedArticleText"];
                 };
             };
             /** @description Validation Error */

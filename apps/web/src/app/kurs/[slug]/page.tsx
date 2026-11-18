@@ -6,18 +6,14 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import { PublicCourseCards } from './PublicCourseCards';
-import { CourseLikeButton } from './CourseLikeButton';
-import { ReportCourseButton } from './ReportCourseButton';
-import { SaveOriginalButton } from './SaveOriginalButton';
 import { JsonLd } from '../../../components/JsonLd';
 import { absoluteUrl, DEFAULT_OG_IMAGE } from '../../../lib/seo';
 import { cachedPublicRead } from '../../../lib/cache';
-import Image from 'next/image';
+import { ReadingBreadcrumb } from '../../../components/reading/PublicReadingCover';
 import { pluralWithCount } from '@remora/core';
 import { CourseReader } from './CourseReader';
 
 const API_URL = process.env.API_INTERNAL_URL ?? 'http://localhost:8000';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:5173';
 type Course = components['schemas']['CourseDetail'];
 type Material = components['schemas']['PublicSet'];
 type SearchCourse = components['schemas']['CourseSearchItem'];
@@ -99,13 +95,7 @@ export default async function PublicCoursePage({ params }: { params: Promise<{ s
     ...section,
     articles: section.articles.filter((article) => materials.get(article.id)),
   }));
-  const outline = sections
-    .filter((section) => section.articles.length)
-    .map((section) => ({
-      id: section.id,
-      title: section.title,
-      articles: section.articles.map(({ id, title }) => ({ id, title })),
-    }));
+  const outline = sections.filter((section) => section.articles.length);
   const articleCount = outline.reduce((total, section) => total + section.articles.length, 0);
   const courseUrl = absoluteUrl(`/kurs/${course.slug}`);
   const authorName = course.author.display_name || `@${course.author.username}`;
@@ -147,140 +137,69 @@ export default async function PublicCoursePage({ params }: { params: Promise<{ s
     ],
   };
   return (
-    <main className="course-detail">
+    <main className="course-detail public-course">
       {course.is_listed && <PublicAnalytics path={`/kurs/${encodeURIComponent(course.slug)}`} />}
       <JsonLd data={structuredData} />
-      <header className="course-cover">
-        <div className="course-width">
-          <Link className="course-back" href="/kursy">
-            ← Каталог курсов
-          </Link>
-          <div className="course-cover-grid">
-            <div>
-              <p className="course-label">Учебный курс</p>
-              <h1>{course.title}</h1>
-              {course.description && <p className="course-intro">{course.description}</p>}
-              <div className="course-byline">
-                <Link href={`/avtor/${course.author.username}`}>{authorName}</Link>
-                {!!outline.length && (
-                  <span>{pluralWithCount(outline.length, ['раздел', 'раздела', 'разделов'])}</span>
-                )}
-                {!!articleCount && (
-                  <span>{pluralWithCount(articleCount, ['статья', 'статьи', 'статей'])}</span>
-                )}
-              </div>
-              {!!course.tags.length && (
-                <div className="course-topic-tags">
-                  {course.tags.map((tag) => (
-                    <span key={tag}>#{tag}</span>
-                  ))}
-                </div>
+      <CourseReader
+        key={course.id}
+        top={<ReadingBreadcrumb href="/kursy" back="Каталог курсов" label="Учебный курс" />}
+        course={{
+          id: course.id,
+          slug: course.slug,
+          title: course.title,
+          likesCount: course.likes_count,
+          liked: course.liked_by_me,
+          savesCount: course.saves_count,
+        }}
+        coverDetails={
+          <>
+            {course.description && <p className="course-intro">{course.description}</p>}
+            <div className="course-byline">
+              <Link href={`/avtor/${course.author.username}`}>{authorName}</Link>
+              {!!outline.length && (
+                <span>{pluralWithCount(outline.length, ['раздел', 'раздела', 'разделов'])}</span>
               )}
-              <div className="course-actions">
-                <a className="course-primary" href={`${APP_URL}/courses/copy/${course.slug}`}>
-                  Скопировать курс и учиться
-                </a>
-                <SaveOriginalButton
-                  targetType="course"
-                  targetId={course.id}
-                  label="Сохранить курс"
-                />
-              </div>
-              <div className="course-reactions">
-                <CourseLikeButton
-                  slug={course.slug}
-                  initialCount={course.likes_count}
-                  initialLiked={course.liked_by_me}
-                />
-                <span>Сохранений: {course.saves_count}</span>
-                <ReportCourseButton slug={course.slug} />
-              </div>
+              {!!articleCount && (
+                <span>{pluralWithCount(articleCount, ['статья', 'статьи', 'статей'])}</span>
+              )}
+              {course.tags.map((tag) => (
+                <span key={tag}>#{tag}</span>
+              ))}
             </div>
-            <Image
-              className="course-illustration"
-              src="/lecture-demo/course-books.webp"
-              width={360}
-              height={320}
-              unoptimized
-              alt=""
-            />
-          </div>
-        </div>
-      </header>
-      {articleCount > 0 && (
-        <CourseReader key={course.id} sections={outline}>
-          {sections.map((section) => (
-            <div key={section.id}>
-              {section.articles.map((article) => {
-                const material = materials.get(article.id);
-                if (!material) return null;
-                return (
-                  <article
-                    key={article.id}
-                    id={`article-${article.id}`}
-                    className="course-material"
-                  >
-                    <header>
-                      <p className="course-section-name">{section.title}</p>
-                      <h2 className="course-material-title" tabIndex={-1}>
-                        {article.title}
-                      </h2>
-                      <p className="text-fg-muted mt-2 text-sm">
-                        Автор: {material.author.display_name || material.author.username} ·
-                        Карточек: {material.cards_count}
-                      </p>
-                    </header>
-                    {article.body && (
-                      <ArticleContentServer
-                        value={article.body}
-                        media={Object.fromEntries(
-                          (article.media ?? []).map((item) => [item.id, item]),
-                        )}
-                      />
-                    )}
-                    {material.cards_count > 0 && (
-                      <section className="course-card-list">
-                        <h3>Карточки к статье</h3>
-                        <PublicCourseCards
-                          initial={material}
-                          slug={course.slug}
-                          articleId={article.id}
-                        />
-                      </section>
-                    )}
-                    <div className="flex flex-wrap gap-3">
-                      <SaveOriginalButton
-                        targetType="article"
-                        targetId={article.id}
-                        label="Сохранить статью"
-                      />
-                      <SaveOriginalButton
-                        targetType="set"
-                        targetId={article.set_id}
-                        label="Сохранить набор"
-                      />
-                    </div>
-                    <div className="flex flex-wrap gap-4">
-                      <a
-                        className="text-primary inline-flex min-h-11 items-center underline"
-                        href={`${APP_URL}/courses/copy/${course.slug}?article=${article.id}`}
-                      >
-                        Скопировать статью с карточками
-                      </a>
-                      <a
-                        className="text-primary inline-flex min-h-11 items-center underline"
-                        href={`${APP_URL}/courses/copy/${course.slug}?set=${article.set_id}`}
-                      >
-                        Скопировать только набор
-                      </a>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          ))}
-        </CourseReader>
-      )}
+          </>
+        }
+        sections={outline.map((section) => ({
+          ...section,
+          articles: section.articles.map((article) => {
+            const { id, title } = article;
+            const material = materials.get(id)!;
+            return {
+              id,
+              title,
+              setId: article.set_id,
+              meta: section.title,
+              byline: `Автор: ${material.author.display_name || material.author.username} · Карточек: ${material.cards_count}`,
+              content: article.body && (
+                <ArticleContentServer
+                  key={id}
+                  value={article.body}
+                  articleTitle={title}
+                  media={Object.fromEntries((article.media ?? []).map((item) => [item.id, item]))}
+                />
+              ),
+              hasCards: material.cards_count > 0,
+              resources: material.cards_count > 0 && (
+                <section key={id} className="course-card-list course-resources">
+                  <h3 id={`article-${id}-cards`} tabIndex={-1}>
+                    Карточки к статье
+                  </h3>
+                  <PublicCourseCards initial={material} slug={course.slug} articleId={id} />
+                </section>
+              ),
+            };
+          }),
+        }))}
+      />
       {related.length > 0 && (
         <section aria-labelledby="related-title" className="course-related course-width">
           <h2 id="related-title" className="text-2xl font-semibold">

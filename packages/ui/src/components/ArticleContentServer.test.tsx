@@ -60,3 +60,15 @@ it('не превращает примеры разметки, произвол�
   expect(html).toContain('[!info]');
   expect(html).toContain('Незакрытый вопрос');
 });
+
+it('убирает повтор заголовка без номера урока и сохраняет следующий подзаголовок', () => {
+  const html = renderToStaticMarkup(
+    <ArticleContentServer
+      articleTitle="1.1 Введение в Python"
+      value={'# Введение в Python\n\n> **Коротко**\n> - Тезис\n\n## План занятия'}
+    />,
+  );
+  expect(html).not.toContain('Введение в Python');
+  expect(html).toMatch(/<h3[^>]*>План занятия<\/h3>/);
+  expect(html).toContain('<blockquote class="article-summary">');
+});

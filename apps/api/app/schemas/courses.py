@@ -137,3 +137,10 @@ class CourseEditorDetail(CourseDetail):
 
 class CourseCopyRequest(BaseModel):
     article_id: UUID | None = None
+    text_only: bool = False
+
+    @model_validator(mode="after")
+    def text_requires_article(self) -> "CourseCopyRequest":
+        if self.text_only and self.article_id is None:
+            raise ValueError("Для копирования текста выберите статью")
+        return self

@@ -71,7 +71,13 @@ export function LibraryUpdateControl({
             <path d="M10 5.7v5" strokeLinecap="round" />
             <circle cx="10" cy="13.8" r="1" fill="currentColor" stroke="none" />
           </svg>
-          {targetType === 'course' ? 'Есть обновление курса' : 'Есть обновление набора'}
+          {
+            {
+              course: 'Есть обновление курса',
+              article: 'Есть обновление статьи',
+              set: 'Есть обновление набора',
+            }[targetType]
+          }
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span aria-hidden="true">—</span>

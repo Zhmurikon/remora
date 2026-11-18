@@ -13,6 +13,7 @@ from app.schemas.library import (
     LibraryItem,
     LibrarySaveCreate,
     LibraryState,
+    SavedArticleText,
     SavedCourseItem,
     SavedSetItem,
     SetFolderChange,
@@ -67,6 +68,15 @@ async def remove_from_library(
     save_id: UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
 ) -> None:
     await LibraryService(db).remove(user, save_id)
+
+
+@router.get(
+    "/{save_id}/article", response_model=SavedArticleText, summary="Сохранённый текст статьи"
+)
+async def read_saved_article(
+    save_id: UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+) -> SavedArticleText:
+    return await LibraryService(db).article_text(user, save_id)
 
 
 @router.get("/{save_id}/changes", response_model=LibraryDiff, summary="Изменения оригинала")

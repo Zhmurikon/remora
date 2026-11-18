@@ -2,7 +2,7 @@
 
 import { createElement, lazy, Suspense, type ReactNode } from 'react';
 import type { Token } from 'markdown-it';
-import { md, mediaId } from './article-markdown';
+import { md, mediaId, prepareArticleHeadings, isArticleSummary } from './article-markdown';
 import './article-study.css';
 import './card-content.css';
 
@@ -80,31 +80,9 @@ export function ArticleContent({
   className?: string;
 }) {
   const tokens = md.parse(value ?? '', {});
-  let headingOffset = headingLevel - 1;
-  if (articleTitle !== undefined) {
-    // Заголовок урока уже есть над текстом. Точку после номера авторы ставят по-разному.
-    const normalize = (text: string) => text.trim().replace(/^(\d+(?:\.\d+)*)\.?(?=\s)/u, '$1');
-    if (
-      tokens[0]?.type === 'heading_open' &&
-      tokens[0].tag === 'h1' &&
-      tokens[1]?.type === 'inline' &&
-      normalize(tokens[1].content) === normalize(articleTitle)
-    )
-      tokens.splice(0, 3);
-    const levels = tokens
-      .filter((t) => t.type === 'heading_open')
-      .map((t) => Number(t.tag.slice(1)));
-    if (levels.length) headingOffset = headingLevel - Math.min(...levels);
-  }
+  const headingOffset = prepareArticleHeadings(tokens, headingLevel, articleTitle);
   const summaries = new Set(
-    articleTitle === undefined
-      ? []
-      : tokens.filter(
-          (token, index) =>
-            token.type === 'blockquote_open' &&
-            tokens[index + 1]?.type === 'paragraph_open' &&
-            tokens[index + 2]?.content === '**Коротко**',
-        ),
+    articleTitle === undefined ? [] : tokens.filter((_, index) => isArticleSummary(tokens, index)),
   );
   let key = 0;
   const nextKey = () => (key += 1);

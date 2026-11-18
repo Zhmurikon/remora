@@ -14,6 +14,13 @@ import { ListSort, sortItems, useListSort, useCustomOrder } from '../features/li
 
 const web = import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000';
 type Item = components['schemas']['LibraryItem'];
+function readerPath(item: Item) {
+  if (item.target_type === 'set') return '/sets/' + item.set_id;
+  if (item.target_type === 'course') return '/courses/' + item.course_id;
+  if (!item.set_id) return '/library/' + item.id + '/read';
+  return '/courses/' + item.course_id + '?article=' + item.article_id;
+}
+
 function titleOf(item: Item) {
   return (item.target_type === 'set' ? item.set_title : item.article_title) ?? item.course_title;
 }
@@ -112,20 +119,11 @@ export function LibraryPage() {
             >
               {(item) => (
                 <>
-                  <Link
-                    className="manage-title"
-                    to={
-                      type === 'set'
-                        ? '/sets/' + item.set_id
-                        : '/courses/' +
-                          item.course_id +
-                          (type === 'article' ? '?article=' + item.article_id : '')
-                    }
-                  >
+                  <Link className="manage-title" to={readerPath(item)}>
                     {item.title}
                   </Link>
                   <p className="manage-meta">
-                    {cardCount(item.cards_count)} ·{' '}
+                    {(type !== 'article' || item.set_id) && cardCount(item.cards_count) + ' · '}
                     {item.author?.display_name || item.author?.username} ·{' '}
                     <a href={web + '/kurs/' + item.course_slug}>
                       {type === 'course' ? 'Оригинал курса' : item.course_title}

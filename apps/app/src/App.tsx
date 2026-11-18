@@ -10,6 +10,7 @@ import { CourseEditorPage } from './pages/CourseEditorPage';
 import { CourseCopyPage, CourseReaderPage } from './pages/CourseReaderPage';
 import { FlashcardsPage } from './pages/FlashcardsPage';
 import { LearnPage } from './pages/LearnPage';
+import { SavedArticlePage } from './pages/SavedArticlePage';
 import { LibraryPage } from './pages/LibraryPage';
 import { MaterialsPage } from './pages/MaterialsPage';
 import { ListenPage } from './pages/ListenPage';
@@ -49,6 +50,7 @@ export function App() {
               <Route path="courses" element={<MaterialsPage />} />
               <Route path="sets/manage" element={<SetsPage />} />
               <Route path="courses/manage" element={<CoursesPage />} />
+              <Route path="library/:saveId/read" element={<SavedArticlePage />} />
               <Route path="library/manage" element={<LibraryPage />} />
               <Route path="courses/new" element={<NewCoursePage />} />
               <Route path="courses/:courseId" element={<CourseReaderPage />} />

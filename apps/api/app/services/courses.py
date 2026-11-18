@@ -67,12 +67,12 @@ class CourseService:
             raise ForbiddenError("Нет доступа к этому курсу")
         return await self._detail(course, user)
 
-    async def _resolve_article_media(
-        self, articles: list[CourseArticle], owner_id: UUID
+    async def resolve_article_media(
+        self, bodies: dict[UUID, str], owner_id: UUID
     ) -> dict[UUID, list[ArticleMediaRef]]:
         """Подписанные ссылки на изображения теории. Доступ, как у карточек: изображение
         должно принадлежать автору курса и быть готовым — иначе оно просто не отдаётся."""
-        per_article = {article.id: extract_media_ids(article.body) for article in articles}
+        per_article = {article_id: extract_media_ids(body) for article_id, body in bodies.items()}
         wanted = {media_id for ids in per_article.values() for media_id in ids}
         assets = {
             asset.id: asset
@@ -100,7 +100,7 @@ class CourseService:
         if author is None:
             raise NotFoundError("Автор не найден")
         articles = await repo.articles(self.db, course.id)
-        media = await self._resolve_article_media(articles, course.owner_id)
+        media = await self.resolve_article_media({a.id: a.body for a in articles}, course.owner_id)
         sections = [
             CourseSectionPublic(
                 id=section.id,

@@ -313,7 +313,7 @@ class CourseEditorService:
         return SetDetail.model_validate(result)
 
     async def copy(
-        self, user: User, course_id: UUID, article_id: UUID | None
+        self, user: User, course_id: UUID, article_id: UUID | None, *, text_only: bool = False
     ) -> CourseEditorDetail:
         source = await repo.get_course(self.db, course_id)
         if source is None:
@@ -357,12 +357,20 @@ class CourseEditorService:
                 self.db.add(new_section)
                 await self.db.flush()
                 for article in selected:
-                    material = await content_repo.get_set(self.db, article.set_id, with_cards=True)
+                    material = await content_repo.get_set(
+                        self.db, article.set_id, with_cards=not text_only
+                    )
                     if material is None or material.owner_id != source.owner_id:
                         raise ConflictError("Один из материалов недоступен")
-                    new_set = await self._copy_set_content(
-                        user, material, source.owner_id, media, uploaded
-                    )
+                    if text_only:
+                        # У каждого урока есть свой set_id, даже когда в уроке одна теория.
+                        new_set = await self.content.create_set(
+                            user, SetCreate(title=article.title)
+                        )
+                    else:
+                        new_set = await self._copy_set_content(
+                            user, material, source.owner_id, media, uploaded
+                        )
                     new_body = await self._copy_body_media(
                         user, article.body, source.owner_id, media, uploaded
                     )
@@ -396,6 +404,6 @@ class CourseEditorService:
             key,
             f"course-copy:{course_id}",
             body,
-            lambda: self.copy(user, course_id, body.article_id),
+            lambda: self.copy(user, course_id, body.article_id, text_only=body.text_only),
         )
         return CourseEditorDetail.model_validate(result)

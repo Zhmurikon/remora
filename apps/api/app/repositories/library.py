@@ -157,6 +157,7 @@ async def can_study_set(db: AsyncSession, user_id: UUID, set_id: UUID) -> bool:
                 LibrarySave.article_id == CourseArticle.id,
                 LibrarySave.course_id == Course.id,
             ),
+            ~LibrarySave.accepted_snapshot.contains({"text_only": True}),
             Course.is_published.is_(True),
             Course.moderation_status != "blocked",
             Course.owner_id == study_set.owner_id,
