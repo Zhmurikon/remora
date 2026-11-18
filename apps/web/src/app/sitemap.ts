@@ -48,6 +48,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl('/kursy'), changeFrequency: 'daily', priority: 0.9 },
     { url: absoluteUrl('/tarify'), changeFrequency: 'monthly', priority: 0.8 },
     { url: absoluteUrl('/blog'), changeFrequency: 'weekly', priority: 0.7 },
+    {
+      url: absoluteUrl('/obnovleniya'),
+      lastModified: new Date('2026-10-30'),
+      changeFrequency: 'monthly',
+      priority: 0.5,
+    },
     { url: absoluteUrl('/privacy'), changeFrequency: 'yearly', priority: 0.3 },
     { url: absoluteUrl('/terms'), changeFrequency: 'yearly', priority: 0.3 },
     { url: absoluteUrl('/en/privacy'), changeFrequency: 'yearly', priority: 0.2 },

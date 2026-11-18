@@ -1,0 +1,309 @@
+.updates-route {
+  --updates-paper: rgb(var(--rm-lecture-paper));
+  --updates-surface: rgb(var(--rm-lecture-surface));
+  --updates-ink: rgb(var(--rm-lecture-ink));
+  --updates-muted: rgb(var(--rm-lecture-muted));
+  --updates-action: rgb(var(--rm-lecture-action));
+  --updates-blue: rgb(var(--rm-lecture-blue));
+  --updates-line: rgb(var(--rm-lecture-line));
+  min-width: 0;
+  background: var(--updates-surface);
+  color: var(--updates-ink);
+  font:
+    1rem/1.56 Inter,
+    'Segoe UI',
+    Arial,
+    sans-serif;
+}
+
+.updates-route *,
+.updates-route *::before,
+.updates-route *::after {
+  box-sizing: border-box;
+}
+
+.updates-skip {
+  position: fixed;
+  z-index: 100;
+  top: 0.75rem;
+  left: 0.75rem;
+  min-height: 44px;
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--updates-line);
+  border-radius: 0.625rem;
+  background: var(--updates-surface);
+  color: var(--updates-blue);
+  font-weight: 600;
+  transform: translateY(-180%);
+}
+
+.updates-skip:focus-visible {
+  outline: 3px solid var(--updates-blue);
+  outline-offset: 3px;
+  transform: translateY(0);
+}
+
+.updates-main {
+  min-height: 60vh;
+  padding: 1rem max(5%, 1rem) clamp(4rem, 8vw, 7.5rem);
+  background: var(--updates-paper);
+  background-image: radial-gradient(rgb(var(--rm-lecture-line) / 0.52) 0.7px, transparent 0.8px);
+  background-size: 0.625rem 0.625rem;
+}
+
+.updates-intro,
+.updates-list,
+.updates-afterword {
+  width: min(100%, 66rem);
+  margin-inline: auto;
+}
+
+.updates-intro {
+  padding-block: clamp(4.5rem, 9vw, 8rem) clamp(3.5rem, 7vw, 6rem);
+}
+
+.updates-intro h1 {
+  max-width: 12ch;
+  margin: 0;
+  color: var(--updates-ink);
+  font:
+    400 clamp(2.55rem, 5vw, 4.0625rem) / 0.99 Georgia,
+    'Times New Roman',
+    serif;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.updates-intro p {
+  max-width: 42rem;
+  margin: 1.5rem 0 0;
+  color: var(--updates-muted);
+  font-size: clamp(1.0625rem, 1.3vw, 1.125rem);
+  line-height: 1.55;
+}
+
+.updates-list {
+  margin-block: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.updates-list > li {
+  --date-column: 10rem;
+  --timeline-gap: 4rem;
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--date-column) minmax(0, 1fr);
+  column-gap: var(--timeline-gap);
+  padding-block: clamp(2rem, 4vw, 3.5rem);
+  border-top: 1px solid var(--updates-line);
+}
+
+.updates-list > li::before {
+  content: '';
+  position: absolute;
+  top: 3.8rem;
+  bottom: -3.8rem;
+  left: calc(var(--date-column) + var(--timeline-gap) / 2);
+  width: 1px;
+  background: var(--updates-line);
+}
+
+.updates-list > li::after {
+  content: '';
+  position: absolute;
+  top: 3.55rem;
+  left: calc(var(--date-column) + var(--timeline-gap) / 2);
+  width: 0.55rem;
+  height: 0.55rem;
+  border: 1.5px solid var(--updates-blue);
+  border-radius: 50%;
+  background: var(--updates-paper);
+  transform: translateX(-50%);
+}
+
+.updates-list > li:last-child::before {
+  display: none;
+}
+
+.updates-list time {
+  padding-top: 0.4rem;
+  color: var(--updates-blue);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+}
+
+.updates-list article {
+  max-width: 44rem;
+}
+
+.updates-list h2 {
+  margin: 0;
+  color: var(--updates-ink);
+  font:
+    400 clamp(1.5rem, 2.4vw, 1.875rem) / 1.2 Georgia,
+    'Times New Roman',
+    serif;
+  letter-spacing: -0.022em;
+  text-wrap: balance;
+}
+
+.updates-list p {
+  max-width: 68ch;
+  margin: 1rem 0 0;
+  color: var(--updates-muted);
+  line-height: 1.72;
+}
+
+.updates-afterword {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  padding-top: clamp(2.5rem, 5vw, 4rem);
+  border-top: 1px solid var(--updates-line);
+}
+
+.updates-afterword > a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--updates-action);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.3em;
+}
+
+.updates-afterword > a:is(:hover, :focus-visible) {
+  color: var(--updates-blue);
+}
+
+.updates-afterword > a:focus-visible,
+.updates-afterword select:focus-visible {
+  outline: 3px solid var(--updates-blue);
+  outline-offset: 3px;
+}
+
+.updates-afterword .home-theme {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--updates-muted);
+  font-size: 0.875rem;
+}
+
+.updates-afterword select {
+  min-height: 44px;
+  padding: 0 2.25rem 0 0.75rem;
+  border: 1px solid var(--updates-line);
+  border-radius: 0.625rem;
+  background: var(--updates-surface);
+  color: var(--updates-ink);
+  font: inherit;
+}
+
+.updates-route ::selection {
+  background: rgb(var(--rm-lecture-selected));
+  color: var(--updates-ink);
+}
+
+@media (max-width: 720px) {
+  .updates-main {
+    padding-inline: 1.25rem;
+  }
+
+  .updates-intro {
+    padding-block: 4rem 3.25rem;
+  }
+
+  .updates-list > li {
+    display: block;
+    padding-block: 2rem;
+  }
+
+  .updates-list > li::before,
+  .updates-list > li::after {
+    display: none;
+  }
+
+  .updates-list article {
+    margin-top: 0.75rem;
+  }
+
+  .updates-list time {
+    padding: 0;
+    font-size: 0.75rem;
+  }
+
+  .updates-afterword {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .updates-main {
+    padding-inline: 1rem;
+  }
+
+  .updates-intro h1 {
+    font-size: min(2.35rem, 13vw);
+  }
+
+  .updates-afterword .home-theme {
+    width: 100%;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .updates-afterword select {
+    width: 100%;
+    padding-inline: 12px 32px;
+    font-size: clamp(0.875rem, 5vw, 1rem);
+  }
+
+  .updates-route .footer-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .updates-route :is(.footer-brand, .footer-contact) {
+    grid-column: auto;
+  }
+
+  /* При увеличении текста логотип и длинные контакты остаются внутри узкой колонки. */
+  .updates-route .footer-brand {
+    align-items: flex-start;
+    flex-direction: column;
+    font-size: clamp(1rem, 7vw, 1.45rem);
+    overflow-wrap: anywhere;
+  }
+
+  .updates-route .site-footer a {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  /* Контурная кнопка сохраняет подпись и в тёмной теме после подключения общей кисти. */
+  .updates-route .header-toggle {
+    color: var(--sheet-text);
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 100rem) {
+  :root:has(.updates-route) {
+    font-size: clamp(100%, min(1vw, 1.74svh), 212.5%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .updates-route *,
+  .updates-route *::before,
+  .updates-route *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

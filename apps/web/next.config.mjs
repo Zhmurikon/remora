@@ -7,6 +7,15 @@ const nextConfig = {
   images: {
     formats: ['image/avif', 'image/webp'],
   },
+  async redirects() {
+    return [
+      {
+        source: '/lecture-demo/updates.html',
+        destination: '/obnovleniya',
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

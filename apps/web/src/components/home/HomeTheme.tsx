@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from 'react';
 
-export function HomeTheme() {
+interface HomeThemeProps {
+  systemLabel?: string;
+}
+
+export function HomeTheme({ systemLabel = 'Как на устройстве' }: HomeThemeProps) {
   const [theme, setTheme] = useState('system');
   useEffect(() => {
     const root = document.documentElement;
@@ -22,7 +26,7 @@ export function HomeTheme() {
         value={theme}
         onChange={(event) => setTheme(event.target.value)}
       >
-        <option value="system">Как на устройстве</option>
+        <option value="system">{systemLabel}</option>
         <option value="light">Светлая</option>
         <option value="dark">Тёмная</option>
       </select>

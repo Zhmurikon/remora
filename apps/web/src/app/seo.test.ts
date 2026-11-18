@@ -52,6 +52,7 @@ it('сохраняет статические URL при недоступном 
     'https://zapominalnya.ru/kursy',
     'https://zapominalnya.ru/tarify',
     'https://zapominalnya.ru/blog',
+    'https://zapominalnya.ru/obnovleniya',
     'https://zapominalnya.ru/privacy',
     'https://zapominalnya.ru/terms',
     'https://zapominalnya.ru/en/privacy',
