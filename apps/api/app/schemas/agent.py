@@ -8,13 +8,25 @@ from app.schemas.content import CardWrite, FolderPublic, SetDetail
 from app.schemas.courses import CourseMetadata, CourseSummary
 
 
+class AgentCardWrite(CardWrite):
+    term: str = Field(max_length=10_000, pattern=r"\S")
+    definition: str = Field(max_length=10_000, pattern=r"\S")
+
+
 class AgentSetWrite(CourseMetadata):
     visibility: SetVisibility = SetVisibility.public
     model_config = ConfigDict(extra="forbid")
     lang_term: str = Field(default="ru", min_length=2, max_length=10)
     lang_definition: str = Field(default="ru", min_length=2, max_length=10)
     folder_id: UUID | None = None
-    cards: list[CardWrite] = Field(default_factory=list, max_length=5000)
+    cards: list[AgentCardWrite] = Field(
+        default_factory=list,
+        max_length=5000,
+        description=(
+            "При обновлении пропустите поле для сохранения карточек. "
+            "Явный массив заменяет колоду, [] очищает её."
+        ),
+    )
 
 
 class AgentSetUpdate(AgentSetWrite):

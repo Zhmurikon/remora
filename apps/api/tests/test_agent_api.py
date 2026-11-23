@@ -8,7 +8,11 @@ from httpx import AsyncClient
 
 from app.db.session import get_session_factory
 from app.models.api_tokens import ApiToken
+from app.models.study import CardState, StudyDirection
+from app.models.tts import UsageCounter
 from app.models.user import User, UserStatus
+from app.services.entitlements import week_period
+from app.services.scheduler import SCHEDULER_VERSION
 from tests.test_study import _auth
 
 
@@ -192,3 +196,112 @@ async def test_course_rollback_and_card_validation(client: AsyncClient) -> None:
     }
     headers["Idempotency-Key"] = str(uuid4())
     assert (await client.post("/api/v1/agent/sets", headers=headers, json=bad)).status_code == 422
+
+
+async def test_agent_metadata_preserves_cards_progress_and_explicit_clear(
+    client: AsyncClient,
+) -> None:
+    owner = await _auth(client, "agentmove")
+    headers, _ = await token(client, owner)
+    user_id = UUID((await client.get("/api/v1/auth/me", headers=owner)).json()["id"])
+    saved = (
+        await client.post(
+            "/api/v1/agent/sets",
+            headers=headers,
+            json={
+                "title": "До",
+                "cards": [{"term": "Один", "definition": "1"}, {"term": "Два", "definition": "2"}],
+            },
+        )
+    ).json()
+    async with get_session_factory()() as db:
+        state = CardState(
+            user_id=user_id,
+            set_id=UUID(saved["id"]),
+            card_id=UUID(saved["cards"][0]["id"]),
+            direction=StudyDirection.term_to_def,
+            reps=7,
+            scheduler_version=SCHEDULER_VERSION,
+        )
+        db.add(state)
+        await db.commit()
+        state_id = state.id
+    folder = (
+        await client.post(
+            "/api/v1/agent/folders",
+            headers={**headers, "Idempotency-Key": str(uuid4())},
+            json={"title": "Папка"},
+        )
+    ).json()
+    url = f"/api/v1/agent/sets/{saved['id']}"
+    headers["Idempotency-Key"] = str(uuid4())
+    body = {"title": "После", "folder_id": folder["id"], "revision": saved["revision"]}
+    moved = await client.put(url, headers=headers, json=body)
+    assert moved.status_code == 200
+    current = (await client.get(url, headers=headers)).json()
+    assert current["cards"] == saved["cards"] and current["folder_id"] == folder["id"]
+    async with get_session_factory()() as db:
+        state = await db.get(CardState, state_id)
+        assert state is not None and state.reps == 7
+    assert (await client.put(url, headers=headers, json=body)).json() == moved.json()
+    assert (await client.put(url, headers=headers, json={**body, "cards": []})).status_code == 409
+    cleared = await client.put(
+        url,
+        headers={**headers, "Idempotency-Key": str(uuid4())},
+        json={**body, "revision": current["revision"], "cards": []},
+    )
+    assert cleared.status_code == 200 and cleared.json()["cards"] == []
+
+
+async def test_agent_only_charges_new_writes_at_quota_boundary(client: AsyncClient) -> None:
+    owner = await _auth(client, "agentlastwrite")
+    headers, _ = await token(client, owner)
+    user_id = UUID((await client.get("/api/v1/auth/me", headers=owner)).json()["id"])
+    period, _ = week_period()
+    async with get_session_factory()() as db:
+        db.add(
+            UsageCounter(
+                user_id=user_id, metric="agent.writes_per_week", period_key=period, value=499
+            )
+        )
+        await db.commit()
+    url = "/api/v1/agent/sets"
+    body = {"title": "Последняя запись"}
+    first, retry = await asyncio.gather(
+        *(client.post(url, headers=headers, json=body) for _ in range(2))
+    )
+    assert first.status_code == retry.status_code == 201 and first.json() == retry.json()
+    assert (
+        await client.post(url, headers=headers, json={"title": "Другая запись"})
+    ).status_code == 409
+    exhausted = await client.post(
+        url, headers={**headers, "Idempotency-Key": str(uuid4())}, json=body
+    )
+    assert exhausted.status_code == 402
+    assert exhausted.json()["details"]["limit_key"] == "agent.writes_per_week"
+    usage = (await client.get("/api/v1/billing/entitlements", headers=owner)).json()["usage"]
+    assert usage["agent.writes_per_week"] == 500
+
+
+async def test_agent_course_metadata_preserves_nested_cards(client: AsyncClient) -> None:
+    headers, _ = await token(client, await _auth(client, "agentnestedmove"))
+    body = course_body()
+    saved = (await client.post("/api/v1/agent/courses", headers=headers, json=body)).json()
+    for section, original in zip(body["sections"], saved["sections"], strict=True):
+        section["id"] = original["id"]
+        article = section["articles"][0]
+        article["id"] = original["articles"][0]["id"]
+        article["material"].pop("cards")
+    body["revision"] = saved["revision"]
+    body["title"] = "Переименовано"
+    res = await client.put(
+        f"/api/v1/agent/courses/{saved['id']}",
+        headers={**headers, "Idempotency-Key": str(uuid4())},
+        json=body,
+    )
+    assert res.status_code == 200
+    for section, original in zip(res.json()["sections"], saved["sections"], strict=True):
+        assert (
+            section["articles"][0]["material"]["cards"]
+            == original["articles"][0]["material"]["cards"]
+        )

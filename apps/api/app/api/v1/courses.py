@@ -142,6 +142,7 @@ async def save_structure(
         f"structure:{course_id}",
         body,
         lambda: CourseEditorService(db).save(user, course_id, body),
+        count_agent_write=False,
     )
     return CourseEditorDetail.model_validate(result)
 
