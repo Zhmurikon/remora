@@ -10,5 +10,6 @@ docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -e UV_CACHE_DIR=/cache \
   -v "${XDG_CACHE_HOME:-$HOME/.cache}/uv:/cache" \
   -v zapominalnya-local_python-deps:/opt/venv \
   -v "$PWD/apps/api/pyproject.toml:/workspace/apps/api/pyproject.toml:ro" \
+  -v "$PWD/integrations/remora-ai-integrations/mcp-server:/workspace/integrations/remora-ai-integrations/mcp-server:ro" \
   -v "$PWD/apps/api/uv.lock:/workspace/apps/api/uv.lock:ro" \
   remora-dev-api:local uv sync --frozen --no-install-project

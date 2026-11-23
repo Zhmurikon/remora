@@ -8,11 +8,11 @@ catalog, classes, assignments, gamification, billing, moderation.
 from fastapi import APIRouter
 
 from app.api.v1 import (
-    assistant,
     admin,
     admin_security,
     agent,
     api_tokens,
+    assistant,
     auth,
     authors,
     battles,
@@ -27,6 +27,7 @@ from app.api.v1 import (
     health,
     imports,
     library,
+    mcp_consent,
     media,
     moderation,
     practice,
@@ -41,6 +42,7 @@ from app.api.v1 import (
 )
 
 api_router = APIRouter()
+api_router.include_router(mcp_consent.router)
 api_router.include_router(admin.router)
 api_router.include_router(admin_security.router)
 api_router.include_router(bots.router)

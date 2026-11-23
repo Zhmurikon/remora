@@ -1,10 +1,11 @@
+from datetime import datetime
 from typing import Literal, Self
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
 from app.models.content import SetVisibility
-from app.schemas.content import CardWrite, FolderPublic, SetDetail
+from app.schemas.content import CardPublic, CardWrite, FolderPublic, SetDetail
 from app.schemas.courses import CourseMetadata, CourseSummary
 
 
@@ -146,3 +147,66 @@ class AgentSectionDetail(BaseModel):
 class AgentCourseDetail(CourseSummary):
     revision: str
     sections: list[AgentSectionDetail]
+
+
+class SetMove(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    folder_id: UUID | None
+    revision: str = Field(min_length=64, max_length=64)
+
+
+class CardAppend(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    revision: str = Field(min_length=64, max_length=64)
+    cards: list[AgentCardWrite] = Field(min_length=1, max_length=500)
+
+
+class CardChanges(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    term: str | None = Field(default=None, max_length=10_000, pattern=r"\S")
+    definition: str | None = Field(default=None, max_length=10_000, pattern=r"\S")
+    hint: str | None = Field(default=None, max_length=1000)
+    term_transcription: str | None = Field(default=None, max_length=300)
+    definition_transcription: str | None = Field(default=None, max_length=300)
+    content_type: Literal["text", "code", "latex"] | None = None
+    code_language: str | None = Field(default=None, max_length=50)
+    term_image_id: UUID | None = None
+    definition_image_id: UUID | None = None
+    wrong_term_answers: list[str] | None = Field(default=None, max_length=30)
+    wrong_definition_answers: list[str] | None = Field(default=None, max_length=30)
+    alt_answers: list[str] | None = Field(default=None, max_length=30)
+
+    @model_validator(mode="after")
+    def require_changes(self) -> Self:
+        if not self.model_fields_set:
+            raise ValueError("Передайте хотя бы одно изменение карточки")
+        return self
+
+
+class CardEdit(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    revision: str = Field(min_length=64, max_length=64)
+    changes: CardChanges
+
+
+class SetEditResult(BaseModel):
+    set_id: UUID
+    revision: str
+    folder_id: UUID | None
+    cards_count: int
+    card_ids: list[UUID]
+
+
+class CardPage(BaseModel):
+    revision: str
+    total: int
+    cards: list[CardPublic]
+
+
+class AgentConnection(BaseModel):
+    scopes: list[str]
+    plan: str
+    private_materials: bool
+    weekly_writes_used: int
+    weekly_writes_remaining: int | None
+    resets_at: datetime | None

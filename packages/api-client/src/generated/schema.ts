@@ -762,6 +762,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/agent/connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Check Connection */
+        get: operations["check_connection_api_v1_agent_connection_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/agent/courses": {
         parameters: {
             query?: never;
@@ -1000,6 +1017,58 @@ export interface paths {
         /** Update Set */
         put: operations["update_set_api_v1_agent_sets__set_id__put"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent/sets/{set_id}/cards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Set Cards */
+        get: operations["list_set_cards_api_v1_agent_sets__set_id__cards_get"];
+        put?: never;
+        /** Append Cards */
+        post: operations["append_cards_api_v1_agent_sets__set_id__cards_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent/sets/{set_id}/cards/{card_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Card */
+        patch: operations["update_card_api_v1_agent_sets__set_id__cards__card_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/agent/sets/{set_id}/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move Set */
+        post: operations["move_set_api_v1_agent_sets__set_id__move_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2476,6 +2545,24 @@ export interface paths {
         get: operations["library_changes_api_v1_library__save_id__changes_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mcp/consent/{ticket}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Consent */
+        get: operations["read_consent_api_v1_mcp_consent__ticket__get"];
+        put?: never;
+        /** Consent */
+        post: operations["consent_api_v1_mcp_consent__ticket__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5182,6 +5269,21 @@ export interface components {
             /** Wrong Term Answers */
             wrong_term_answers?: string[];
         };
+        /** AgentConnection */
+        AgentConnection: {
+            /** Plan */
+            plan: string;
+            /** Private Materials */
+            private_materials: boolean;
+            /** Resets At */
+            resets_at: string | null;
+            /** Scopes */
+            scopes: string[];
+            /** Weekly Writes Remaining */
+            weekly_writes_remaining: number | null;
+            /** Weekly Writes Used */
+            weekly_writes_used: number;
+        };
         /** AgentCourseCreate */
         AgentCourseCreate: {
             /**
@@ -6452,12 +6554,52 @@ export interface components {
          * @enum {string}
          */
         BotPlatform: "telegram" | "vk";
+        /** CardAppend */
+        CardAppend: {
+            /** Cards */
+            cards: components["schemas"]["AgentCardWrite"][];
+            /** Revision */
+            revision: string;
+        };
         /** CardBatch */
         CardBatch: {
             /** Cards */
             cards: components["schemas"]["CardWrite"][];
             /** Expected Updated At */
             expected_updated_at?: string | null;
+        };
+        /** CardChanges */
+        CardChanges: {
+            /** Alt Answers */
+            alt_answers?: string[] | null;
+            /** Code Language */
+            code_language?: string | null;
+            /** Content Type */
+            content_type?: ("text" | "code" | "latex") | null;
+            /** Definition */
+            definition?: string | null;
+            /** Definition Image Id */
+            definition_image_id?: string | null;
+            /** Definition Transcription */
+            definition_transcription?: string | null;
+            /** Hint */
+            hint?: string | null;
+            /** Term */
+            term?: string | null;
+            /** Term Image Id */
+            term_image_id?: string | null;
+            /** Term Transcription */
+            term_transcription?: string | null;
+            /** Wrong Definition Answers */
+            wrong_definition_answers?: string[] | null;
+            /** Wrong Term Answers */
+            wrong_term_answers?: string[] | null;
+        };
+        /** CardEdit */
+        CardEdit: {
+            changes: components["schemas"]["CardChanges"];
+            /** Revision */
+            revision: string;
         };
         /** CardErrorOut */
         CardErrorOut: {
@@ -6485,6 +6627,15 @@ export interface components {
             students_with_errors: number;
             /** Term */
             term: string;
+        };
+        /** CardPage */
+        CardPage: {
+            /** Cards */
+            cards: components["schemas"]["CardPublic"][];
+            /** Revision */
+            revision: string;
+            /** Total */
+            total: number;
         };
         /** CardPublic */
         CardPublic: {
@@ -6881,6 +7032,25 @@ export interface components {
             requires_approval?: boolean | null;
             /** Title */
             title?: string | null;
+        };
+        /** ConsentDecision */
+        ConsentDecision: {
+            /** Allow */
+            allow: boolean;
+            /** Scopes */
+            scopes: ("materials:read" | "materials:write" | "courses:publish" | "blog:read" | "blog:write" | "blog:publish")[];
+        };
+        /** ConsentRedirect */
+        ConsentRedirect: {
+            /** Redirect Uri */
+            redirect_uri: string;
+        };
+        /** ConsentView */
+        ConsentView: {
+            /** Client */
+            client: string;
+            /** Scopes */
+            scopes: string[];
         };
         /**
          * ContentType
@@ -8578,6 +8748,22 @@ export interface components {
             updated_at: string;
             visibility: components["schemas"]["SetVisibility"];
         };
+        /** SetEditResult */
+        SetEditResult: {
+            /** Card Ids */
+            card_ids: string[];
+            /** Cards Count */
+            cards_count: number;
+            /** Folder Id */
+            folder_id: string | null;
+            /** Revision */
+            revision: string;
+            /**
+             * Set Id
+             * Format: uuid
+             */
+            set_id: string;
+        };
         /** SetFolderChange */
         SetFolderChange: {
             /** Folder Id */
@@ -8611,6 +8797,13 @@ export interface components {
             /** Successes Required */
             successes_required: number;
             typing_check: components["schemas"]["LearnTypingCheck"];
+        };
+        /** SetMove */
+        SetMove: {
+            /** Folder Id */
+            folder_id: string | null;
+            /** Revision */
+            revision: string;
         };
         /** SetStats */
         SetStats: {
@@ -10962,6 +11155,26 @@ export interface operations {
             };
         };
     };
+    check_connection_api_v1_agent_connection_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentConnection"];
+                };
+            };
+        };
+    };
     list_courses_api_v1_agent_courses_get: {
         parameters: {
             query?: {
@@ -11634,6 +11847,153 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentSetDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_set_cards_api_v1_agent_sets__set_id__cards_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+                query?: string;
+            };
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    append_cards_api_v1_agent_sets__set_id__cards_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CardAppend"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetEditResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_card_api_v1_agent_sets__set_id__cards__card_id__patch: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                set_id: string;
+                card_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CardEdit"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetEditResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    move_set_api_v1_agent_sets__set_id__move_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetMove"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetEditResult"];
                 };
             };
             /** @description Validation Error */
@@ -14669,6 +15029,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LibraryDiff"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_consent_api_v1_mcp_consent__ticket__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsentView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    consent_api_v1_mcp_consent__ticket__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsentDecision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsentRedirect"];
                 };
             };
             /** @description Validation Error */
