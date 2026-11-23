@@ -740,6 +740,7 @@ async def upload_blog_media(
         "admin-upload-blog-media",
         body,
         lambda: AgentMediaService(db).upload(actor, body),
+        count_agent_write=False,
     )
 
 

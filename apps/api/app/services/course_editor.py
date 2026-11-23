@@ -314,7 +314,12 @@ class CourseEditorService:
 
     async def copy_set_once(self, user: User, set_id: UUID, key: str) -> SetDetail:
         result = await AgentService(self.db).once(
-            user, key, f"set-copy:{set_id}", None, lambda: self.copy_set(user, set_id)
+            user,
+            key,
+            f"set-copy:{set_id}",
+            None,
+            lambda: self.copy_set(user, set_id),
+            count_agent_write=False,
         )
         return SetDetail.model_validate(result)
 
@@ -398,7 +403,13 @@ class CourseEditorService:
             raise
 
     async def copy_once(
-        self, user: User, course_id: UUID, body: CourseCopyRequest, key: str
+        self,
+        user: User,
+        course_id: UUID,
+        body: CourseCopyRequest,
+        key: str,
+        *,
+        count_agent_write: bool = False,
     ) -> CourseEditorDetail:
         source = await repo.get_course(self.db, course_id)
         if source is None:
@@ -411,5 +422,6 @@ class CourseEditorService:
             f"course-copy:{course_id}",
             body,
             lambda: self.copy(user, course_id, body.article_id, text_only=body.text_only),
+            count_agent_write=count_agent_write,
         )
         return CourseEditorDetail.model_validate(result)

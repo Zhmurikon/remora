@@ -75,3 +75,25 @@ async def test_agent_utf8_and_json_escapes_roundtrip(
     assert published.status_code == 200
     public = (await client.get(f"/api/v1/courses/public/{saved['slug']}")).json()
     assert public["title"] == public["description"] == text
+
+
+@pytest.mark.parametrize(("field", "blank"), [("term", ""), ("definition", " \t\n\u00a0")])
+async def test_agent_blank_side_rejected_at_card_path(
+    client: AsyncClient, field: str, blank: str
+) -> None:
+    headers, _ = await token(client, await _auth(client, "agentblankside"))
+    body = course_body()
+    card = body["sections"][0]["articles"][0]["material"]["cards"][0]
+    card[field] = blank
+    response = await client.post("/api/v1/agent/courses", headers=headers, json=body)
+    assert response.status_code == 422
+    loc = response.json()["details"]["errors"][0]["loc"]
+    assert loc[-3:] == ["cards", 0, field]
+    assert (await client.get("/api/v1/agent/courses", headers=headers)).json() == []
+    card.update(
+        content_type="code", code_language="python", term="    return 1\n", definition="  один  "
+    )
+    saved = await client.post("/api/v1/agent/courses", headers=headers, json=body)
+    assert saved.status_code == 201
+    stored = saved.json()["sections"][0]["articles"][0]["material"]["cards"][0]
+    assert (stored["term"], stored["definition"]) == (card["term"], card["definition"])

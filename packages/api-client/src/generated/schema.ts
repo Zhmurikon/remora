@@ -5153,6 +5153,35 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** AgentCardWrite */
+        AgentCardWrite: {
+            /** Alt Answers */
+            alt_answers?: string[];
+            /** Code Language */
+            code_language?: string | null;
+            /** @default text */
+            content_type: components["schemas"]["ContentType"];
+            /** Definition */
+            definition: string;
+            /** Definition Image Id */
+            definition_image_id?: string | null;
+            /** Definition Transcription */
+            definition_transcription?: string | null;
+            /** Hint */
+            hint?: string | null;
+            /** Id */
+            id?: string | null;
+            /** Term */
+            term: string;
+            /** Term Image Id */
+            term_image_id?: string | null;
+            /** Term Transcription */
+            term_transcription?: string | null;
+            /** Wrong Definition Answers */
+            wrong_definition_answers?: string[];
+            /** Wrong Term Answers */
+            wrong_term_answers?: string[];
+        };
         /** AgentCourseCreate */
         AgentCourseCreate: {
             /**
@@ -5407,8 +5436,11 @@ export interface components {
         };
         /** AgentSetUpdate */
         AgentSetUpdate: {
-            /** Cards */
-            cards?: components["schemas"]["CardWrite"][];
+            /**
+             * Cards
+             * @description При обновлении пропустите поле для сохранения карточек. Явный массив заменяет колоду, [] очищает её.
+             */
+            cards?: components["schemas"]["AgentCardWrite"][];
             /**
              * Description
              * @default
@@ -5435,8 +5467,11 @@ export interface components {
         };
         /** AgentSetWrite */
         AgentSetWrite: {
-            /** Cards */
-            cards?: components["schemas"]["CardWrite"][];
+            /**
+             * Cards
+             * @description При обновлении пропустите поле для сохранения карточек. Явный массив заменяет колоду, [] очищает её.
+             */
+            cards?: components["schemas"]["AgentCardWrite"][];
             /**
              * Description
              * @default

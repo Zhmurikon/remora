@@ -44,7 +44,7 @@ from app.schemas.content import (
 from app.schemas.courses import CourseCopyRequest, CourseSummary
 from app.services.content import ContentService
 from app.services.courses import CourseService
-from app.services.entitlements import Entitlements
+from app.services.entitlements import Entitlements, week_period
 from app.services.search_sync import queue_course
 
 
@@ -67,6 +67,8 @@ class AgentService:
         operation: str,
         body: BaseModel | None,
         action: Callable[[], Awaitable[BaseModel]],
+        *,
+        count_agent_write: bool = True,
     ) -> dict[str, Any]:
         await token_repo.lock_request(self.db, user.id)
         # None — операция без тела: отпечаток определяется одним `operation`.
@@ -85,12 +87,26 @@ class AgentService:
                 ):
                     if "visibility" not in article.material.model_fields_set:
                         saved_article["material"].pop("visibility", None)
-        fingerprint = digest({"operation": operation, "body": payload})
+        legacy_fingerprint = digest({"operation": operation, "body": payload})
+        fingerprint = legacy_fingerprint
+        if isinstance(body, (AgentSetUpdate, AgentCourseUpdate)):
+            # Пропуск cards сохраняет колоду, явный [] очищает. Старые ключи нужны для повторов.
+            fingerprint = digest(
+                {
+                    "operation": operation,
+                    "provided": body.model_dump(mode="json", exclude_unset=True),
+                }
+            )
         previous = await token_repo.previous_request(self.db, user.id, key)
         if previous is not None:
-            if previous.fingerprint != fingerprint:
+            if previous.fingerprint not in (fingerprint, legacy_fingerprint):
                 raise ConflictError("Этот Idempotency-Key уже использован для другого запроса")
             return previous.response
+        if count_agent_write:
+            period, resets_at = week_period()
+            await Entitlements(self.db).consume(
+                user, "agent.writes_per_week", amount=1, period_key=period, resets_at=resets_at
+            )
         result = (await action()).model_dump(mode="json")
         self.db.add(
             AgentRequest(user_id=user.id, key=key, fingerprint=fingerprint, response=result)
@@ -167,7 +183,8 @@ class AgentService:
             set_id,
             SetUpdate(**body.model_dump(exclude={"cards", "revision"}, exclude_unset=True)),
         )
-        await self.content.sync_cards(user, set_id, CardBatch(cards=body.cards))
+        if "cards" in body.model_fields_set:
+            await self.content.sync_cards(user, set_id, CardBatch(cards=body.cards))
 
     async def course_detail(self, user: User, course_id: UUID) -> AgentCourseDetail:
         course = await self.courses.owned(user, course_id)
