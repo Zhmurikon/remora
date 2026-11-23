@@ -8,6 +8,49 @@ brand_name='Запоминальня'
 work_dir=$(mktemp -d)
 trap 'rm -rf "$work_dir"' EXIT
 
+# Знак из шапки кабинета и публичного сайта. Мобильные экспорты используют тот же оригинал.
+generate_mobile_assets() {
+  local mark="$repo_root/apps/web/public/lecture-demo/remora-icon.png"
+  local mobile="$repo_root/apps/mobile"
+  local res="$mobile/android/app/src/main/res"
+  local layers="$res/drawable-xxxhdpi"
+  local mask="$work_dir/ink.png"
+  mkdir -p "$layers"
+  cp "$mark" "$mobile/assets/zapominalnya.png"
+
+  # Маска сохраняет штрихи очков и книги, а белая бумага становится прозрачной.
+  convert "$mark" -background white -alpha remove -alpha off \
+    -channel R -separate +channel -negate -level 3%,98% "$mask"
+  convert -size 512x512 xc:white "$mask" -alpha off -compose CopyOpacity -composite \
+    -depth 8 -strip "$mobile/assets/zapominalnya-ink.png"
+
+  # Холст адаптивной иконки — 108 dp, рисунок — 54 dp по центру.
+  local canvas=432 inner=216
+  local source output
+  for source in "$mark" "$mobile/assets/zapominalnya-ink.png"; do
+    output=ic_launcher_foreground
+    if [[ "$source" != "$mark" ]]; then output=ic_launcher_monochrome; fi
+    convert "$source" -resize "${inner}x${inner}" -gravity center -background none \
+      -extent "${canvas}x${canvas}" -depth 8 -strip "$layers/$output.png"
+  done
+
+  local density_and_size density size symbol
+  for density_and_size in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+    density=${density_and_size%%:*}
+    size=${density_and_size##*:}
+    symbol=$((size * 72 / 100))
+    convert -size "${size}x${size}" xc:none -fill '#FBFBF9' \
+      -draw "circle $((size/2)),$((size/2)) $((size/2)),1" \
+      \( "$mark" -resize "${symbol}x${symbol}" \) -gravity center -compose over -composite \
+      -depth 8 -strip "$res/mipmap-$density/ic_launcher.png"
+  done
+}
+
+if [[ ${1:-} == --mobile-only ]]; then
+  generate_mobile_assets
+  exit
+fi
+
 for command_name in convert potrace; do
   if ! command -v "$command_name" >/dev/null 2>&1; then
     echo "Для генерации бренд-ассетов нужна команда $command_name" >&2
@@ -136,23 +179,7 @@ done
 cp "$assets_dir/remora-mark-compact.svg" "$repo_root/apps/web/src/app/icon.svg"
 cp "$assets_dir/remora-mark-compact.svg" "$repo_root/apps/app/public/favicon.svg"
 cp "$assets_dir/remora-mark-compact.svg" "$repo_root/apps/admin/public/favicon.svg"
-cp "$assets_dir/remora-mark-compact.svg" "$repo_root/apps/mobile/assets/remora-mark.svg"
-cp "$assets_dir/remora-logo-horizontal.svg" \
-  "$repo_root/apps/mobile/assets/remora-logo-horizontal.svg"
-cp "$assets_dir/remora-logo-horizontal-inverse.svg" \
-  "$repo_root/apps/mobile/assets/remora-logo-horizontal-inverse.svg"
-cp "$assets_dir/zapominalnya-logo-horizontal.svg" \
-  "$repo_root/apps/mobile/assets/zapominalnya-logo-horizontal.svg"
-cp "$assets_dir/zapominalnya-logo-horizontal-inverse.svg" \
-  "$repo_root/apps/mobile/assets/zapominalnya-logo-horizontal-inverse.svg"
-
-for density_and_size in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
-  density=${density_and_size%%:*}
-  size=${density_and_size##*:}
-  convert "$repo_root/apps/app/public/icons/icon-maskable-512.png" \
-    -resize "${size}x${size}" -strip \
-    "$repo_root/apps/mobile/android/app/src/main/res/mipmap-$density/ic_launcher.png"
-done
+generate_mobile_assets
 
 convert \
   "$repo_root/apps/app/public/icons/icon-16.png" \
