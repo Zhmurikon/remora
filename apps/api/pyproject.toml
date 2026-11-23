@@ -27,6 +27,7 @@ dependencies = [
     "defusedxml>=0.7.1",
     "pyyaml>=6.0.2",
     "pypdf>=6,<7",
+    "remora-mcp",
 ]
 
 [dependency-groups]
@@ -95,3 +96,6 @@ disallow_untyped_defs = false
 testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = "-q"
+
+[tool.uv.sources]
+remora-mcp = { path = "../../integrations/remora-ai-integrations/mcp-server" }

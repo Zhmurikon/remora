@@ -12,19 +12,21 @@ from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import RequestIdMiddleware, configure_logging
 from app.db.session import dispose_engine, get_session_factory
+from app.remote_mcp import mount_remote
 from app.services.plans import sync_plan_catalog
 
 log = structlog.get_logger()
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     settings = get_settings()
     log.info("api.startup", environment=settings.environment)
     async with get_session_factory()() as db:
         await sync_plan_catalog(db)
         await db.commit()
-    yield
+    async with app.state.remote_mcp.session_manager.run():
+        yield
     await dispose_engine()
     log.info("api.shutdown")
 
@@ -60,6 +62,7 @@ def create_app() -> FastAPI:
 
     register_exception_handlers(app)
     app.include_router(api_router, prefix=settings.api_v1_prefix)
+    app.state.remote_mcp = mount_remote(app)
     return app
 
 

@@ -2,15 +2,17 @@ from collections.abc import Awaitable, Callable
 from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, Query, Response
+from fastapi import APIRouter, Depends, Header, Query, Request, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import UnauthorizedError
+from app.core.errors import ForbiddenError, UnauthorizedError
 from app.core.rate_limit import enforce_rate_limit
 from app.db.session import get_db
+from app.models.api_tokens import ApiToken
 from app.models.user import User
 from app.schemas.agent import (
+    AgentConnection,
     AgentCourseCreate,
     AgentCourseDetail,
     AgentCourseUpdate,
@@ -24,6 +26,11 @@ from app.schemas.agent import (
     AgentSetUpdate,
     AgentSetWrite,
     AgentStructureDelete,
+    CardAppend,
+    CardEdit,
+    CardPage,
+    SetEditResult,
+    SetMove,
 )
 from app.schemas.api_tokens import AgentScope
 from app.schemas.blog import BlogPostDetail, BlogPostUpdate, BlogPostWrite, BlogPublication
@@ -38,11 +45,12 @@ from app.schemas.courses import (
 )
 from app.services.agent import AgentService
 from app.services.agent_media import AgentMediaService
-from app.services.api_tokens import ApiTokenService
+from app.services.api_tokens import AgentIdentity, ApiTokenService
 from app.services.blog import BlogService
 from app.services.content import ContentService
 from app.services.course_editor import CourseEditorService
 from app.services.courses import CourseService
+from app.services.entitlements import Entitlements
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 bearer = HTTPBearer(auto_error=False, scheme_name="PersonalApiToken")
@@ -52,20 +60,36 @@ RequestKey = Annotated[
 ]
 
 
+async def agent_identity(
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    creds: HTTPAuthorizationCredentials | None = Depends(bearer),
+) -> AgentIdentity:
+    service = ApiTokenService(db)
+    delegated = request.scope.get("remora.oauth_grant")
+    if delegated is not None:
+        grant_id, scopes = delegated
+        stored = await service.identity(await db.get(ApiToken, grant_id))
+        identity = AgentIdentity(stored.user, stored.scopes.intersection(scopes))
+    elif creds is not None:
+        identity = await service.identify(creds.credentials)
+    else:
+        raise UnauthorizedError("Нужно подключение к аккаунту")
+    await enforce_rate_limit(
+        scope="agent-api", ip="", identity=str(identity.user.id), limit=120, window_seconds=60
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return identity
+
+
 def require_scope(scope: AgentScope) -> Callable[..., Awaitable[User]]:
-    async def dependency(
-        response: Response,
-        db: AsyncSession = Depends(get_db),
-        creds: HTTPAuthorizationCredentials | None = Depends(bearer),
-    ) -> User:
-        if creds is None:
-            raise UnauthorizedError("Нужен персональный API-токен")
-        user = await ApiTokenService(db).authenticate(creds.credentials, scope)
-        await enforce_rate_limit(
-            scope="agent-api", ip="", identity=str(user.id), limit=120, window_seconds=60
-        )
-        response.headers["Cache-Control"] = "no-store"
-        return user
+    async def dependency(identity: AgentIdentity = Depends(agent_identity)) -> User:
+        if scope not in identity.scopes:
+            raise ForbiddenError(
+                "У подключения нет нужного права", details={"required_scope": scope}
+            )
+        return identity.user
 
     return dependency
 
@@ -452,4 +476,81 @@ async def unpublish_course(
         f"unpublish:{course_id}",
         CoursePublication(),
         lambda: CourseService(db).unpublish(user, course_id),
+    )
+
+
+@router.get("/connection", response_model=AgentConnection)
+async def check_connection(
+    identity: AgentIdentity = Depends(agent_identity), db: AsyncSession = Depends(get_db)
+) -> AgentConnection:
+    entitlements = Entitlements(db)
+    resolved = await entitlements.resolve(identity.user)
+    usage, resets = await entitlements.public_quota_usage(identity.user)
+    key = "agent.writes_per_week"
+    return AgentConnection(
+        scopes=sorted(identity.scopes),
+        plan=resolved.plan_code,
+        private_materials=resolved.features.get("materials.private", False),
+        weekly_writes_used=usage[key],
+        weekly_writes_remaining=entitlements.quota_remaining(resolved.limits, usage)[key],
+        resets_at=resets[key],
+    )
+
+
+@router.get("/sets/{set_id}/cards", response_model=CardPage)
+async def list_set_cards(
+    set_id: UUID,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    query: str = Query("", max_length=200),
+    user: User = Depends(read_user),
+    db: AsyncSession = Depends(get_db),
+) -> CardPage:
+    return await AgentService(db).card_page(user, set_id, offset, limit, query)
+
+
+@router.post("/sets/{set_id}/move", response_model=SetEditResult)
+async def move_set(
+    set_id: UUID,
+    body: SetMove,
+    key: RequestKey,
+    user: User = Depends(write_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    service = AgentService(db)
+    return await service.once(
+        user, key, f"move_set:{set_id}", body, lambda: service.edit_set_part(user, set_id, body)
+    )
+
+
+@router.post("/sets/{set_id}/cards", response_model=SetEditResult)
+async def append_cards(
+    set_id: UUID,
+    body: CardAppend,
+    key: RequestKey,
+    user: User = Depends(write_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    service = AgentService(db)
+    return await service.once(
+        user, key, f"append_cards:{set_id}", body, lambda: service.edit_set_part(user, set_id, body)
+    )
+
+
+@router.patch("/sets/{set_id}/cards/{card_id}", response_model=SetEditResult)
+async def update_card(
+    set_id: UUID,
+    card_id: UUID,
+    body: CardEdit,
+    key: RequestKey,
+    user: User = Depends(write_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    service = AgentService(db)
+    return await service.once(
+        user,
+        key,
+        f"update_card:{set_id}:{card_id}",
+        body,
+        lambda: service.edit_set_part(user, set_id, body, card_id),
     )

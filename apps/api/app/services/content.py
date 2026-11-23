@@ -26,6 +26,7 @@ from app.repositories.api_tokens import lock_request
 from app.schemas.content import (
     CardBatch,
     CardPublic,
+    CardWrite,
     FolderCreate,
     FolderUpdate,
     PublicCard,
@@ -246,7 +247,10 @@ class ContentService:
             await Entitlements(self.db).require_feature(user, "materials.private")
             course = await course_repo.course_for_set(self.db, set_id)
             if course and course.is_published:
-                raise ConflictError("Сначала скройте курс, в который входит набор")
+                raise ConflictError(
+                    "В публичном курсе набор должен оставаться публичным. "
+                    "Его содержимое можно редактировать."
+                )
         for field, value in values.items():
             setattr(study_set, field, value)
         await self.db.flush()
@@ -329,11 +333,6 @@ class ContentService:
         seen: set[UUID] = set()
         result: list[Card] = []
         for position, item in enumerate(body.cards):
-            if item.content_type != ContentType.code:
-                _validate_plain_content(item.term, item.definition)
-            if item.content_type == ContentType.code and not item.code_language:
-                raise ConflictError("Для блока кода нужно выбрать язык")
-            await self._validate_images(user, item.term_image_id, item.definition_image_id)
             if item.id is not None:
                 existing_card = existing.get(item.id)
                 if existing_card is None or item.id in seen:
@@ -343,8 +342,7 @@ class ContentService:
             else:
                 card = Card(set_id=study_set.id, position=position, term="", definition="")
                 self.db.add(card)
-            for field, value in item.model_dump(exclude={"id"}).items():
-                setattr(card, field, value)
+            await self.write_card(user, card, item)
             card.position = position
             result.append(card)
         await content_repo.sync_cards(self.db, study_set, result)
@@ -353,6 +351,15 @@ class ContentService:
         await self.db.flush()
         await self._queue_set_course(study_set.id)
         return await self.get_owned_set(user, set_id, with_cards=True)
+
+    async def write_card(self, user: User, card: Card, item: CardWrite) -> None:
+        if item.content_type != ContentType.code:
+            _validate_plain_content(item.term, item.definition)
+        if item.content_type == ContentType.code and not item.code_language:
+            raise ConflictError("Для блока кода нужно выбрать язык")
+        await self._validate_images(user, item.term_image_id, item.definition_image_id)
+        for field, value in item.model_dump(exclude={"id"}).items():
+            setattr(card, field, value)
 
     async def _validate_images(self, user: User, *image_ids: UUID | None) -> None:
         for image_id in {value for value in image_ids if value is not None}:

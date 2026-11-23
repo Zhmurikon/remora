@@ -1,4 +1,4 @@
-import type { components } from '@remora/api-client';
+import { permissions, type Scope } from '../features/auth/agent-permissions';
 import { Button, Card, Input } from '@remora/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState, type FormEvent } from 'react';
@@ -9,16 +9,6 @@ import {
   useSettingsDirty,
   settingsError,
 } from '../features/settings/SettingsFeedback';
-
-type Scope = components['schemas']['ApiTokenCreate']['scopes'][number];
-const permissions: { value: Scope; label: string; adminOnly?: boolean }[] = [
-  { value: 'materials:read', label: 'Читать свои наборы и курсы' },
-  { value: 'materials:write', label: 'Создавать и изменять материалы' },
-  { value: 'courses:publish', label: 'Публиковать курсы и снимать с публикации' },
-  { value: 'blog:read', label: 'Читать редакционные черновики', adminOnly: true },
-  { value: 'blog:write', label: 'Создавать и изменять статьи блога', adminOnly: true },
-  { value: 'blog:publish', label: 'Публиковать статьи и снимать их с публикации', adminOnly: true },
-];
 
 export function ApiTokens() {
   const cache = useQueryClient();

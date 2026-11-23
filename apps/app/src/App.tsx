@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthBootstrap } from './features/auth/AuthBootstrap';
 import { AchievementCelebration } from './features/achievements/AchievementCelebration';
+import { McpConsentPage } from './pages/McpConsentPage';
 import { ProtectedRoute } from './features/auth/ProtectedRoute';
 import { AppLayout } from './layouts/AppLayout';
 import { DashboardPage } from './pages/DashboardPage';
@@ -43,6 +44,7 @@ export function App() {
         <AchievementCelebration />
         <Routes>
           <Route element={<ProtectedRoute />}>
+            <Route path="mcp/connect" element={<McpConsentPage />} />
             <Route element={<AppLayout />}>
               <Route index element={<DashboardEntry />} />
               <Route path="materials" element={<MaterialsPage />} />

@@ -8,18 +8,20 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel
+from pydantic import ValidationError as SchemaError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.article_media import extract_media_ids
-from app.core.errors import ConflictError
+from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.models.api_tokens import AgentRequest
-from app.models.content import Folder, SetVisibility
+from app.models.content import Card, Folder, SetVisibility
 from app.models.courses import Course, CourseArticle, CourseSection
 from app.models.user import User
 from app.repositories import api_tokens as token_repo
 from app.repositories import courses as course_repo
 from app.schemas.agent import (
     AgentArticleDetail,
+    AgentCardWrite,
     AgentCourseCreate,
     AgentCourseDetail,
     AgentCourseUpdate,
@@ -31,6 +33,11 @@ from app.schemas.agent import (
     AgentSetDetail,
     AgentSetUpdate,
     AgentSetWrite,
+    CardAppend,
+    CardEdit,
+    CardPage,
+    SetEditResult,
+    SetMove,
 )
 from app.schemas.content import (
     CardBatch,
@@ -89,7 +96,7 @@ class AgentService:
                         saved_article["material"].pop("visibility", None)
         legacy_fingerprint = digest({"operation": operation, "body": payload})
         fingerprint = legacy_fingerprint
-        if isinstance(body, (AgentSetUpdate, AgentCourseUpdate)):
+        if isinstance(body, (AgentSetUpdate, AgentCourseUpdate, CardEdit)):
             # Пропуск cards сохраняет колоду, явный [] очищает. Старые ключи нужны для повторов.
             fingerprint = digest(
                 {
@@ -176,6 +183,81 @@ class AgentService:
             )
         await self._write_set(user, set_id, body)
         return await self.set_detail(user, set_id)
+
+    async def card_page(
+        self, user: User, set_id: UUID, offset: int, limit: int, query: str
+    ) -> CardPage:
+        current = await self.set_detail(user, set_id)
+        term = query.strip().casefold()
+        matches = [
+            c for c in current.cards if term in c.term.casefold() or term in c.definition.casefold()
+        ]
+        return CardPage(
+            revision=current.revision, total=len(matches), cards=matches[offset : offset + limit]
+        )
+
+    async def edit_set_part(
+        self,
+        user: User,
+        set_id: UUID,
+        body: SetMove | CardAppend | CardEdit,
+        card_id: UUID | None = None,
+    ) -> SetEditResult:
+        current = await self.set_detail(user, set_id)
+        if current.revision != body.revision:
+            raise ConflictError(
+                "Набор изменился. Прочитайте его заново", details={"reason": "stale_revision"}
+            )
+        saved_ids: list[UUID] = []
+        if isinstance(body, SetMove):
+            await self.content.update_set(
+                user, set_id, SetUpdate(title=current.title, folder_id=body.folder_id)
+            )
+        else:
+            study_set = await self.content.get_owned_set(user, set_id, with_cards=True)
+            if isinstance(body, CardAppend):
+                if len(study_set.cards) + len(body.cards) > 5000:
+                    raise ValidationError("В наборе может быть до 5000 карточек")
+                position = max((c.position for c in study_set.cards), default=-1) + 1
+                for index, item in enumerate(body.cards):
+                    if item.id is not None:
+                        raise ValidationError("У новой карточки не должно быть id")
+                    card = Card(id=uuid4(), set_id=set_id, position=position + index)
+                    await self.content.write_card(user, card, item)
+                    self.db.add(card)
+                    saved_ids.append(card.id)
+                study_set.cards_count += len(body.cards)
+            else:
+                existing = next((c for c in study_set.cards if c.id == card_id), None)
+                if existing is None:
+                    raise NotFoundError("Карточка не найдена в этом наборе")
+                values = {field: getattr(existing, field) for field in AgentCardWrite.model_fields}
+                try:
+                    merged = AgentCardWrite.model_validate(
+                        values | body.changes.model_dump(exclude_unset=True)
+                    )
+                except SchemaError as error:
+                    raise ValidationError(
+                        "Проверьте изменённые поля карточки",
+                        details={
+                            "errors": [{"loc": e["loc"], "type": e["type"]} for e in error.errors()]
+                        },
+                    ) from error
+                await self.content.write_card(user, existing, merged)
+                saved_ids.append(existing.id)
+            study_set.updated_at = datetime.now(UTC)
+            await self.db.flush()
+            course = await course_repo.course_for_set(self.db, set_id)
+            if course is not None:
+                await queue_course(self.db, course.id)
+        saved = await self.set_detail(user, set_id)
+        return SetEditResult(
+            set_id=set_id,
+            revision=saved.revision,
+            folder_id=saved.folder_id,
+            cards_count=saved.cards_count,
+            card_ids=saved_ids,
+        )
 
     async def _write_set(self, user: User, set_id: UUID, body: AgentSetWrite) -> None:
         await self.content.update_set(
