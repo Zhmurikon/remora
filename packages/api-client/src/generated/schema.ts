@@ -7507,6 +7507,8 @@ export interface components {
              * @description Три однозначно неверных определения; правильный ответ сюда не включать
              */
             wrong_definition_answers: string[];
+            /** Wrong Term Answers */
+            wrong_term_answers?: string[];
         };
         /** GenerationCreate */
         GenerationCreate: {

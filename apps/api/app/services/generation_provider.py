@@ -8,9 +8,10 @@ import httpx
 
 from app.core.config import get_settings
 from app.core.errors import ValidationError
-from app.schemas.generations import GeneratedCards
+from app.schemas.generations import PromptCards
 
-PROMPT_VERSION = "study-v2"
+NOTES_PROMPT_VERSION = "study-v2"
+CARDS_PROMPT_VERSION = "study-v3"
 NOTES_MODEL = "gpt-5.4-2026-03-05"
 CARDS_MODEL = "gpt-5.4-mini-2026-03-17"
 CARDS_PROMPT = """Создай учебные карточки по конспекту на русском языке.
@@ -21,6 +22,7 @@ CARDS_PROMPT = """Создай учебные карточки по конспе
 отдельные карточки для каждой буквы, элемента формулы, диагонали матрицы или заголовка.
 term: общепринятое название понятия из 1–5 слов. definition: содержательное определение,
 которое раскрывает смысл и отличает понятие от соседних, а не повторяет его название.
+wrong_term_answers: три разных неверных термина той же тематики. Исключи синонимы верного ответа.
 wrong_definition_answers: РОВНО ТРИ НЕВЕРНЫХ определения. Это НЕ список вариантов теста:
 правильное определение уже находится в definition и в этот массив НЕ включается.
 Нельзя включать его копию, перефразировку, более широкую верную формулировку или частный
@@ -36,6 +38,7 @@ wrong_definition_answers: РОВНО ТРИ НЕВЕРНЫХ определен�
 Пример только формы (не добавляй это понятие, если его нет в конспекте):
 {"term":"Квадрат",
 "definition":"Прямоугольник, у которого все четыре стороны имеют одинаковую длину.",
+"wrong_term_answers":["Трапеция","Треугольник","Окружность"],
 "wrong_definition_answers":[
 "Четырёхугольник, у которого только одна пара противоположных сторон параллельна.",
 "Четырёхугольник, у которого противоположные стороны равны, а углы не прямые.",
@@ -70,7 +73,7 @@ def build_request(kind: str, title: str, source: str) -> dict[str, Any]:
                 "type": "json_schema",
                 "name": "study_cards",
                 "strict": True,
-                "schema": GeneratedCards.model_json_schema(),
+                "schema": PromptCards.model_json_schema(),
             }
         },
         "store": False,

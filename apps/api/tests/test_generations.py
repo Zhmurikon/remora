@@ -25,6 +25,7 @@ from tests.test_transcriptions import register
 CARDS = [
     {
         "term": "Дисперсия",
+        "wrong_term_answers": ["Медиана", "Мода", "Корреляция"],
         "definition": "Мера разброса значений",
         "wrong_definition_answers": [
             "Среднее значение величины",
@@ -235,12 +236,14 @@ async def test_cards_edit_validate_save_public_set_once(client, monkeypatch):
             "definition": "Очень длинное правильное определение с избыточным описанием понятия",
         }
     ]
+    del bad[0]["wrong_term_answers"]
     updated = await client.patch(
         f"/api/v1/generations/{cards['id']}",
         headers=headers,
         json={"revision": ready["updated_at"], "cards": bad},
     )
     assert updated.status_code == 200
+    assert updated.json()["cards"][0]["wrong_term_answers"] == CARDS[0]["wrong_term_answers"]
     assert updated.json()["issues"]
     body = {"revision": updated.json()["updated_at"], "title": "Понятия"}
     assert (
@@ -263,6 +266,7 @@ async def test_cards_edit_validate_save_public_set_once(client, monkeypatch):
     result = await client.get(f"/api/v1/sets/{saved.json()['saved_set_id']}", headers=headers)
     assert result.json()["visibility"] == "public"
     assert len(result.json()["cards"][0]["wrong_definition_answers"]) == 3
+    assert result.json()["cards"][0]["wrong_term_answers"] == CARDS[0]["wrong_term_answers"]
 
 
 async def test_generation_failure_and_stale_recovery_refund_once(client, monkeypatch):
@@ -340,6 +344,12 @@ async def test_generation_quota_exhausted_and_account_export(client, monkeypatch
 
 
 def test_card_rules_and_budget_math():
+    legacy = {key: value for key, value in CARDS[0].items() if key != "wrong_term_answers"}
+    assert not card_issues([GeneratedCard.model_validate(legacy)])
+    invalid = {**legacy, "wrong_term_answers": [" мода", "Мода", "Дисперсия"]}
+    assert card_issues([GeneratedCard.model_validate(invalid)])
+    schema = provider.build_request("cards", "Тема", "Конспект")["text"]["format"]["schema"]
+    assert "wrong_term_answers" in schema["$defs"]["PromptCard"]["required"]
     assert card_issues([GeneratedCard.model_validate(CARDS[0])]) == []
     assert card_issues(
         [

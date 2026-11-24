@@ -14,6 +14,9 @@ class GeneratedCard(BaseModel):
     model_config = ConfigDict(extra="forbid")
     term: str = Field(min_length=1, max_length=160)
     definition: str = Field(min_length=1, max_length=1000)
+    wrong_term_answers: list[Annotated[str, Field(max_length=160)]] = Field(
+        default_factory=list, max_length=3
+    )
     wrong_definition_answers: list[Annotated[str, Field(max_length=1000)]] = Field(
         min_length=3,
         max_length=3,
@@ -26,6 +29,17 @@ class GeneratedCards(BaseModel):
     cards: list[GeneratedCard] = Field(max_length=12)
 
 
+class PromptCard(GeneratedCard):
+    wrong_term_answers: list[Annotated[str, Field(min_length=1, max_length=160)]] = Field(
+        min_length=3, max_length=3
+    )
+
+
+class PromptCards(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    cards: list[PromptCard] = Field(max_length=12)
+
+
 def card_issues(cards: list[GeneratedCard]) -> list[str]:
     issues: list[str] = []
     seen: set[str] = set()
@@ -36,6 +50,10 @@ def card_issues(cards: list[GeneratedCard]) -> list[str]:
         if not term or len(card.term.split()) > 5 or term in seen:
             issues.append(f"Карточка {index}: нужен уникальный термин из 1–5 слов")
         seen.add(term)
+        if card.wrong_term_answers:
+            terms = [term, *(normalize_option(value) for value in card.wrong_term_answers)]
+            if not all(terms) or len(set(terms)) != 4:
+                issues.append(f"Карточка {index}: нужны три разных неверных термина")
         if not all(normalized) or len(set(normalized)) != 4:
             issues.append(f"Карточка {index}: определения должны быть непустыми и разными")
         lengths = [len(value.strip()) for value in options]

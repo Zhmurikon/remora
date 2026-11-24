@@ -195,7 +195,11 @@ class GenerationService:
             source_hash=hashlib.sha256(text.encode()).hexdigest(),
             parent_id=body.parent_id,
             model=request["model"],
-            prompt_version=provider.PROMPT_VERSION,
+            prompt_version=(
+                provider.NOTES_PROMPT_VERSION
+                if body.kind == "notes"
+                else provider.CARDS_PROMPT_VERSION
+            ),
             request_body=request,
             reserved_tokens=reserve,
             quota_period_key=period,
@@ -251,7 +255,17 @@ class GenerationService:
             and body.markdown is None
             and body.is_public is None
         ):
-            job.cards = [card.model_dump() for card in body.cards]
+            # Старые редакторы присылают только варианты определений.
+            previous = {card["term"]: card for card in job.cards or []}
+            cards = []
+            for card in body.cards:
+                data = card.model_dump()
+                if "wrong_term_answers" not in card.model_fields_set:
+                    data["wrong_term_answers"] = previous.get(card.term, {}).get(
+                        "wrong_term_answers", []
+                    )
+                cards.append(data)
+            job.cards = cards
         else:
             raise ValidationError("Изменение не соответствует виду материала")
         job.updated_at = datetime.now(UTC)

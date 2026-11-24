@@ -186,6 +186,7 @@ describe('Генерация учебных материалов', () => {
               term: 'Термин',
               definition: 'Длинное определение',
               wrong_definition_answers: ['Раз', 'Два', 'Три'],
+              wrong_term_answers: ['Альфа', 'Бета', 'Гамма'],
             },
           ],
           issues: ['Карточка 1: правильное определение не должно быть самым длинным'],
@@ -197,6 +198,11 @@ describe('Генерация учебных материалов', () => {
     const button = await screen.findByRole('button', { name: 'Сохранить в новый набор' });
     expect((button as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByLabelText('Неверное определение 3')).toBeTruthy();
+    const term = screen.getByLabelText('Неверный термин 2') as HTMLInputElement;
+    expect(term.value).toBe('Бета');
+    await userEvent.clear(term);
+    await userEvent.type(term, 'Дельта');
+    expect(term.value).toBe('Дельта');
   });
 });
 

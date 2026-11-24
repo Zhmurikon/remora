@@ -92,6 +92,7 @@ def course_body() -> dict[str, Any]:
                                     "term": title,
                                     "definition": "Верно",
                                     "wrong_definition_answers": ["Неверно"],
+                                    "wrong_term_answers": ["Полином"],
                                 }
                             ],
                         },
@@ -142,6 +143,9 @@ async def test_course_atomic_create_update_and_access(client: AsyncClient) -> No
     assert course["sections"][0]["articles"][0]["material"]["cards"][0][
         "wrong_definition_answers"
     ] == ["Неверно"]
+    assert course["sections"][0]["articles"][0]["material"]["cards"][0]["wrong_term_answers"] == [
+        "Полином"
+    ]
     repeat = await client.post("/api/v1/agent/courses", headers=headers, json=body)
     assert repeat.json() == course
     assert (

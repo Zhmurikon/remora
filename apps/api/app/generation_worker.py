@@ -10,7 +10,7 @@ from sqlalchemy import select
 from app.core.errors import AppError
 from app.db.session import get_session_factory
 from app.models.generations import GenerationJob
-from app.schemas.generations import GeneratedCards
+from app.schemas.generations import GeneratedCards, PromptCards
 from app.services import generation_provider as provider
 from app.services.generations import settle_quota
 
@@ -28,6 +28,9 @@ async def process_generation(_context: dict[str, Any], job_id_value: str) -> Non
         job.status = "processing"
         job.started_at = datetime.now(UTC)
         body = dict(job.request_body)
+        card_schema = (
+            PromptCards if job.prompt_version == provider.CARDS_PROMPT_VERSION else GeneratedCards
+        )
         await db.commit()
     raw: dict[str, Any] | None = None
     error: str | None = None
@@ -46,9 +49,7 @@ async def process_generation(_context: dict[str, Any], job_id_value: str) -> Non
         if body["model"] == provider.NOTES_MODEL:
             markdown = content
         else:
-            cards = [
-                card.model_dump() for card in GeneratedCards.model_validate_json(content).cards
-            ]
+            cards = [card.model_dump() for card in card_schema.model_validate_json(content).cards]
     except Exception as exc:  # noqa: BLE001 — любое завершение возвращает резерв квоты
         # Тело ошибки провайдера и исходный материал не должны попасть в журнал сервера.
         logger.warning("generation_failed job=%s type=%s", job_id, type(exc).__name__)

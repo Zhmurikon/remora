@@ -556,6 +556,23 @@ function ResultEditor({
                   onChange={(event) => changeCard(index, { definition: event.target.value })}
                 />
               </label>
+              {(card.wrong_term_answers ?? []).map((wrong, wrongIndex) => (
+                <label key={wrongIndex} className="block text-sm">
+                  Неверный термин {wrongIndex + 1}
+                  <input
+                    className={`${fieldClass} mt-1`}
+                    value={wrong}
+                    maxLength={160}
+                    onChange={(event) =>
+                      changeCard(index, {
+                        wrong_term_answers: (card.wrong_term_answers ?? []).map((value, i) =>
+                          i === wrongIndex ? event.target.value : value,
+                        ),
+                      })
+                    }
+                  />
+                </label>
+              ))}
               {card.wrong_definition_answers.map((wrong, wrongIndex) => (
                 <label key={wrongIndex} className="block text-sm">
                   Неверное определение {wrongIndex + 1}
