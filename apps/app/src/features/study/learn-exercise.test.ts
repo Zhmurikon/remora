@@ -1,3 +1,4 @@
+import fixture from '../../../../../packages/core/src/learn-round-cases.json';
 import { describe, expect, it } from 'vitest';
 import { prepareLearnExercise, type ExerciseKind } from './learn-exercise';
 import type { QueueItem } from './study-store';
@@ -34,6 +35,29 @@ const cards = Array.from({ length: 5 }, (_, i): QueueItem => ({
   lang_definition: 'ru',
 }));
 describe('Заучивание', () => {
+  it('совпадает с мобильным раундом по типам, направлениям и порядку вариантов', () => {
+    let previous: ExerciseKind | undefined;
+    fixture.rounds.forEach((expected, turn) => {
+      const plan = prepareLearnExercise(
+        fixture.items as unknown as QueueItem[],
+        0,
+        turn,
+        ['choice', 'recall'],
+        { term: true, definition: true },
+        fixture.seed,
+        previous,
+      )!;
+      expect({
+        kind: plan.kind,
+        direction: plan.item.direction,
+        options: plan.options,
+        pairs: plan.pairs?.map((item) => item.card.id),
+        statement: plan.statement,
+        truth: plan.trueStatement,
+      }).toEqual(expected);
+      previous = plan.kind;
+    });
+  });
   it('чередует доступные формы, различает источники вариантов и направления письма', () => {
     const found = new Set<ExerciseKind>();
     let previous: ExerciseKind | undefined;
