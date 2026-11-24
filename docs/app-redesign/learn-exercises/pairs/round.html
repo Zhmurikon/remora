@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Соедините пары · Заучивание</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --paper: #fbfbf9; --surface: #fff; --ink: #172229; --muted: #56627a;
+  --line: #d9dfec; --blue: #284bb2; --selected: #e9efff; --on-blue: white;
+  --danger: #d03d3d;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #14191c; --surface: #191f23; --ink: #ebf0ef; --muted: #abb9bb;
+    --line: #364158; --blue: #aac1ff; --selected: #253452; --on-blue: #14191c;
+    --danger: #e86060;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 1rem/1.48 Inter, "Segoe UI", sans-serif; }
+main { max-width: 960px; margin: 4vh auto; padding: 24px; }
+header { color: var(--muted); border-bottom: 1px solid var(--line); padding-bottom: 14px; }
+h1 { font: 400 clamp(2rem,6vw,3.1rem)/1.1 Georgia,serif; margin: 30px 0 8px; }
+#count { color: var(--muted); margin: 0 0 18px; }
+button { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; min-height: 44px; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+button:disabled { cursor: default; }
+.current-answer, .selected { border-color: var(--blue); background: var(--selected); }
+.used { text-decoration: line-through; text-decoration-thickness: 1px; text-decoration-color: color-mix(in srgb, var(--muted) 58%, transparent); color: var(--muted); }
+.paired { background: var(--selected); }
+#board { display: grid; grid-template-columns: 32% 1fr; column-gap: 11%; position: relative; }
+.stack { display: grid; gap: 12px; grid-auto-rows: 1fr; }
+.tile { position: relative; text-align: left; overflow-wrap: anywhere; padding: 16px; }
+.wrong-pulse {
+  position: absolute; inset: -1px; pointer-events: none; border-radius: inherit;
+  border: 1px solid var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .wrong-pulse { animation: fade-mismatch 360ms ease-out forwards; }
+}
+@keyframes fade-mismatch {
+  0%, 20% { opacity: 1; }
+  to { opacity: 0; }
+}
+#links { inset: 0; width: 100%; height: 100%; position: absolute; pointer-events: none; color: var(--blue); overflow: visible; }
+#hand { display: none; }
+#message { min-height: 1.5em; color: var(--muted); }
+#restart { padding-inline: 18px; }
+@media (max-width: 650px) {
+  main { margin: 0 auto; padding: 20px 16px; }
+  #board, #instruction { display: none; }
+  #hand { display: block; touch-action: pan-y pinch-zoom; }
+  nav { display: flex; justify-content: center; align-items: center; gap: 2px; margin-bottom: 16px; }
+  nav button { min-width: 44px; border: none; background: transparent; color: var(--blue); font-weight: 600; }
+  nav button:disabled { color: var(--muted); opacity: .45; }
+  nav span { display: inline-grid; width: 30px; height: 30px; place-items: center; border-radius: 50%; border: 1px solid var(--line); }
+  .solved-dot span { background: var(--selected); }
+  nav [aria-current="step"] span { outline: 2px solid var(--blue); outline-offset: 2px; }
+  article { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 18px; }
+  article small { color: var(--muted); }
+  article p { font-size: 1.12rem; margin: 12px 0 0; overflow-wrap: anywhere; }
+  #answers { display: grid; gap: 9px; margin-top: 12px; }
+}
+</style>
+<main>
+  <header>Заучивание · Языки программирования</header>
+  <h1>Соедините пары</h1>
+  <p id="count"></p>
+  <p id="instruction">Выберите термин, затем его определение.</p>
+  <section id="board" aria-label="Поле сопоставления">
+    <div id="terms" class="stack"></div>
+    <svg id="links" aria-hidden="true"></svg>
+    <div id="definitions" class="stack"></div>
+  </section>
+  <section id="hand" aria-label="Поле сопоставления">
+    <nav aria-label="Определения раунда"></nav>
+    <article><small id="prompt"></small><p id="definition"></p></article>
+    <div id="answers"></div>
+  </section>
+  <p role="status" id="message"></p>
+  <button id="restart" hidden>Начать заново</button>
+</main>
+<script>
+const cards = [
+  { term: 'Язык ассемблера', definition: 'Низкоуровневый язык, в котором команды записываются в виде символьных обозначений (мнемоник), максимально близких к машинному коду' },
+  { term: 'Интерпретация', definition: 'Процесс построчного преобразования и выполнения кода высокоуровневого языка непосредственно во время его работы' },
+  { term: 'Компиляция', definition: 'Процесс преобразования всего кода с высокоуровневого языка в машинный код до момента его запуска' },
+];
+const byId = id => document.getElementById(id);
+const solved = new Set();
+const termOrder = [2, 0, 1];
+const defOrder = [1, 2, 0];
+let current = 0;
+let selected = null;
+
+function control(parent, label, action) {
+  const button = document.createElement('button');
+  button.textContent = label;
+  button.onclick = action;
+  parent.append(button);
+  return button;
+}
+
+function drawLinks() {
+  const rect = byId('board').getBoundingClientRect();
+  const svg = byId('links');
+  svg.replaceChildren();
+  if (!rect.width) return;
+  for (const id of solved) {
+    const left = byId('term-' + id).getBoundingClientRect();
+    const right = byId('def-' + id).getBoundingClientRect();
+    const x = left.right - rect.left, y = left.top + left.height / 2 - rect.top;
+    const end = right.left - rect.left, target = right.top + right.height / 2 - rect.top;
+    const middle = x + (end - x) * ((id + 1) / (cards.length + 1));
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d', `M ${x} ${y} C ${middle} ${y}, ${middle} ${target}, ${end} ${target}`);
+    path.setAttribute('stroke','currentColor');
+    path.setAttribute('stroke-width','1.5');
+    path.setAttribute('fill','none');
+    svg.append(path);
+  }
+}
+
+function submit(term, definition, button) {
+  if (solved.has(term) || solved.has(definition)) return;
+  if (term !== definition) {
+    byId('message').textContent = 'Пара не совпала. Попробуйте другое сочетание.';
+    document.querySelector('.wrong-pulse')?.remove();
+    const pulse = document.createElement('span');
+    pulse.className = 'wrong-pulse';
+    pulse.setAttribute('aria-hidden', 'true');
+    pulse.addEventListener('animationend', () => pulse.remove(), { once: true });
+    button.append(pulse);
+    if (matchMedia('(pointer: coarse) and (prefers-reduced-motion: no-preference)').matches) {
+      navigator.vibrate?.(20);
+    }
+    return;
+  }
+  solved.add(term);
+  selected = null;
+  byId('message').textContent = solved.size === cards.length ? 'Все пары собраны.' : 'Пара собрана.';
+  render();
+}
+
+function visit(index) {
+  if (index < 0 || index >= cards.length || index === current) return;
+  current = index;
+  byId('message').textContent = '';
+  render();
+}
+
+function render() {
+  const focused = document.activeElement.id;
+  byId('count').textContent = 'Собрано ' + solved.size + ' из ' + cards.length;
+  byId('restart').hidden = solved.size !== cards.length;
+  for (const group of ['terms','definitions','answers']) byId(group).replaceChildren();
+  const nav = document.querySelector('nav');
+  nav.replaceChildren();
+  const prev = control(nav, '←', () => visit(current - 1));
+  prev.setAttribute('aria-label','Предыдущее определение');
+  prev.id = 'previous';
+  prev.disabled = current === 0;
+  cards.forEach((card, id) => {
+    const button = control(nav, '', () => visit(id));
+    button.id = 'dot-' + id;
+    const circle = document.createElement('span');
+    circle.textContent = id + 1;
+    button.append(circle);
+    button.setAttribute('aria-label','Определение ' + (id + 1) + (solved.has(id) ? ', пара собрана' : ''));
+    if (solved.has(id)) button.className = 'solved-dot';
+    if (current === id) button.setAttribute('aria-current','step');
+  });
+  const next = control(nav,'→',() => visit(current + 1));
+  next.id = 'next';
+  next.setAttribute('aria-label','Следующее определение');
+  next.disabled = current === cards.length - 1;
+  byId('prompt').textContent = solved.has(current) ? 'Пара собрана · ' + cards[current].term : 'Выберите термин';
+  byId('definition').textContent = cards[current].definition;
+  for (const id of termOrder) {
+    const term = control(byId('terms'),cards[id].term,() => {
+      selected = selected === id ? null : id;
+      byId('message').textContent = '';
+      render();
+    });
+    term.id = 'term-' + id;
+    term.disabled = solved.has(id);
+    term.className = 'tile' + (term.disabled ? ' paired used' : selected === id ? ' selected' : '');
+    term.setAttribute('aria-pressed', String(selected === id));
+    const answer = control(byId('answers'),cards[id].term,event => submit(id,current,event.currentTarget));
+    answer.id = 'answer-' + id;
+    answer.disabled = solved.has(id) || solved.has(current);
+    answer.className = 'tile' + (solved.has(id) ? (id === current ? ' current-answer' : ' used') : '');
+    if (solved.has(id)) answer.setAttribute('aria-label', cards[id].term + ', пара уже собрана');
+  }
+  for (const id of defOrder) {
+    const button = control(byId('definitions'),cards[id].definition,event => {
+      if (selected === null) byId('message').textContent = 'Сначала выберите термин.';
+      else submit(selected,id,event.currentTarget);
+    });
+    button.id = 'def-' + id;
+    button.disabled = solved.has(id);
+    button.className = 'tile' + (button.disabled ? ' paired used' : '');
+  }
+  drawLinks();
+  if (focused) {
+    const el = byId(focused);
+    const fallback = byId('hand').offsetWidth ? byId('dot-' + current) : document.querySelector('#terms button:enabled');
+    (el && !el.disabled ? el : fallback || byId('restart')).focus({preventScroll:true});
+  }
+}
+
+byId('restart').onclick = () => {
+  solved.clear(); current = 0; selected = null; byId('message').textContent = '';
+  render();
+  (byId('hand').offsetWidth ? byId('dot-0') : byId('term-' + termOrder[0])).focus();
+};
+let touch = null;
+const hand = byId('hand');
+hand.addEventListener('touchstart', event => {
+  touch = event.touches.length === 1 ? event.touches[0] : null;
+}, { passive:true });
+hand.addEventListener('touchcancel', () => { touch = null; });
+hand.addEventListener('touchend', event => {
+  if (!touch) return;
+  const end = event.changedTouches[0];
+  const dx = end.clientX - touch.clientX, dy = end.clientY - touch.clientY;
+  touch = null;
+  if (Math.abs(dx) >= 48 && Math.abs(dx) > 1.5 * Math.abs(dy)) {
+    if (event.cancelable) event.preventDefault();
+    visit(current + (dx < 0 ? 1 : -1));
+  }
+}, { passive:false });
+document.addEventListener('keydown', event => {
+  if (!hand.offsetWidth) return;
+  if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+    event.preventDefault();
+    visit(current + (event.key === 'ArrowLeft' ? -1 : 1));
+  }
+});
+new ResizeObserver(drawLinks).observe(byId('board'));
+render();
+</script>
+</html>
