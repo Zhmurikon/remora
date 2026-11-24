@@ -54,10 +54,13 @@ interface StudyState {
     correct: boolean;
     typed?: string;
     durationMs: number;
+    /** В сопоставлении определения можно решать в любом порядке. */
+    consume?: QueueItem;
     updatesSchedule?: boolean;
     /** Показать карточку ещё раз в этой же сессии (ошибка в «Заучивании»). */
     requeue?: boolean;
   }) => void;
+  deferCurrent: () => void;
   goTo: (index: number) => void;
   syncNow: () => Promise<void>;
   reset: () => void;
@@ -90,8 +93,27 @@ export const useStudyStore = create<StudyState>((set, get) => ({
       pending: pendingCount(),
     }),
 
-  answer: ({ item, rating, correct, typed, durationMs, updatesSchedule = true, requeue }) => {
+  answer: ({
+    item,
+    rating,
+    correct,
+    typed,
+    durationMs,
+    updatesSchedule = true,
+    requeue,
+    consume,
+  }) => {
     const state = get();
+    let items = state.items;
+    if (consume) {
+      const position = items.indexOf(consume, state.index);
+      if (position < 0) return;
+      if (position !== state.index) {
+        items = [...items];
+        items.splice(position, 1);
+        items.splice(state.index, 0, consume);
+      }
+    }
     enqueue(
       {
         client_review_id: crypto.randomUUID(),
@@ -124,12 +146,19 @@ export const useStudyStore = create<StudyState>((set, get) => ({
       ],
       // Ошибку возвращаем в конец очереди: правило режима «Заучивание» —
       // карточка не считается пройденной, пока не воспроизведена верно.
-      items: requeue ? [...state.items, item] : state.items,
+      items: requeue ? [...items, consume ?? item] : items,
       requeued: requeue ? [...state.requeued, item] : state.requeued,
     });
 
     if (pendingCount() >= FLUSH_THRESHOLD) void get().syncNow();
   },
+
+  deferCurrent: () =>
+    set(({ items, index }) => {
+      const current = items[index];
+      if (!current || index === items.length - 1) return {};
+      return { items: [...items.slice(0, index), ...items.slice(index + 1), current] };
+    }),
 
   goTo: (index) => set({ index }),
 

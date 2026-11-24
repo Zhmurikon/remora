@@ -134,3 +134,7 @@ function createRandom(seed: string): () => number {
     return ((state >>> 0) % 1_000_000) / 1_000_000;
   };
 }
+
+export function shuffleWithSeed<T>(items: T[], seed: string): T[] {
+  return shuffle(items, createRandom(seed));
+}

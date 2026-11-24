@@ -13,7 +13,8 @@ import { SettingsIcon } from '../components/SettingsIcon';
 import bookImage from '../../../web/public/lecture-demo/course-books.webp';
 import './materials.css';
 import './course-reader.css';
-import { TestPage } from './TestPage';
+import { StudyModeMenu } from '../features/study/StudyModeMenu';
+import { StudyActivity } from '../features/study/StudyActivity';
 import { courseLink } from './CourseEditorPage';
 
 export function CopySetButton({ setId }: { setId: string }) {
@@ -249,6 +250,12 @@ function CourseActions({ course, primary = false }: { course: Course; primary?: 
       <Link className={primary ? 'material-primary' : undefined} to={`/courses/${course.id}/learn`}>
         Учить весь курс
       </Link>
+      <StudyModeMenu
+        basePath={`/courses/${course.id}`}
+        label="Режимы обучения по курсу"
+        summary="Другие режимы"
+        showLearn={false}
+      />
       {course.can_edit !== false && (
         <Link
           className="material-settings"
@@ -496,7 +503,8 @@ function Reader({ course }: { course: Course }) {
             }}
           />
           {quiz ? (
-            <TestPage
+            <StudyActivity
+              mode="test"
               key={active.id}
               setIdOverride={active.set_id}
               embedded

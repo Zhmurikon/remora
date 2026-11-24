@@ -19,7 +19,7 @@ import {
 } from '../features/materials/material-sort';
 import { FolderPicker } from '../features/materials/FolderPicker';
 import { createEmptySet } from '../features/materials/create-empty-set';
-import { SavedMaterialSource, SavedSetSource } from '../features/library/SavedMaterialSource';
+import { SavedMaterialSource } from '../features/library/SavedMaterialSource';
 import {
   DropIndicator,
   moveCustomItem,
@@ -35,7 +35,8 @@ import {
 } from '../features/materials/materials-progress';
 import { api } from '../lib/api';
 import { SettingsIcon } from '../components/SettingsIcon';
-import { SetCardBrowser, SetModes } from '../features/materials/SetCardBrowser';
+import { SetDetails } from '../features/materials/SetDetails';
+import { setStatsQuery } from '../features/materials/set-queries';
 import { MaterialDescription } from '../features/materials/MaterialDescription';
 import cardsImage from '../../../web/public/lecture-demo/pricing-cards.webp';
 import bookImage from '../../../web/public/lecture-demo/course-books.webp';
@@ -69,7 +70,6 @@ type SetItem = {
   id: string;
   title: string;
   description: string;
-  cardsCount: number;
   saved: boolean;
   archived: boolean;
   folderId: string | null;
@@ -203,12 +203,7 @@ export function MaterialsPage() {
     return [...ids];
   }, [courseDetailById, setItems]);
   const statsQueries = useQueries({
-    queries: allSetIds.map((setId) => ({
-      queryKey: ['study', 'set-stats', setId],
-      queryFn: () => fetchSetStats(setId),
-      staleTime: 30_000,
-      retry: 1,
-    })),
+    queries: allSetIds.map(setStatsQuery),
   });
   const statsBySetId = useMemo(() => {
     const result = new Map<string, SetStats>();
@@ -582,7 +577,6 @@ export function MaterialsPage() {
             <SetNavigator
               key={selectedSet.id}
               item={selectedSet}
-              progress={setProgress.get(selectedSet.id) ?? emptyProgress}
               onRestored={() => {
                 void queryClient.invalidateQueries({ queryKey: ['sets'] });
                 void queryClient.invalidateQueries({ queryKey: ['sets', 'archived'] });
@@ -812,14 +806,12 @@ function CourseNavigator({
 
 function SetNavigator({
   item,
-  progress,
   onRestored,
   deleting,
   deleteError,
   onDelete,
 }: {
   item: SetItem;
-  progress: MaterialProgress;
   onRestored: () => void;
   deleting: boolean;
   deleteError: Error | null;
@@ -834,89 +826,36 @@ function SetNavigator({
     },
     onSuccess: onRestored,
   });
-  const learnPath = `/sets/${item.id}/learn`;
-  const cardsPath = `/sets/${item.id}/flashcards`;
   return (
     <div className="material-course material-set">
-      <section className="material-folder">
-        <span className="material-tab">
-          {item.archived ? 'В архиве' : item.saved ? 'Сохранённый набор' : 'Ваш набор'}
-        </span>
-        <img className="material-cover" src={cardsImage} width="90" height="100" alt="" />
-        <h2>{item.archived ? item.title : <Link to={cardsPath}>{item.title}</Link>}</h2>
-        {item.source && <SavedSetSource set={item.source} />}
-        <MaterialDescription description={item.description}>
-          {!item.archived && (
-            <div className="material-actions">
-              <MaterialActionLink
-                className="material-primary"
-                to={learnPath}
-                description="Продолжить тренировку по набору"
-              >
-                Продолжить
-              </MaterialActionLink>
-              <MaterialActionLink to={cardsPath} description="Открыть карточки набора">
-                Карточки
-              </MaterialActionLink>
-              {!item.saved && (
-                <MaterialActionLink
-                  className="material-settings"
-                  to={`/sets/${item.id}/edit`}
-                  label="Редактировать набор"
-                  description="Открыть редактор набора"
-                >
-                  <SettingsIcon />
-                </MaterialActionLink>
-              )}
-            </div>
-          )}
-        </MaterialDescription>
-      </section>
-      {!item.archived && <SetModes setId={item.id} />}
       {item.archived ? (
-        <section className="mt-8">
-          <h3 className="text-xl font-semibold">Набор находится в архиве</h3>
-          <p className="text-fg-muted mt-2">Восстановите его, чтобы снова продолжить обучение.</p>
-          <Button
-            className="mt-5 min-h-11"
-            loading={restore.isPending}
-            onClick={() => restore.mutate()}
-          >
-            Восстановить
-          </Button>
-          {restore.isError && (
-            <p role="alert" className="text-danger mt-2">
-              {restore.error.message}
-            </p>
-          )}
-        </section>
-      ) : (
-        <section className="material-study-stats">
-          <div className="flex items-center justify-between gap-3">
-            <h3>Прогресс набора</h3>
-            <strong>{progress.loading ? '—' : `${Math.round(progress.studiedPercent)}%`}</strong>
-          </div>
-          <ProgressBar progress={progress} className="my-2" />
-          <p className="text-fg-muted text-sm">
-            {progress.loading ? (
-              'Считаем прогресс'
-            ) : (
-              <>
-                Изучено {progress.studiedCount} из {item.cardsCount} карточек · Закреплено{' '}
-                {progress.masteredCount} ·{' '}
-                {progress.dueNow > 0 ? (
-                  <MaterialActionLink to={learnPath} description="повторить карточки">
-                    {learningStatus(progress).label}
-                  </MaterialActionLink>
-                ) : (
-                  learningStatus(progress).label
-                )}
-              </>
+        <>
+          <section className="material-folder">
+            <span className="material-tab">В архиве</span>
+            <img className="material-cover" src={cardsImage} width="90" height="100" alt="" />
+            <h2>{item.title}</h2>
+            <MaterialDescription description={item.description} />
+          </section>
+          <section className="mt-8">
+            <h3 className="text-xl font-semibold">Набор находится в архиве</h3>
+            <p className="text-fg-muted mt-2">Восстановите его, чтобы снова продолжить обучение.</p>
+            <Button
+              className="mt-5 min-h-11"
+              loading={restore.isPending}
+              onClick={() => restore.mutate()}
+            >
+              Восстановить
+            </Button>
+            {restore.isError && (
+              <p role="alert" className="text-danger mt-2">
+                {restore.error.message}
+              </p>
             )}
-          </p>
-        </section>
+          </section>
+        </>
+      ) : (
+        <SetDetails setId={item.id} librarySource={item.source ?? null} />
       )}
-      {!item.archived && <SetCardBrowser setId={item.id} owned={!item.saved} />}
       <DangerZone
         title={
           item.archived
@@ -1393,14 +1332,6 @@ async function fetchCourse(courseId: string): Promise<CourseDetail> {
   return data;
 }
 
-async function fetchSetStats(setId: string): Promise<SetStats> {
-  const { data, error } = await api.GET('/api/v1/study/sets/{set_id}/stats', {
-    params: { path: { set_id: setId } },
-  });
-  if (!data || error) throw new Error('Не удалось загрузить прогресс');
-  return data;
-}
-
 function fromSetStats(stats: SetStats): MaterialProgress {
   return {
     cardsTotal: stats.cards_total,
@@ -1470,7 +1401,6 @@ function ownedSetItem(set: SetSummary, archived: boolean): SetItem {
     id: set.id,
     title: set.title,
     description: set.description,
-    cardsCount: set.cards_count,
     saved: false,
     archived,
     folderId: set.folder_id ?? null,
@@ -1484,7 +1414,6 @@ function savedSetItem(set: SavedSet): SetItem {
     id: set.id,
     title: set.title,
     description: set.description,
-    cardsCount: set.cards_count,
     saved: true,
     archived: false,
     folderId: set.folder_id ?? null,

@@ -7,24 +7,14 @@ import { pluralWithCount } from '@remora/core';
 import { useState } from 'react';
 import trayImage from '../../../../web/public/lecture-demo/create-tray.webp';
 import { SettingsIcon } from '../../components/SettingsIcon';
-import { SetModes } from '../materials/SetCardBrowser';
+import { SetModes } from './SetModes';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { api } from '../../lib/api';
+import { setStatsQuery } from '../materials/set-queries';
 import { SetLearnSettings } from './SetLearnSettings';
 
 export function SetStudyPanel({ setId, cardsCount }: { setId: string; cardsCount: number }) {
-  const stats = useQuery({
-    queryKey: ['study', 'stats', setId],
-    queryFn: async () => {
-      const { data, error } = await api.GET('/api/v1/study/sets/{set_id}/stats', {
-        params: { path: { set_id: setId } },
-      });
-      if (error || !data) throw new Error('Не удалось загрузить статистику');
-      return data;
-    },
-  });
-
+  const stats = useQuery(setStatsQuery(setId));
   const [panel, setPanel] = useState<'settings' | 'stats' | null>(null);
   const disabled = cardsCount === 0;
   const data = stats.data;
@@ -135,7 +125,7 @@ export function SetStudyPanel({ setId, cardsCount }: { setId: string; cardsCount
           </div>
         )}
       </section>
-      <SetModes setId={setId} standalone disabled={disabled} />
+      <SetModes setId={setId} disabled={disabled} />
     </>
   );
 }

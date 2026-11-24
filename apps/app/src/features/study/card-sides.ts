@@ -1,35 +1,30 @@
-/**
- * Какая сторона карточки показывается, а какая ожидается в ответе.
- * Одна и та же логика нужна всем режимам с вводом, поэтому вынесена сюда.
- */
+import { checkAnswer } from '@remora/core';
+import type { QueueItem, StudyQueue } from './study-store';
 
-import type { QueueItem } from './study-store';
+export type CardRole = 'question' | 'answer';
+
+export function sideName(item: QueueItem, role: CardRole) {
+  return (item.direction === 'term_to_def') === (role === 'question') ? 'term' : 'definition';
+}
 
 export function questionSide(item: QueueItem): string {
-  return item.direction === 'term_to_def' ? item.card.term : item.card.definition;
+  return item.card[sideName(item, 'question')];
 }
 
 export function answerSide(item: QueueItem): string {
-  return item.direction === 'term_to_def' ? item.card.definition : item.card.term;
+  return item.card[sideName(item, 'answer')];
 }
 
-export function questionImage(item: QueueItem): string | null | undefined {
-  return item.direction === 'term_to_def'
-    ? item.card.term_image_url
-    : item.card.definition_image_url;
+// У карточек в очереди курса или папки могут быть разные языки.
+export function sideLanguage(item: QueueItem, role: CardRole, queue?: StudyQueue) {
+  const key = sideName(item, role) === 'term' ? 'lang_term' : 'lang_definition';
+  return item[key] ?? queue?.[key];
 }
 
-export function answerImage(item: QueueItem): string | null | undefined {
-  return item.direction === 'term_to_def'
-    ? item.card.definition_image_url
-    : item.card.term_image_url;
-}
-
-/** Язык стороны, которую пользователь вводит: по нему работают артикли. */
-export function answerLang(
-  item: QueueItem,
-  langTerm: string | undefined,
-  langDefinition: string | undefined,
-): string | undefined {
-  return item.direction === 'term_to_def' ? langDefinition : langTerm;
+export function checkTypedSide(typed: string, item: QueueItem, role: CardRole, queue?: StudyQueue) {
+  return checkAnswer(typed, item.card[sideName(item, role)], {
+    strictness: queue?.answer_strictness ?? 'moderate',
+    lang: sideLanguage(item, role, queue),
+    alternatives: role === 'answer' ? item.card.alt_answers : undefined,
+  });
 }

@@ -6,60 +6,49 @@
  * пользователь запоминает не слово, а то, что «почти» засчитывается.
  */
 
-import { STRICTNESS_LABELS, checkAnswer, pluralWithCount, type AnswerResult } from '@remora/core';
-import { Button, Card, CardContent, Input } from '@remora/ui';
+import { STRICTNESS_LABELS, pluralWithCount, type AnswerResult } from '@remora/core';
+import { Button, Card, Input } from '@remora/ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Diff, SessionSummary } from '../features/study/SessionSummary';
-import { StudyHint, StudyShell, StudyState } from '../features/study/StudyShell';
-import { useStudyTransition } from '../features/study/study-transition';
-import { answerImage, answerSide, questionImage, questionSide } from '../features/study/card-sides';
-import { selectCurrent, useStudyStore, type QueueItem } from '../features/study/study-store';
-import {
-  useStudySession,
-  useStudySessionFinalizer,
-  type StudyDirectionMode,
-} from '../features/study/use-study-session';
+import { useNavigate } from 'react-router-dom';
+import { Diff, SessionSummary } from './SessionSummary';
+import { StudyHint, StudyShell, StudyState } from './StudyShell';
+import { useStudyTransition } from './study-transition';
+import { answerSide, checkTypedSide } from './card-sides';
+import { StudyCardFace } from './StudyCardFace';
+import { useCardTraining } from './use-card-training';
 
 export function WritePage() {
-  const { setId, folderId } = useParams();
-  const targetId = setId ?? folderId ?? '';
-  const isFolder = Boolean(folderId);
   const navigate = useNavigate();
-  const [params] = useSearchParams();
-  const direction = (params.get('direction') as StudyDirectionMode | null) ?? 'term_to_def';
 
-  const query = useStudySession({ setId, folderId, mode: 'write', scope: 'due', direction });
-
-  const items = useStudyStore((state) => state.items);
-  const index = useStudyStore((state) => state.index);
-  const answers = useStudyStore((state) => state.answers);
-  const sessionId = useStudyStore((state) => state.sessionId);
-  const activeItem = useStudyStore(selectCurrent);
-  const [answeredItem, setAnsweredItem] = useState<QueueItem | null>(null);
-  const current = answeredItem ?? activeItem;
-  const answer = useStudyStore((state) => state.answer);
+  const {
+    query,
+    current,
+    items,
+    index,
+    answers,
+    answer,
+    targetId,
+    backHref,
+    backLabel,
+    finished,
+    setFinished,
+    finalizeSession,
+    shownAt,
+    setAnsweredItem,
+    basePath,
+  } = useCardTraining({ mode: 'write', scope: 'due' });
 
   const { schedule, cancel } = useStudyTransition();
   const [typed, setTyped] = useState('');
   const [result, setResult] = useState<AnswerResult | null>(null);
   const [typoHint, setTypoHint] = useState<string | null>(null);
-  const [finished, setFinished] = useState(false);
-  const shownAt = useRef(Date.now());
   const inputRef = useRef<HTMLInputElement>(null);
-  const finalizeSession = useStudySessionFinalizer(sessionId);
 
   const queue = query.data?.queue;
-  const answerLang =
-    current?.direction === 'term_to_def' ? queue?.lang_definition : queue?.lang_term;
 
   useEffect(() => {
     inputRef.current?.focus();
   }, [current?.card.id, index, result]);
-
-  useEffect(() => {
-    if (items.length > 0 && (finished || !current)) void finalizeSession();
-  }, [current, finalizeSession, finished, items.length]);
 
   const next = useCallback(() => {
     setAnsweredItem(null);
@@ -67,16 +56,11 @@ export function WritePage() {
     setResult(null);
     setTypoHint(null);
     shownAt.current = Date.now();
-  }, []);
+  }, [setAnsweredItem, shownAt]);
 
   const submit = useCallback(() => {
     if (!current || result) return;
-    const expected = answerSide(current);
-    const verdict = checkAnswer(typed, expected, {
-      strictness: queue?.answer_strictness ?? 'moderate',
-      alternatives: current.card.alt_answers ?? [],
-      lang: answerLang,
-    });
+    const verdict = checkTypedSide(typed, current, 'answer', queue);
 
     if (verdict.verdict === 'typo') {
       // Ответ не записываем: опечатка — это не ошибка, но и не знание.
@@ -96,7 +80,7 @@ export function WritePage() {
       requeue: !correct,
     });
     if (correct) schedule(next, 500);
-  }, [answer, answerLang, current, next, queue?.answer_strictness, result, schedule, typed]);
+  }, [answer, current, next, queue, result, schedule, setAnsweredItem, shownAt, typed]);
 
   if (query.isPending) return <StudyState title="Готовим тренировку" loading />;
   if (query.isError)
@@ -107,10 +91,7 @@ export function WritePage() {
         actions={
           <>
             <Button onClick={() => void query.refetch()}>Попробовать снова</Button>
-            <Button
-              variant="ghost"
-              onClick={() => navigate(isFolder ? '/sets/manage' : `/sets/${targetId}`)}
-            >
+            <Button variant="ghost" onClick={() => navigate(backHref)}>
               К материалам
             </Button>
           </>
@@ -125,20 +106,9 @@ export function WritePage() {
       <StudyState title="На сегодня всё повторено">
         <p className="text-fg-muted mt-2">Карточки вернутся, когда подойдёт срок повторения.</p>
         <div className="study-state-actions">
-          <Button
-            onClick={() =>
-              navigate(
-                isFolder ? `/folders/${targetId}/flashcards` : `/sets/${targetId}/flashcards`,
-              )
-            }
-          >
-            Открыть карточки
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => navigate(isFolder ? '/sets/manage' : `/sets/${targetId}`)}
-          >
-            {isFolder ? 'К папкам' : 'К набору'}
+          <Button onClick={() => navigate(`${basePath}/flashcards`)}>Открыть карточки</Button>
+          <Button variant="ghost" onClick={() => navigate(backHref)}>
+            {backLabel}
           </Button>
         </div>
       </StudyState>
@@ -149,8 +119,8 @@ export function WritePage() {
     return (
       <SessionSummary
         setId={targetId}
-        backHref={isFolder ? '/sets/manage' : undefined}
-        backLabel={isFolder ? 'К папкам' : undefined}
+        backHref={backHref}
+        backLabel={backLabel}
         answers={answers}
         onRestart={async () => {
           if (!(await finalizeSession())) return;
@@ -188,13 +158,7 @@ export function WritePage() {
           {current.direction === 'term_to_def' ? 'Термин → определение' : 'Определение → термин'}
         </p>
         <div className="study-question-content">
-          <CardContent
-            value={questionSide(current)}
-            type={current.card.content_type}
-            codeLanguage={current.card.code_language}
-            imageUrl={questionImage(current)}
-            imageAlt="Изображение вопроса"
-          />
+          <StudyCardFace item={current} role="question" />
         </div>
         {current.card.hint && !result && (
           <StudyHint key={current.card.id}>{current.card.hint}</StudyHint>
@@ -273,14 +237,7 @@ export function WritePage() {
             <span aria-hidden="true">↺</span> Повторим эту карточку
           </p>
           <p className="mt-2 text-sm">Правильно:</p>
-          <CardContent
-            value={expected}
-            type={current.card.content_type}
-            codeLanguage={current.card.code_language}
-            imageUrl={answerImage(current)}
-            imageAlt="Изображение ответа"
-            className="font-medium"
-          />
+          <StudyCardFace item={current} role="answer" className="font-medium" />
           {typed && (
             <p className="text-fg-subtle mt-1 text-sm">
               Вы ввели: <Diff expected={expected} typed={typed} />

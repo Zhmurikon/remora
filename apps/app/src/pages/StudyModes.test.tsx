@@ -8,10 +8,10 @@ import type { ReactNode } from 'react';
 import { useStudyStore, type QueueItem } from '../features/study/study-store';
 import { StudyShell } from '../features/study/StudyShell';
 import { api } from '../lib/api';
-import { WritePage } from './WritePage';
-import { ListenPage } from './ListenPage';
-import { LearnPage } from './LearnPage';
-import { FlashcardsPage } from './FlashcardsPage';
+import { WritePage } from '../features/study/WritePage';
+import { ListenPage } from '../features/study/ListenPage';
+import { LearnPage } from '../features/study/LearnPage';
+import { FlashcardsPage } from '../features/study/FlashcardsPage';
 
 const session = vi.hoisted(() => ({
   finalize: vi.fn(async () => true),
@@ -154,8 +154,10 @@ it('при сбое отдельной карточки предлагает о�
 });
 it('выход из заучивания сохраняет принятый ответ один раз и блокирует клавиши результата', () => {
   vi.useFakeTimers();
+  session.types = ['typing'];
   mount(<LearnPage />);
-  fireEvent.click(screen.getByRole('button', { name: 'морось' }));
+  fireEvent.change(screen.getByRole('textbox'), { target: { value: 'морось' } });
+  fireEvent.submit(screen.getByRole('textbox').closest('form')!);
   fireEvent.click(screen.getByRole('button', { name: /Завершить/ }));
   act(() => vi.advanceTimersByTime(1600));
   fireEvent.keyDown(window, { key: '1' });
@@ -200,7 +202,7 @@ it('после неверного ввода в заучивании перев�
   await userEvent.type(screen.getByRole('textbox'), 'дождь{Enter}');
   const next = screen.getByRole('button', { name: 'Дальше' });
   expect(document.activeElement).toBe(next);
-  expect(useStudyStore.getState().answers).toHaveLength(0);
+  expect(useStudyStore.getState().answers).toHaveLength(1);
   await userEvent.keyboard('{Enter}');
   expect(useStudyStore.getState().answers).toHaveLength(1);
   expect(useStudyStore.getState().answers[0]?.correct).toBe(false);
@@ -220,18 +222,128 @@ it('заучивание принимает правильный ввод и п�
   });
 });
 
-it('самооценка показывает ответ и интервалы, цифра записывает выбранную оценку', async () => {
+it('самооценка предлагает две оценки, цифра 2 записывает «Помню»', async () => {
   session.types = ['recall'];
   mount(<LearnPage />);
   expect(screen.queryByText('морось')).toBeNull();
   await userEvent.click(screen.getByRole('button', { name: 'Показать ответ' }));
   expect(screen.getByText('морось')).toBeTruthy();
-  expect(screen.getByRole('button', { name: /3 Хорошо/ }).textContent).toContain('30');
+  expect(screen.getByRole('button', { name: 'Не помню' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Помню' })).toBeTruthy();
   await userEvent.keyboard('2');
   expect(useStudyStore.getState().answers[0]).toMatchObject({
     cardId: 'first',
-    rating: 2,
-    correct: false,
+    rating: 3,
+    correct: true,
   });
   expect(screen.getByText('thunder')).toBeTruthy();
+});
+
+it('в смешанной очереди проверяет письмо по языку исходного набора', async () => {
+  const first = item('mixed', 'кошка', 'the cat');
+  first.lang_definition = 'en';
+  useStudyStore
+    .getState()
+    .begin({ mode: 'write', setId: 'folder', sessionId: 'session-1', items: [first] });
+  mount(<WritePage />);
+  await userEvent.type(screen.getByRole('textbox'), 'cat{Enter}');
+  expect(useStudyStore.getState().answers[0]?.correct).toBe(true);
+});
+
+it('переворачивает обратную карточку и записывает показанное направление', async () => {
+  const first = item('reversed', 'кошка', 'cat');
+  first.direction = 'def_to_term';
+  useStudyStore
+    .getState()
+    .begin({ mode: 'flashcards', setId: 'set-1', sessionId: null, items: [first] });
+  mount(<FlashcardsPage />);
+  expect(screen.getByText('cat')).toBeTruthy();
+  await userEvent.click(screen.getByRole('button', { name: 'Показать термин' }));
+  expect(screen.getByText('кошка')).toBeTruthy();
+  await userEvent.click(screen.getByRole('button', { name: 'Знаю' }));
+  expect(useStudyStore.getState().answers[0]?.direction).toBe('def_to_term');
+});
+
+it('просмотр новой карточки переносит её в хвост без записи ответа', async () => {
+  useStudyStore.setState({
+    items: cards.map((value) => ({ ...value, state: { ...value.state, reps: 0 } })),
+  });
+  mount(<LearnPage />);
+  expect(screen.getByText('Знакомство с карточкой')).toBeTruthy();
+  await userEvent.click(screen.getByRole('button', { name: 'Дальше' }));
+  const state = useStudyStore.getState();
+  expect(state.answers).toHaveLength(0);
+  expect(state.items.at(-1)?.card.id).toBe('first');
+  expect(state.index).toBe(0);
+});
+
+it('сохраняет ответ вне очереди на исходную карточку и оставляет соседние карточки доступными', () => {
+  const state = useStudyStore.getState();
+  const original = state.items[2]!;
+  state.answer({
+    item: { ...original, direction: 'def_to_term' },
+    consume: original,
+    rating: 1,
+    correct: false,
+    durationMs: 300,
+    requeue: true,
+  });
+  const after = useStudyStore.getState();
+  expect(after.items.map((value) => value.card.id)).toEqual([
+    'third',
+    'first',
+    'second',
+    'fourth',
+    'third',
+  ]);
+  expect(after.answers[0]).toMatchObject({
+    cardId: 'third',
+    direction: 'def_to_term',
+    correct: false,
+  });
+});
+
+it('при смене вопроса останавливает озвучку и отбрасывает запоздалое окончание старой реплики', async () => {
+  const { useAuthStore } = await import('../features/auth/auth-store');
+  const utterances: SpeechSynthesisUtterance[] = [];
+  const cancel = vi.fn();
+  vi.stubGlobal(
+    'SpeechSynthesisUtterance',
+    class {
+      constructor(public text: string) {}
+    },
+  );
+  vi.stubGlobal('speechSynthesis', {
+    cancel,
+    speak: (utterance: SpeechSynthesisUtterance) => utterances.push(utterance),
+  });
+  const user = useAuthStore.getState().user;
+  useAuthStore.setState({ user: { id: 'learner' } as NonNullable<typeof user> });
+  vi.mocked(api.GET).mockResolvedValue({
+    data: { features: { 'study.learn_narration': true } },
+  } as never);
+  useStudyStore.setState({
+    items: cards.map((value) => ({ ...value, state: { ...value.state, reps: 0 } })),
+  });
+  try {
+    mount(<LearnPage />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Включить озвучку' }));
+    expect(utterances.map((u) => u.text)).toEqual(['drizzle']);
+    const question = utterances[0]!;
+    const ended = question.onend!;
+    act(() => ended.call(question, {} as SpeechSynthesisEvent));
+    expect(utterances.map((u) => u.text)).toEqual(['drizzle', 'морось']);
+    const stale = utterances[1]!;
+    const oldEnd = stale.onend!;
+    await userEvent.click(screen.getByRole('button', { name: 'Дальше' }));
+    expect(cancel).toHaveBeenCalled();
+    const length = utterances.length;
+    act(() => oldEnd.call(stale, {} as SpeechSynthesisEvent));
+    expect(utterances).toHaveLength(length);
+    await userEvent.click(screen.getByRole('button', { name: 'Выключить озвучку' }));
+  } finally {
+    cleanup();
+    useAuthStore.setState({ user });
+    vi.unstubAllGlobals();
+  }
 });

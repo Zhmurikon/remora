@@ -15,6 +15,34 @@ export interface CardContentProps {
   className?: string;
 }
 
+export interface CardFaceProps {
+  card: {
+    term: string;
+    definition: string;
+    content_type: CardContentType;
+    code_language?: string | null;
+    term_image_url?: string | null;
+    definition_image_url?: string | null;
+  };
+  side: 'term' | 'definition';
+  imageAlt?: string;
+  imageUrl?: string | null;
+  className?: string;
+}
+
+export function CardFace({ card, side, imageAlt, imageUrl, className }: CardFaceProps) {
+  return (
+    <CardContent
+      value={card[side]}
+      type={card.content_type}
+      codeLanguage={card.code_language}
+      imageUrl={imageUrl ?? card[`${side}_image_url`]}
+      imageAlt={imageAlt ?? (side === 'term' ? 'Изображение термина' : 'Изображение определения')}
+      className={className}
+    />
+  );
+}
+
 const HighlightedCode = lazy(() => import('./HighlightedCode'));
 const FormulaContent = lazy(() => import('./FormulaContent'));
 

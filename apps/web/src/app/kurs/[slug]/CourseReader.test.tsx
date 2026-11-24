@@ -78,6 +78,9 @@ it('открывает прямую ссылку и сохраняет сост�
     expect(
       view.container.querySelector('.course-more a[href*="text_only"]')?.getAttribute('href'),
     ).toContain('?article=' + id + '&text_only=1');
+    expect(view.getByRole('link', { name: 'Пройти квиз' }).getAttribute('href')).toMatch(
+      new RegExp(`/sets/set-${id}/test\\?from=public-course$`),
+    );
     expect(first.hidden).toBe(id !== 'one');
     expect(second.hidden).toBe(id !== 'two');
   }

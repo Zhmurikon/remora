@@ -1,97 +1,10 @@
 import { pluralWithCount } from '@remora/core';
-import { useQuery } from '@tanstack/react-query';
 import { Fragment, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { api } from '../../lib/api';
 import { CardSide } from './CardSide';
-import {
-  CardChangeDialog,
-  type CardChange,
-  type SetCard,
-  type SetDetail,
-} from './CardChangeDialog';
-import cardsImage from '../../../../web/public/lecture-demo/pricing-cards.webp';
-import pencilImage from '../../../../web/public/lecture-demo/create-pencil.webp';
-import testImage from '../../../../web/public/lecture-demo/news-test.webp';
-import cassetteImage from '../../../../web/public/lecture-demo/folio-cassette.webp';
-import writingImage from '../study/quiz-art/typing.webp';
-import battleImage from '../study/quiz-art/true-false.webp';
+import { CardChangeDialog, type CardChange, type SetDetail } from './CardChangeDialog';
 import './set-cards.css';
 
 const PAGE_SIZE = 12;
-const modes = [
-  { path: 'flashcards', title: 'Карточки', description: 'Листать и запоминать', image: cardsImage },
-  { path: 'write', title: 'Письмо', description: 'Отвечать по памяти', image: pencilImage },
-  { path: 'test', title: 'Тест', description: 'Проверить знания', image: testImage },
-] as const;
-
-const additionalModes = [
-  modes[0],
-  { ...modes[1], image: writingImage },
-  {
-    path: 'listen',
-    title: 'Аудирование',
-    description: 'Слушать и записывать',
-    image: cassetteImage,
-  },
-  modes[2],
-  { path: 'battle', title: 'Битва', description: 'Сыграть с соперником', image: battleImage },
-];
-
-export function SetModes({
-  setId,
-  standalone = false,
-  disabled = false,
-}: {
-  setId: string;
-  standalone?: boolean;
-  disabled?: boolean;
-}) {
-  return (
-    <section className={standalone ? 'set-secondary' : 'set-block'} aria-label="Режимы обучения">
-      {!standalone && <h3>Режимы обучения</h3>}
-      <div className="set-mode-grid">
-        {(standalone ? additionalModes : modes).map((mode) => {
-          const content = (
-            <>
-              <img src={mode.image} width="52" height="50" alt="" />
-              <span>
-                <b>{mode.title}</b>
-                <small>{mode.description}</small>
-              </span>
-              <span aria-hidden="true">›</span>
-            </>
-          );
-          return disabled ? (
-            <span className="set-inactive-mode" aria-disabled="true" key={mode.path}>
-              {content}
-            </span>
-          ) : (
-            <Link
-              key={mode.path}
-              aria-label={standalone ? mode.title : undefined}
-              to={`/sets/${setId}/${mode.path}`}
-            >
-              {content}
-            </Link>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-function Face({ card, side }: { card: SetCard; side: 'term' | 'definition' }) {
-  return (
-    <CardSide
-      value={card[side]}
-      type={card.content_type}
-      codeLanguage={card.code_language}
-      imageId={side === 'term' ? card.term_image_id : card.definition_image_id}
-      imageAlt={side === 'term' ? 'Иллюстрация термина' : 'Иллюстрация определения'}
-    />
-  );
-}
 
 function AddCardButton({ onClick }: { onClick: () => void }) {
   const [dismissed, setDismissed] = useState(false);
@@ -192,47 +105,11 @@ function RowIcon({ kind }: { kind: 'edit' | 'delete' }) {
   );
 }
 
-export function SetCardBrowser({
-  setId,
-  owned,
-  standalone = false,
-}: {
-  setId: string;
-  owned: boolean;
-  standalone?: boolean;
-}) {
-  const Heading = standalone ? 'h2' : 'h3';
-  const query = useQuery({
-    queryKey: ['sets', setId],
-    queryFn: async () => {
-      const { data, error } = await api.GET('/api/v1/sets/{set_id}', {
-        params: { path: { set_id: setId } },
-      });
-      if (!data || error) throw new Error('Не удалось загрузить карточки.');
-      return data;
-    },
-  });
+export function SetCardBrowser({ set, editable }: { set: SetDetail; editable: boolean }) {
   const heading = useRef<HTMLHeadingElement>(null);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [dialog, setDialog] = useState<{ snapshot: SetDetail; change: CardChange } | null>(null);
-  if (!query.data)
-    return (
-      <section className="set-block">
-        <Heading>Состав набора</Heading>
-        {query.isError ? (
-          <>
-            <p role="alert">{query.error.message}</p>
-            <button className="set-tool" onClick={() => void query.refetch()}>
-              Повторить загрузку
-            </button>
-          </>
-        ) : (
-          <p>Загружаем карточки…</p>
-        )}
-      </section>
-    );
-  const set = query.data;
   const needle = search.trim().toLocaleLowerCase('ru');
   const filtered = set.cards.filter(
     (c) =>
@@ -242,7 +119,6 @@ export function SetCardBrowser({
   const currentPage = Math.min(page, lastPage);
   const start = currentPage * PAGE_SIZE;
   const rows = filtered.slice(start, start + PAGE_SIZE);
-  const editable = owned && set.can_edit;
   function open(change: CardChange) {
     setDialog({ snapshot: set, change });
   }
@@ -250,10 +126,10 @@ export function SetCardBrowser({
     <>
       <section className="set-block set-contents">
         <header className="set-block-head">
-          <Heading ref={heading} tabIndex={-1}>
+          <h2 ref={heading} tabIndex={-1}>
             Состав набора{' '}
             <small>{pluralWithCount(set.cards.length, ['карточка', 'карточки', 'карточек'])}</small>
-          </Heading>
+          </h2>
           <div className="set-tools">
             <label className="set-card-search">
               <svg
@@ -271,7 +147,7 @@ export function SetCardBrowser({
               <input
                 type="search"
                 aria-label="Поиск по карточкам набора"
-                placeholder={standalone ? 'Найти карточку' : 'Найти термин в наборе'}
+                placeholder="Найти карточку"
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -299,10 +175,10 @@ export function SetCardBrowser({
               {rows.map((card) => (
                 <tr key={card.id}>
                   <td>
-                    <Face card={card} side="term" />
+                    <CardSide card={card} side="term" imageId={card.term_image_id} />
                   </td>
                   <td>
-                    <Face card={card} side="definition" />
+                    <CardSide card={card} side="definition" imageId={card.definition_image_id} />
                   </td>
                   {editable && (
                     <td>

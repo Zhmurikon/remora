@@ -59,7 +59,6 @@ export function CardChangeDialog({
       await Promise.all([
         client.invalidateQueries({ queryKey: ['sets'], exact: true }),
         client.invalidateQueries({ queryKey: ['study', 'set-stats', set.id] }),
-        client.invalidateQueries({ queryKey: ['study', 'stats', set.id] }),
       ]);
       onSaved(set);
     },

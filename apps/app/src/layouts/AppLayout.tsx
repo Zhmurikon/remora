@@ -2,6 +2,7 @@ import { SettingsIcon } from '../components/SettingsIcon';
 import { Button, FishMark } from '@remora/ui';
 import { useEffect, useState } from 'react';
 import { matchPath, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { studyRoutes } from '../features/study/study-routes';
 import { useAuthStore } from '../features/auth/auth-store';
 import lectureMark from '../../../web/public/lecture-demo/remora-icon.png';
 import { api, clearAccessToken } from '../lib/api';
@@ -42,17 +43,8 @@ export function AppLayout() {
     '/courses/:courseId/materials/:articleId/edit',
   ].some((path) => matchPath(path, location.pathname));
   const isStudyPage = [
-    '/sets/:setId/learn',
-    '/sets/:setId/flashcards',
-    '/sets/:setId/write',
-    '/sets/:setId/listen',
-    '/sets/:setId/test',
+    ...studyRoutes.map(({ path }) => path),
     '/sets/:setId/battle',
-    '/folders/:folderId/learn',
-    '/folders/:folderId/flashcards',
-    '/folders/:folderId/write',
-    '/folders/:folderId/listen',
-    '/courses/:courseId/learn',
     '/battles/:battleId',
   ].some((path) => matchPath(path, location.pathname));
   const hasPaperShell =

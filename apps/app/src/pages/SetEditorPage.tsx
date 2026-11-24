@@ -17,6 +17,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { CourseIcon } from '../components/CourseAction';
 import { EditorCardIndex } from '../features/materials/EditorCardIndex';
 import { moveCustomItemTo } from '../features/library/ListSort';
+import { setDetailQuery } from '../features/materials/set-queries';
 import { CardSide } from '../features/materials/CardSide';
 import './set-editor.css';
 import { api, downloadFile, uploadBinary } from '../lib/api';
@@ -94,16 +95,7 @@ function newCard(term = '', definition = ''): DraftCard {
 
 export function SetEditorPage() {
   const { setId = '' } = useParams();
-  const query = useQuery({
-    queryKey: ['sets', setId],
-    queryFn: async () => {
-      const { data, error } = await api.GET('/api/v1/sets/{set_id}', {
-        params: { path: { set_id: setId } },
-      });
-      if (error) throw new Error('Не удалось загрузить набор');
-      return data;
-    },
-  });
+  const query = useQuery(setDetailQuery(setId));
   if (query.isPending) return <p role="status">Открываем редактор…</p>;
   if (!query.data)
     return (
@@ -660,11 +652,14 @@ function SetEditor({ initial }: { initial: SetDetail }) {
                   {(['term', 'definition'] as const).map((side) => (
                     <CardSide
                       key={side}
-                      value={card[side]}
-                      type={card.contentType}
-                      codeLanguage={card.codeLanguage}
+                      card={{
+                        term: card.term,
+                        definition: card.definition,
+                        content_type: card.contentType,
+                        code_language: card.codeLanguage,
+                      }}
+                      side={side}
                       imageId={side === 'term' ? card.termImageId : card.definitionImageId}
-                      imageAlt={side === 'term' ? 'Изображение термина' : 'Изображение определения'}
                     />
                   ))}
                 </div>

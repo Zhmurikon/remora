@@ -6,18 +6,16 @@
  * пользователь сам включил «учитывать в расписании».
  */
 
-import { Button, CardContent } from '@remora/ui';
+import { Button } from '@remora/ui';
 import { pluralWithCount } from '@remora/core';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { SessionSummary } from '../features/study/SessionSummary';
-import { StudyShell, StudyState } from '../features/study/StudyShell';
-import { selectCurrent, useStudyStore } from '../features/study/study-store';
-import {
-  useStudySession,
-  useStudySessionFinalizer,
-  type StudyScope,
-} from '../features/study/use-study-session';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { SessionSummary } from './SessionSummary';
+import { StudyShell, StudyState } from './StudyShell';
+import { sideName } from './card-sides';
+import { StudyCardFace } from './StudyCardFace';
+import { useCardTraining } from './use-card-training';
+import { type StudyScope } from './use-study-session';
 
 const AUTOPLAY_MS = 4000;
 
@@ -29,9 +27,6 @@ const scopeLabels: Record<StudyScope, string> = {
 };
 
 export function FlashcardsPage() {
-  const { setId, folderId } = useParams();
-  const targetId = setId ?? folderId ?? '';
-  const isFolder = Boolean(folderId);
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const scope = (params.get('scope') as StudyScope | null) ?? 'all';
@@ -39,26 +34,28 @@ export function FlashcardsPage() {
 
   const [flipped, setFlipped] = useState(false);
   const [autoplay, setAutoplay] = useState(false);
-  const [finished, setFinished] = useState(false);
-  const shownAt = useRef(Date.now());
 
-  const query = useStudySession({
-    setId,
-    folderId,
+  const {
+    query,
+    current,
+    items,
+    index,
+    answers,
+    answer,
+    targetId,
+    backHref,
+    backLabel,
+    finished,
+    setFinished,
+    finalizeSession,
+    shownAt,
+    goTo,
+  } = useCardTraining({
     mode: 'flashcards',
     scope,
     shuffle: params.get('shuffle') !== '0',
     trackProgress: track,
   });
-
-  const items = useStudyStore((state) => state.items);
-  const index = useStudyStore((state) => state.index);
-  const answers = useStudyStore((state) => state.answers);
-  const sessionId = useStudyStore((state) => state.sessionId);
-  const current = useStudyStore(selectCurrent);
-  const goTo = useStudyStore((state) => state.goTo);
-  const answer = useStudyStore((state) => state.answer);
-  const finalizeSession = useStudySessionFinalizer(sessionId);
 
   const move = useCallback(
     (delta: number) => {
@@ -66,7 +63,7 @@ export function FlashcardsPage() {
       shownAt.current = Date.now();
       goTo(Math.max(0, Math.min(items.length, index + delta)));
     },
-    [goTo, index, items.length],
+    [goTo, index, items.length, shownAt],
   );
 
   const mark = useCallback(
@@ -82,7 +79,7 @@ export function FlashcardsPage() {
       setFlipped(false);
       shownAt.current = Date.now();
     },
-    [answer, current, track],
+    [answer, current, shownAt, track],
   );
 
   useEffect(() => {
@@ -126,10 +123,6 @@ export function FlashcardsPage() {
     return () => clearTimeout(timer);
   }, [autoplay, current, finished, flipped, move]);
 
-  useEffect(() => {
-    if (items.length > 0 && (finished || !current)) void finalizeSession();
-  }, [current, finalizeSession, finished, items.length]);
-
   const touchStart = useRef<number | null>(null);
 
   if (query.isPending) return <StudyState title="Готовим карточки" loading />;
@@ -141,10 +134,7 @@ export function FlashcardsPage() {
         actions={
           <>
             <Button onClick={() => void query.refetch()}>Попробовать снова</Button>
-            <Button
-              variant="ghost"
-              onClick={() => navigate(isFolder ? '/sets/manage' : `/sets/${targetId}`)}
-            >
+            <Button variant="ghost" onClick={() => navigate(backHref)}>
               К материалам
             </Button>
           </>
@@ -157,9 +147,9 @@ export function FlashcardsPage() {
     return (
       <EmptyQueue
         scope={scope}
-        backLabel={isFolder ? 'К папкам' : 'К набору'}
+        backLabel={backLabel}
         onAll={() => setParams({ scope: 'all' })}
-        onBack={() => navigate(isFolder ? '/sets/manage' : `/sets/${targetId}`)}
+        onBack={() => navigate(backHref)}
       />
     );
   }
@@ -168,8 +158,8 @@ export function FlashcardsPage() {
     return (
       <SessionSummary
         setId={targetId}
-        backHref={isFolder ? '/sets/manage' : undefined}
-        backLabel={isFolder ? 'К папкам' : undefined}
+        backHref={backHref}
+        backLabel={backLabel}
         answers={answers}
         onRestart={async () => {
           if (!(await finalizeSession())) return;
@@ -182,10 +172,9 @@ export function FlashcardsPage() {
     );
   }
 
-  const side = flipped ? 'definition' : 'term';
-  const transcription = flipped
-    ? current.card.definition_transcription
-    : current.card.term_transcription;
+  const role = flipped ? 'answer' : 'question';
+  const side = sideName(current, role);
+  const transcription = current.card[`${side}_transcription`];
 
   return (
     <StudyShell
@@ -236,20 +225,14 @@ export function FlashcardsPage() {
         <button
           type="button"
           onClick={() => setFlipped((value) => !value)}
-          aria-label={flipped ? 'Показать термин' : 'Показать определение'}
+          aria-label={side === 'term' ? 'Показать определение' : 'Показать термин'}
           aria-pressed={flipped}
           className="study-question study-flip"
         >
           <div className="w-full">
-            <span className="study-side">{flipped ? 'Определение' : 'Термин'}</span>
+            <span className="study-side">{side === 'term' ? 'Термин' : 'Определение'}</span>
             <div className="study-question-content mt-6">
-              <CardContent
-                value={flipped ? current.card.definition : current.card.term}
-                type={current.card.content_type}
-                codeLanguage={current.card.code_language}
-                imageUrl={flipped ? current.card.definition_image_url : current.card.term_image_url}
-                imageAlt={side === 'term' ? 'Изображение термина' : 'Изображение определения'}
-              />
+              <StudyCardFace item={current} role={role} />
             </div>
             {transcription && <p className="text-fg-subtle mt-3 text-base">{transcription}</p>}
             {!flipped && current.card.hint && (

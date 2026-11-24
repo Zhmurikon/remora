@@ -1,13 +1,8 @@
-import { CardContent } from '@remora/ui';
+import { CardFace, type CardFaceProps } from '@remora/ui';
 import { useQuery } from '@tanstack/react-query';
-import type { ComponentProps } from 'react';
 import { api } from '../../lib/api';
 
-export function CardSide({
-  imageId,
-  imageAlt,
-  ...content
-}: ComponentProps<typeof CardContent> & { imageId?: string | null; imageAlt: string }) {
+export function CardSide({ imageId, ...content }: CardFaceProps & { imageId?: string | null }) {
   const image = useQuery({
     queryKey: ['media', imageId],
     enabled: Boolean(imageId),
@@ -20,5 +15,5 @@ export function CardSide({
     },
     staleTime: 30 * 60 * 1000,
   });
-  return <CardContent {...content} imageUrl={image.data?.download_url} imageAlt={imageAlt} />;
+  return <CardFace {...content} imageUrl={image.data?.download_url} />;
 }

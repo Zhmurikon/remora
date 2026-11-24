@@ -105,7 +105,7 @@ it('показывает сохранённому набору все режим
 
 it.each([
   ['course', 'Git с нуля', 'Есть обновление курса', '/kurs/git'],
-  ['article', 'Репозитории', 'Есть обновление набора', '/kurs/git#article-article'],
+  ['article', 'Репозитории', 'Есть обновление статьи', '/kurs/git#article-article'],
   ['set', 'Репозитории', 'Есть обновление набора', '/kurs/git#article-article'],
 ])('показывает источник карточек и область обновления для %s', async (via, text, notice, path) => {
   vi.mocked(api.GET).mockImplementation(async (requestPath) => {

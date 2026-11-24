@@ -69,13 +69,13 @@
   width: 16px;
   height: 16px;
 }
-.set-heading h1,
+.set-heading .set-title,
 .set-launch h2,
 .set-secondary b {
   font-family: var(--dashboard-serif);
   font-weight: 400;
 }
-.set-heading h1 {
+.set-heading .set-title {
   margin-top: 10px;
   font-size: clamp(2rem, 4.25cqi, 3rem);
   letter-spacing: -0.035em;

@@ -44,6 +44,8 @@ async def test_public_plan_catalog_has_launch_prices(client: AsyncClient) -> Non
     assert plans["plus"]["price_year"] == 249_900
     assert plans["pro"]["price_month"] == 99_900
     assert plans["pro"]["price_year"] == 999_900
+    for code, enabled in (("free", False), ("plus", True), ("pro", True)):
+        assert plans[code]["features"]["study.learn_narration"] is enabled
     assert plans["free"]["features"]["ai.transcription"] is False
     assert plans["free"]["limits"]["tts.chars_per_month"] == 5_000
     assert plans["free"]["limits"]["export.account_per_day"] == 1
@@ -75,6 +77,7 @@ async def test_free_entitlements_are_private_to_current_user(client: AsyncClient
     response = await client.get("/api/v1/billing/entitlements", headers=headers)
     assert response.status_code == 200
     assert response.json()["plan_code"] == "free"
+    assert response.json()["features"]["study.learn_narration"] is False
     assert response.json()["limits"]["sets.library_total"] == 20
     assert response.json()["limits"]["courses.total"] == 10
     assert response.json()["limits"]["study.reviews_soft_per_day"] == 500
@@ -130,6 +133,7 @@ async def test_subscription_snapshot_and_personal_override(client: AsyncClient) 
     assert response.status_code == 200
     assert response.json()["plan_code"] == "plus"
     assert response.json()["features"]["classes.xlsx_export"] is True
+    assert response.json()["features"]["study.learn_narration"] is True
     assert response.json()["limits"]["ai.transcription_minutes_per_week"] == 450
 
 

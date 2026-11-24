@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeAll, expect, it, vi } from 'vitest';
 import { api } from '../../lib/api';
+import { setDetailQuery } from './set-queries';
 import { SetCardBrowser } from './SetCardBrowser';
 
 vi.mock('../../lib/api', () => ({ api: { GET: vi.fn(), PUT: vi.fn() } }));
@@ -31,6 +32,11 @@ const makeCards = (length: number) =>
     wrong_term_answers: ['Другое слово'],
   }));
 const cards = makeCards(8);
+function LoadedCards() {
+  const { data } = useQuery(setDetailQuery('set'));
+  return data && <SetCardBrowser set={data} editable={data.can_edit} />;
+}
+
 function mount(canEdit: boolean, setCards = cards) {
   const data = {
     id: 'set',
@@ -42,7 +48,7 @@ function mount(canEdit: boolean, setCards = cards) {
   vi.mocked(api.PUT).mockResolvedValue({ data, response: new Response() } as never);
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <SetCardBrowser setId="set" owned={canEdit} />
+      <LoadedCards />
     </QueryClientProvider>,
   );
   return data;

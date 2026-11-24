@@ -25,7 +25,7 @@ export function StudyShell({
   const completed = Math.max(0, Math.min(done, total));
   const percent = total > 0 ? (completed / total) * 100 : 0;
   return (
-    <section className="study-workspace" aria-label={title}>
+    <section className="study-workspace" data-study-answering="" aria-label={title}>
       <header className="study-header">
         <div>
           <p className="study-eyebrow">Тренировка</p>

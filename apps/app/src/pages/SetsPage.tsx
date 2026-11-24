@@ -2,6 +2,7 @@ import type { components, ApiError } from '@remora/api-client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { StudyModeMenu } from '../features/study/StudyModeMenu';
 import { api } from '../lib/api';
 import {
   ManageHeader,
@@ -139,23 +140,11 @@ export function SetsPage() {
   function folderActions(id: string, title: string) {
     return (
       <div className="manage-inline">
-        <details>
-          <summary>Учиться по папке</summary>
-          <nav className="manage-options" aria-label={'Обучение — ' + title}>
-            {(
-              [
-                ['learn', 'Заучивание'],
-                ['flashcards', 'Карточки'],
-                ['write', 'Письмо'],
-                ['listen', 'Аудирование'],
-              ] as const
-            ).map(([path, label]) => (
-              <Link key={path} to={'/folders/' + id + '/' + path}>
-                {label}
-              </Link>
-            ))}
-          </nav>
-        </details>
+        <StudyModeMenu
+          basePath={`/folders/${id}`}
+          label={'Обучение — ' + title}
+          summary="Учиться по папке"
+        />
         <details>
           <summary aria-label={'Действия с папкой ' + title}>Действия</summary>
           <div className="manage-options">

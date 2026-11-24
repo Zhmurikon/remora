@@ -6,7 +6,7 @@ import './public-set.css';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
-import { PublicCardContent } from './PublicCardContent';
+import { CardFace } from '@remora/ui/card-content';
 import { cache } from 'react';
 
 const API_URL = process.env.API_INTERNAL_URL ?? 'http://localhost:8000';
@@ -205,9 +205,7 @@ export default async function PublicSetPage({ params }: { params: Promise<{ slug
 
 function CardSide({ card, side }: { card: PublicCard; side: 'term' | 'definition' }) {
   const isTerm = side === 'term';
-  const value = isTerm ? card.term : card.definition;
   const transcription = isTerm ? card.term_transcription : card.definition_transcription;
-  const imageUrl = isTerm ? card.term_image_url : card.definition_image_url;
   return (
     <div
       className={`ps-side ps-side-${side}`}
@@ -215,11 +213,9 @@ function CardSide({ card, side }: { card: PublicCard; side: 'term' | 'definition
       aria-label={isTerm ? 'Термин' : 'Определение'}
     >
       <p className="ps-side-label">{isTerm ? 'Термин' : 'Определение'}</p>
-      <PublicCardContent
-        value={value}
-        type={card.content_type}
-        codeLanguage={card.code_language}
-        imageUrl={imageUrl}
+      <CardFace
+        card={card}
+        side={side}
         imageAlt={isTerm ? `Термин: ${card.term}` : `Определение: ${card.definition}`}
         className={isTerm ? 'ps-term' : 'ps-definition'}
       />

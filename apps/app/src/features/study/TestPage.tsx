@@ -11,14 +11,14 @@ import { Badge, Button, Card, CardContent, Input } from '@remora/ui';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useId, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { api, openPdf } from '../lib/api';
-import { LessonQuizCount } from '../features/study/LessonQuizControls';
-import choiceImage from '../features/study/quiz-art/choice.webp';
-import trueFalseImage from '../features/study/quiz-art/true-false.webp';
-import typingImage from '../features/study/quiz-art/typing.webp';
-import matchingImage from '../features/study/quiz-art/matching.webp';
+import { api, openPdf } from '../../lib/api';
+import { LessonQuizCount } from './LessonQuizControls';
+import choiceImage from './quiz-art/choice.webp';
+import trueFalseImage from './quiz-art/true-false.webp';
+import typingImage from './quiz-art/typing.webp';
+import matchingImage from './quiz-art/matching.webp';
 import './lesson-quiz.css';
-import '../features/study/study-modes.css';
+import './study-modes.css';
 
 type TestConfig = components['schemas']['TestConfig'];
 type TestAttempt = components['schemas']['TestAttemptOut'];
@@ -57,7 +57,7 @@ const directionLabels: Record<NonNullable<TestConfig['direction']>, string> = {
   both: 'Оба направления',
 };
 
-interface TestPageProps {
+export interface TestPageProps {
   setIdOverride?: string;
   embedded?: boolean;
   onActivityChange?: (active: boolean) => void;
@@ -165,34 +165,23 @@ function TestBuilder({
   });
 
   const formats = (
-    <fieldset className={embedded ? 'quiz-formats' : undefined}>
+    <fieldset className="quiz-formats">
       <legend className="text-fg text-sm font-medium">Типы вопросов</legend>
-      <div className={embedded ? 'quiz-format-grid' : 'mt-2 grid gap-2 sm:grid-cols-2'}>
+      <div className="quiz-format-grid">
         {(Object.keys(questionFormats) as QuestionKind[]).map((kind) => (
-          <label
-            key={kind}
-            className={
-              embedded
-                ? 'quiz-format-card'
-                : 'border-border flex min-h-11 items-center gap-2 rounded-md border px-3 text-sm'
-            }
-          >
-            {embedded && (
-              <>
-                <img src={questionFormats[kind].image} width="60" height="48" alt="" />
-                <span className="quiz-format-copy">
-                  <span id={`${formatId}-${kind}-title`}>{questionFormats[kind].title}</span>
-                  <small id={`${formatId}-${kind}-description`}>
-                    {questionFormats[kind].description}
-                  </small>
-                </span>
-              </>
-            )}
+          <label key={kind} className="quiz-format-card">
+            <img src={questionFormats[kind].image} width="60" height="48" alt="" />
+            <span className="quiz-format-copy">
+              <span id={`${formatId}-${kind}-title`}>{questionFormats[kind].title}</span>
+              <small id={`${formatId}-${kind}-description`}>
+                {questionFormats[kind].description}
+              </small>
+            </span>
             <input
               type="checkbox"
               className="h-4 w-4"
-              aria-labelledby={embedded ? `${formatId}-${kind}-title` : undefined}
-              aria-describedby={embedded ? `${formatId}-${kind}-description` : undefined}
+              aria-labelledby={`${formatId}-${kind}-title`}
+              aria-describedby={`${formatId}-${kind}-description`}
               checked={kinds.includes(kind)}
               onChange={(event) => {
                 const checked = event.currentTarget.checked;
@@ -201,7 +190,6 @@ function TestBuilder({
                 );
               }}
             />
-            {!embedded && <span>{questionFormats[kind].title}</span>}
           </label>
         ))}
       </div>
@@ -256,61 +244,41 @@ function TestBuilder({
   );
   return (
     <form
-      className={embedded ? 'lesson-quiz' : 'mx-auto max-w-2xl'}
+      className={embedded ? 'lesson-quiz' : 'lesson-quiz mx-auto max-w-2xl'}
       onSubmit={(event) => {
         event.preventDefault();
         if (validCount && kinds.length && !create.isPending) create.mutate();
       }}
     >
-      {embedded ? (
-        <>
-          <h2 className="quiz-title">Настройки квиза</h2>
-          {formats}
-          <LessonQuizCount value={count} valid={validCount} onChange={setCount} />
-          <details className="quiz-filters">
-            <summary>
-              Расширенные настройки
-              <span className="quiz-caret" aria-hidden="true" />
-            </summary>
-            {filters}
-            {schedule}
-          </details>
-          {error}
-          <div className="quiz-launch">{start}</div>
-        </>
-      ) : (
-        <>
-          <Link to={`/sets/${setId}`} className="text-primary text-sm font-medium">
-            ← К набору
-          </Link>
-          <h1 className="mt-5 text-2xl font-semibold tracking-tight">Тест</h1>
-          <p className="text-fg-muted mt-2">
-            Рекомендуем выбор ответа и вопросы «Верно или неверно». Для письменных ответов включите
-            «Ввод ответа».
-          </p>
-          <Card className="mt-6 space-y-5 p-6">
-            <Input
-              label="Сколько вопросов"
-              type="number"
-              required
-              min={1}
-              max={50}
-              value={count}
-              onChange={(event) => setCount(event.target.value)}
-            />
-            {formats}
-            {filters}
-            {schedule}
-            {error}
-            <div className="flex flex-wrap gap-3">
-              {start}
-              <Button type="button" variant="ghost" onClick={() => navigate(`/sets/${setId}`)}>
-                Отмена
-              </Button>
-            </div>
-          </Card>
-        </>
+      {!embedded && (
+        <Link to={`/sets/${setId}`} className="set-back">
+          ← К набору
+        </Link>
       )}
+      {embedded ? (
+        <h2 className="quiz-title">Настройки квиза</h2>
+      ) : (
+        <h1 className="quiz-title">Тест</h1>
+      )}
+      {formats}
+      <LessonQuizCount value={count} valid={validCount} onChange={setCount} />
+      <details className="quiz-filters">
+        <summary>
+          Расширенные настройки
+          <span className="quiz-caret" aria-hidden="true" />
+        </summary>
+        {filters}
+        {schedule}
+      </details>
+      {error}
+      <div className="quiz-launch">
+        {start}
+        {!embedded && (
+          <Button type="button" variant="ghost" onClick={() => navigate(`/sets/${setId}`)}>
+            Отмена
+          </Button>
+        )}
+      </div>
     </form>
   );
 }
@@ -351,7 +319,7 @@ function TestRunner({
   const answered = attempt.questions.filter((question) => isAnswered(answers[question.id])).length;
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-3xl" data-study-answering="">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Тест · {attempt.set_title}</h1>

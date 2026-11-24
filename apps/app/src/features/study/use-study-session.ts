@@ -50,6 +50,7 @@ export function useStudySession({
       'study',
       'queue',
       setId ?? courseId ?? folderId,
+      setId ? 'set' : courseId ? 'course' : 'folder',
       mode,
       scope,
       direction,
@@ -71,6 +72,8 @@ export function useStudySession({
                 : { folder_id: folderId, mode, config: { scope, direction } },
           })
         : null;
+      if (session && (session.error || !session.data))
+        throw new Error('Не удалось начать тренировку.');
       const { data, error } = setId
         ? await api.GET('/api/v1/study/sets/{set_id}/queue', {
             params: { path: { set_id: setId }, query: { mode, scope, direction, shuffle } },
@@ -152,7 +155,6 @@ export function useStudySessionFinalizer(sessionId: string | null) {
         return false;
       }
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['study', 'stats'] }),
         queryClient.invalidateQueries({ queryKey: ['study', 'set-stats'] }),
         queryClient.invalidateQueries({ queryKey: ['study', 'forecast'] }),
         queryClient.invalidateQueries({ queryKey: ['retention'] }),

@@ -158,12 +158,19 @@ export function CourseReader({
                       Материал
                     </a>
                     {lesson.hasCards && (
-                      <a
-                        href={`#article-${lesson.id}-cards`}
-                        aria-current={location?.cards ? 'location' : undefined}
-                      >
-                        Карточки
-                      </a>
+                      <>
+                        <a
+                          href={`#article-${lesson.id}-cards`}
+                          aria-current={location?.cards ? 'location' : undefined}
+                        >
+                          Карточки
+                        </a>
+                        <a
+                          href={`${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:5173'}/sets/${encodeURIComponent(lesson.setId)}/test?from=public-course`}
+                        >
+                          Пройти квиз
+                        </a>
+                      </>
                     )}
                   </>
                 }

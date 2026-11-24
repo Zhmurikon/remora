@@ -3,7 +3,7 @@
 import type { components } from '@remora/api-client';
 import { Button, Card } from '@remora/ui';
 import { useRef, useState } from 'react';
-import { PublicCardContent } from '../../nabor/[slug]/PublicCardContent';
+import { CardFace } from '@remora/ui/card-content';
 
 type Material = components['schemas']['PublicSet'];
 
@@ -67,23 +67,15 @@ export function PublicCourseCards({
           <li key={card.id}>
             <Card className="grid gap-5 sm:grid-cols-2">
               <div className="min-w-0">
-                <PublicCardContent
-                  value={card.term}
-                  type={card.content_type}
-                  codeLanguage={card.code_language ?? null}
-                  imageUrl={card.term_image_url ?? null}
-                  imageAlt={`Термин: ${card.term}`}
-                />
+                <CardFace card={card} side="term" imageAlt={`Термин: ${card.term}`} />
                 {card.term_transcription && (
                   <p className="text-fg-muted mt-2 text-sm">[{card.term_transcription}]</p>
                 )}
               </div>
               <div className="border-border min-w-0 border-t pt-4 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
-                <PublicCardContent
-                  value={card.definition}
-                  type={card.content_type}
-                  codeLanguage={card.code_language ?? null}
-                  imageUrl={card.definition_image_url ?? null}
+                <CardFace
+                  card={card}
+                  side="definition"
                   imageAlt={`Определение: ${card.definition}`}
                 />
                 {card.definition_transcription && (

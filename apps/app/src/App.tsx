@@ -3,25 +3,22 @@ import { AuthBootstrap } from './features/auth/AuthBootstrap';
 import { AchievementCelebration } from './features/achievements/AchievementCelebration';
 import { McpConsentPage } from './pages/McpConsentPage';
 import { ProtectedRoute } from './features/auth/ProtectedRoute';
+import { StudyActivity } from './features/study/StudyActivity';
+import { studyRoutes } from './features/study/study-routes';
 import { AppLayout } from './layouts/AppLayout';
 import { DashboardPage } from './pages/DashboardPage';
 import { CoursesPage } from './pages/CoursesPage';
 import { CoursePage, NewCoursePage } from './pages/CourseSettingsPage';
 import { CourseEditorPage } from './pages/CourseEditorPage';
 import { CourseCopyPage, CourseReaderPage } from './pages/CourseReaderPage';
-import { FlashcardsPage } from './pages/FlashcardsPage';
-import { LearnPage } from './pages/LearnPage';
 import { SavedArticlePage } from './pages/SavedArticlePage';
 import { LibraryPage } from './pages/LibraryPage';
 import { MaterialsPage } from './pages/MaterialsPage';
-import { ListenPage } from './pages/ListenPage';
 import { PracticePage, PythonPracticePage, PythonTaskPage } from './pages/PracticePage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SetEditorPage } from './pages/SetEditorPage';
 import { SetPage } from './pages/SetPage';
 import { SetsPage } from './pages/SetsPage';
-import { TestPage } from './pages/TestPage';
-import { WritePage } from './pages/WritePage';
 import { AchievementsPage } from './pages/AchievementsPage';
 import { BattlePage } from './pages/BattlePage';
 import { ClassPage, ClassesPage, JoinClassPage, StudentReportPage } from './pages/ClassesPage';
@@ -63,21 +60,14 @@ export function App() {
                 element={<CourseEditorPage />}
               />
               <Route path="courses/:courseId/read" element={<CourseReaderPage />} />
-              <Route path="courses/:courseId/learn" element={<LearnPage />} />
-              <Route path="folders/:folderId/learn" element={<LearnPage />} />
-              <Route path="folders/:folderId/flashcards" element={<FlashcardsPage />} />
-              <Route path="folders/:folderId/write" element={<WritePage />} />
-              <Route path="folders/:folderId/listen" element={<ListenPage />} />
+              {studyRoutes.map(({ path, mode }) => (
+                <Route key={path} path={path} element={<StudyActivity mode={mode} />} />
+              ))}
               <Route path="courses/copy/:slug" element={<CourseCopyPage />} />
               <Route path="sets/:setId" element={<SetPage />} />
               <Route path="sets/:setId/edit" element={<SetEditorPage />} />
-              <Route path="sets/:setId/learn" element={<LearnPage />} />
-              <Route path="sets/:setId/flashcards" element={<FlashcardsPage />} />
-              <Route path="sets/:setId/write" element={<WritePage />} />
-              <Route path="sets/:setId/test" element={<TestPage />} />
               <Route path="sets/:setId/battle" element={<BattlePage />} />
               <Route path="battles/:battleId" element={<BattlePage />} />
-              <Route path="sets/:setId/listen" element={<ListenPage />} />
               <Route path="library" element={<Navigate to="/materials" replace />} />
               <Route path="transcriptions" element={<TranscriptionsPage />} />
               <Route path="transcriptions/:jobId" element={<TranscriptionsPage />} />

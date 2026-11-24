@@ -159,3 +159,10 @@
     opacity: 1;
   }
 }
+
+/* На телефоне награда перекрывает кнопки ответа. Она появится после выхода из вопроса. */
+@media (max-width: 767px) {
+  body:has([data-study-answering]) .achievement-motion {
+    display: none;
+  }
+}
