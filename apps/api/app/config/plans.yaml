@@ -18,6 +18,7 @@ plans:
       ai.sources_per_task: 0
       ai.generation_tokens_per_week: 0
     features:
+      study.learn_narration: false
       materials.private: false
       ai.transcription: false
       ai.refinement: false
@@ -44,6 +45,7 @@ plans:
       ai.sources_per_task: 2
       ai.generation_tokens_per_week: 500000
     features:
+      study.learn_narration: true
       materials.private: true
       ai.transcription: true
       ai.refinement: false
@@ -70,6 +72,7 @@ plans:
       ai.sources_per_task: 5
       ai.generation_tokens_per_week: 2500000
     features:
+      study.learn_narration: true
       materials.private: true
       ai.transcription: true
       ai.refinement: true

@@ -1,3 +1,4 @@
+import { studyRoutes } from '../features/study/study-routes';
 import { SettingsIcon } from '../components/SettingsIcon';
 import { Button, FishMark } from '@remora/ui';
 import { useEffect, useState } from 'react';
@@ -40,6 +41,11 @@ export function AppLayout() {
     '/courses/:courseId/edit',
     '/courses/:courseId/structure',
   ].some((path) => matchPath(path, location.pathname));
+  const isStudyPage = [
+    ...studyRoutes.map(({ path }) => path),
+    '/sets/:setId/battle',
+    '/battles/:battleId',
+  ].some((path) => matchPath(path, location.pathname));
   const hasPaperShell =
     isTranscriptionsPath(location.pathname) ||
     location.pathname === '/' ||
@@ -54,6 +60,7 @@ export function AppLayout() {
     ['/sets/manage', '/courses/manage', '/library/manage', '/courses/copy/:slug'].some((path) =>
       matchPath(path, location.pathname),
     ) ||
+    isStudyPage ||
     isCourseSettings ||
     isSetDetail ||
     Boolean(matchPath('/sets/:setId/edit', location.pathname));

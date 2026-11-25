@@ -1,0 +1,693 @@
+/**
+ * Режим «Тест»: конструктор → прохождение без подсказок → разбор.
+ *
+ * Проверка целиком на сервере: он собрал вопросы, он же знает ответы. Клиент
+ * только собирает введённое и показывает разбор, который вернул сервер.
+ */
+
+import { SessionResultCard } from './SessionResultCard';
+import type { components } from '@remora/api-client';
+import { pluralWithCount } from '@remora/core';
+import { Badge, Button, Card, CardContent, Input } from '@remora/ui';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useId, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { api, openPdf } from '../../lib/api';
+import { LessonQuizCount } from './LessonQuizControls';
+import choiceImage from './quiz-art/choice.webp';
+import trueFalseImage from './quiz-art/true-false.webp';
+import typingImage from './quiz-art/typing.webp';
+import matchingImage from './quiz-art/matching.webp';
+import './lesson-quiz.css';
+import './study-modes.css';
+
+type TestConfig = components['schemas']['TestConfig'];
+type TestAttempt = components['schemas']['TestAttemptOut'];
+type TestQuestion = components['schemas']['TestQuestionOut'];
+type TestResult = components['schemas']['TestResult'];
+type QuestionKind = components['schemas']['TestQuestionKind'];
+
+/** Ответ на один вопрос: строка для большинства типов, список — для сопоставления. */
+type Answer = { value?: string; values?: string[] };
+
+const questionFormats: Record<QuestionKind, { title: string; description: string; image: string }> =
+  {
+    choice: {
+      title: 'Выбор из вариантов',
+      description: 'Выбрать верный ответ',
+      image: choiceImage,
+    },
+    true_false: {
+      title: 'Верно или нет',
+      description: 'Оценить утверждение',
+      image: trueFalseImage,
+    },
+    typing: { title: 'Ввод ответа', description: 'Ответить по памяти', image: typingImage },
+    matching: { title: 'Сопоставление', description: 'Подобрать пары', image: matchingImage },
+  };
+
+const sourceLabels: Record<NonNullable<TestConfig['source']>, string> = {
+  all: 'Весь набор',
+  hard: 'Только сложные',
+  new: 'Только невыученные',
+};
+
+const directionLabels: Record<NonNullable<TestConfig['direction']>, string> = {
+  term_to_def: 'Термин → определение',
+  def_to_term: 'Определение → термин',
+  both: 'Оба направления',
+};
+
+export interface TestPageProps {
+  setIdOverride?: string;
+  embedded?: boolean;
+  onActivityChange?: (active: boolean) => void;
+  onCompleted?: () => void;
+}
+
+export function TestPage(props: TestPageProps = {}) {
+  return props.embedded ? (
+    <TestContent {...props} />
+  ) : (
+    <section className="study-workspace study-test">
+      <TestContent {...props} />
+    </section>
+  );
+}
+
+function TestContent({
+  setIdOverride,
+  embedded = false,
+  onActivityChange,
+  onCompleted,
+}: TestPageProps) {
+  const { setId: routeSetId = '' } = useParams();
+  const setId = setIdOverride ?? routeSetId;
+  const [attempt, setAttempt] = useState<TestAttempt | null>(null);
+  const [result, setResult] = useState<TestResult | null>(null);
+  function startAttempt(next: TestAttempt) {
+    setAttempt(next);
+    setResult(null);
+    onActivityChange?.(true);
+  }
+
+  if (result && attempt) {
+    return (
+      <TestReview
+        setId={setId}
+        embedded={embedded}
+        result={result}
+        attempt={attempt}
+        onRetake={startAttempt}
+        onRestart={() => {
+          setAttempt(null);
+          setResult(null);
+        }}
+      />
+    );
+  }
+  if (attempt) {
+    return (
+      <TestRunner
+        attempt={attempt}
+        onFinished={(value) => {
+          setResult(value);
+          onActivityChange?.(false);
+          onCompleted?.();
+        }}
+      />
+    );
+  }
+  return <TestBuilder setId={setId} embedded={embedded} onCreated={startAttempt} />;
+}
+
+function TestBuilder({
+  setId,
+  embedded,
+  onCreated,
+}: {
+  setId: string;
+  embedded: boolean;
+  onCreated: (attempt: TestAttempt) => void;
+}) {
+  const navigate = useNavigate();
+  const formatId = useId();
+  const [count, setCount] = useState('20');
+  const questionCount = Number(count);
+  const validCount = Number.isInteger(questionCount) && questionCount >= 1 && questionCount <= 50;
+  const [kinds, setKinds] = useState<QuestionKind[]>(['choice', 'true_false']);
+  const [source, setSource] = useState<NonNullable<TestConfig['source']>>('all');
+  const [direction, setDirection] = useState<NonNullable<TestConfig['direction']>>('term_to_def');
+  const [writeToSchedule, setWriteToSchedule] = useState(true);
+  const create = useMutation({
+    mutationFn: async () => {
+      const { data, error: failure } = await api.POST('/api/v1/study/sets/{set_id}/tests', {
+        params: { path: { set_id: setId } },
+        body: {
+          question_count: questionCount,
+          kinds,
+          source,
+          direction,
+          write_to_schedule: writeToSchedule,
+        },
+      });
+      if (failure || !data) throw new Error(errorMessage(failure));
+      return data;
+    },
+    onSuccess: onCreated,
+  });
+
+  const formats = (
+    <fieldset className="quiz-formats">
+      <legend className="text-fg text-sm font-medium">Типы вопросов</legend>
+      <div className="quiz-format-grid">
+        {(Object.keys(questionFormats) as QuestionKind[]).map((kind) => (
+          <label key={kind} className="quiz-format-card">
+            <img src={questionFormats[kind].image} width="60" height="48" alt="" />
+            <span className="quiz-format-copy">
+              <span id={`${formatId}-${kind}-title`}>{questionFormats[kind].title}</span>
+              <small id={`${formatId}-${kind}-description`}>
+                {questionFormats[kind].description}
+              </small>
+            </span>
+            <input
+              type="checkbox"
+              className="h-4 w-4"
+              aria-labelledby={`${formatId}-${kind}-title`}
+              aria-describedby={`${formatId}-${kind}-description`}
+              checked={kinds.includes(kind)}
+              onChange={(event) => {
+                const checked = event.currentTarget.checked;
+                setKinds((current) =>
+                  checked ? [...current, kind] : current.filter((item) => item !== kind),
+                );
+              }}
+            />
+          </label>
+        ))}
+      </div>
+      {kinds.length === 0 && (
+        <p role="status" className="text-danger mt-2 text-sm">
+          Выберите хотя бы один тип.
+        </p>
+      )}
+    </fieldset>
+  );
+
+  const filters = (
+    <div className="grid gap-4 sm:grid-cols-2">
+      <Select
+        label="Источник"
+        value={source}
+        onChange={(value) => setSource(value as typeof source)}
+        options={Object.entries(sourceLabels)}
+      />
+      <Select
+        label="Направление"
+        value={direction}
+        onChange={(value) => setDirection(value as typeof direction)}
+        options={Object.entries(directionLabels)}
+      />
+    </div>
+  );
+  const schedule = (
+    <label className="text-fg-muted flex min-h-11 cursor-pointer items-center gap-2 text-sm">
+      <input
+        type="checkbox"
+        className="h-4 w-4 shrink-0"
+        checked={writeToSchedule}
+        onChange={(event) => setWriteToSchedule(event.target.checked)}
+      />
+      Учитывать результат в расписании повторений
+    </label>
+  );
+  const error = create.isError && (
+    <p role="alert" className="text-danger text-sm">
+      {create.error.message}
+    </p>
+  );
+  const start = (
+    <Button
+      type="submit"
+      loading={create.isPending}
+      disabled={!validCount || kinds.length === 0 || create.isPending}
+    >
+      {embedded ? 'Начать квиз' : 'Начать тест'}
+    </Button>
+  );
+  return (
+    <form
+      className={embedded ? 'lesson-quiz' : 'lesson-quiz mx-auto max-w-2xl'}
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (validCount && kinds.length && !create.isPending) create.mutate();
+      }}
+    >
+      {!embedded && (
+        <Link to={`/sets/${setId}`} className="set-back">
+          ← К набору
+        </Link>
+      )}
+      {embedded ? (
+        <h2 className="quiz-title">Настройки квиза</h2>
+      ) : (
+        <h1 className="quiz-title">Тест</h1>
+      )}
+      {formats}
+      <LessonQuizCount value={count} valid={validCount} onChange={setCount} />
+      <details className="quiz-filters">
+        <summary>
+          Расширенные настройки
+          <span className="quiz-caret" aria-hidden="true" />
+        </summary>
+        {filters}
+        {schedule}
+      </details>
+      {error}
+      <div className="quiz-launch">
+        {start}
+        {!embedded && (
+          <Button type="button" variant="ghost" onClick={() => navigate(`/sets/${setId}`)}>
+            Отмена
+          </Button>
+        )}
+      </div>
+    </form>
+  );
+}
+
+function TestRunner({
+  attempt,
+  onFinished,
+}: {
+  attempt: TestAttempt;
+  onFinished: (result: TestResult) => void;
+}) {
+  const queryClient = useQueryClient();
+  const [answers, setAnswers] = useState<Record<string, Answer>>({});
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = useMutation({
+    mutationFn: async () => {
+      const { data, error: failure } = await api.POST('/api/v1/study/tests/{attempt_id}/submit', {
+        params: { path: { attempt_id: attempt.id } },
+        body: {
+          answers: attempt.questions.map((question) => ({
+            question_id: question.id,
+            value: answers[question.id]?.value ?? null,
+            values: answers[question.id]?.values ?? [],
+          })),
+        },
+      });
+      if (failure || !data) throw new Error(errorMessage(failure));
+      return data;
+    },
+    onSuccess: async (data) => {
+      await queryClient.invalidateQueries({ queryKey: ['study'] });
+      onFinished(data);
+    },
+    onError: (failure: Error) => setError(failure.message),
+  });
+
+  const answered = attempt.questions.filter((question) => isAnswered(answers[question.id])).length;
+
+  return (
+    <div className="mx-auto max-w-3xl" data-study-answering="">
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Тест · {attempt.set_title}</h1>
+          <p className="text-fg-muted mt-1 text-sm">
+            Отвечено {answered} из {attempt.questions.length}. Проверка — в конце.
+          </p>
+        </div>
+      </header>
+
+      <ol className="mt-6 space-y-5">
+        {attempt.questions.map((question, index) => (
+          <li key={question.id}>
+            <QuestionCard
+              question={question}
+              index={index}
+              answer={answers[question.id]}
+              onAnswer={(answer) =>
+                setAnswers((current) => ({ ...current, [question.id]: answer }))
+              }
+            />
+          </li>
+        ))}
+      </ol>
+
+      {error && <p className="text-danger mt-4 text-sm">{error}</p>}
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <Button loading={submit.isPending} onClick={() => submit.mutate()}>
+          Проверить
+        </Button>
+        {answered < attempt.questions.length && (
+          <p className="text-fg-subtle text-sm">
+            Без ответа{' '}
+            {pluralWithCount(attempt.questions.length - answered, [
+              'вопрос',
+              'вопроса',
+              'вопросов',
+            ])}
+            — они будут засчитаны как ошибки.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function QuestionCard({
+  question,
+  index,
+  answer,
+  onAnswer,
+}: {
+  question: TestQuestion;
+  index: number;
+  answer: Answer | undefined;
+  onAnswer: (answer: Answer) => void;
+}) {
+  return (
+    <Card className="p-5 sm:p-6">
+      <div className="flex items-start justify-between gap-3">
+        <span className="text-fg-subtle text-sm">Вопрос {index + 1}</span>
+        <Badge tone="neutral">{questionFormats[question.kind].title}</Badge>
+      </div>
+
+      {question.kind !== 'matching' && (
+        <div className="mt-3 text-lg">
+          <CardContent
+            value={question.prompt}
+            type={question.content_type}
+            codeLanguage={question.code_language}
+            imageUrl={question.prompt_image_url}
+            imageAlt="Изображение вопроса"
+          />
+        </div>
+      )}
+
+      {question.kind === 'choice' && (
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          {(question.options ?? []).map((option) => (
+            <label
+              key={option}
+              className={`focus-within:ring-primary flex min-h-11 cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm focus-within:ring-2 ${
+                answer?.value === option
+                  ? 'border-primary bg-primary-subtle'
+                  : 'border-border bg-surface'
+              }`}
+            >
+              <input
+                type="radio"
+                name={question.id}
+                className="h-4 w-4"
+                checked={answer?.value === option}
+                onChange={() => onAnswer({ value: option })}
+              />
+              <CardContent
+                value={option}
+                type={question.content_type}
+                codeLanguage={question.code_language}
+              />
+            </label>
+          ))}
+        </div>
+      )}
+
+      {question.kind === 'true_false' && (
+        <>
+          <div className="text-fg-muted mt-3">
+            <span>Утверждение:</span>
+            <CardContent
+              value={question.statement ?? ''}
+              type={question.content_type}
+              codeLanguage={question.code_language}
+              className="text-fg font-medium"
+            />
+          </div>
+          <div className="mt-4 flex gap-3">
+            {[
+              ['true', 'Верно'],
+              ['false', 'Неверно'],
+            ].map(([value, label]) => (
+              <Button
+                key={value}
+                variant={answer?.value === value ? 'primary' : 'secondary'}
+                onClick={() => onAnswer({ value })}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {question.kind === 'typing' && (
+        <div className="mt-4">
+          <Input
+            value={answer?.value ?? ''}
+            onChange={(event) => onAnswer({ value: event.target.value })}
+            placeholder="Ваш ответ"
+            autoComplete="off"
+            spellCheck={false}
+            aria-label={`Ответ на вопрос ${index + 1}`}
+          />
+        </div>
+      )}
+
+      {question.kind === 'matching' && (
+        <div className="mt-4 space-y-2">
+          <p className="text-fg-muted text-sm">Подберите пару к каждому пункту.</p>
+          {(question.pairs ?? []).map((left, position) => (
+            <div key={left} className="grid items-start gap-2 sm:grid-cols-2">
+              <CardContent
+                value={left}
+                type={question.content_type}
+                codeLanguage={question.code_language}
+                className="font-medium"
+              />
+              <div role="radiogroup" aria-label={`Пара для «${left}»`} className="grid gap-2">
+                {(question.options ?? []).map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    role="radio"
+                    aria-checked={answer?.values?.[position] === option}
+                    className={`focus-visible:ring-primary min-h-11 rounded-md border px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 ${
+                      answer?.values?.[position] === option
+                        ? 'border-primary bg-primary-subtle'
+                        : 'border-border bg-surface'
+                    }`}
+                    onClick={() => {
+                      const values = [...(answer?.values ?? [])];
+                      values[position] = option;
+                      onAnswer({ values });
+                    }}
+                  >
+                    <CardContent
+                      value={option}
+                      type={question.content_type}
+                      codeLanguage={question.code_language}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function TestReview({
+  setId,
+  embedded,
+  result,
+  attempt,
+  onRetake,
+  onRestart,
+}: {
+  setId: string;
+  embedded: boolean;
+  result: TestResult;
+  attempt: TestAttempt;
+  onRetake: (attempt: TestAttempt) => void;
+  onRestart: () => void;
+}) {
+  const [error, setError] = useState<string | null>(null);
+  const retake = useMutation({
+    mutationFn: async () => {
+      const { data, error: failure } = await api.POST('/api/v1/study/tests/{attempt_id}/retake', {
+        params: { path: { attempt_id: attempt.id } },
+      });
+      if (failure || !data) throw new Error(errorMessage(failure));
+      return data;
+    },
+    onSuccess: onRetake,
+    onError: (failure: Error) => setError(failure.message),
+  });
+
+  return (
+    <div className="mx-auto max-w-3xl">
+      <header className="session-result__header">
+        <h1>Тест завершён</h1>
+      </header>
+      <SessionResultCard
+        correct={result.correct_count}
+        total={result.total}
+        score={result.score}
+        complete
+        answers={result.review}
+      />
+
+      <div className="mt-6 flex flex-wrap justify-center gap-3">
+        {result.wrong_card_ids.length > 0 && (
+          <Button loading={retake.isPending} onClick={() => retake.mutate()}>
+            Пересдать ошибки ({result.wrong_card_ids.length})
+          </Button>
+        )}
+        <Button variant="secondary" onClick={onRestart}>
+          Новый тест
+        </Button>
+        <Button variant="ghost" onClick={() => void openPdf(`/api/v1/print/tests/${attempt.id}`)}>
+          Распечатать бланк
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={() => void openPdf(`/api/v1/print/tests/${attempt.id}?answers=true`)}
+        >
+          Ключ с ответами
+        </Button>
+        {!embedded && (
+          <Link to={`/sets/${setId}`}>
+            <Button variant="ghost">К набору</Button>
+          </Link>
+        )}
+      </div>
+      {error && <p className="text-danger mt-4 text-center text-sm">{error}</p>}
+
+      <h2 className="mt-10 text-lg font-semibold">Разбор</h2>
+      <ol className="mt-4 space-y-3">
+        {result.review.map((item, index) => (
+          <li key={item.question.id}>
+            <Card className={`p-5 ${item.correct ? 'border-success' : 'border-danger'}`}>
+              <div className="flex items-start justify-between gap-3">
+                <span className="text-fg-subtle text-sm">Вопрос {index + 1}</span>
+                <Badge tone={item.correct ? 'success' : 'danger'}>
+                  {item.correct ? (item.verdict === 'typo' ? 'опечатка' : 'верно') : 'ошибка'}
+                </Badge>
+              </div>
+              <CardContent
+                value={item.question.prompt}
+                type={item.question.content_type}
+                codeLanguage={item.question.code_language}
+                imageUrl={item.question.prompt_image_url}
+                imageAlt="Изображение вопроса"
+                className="mt-2 font-medium"
+              />
+              {item.question.statement && (
+                <div className="text-fg-muted mt-1 text-sm">
+                  <span>Утверждение:</span>
+                  <CardContent
+                    value={item.question.statement}
+                    type={item.question.content_type}
+                    codeLanguage={item.question.code_language}
+                  />
+                </div>
+              )}
+              <dl className="mt-3 space-y-1 text-sm">
+                <div className="flex gap-2">
+                  <dt className="text-fg-subtle">Ваш ответ:</dt>
+                  <dd className={`min-w-0 flex-1 ${item.correct ? '' : 'text-danger'}`}>
+                    <CardContent
+                      value={formatGiven(item) || '— не отвечено —'}
+                      type={item.question.content_type}
+                      codeLanguage={item.question.code_language}
+                    />
+                  </dd>
+                </div>
+                {!item.correct && (
+                  <div className="flex gap-2">
+                    <dt className="text-fg-subtle">Правильно:</dt>
+                    <dd className="min-w-0 flex-1 font-medium">
+                      <CardContent
+                        value={formatExpected(item)}
+                        type={item.question.content_type}
+                        codeLanguage={item.question.code_language}
+                      />
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            </Card>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function Select({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: [string, string][];
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-fg text-sm font-medium" htmlFor={`select-${label}`}>
+        {label}
+      </label>
+      <select
+        id={`select-${label}`}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="border-border bg-surface text-fg h-10 w-full rounded-md border px-3 text-base"
+      >
+        {options.map(([optionValue, optionLabel]) => (
+          <option key={optionValue} value={optionValue}>
+            {optionLabel}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function isAnswered(answer: Answer | undefined): boolean {
+  if (!answer) return false;
+  if (answer.values?.length) return answer.values.some((value) => value.length > 0);
+  return Boolean(answer.value && answer.value.trim().length > 0);
+}
+
+function formatGiven(item: TestResult['review'][number]): string {
+  if (item.given_values && item.given_values.length > 0) return item.given_values.join(', ');
+  if (item.question.kind === 'true_false') {
+    return item.given === 'true' ? 'Верно' : item.given === 'false' ? 'Неверно' : '';
+  }
+  return item.given ?? '';
+}
+
+function formatExpected(item: TestResult['review'][number]): string {
+  if (item.expected_values && item.expected_values.length > 0)
+    return item.expected_values.join(', ');
+  if (item.question.kind === 'true_false') {
+    return item.expected === 'true' ? 'Верно' : 'Неверно';
+  }
+  return item.expected;
+}
+
+function errorMessage(error: unknown): string {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    return String((error as { message: unknown }).message);
+  }
+  return 'Не удалось выполнить запрос';
+}

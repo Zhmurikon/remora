@@ -11,6 +11,7 @@ from __future__ import annotations
 import random
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
+from itertools import zip_longest
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -21,6 +22,7 @@ from app.core.config import get_settings
 from app.core.errors import ConflictError, ForbiddenError, NotFoundError
 from app.core.storage import get_object_storage
 from app.models.content import Card, MediaAsset, MediaStatus, StudySet
+from app.models.courses import Course, CourseArticle
 from app.models.study import (
     CardState,
     CardStateKind,
@@ -275,6 +277,21 @@ class StudyService:
             reviews_left_today=reviews_left,
         )
 
+    async def _study_course_articles(
+        self, user: User, course_id: UUID
+    ) -> tuple[Course, list[CourseArticle]]:
+        course = await LibraryService(self.db).get_study_course(user, course_id)
+        articles = await course_repo.articles(self.db, course.id)
+        if course.owner_id != user.id:
+            saved = await library_repo.save_for_target(self.db, user.id, "course", course.id)
+            accepted_ids = {
+                UUID(value["set"]["id"])
+                for value in (saved.accepted_snapshot.get("articles", []) if saved else [])
+                if value.get("set", {}).get("id")
+            }
+            articles = [article for article in articles if article.set_id in accepted_ids]
+        return course, list(articles)
+
     async def get_course_queue(
         self,
         user: User,
@@ -286,91 +303,17 @@ class StudyService:
         limit: int,
         shuffle: bool,
     ) -> StudyQueue:
-        course = await LibraryService(self.db).get_study_course(user, course_id)
-        articles = await course_repo.articles(self.db, course.id)
-        if course.owner_id != user.id:
-            saved = await library_repo.save_for_target(self.db, user.id, "course", course.id)
-            accepted_ids = {
-                UUID(value["set"]["id"])
-                for value in (saved.accepted_snapshot.get("articles", []) if saved else [])
-                if value.get("set", {}).get("id")
-            }
-            articles = [article for article in articles if article.set_id in accepted_ids]
-
-        queues: list[StudyQueue] = []
-        for article in articles:
-            queue = await self.get_queue(
-                user,
-                article.set_id,
-                mode=mode,
-                scope=scope,
-                direction=direction,
-                limit=MAX_QUEUE_LIMIT,
-                shuffle=shuffle,
-            )
-            queue.items = [
-                item.model_copy(
-                    update={
-                        "source_set_id": queue.set_id,
-                        "source_set_title": queue.set_title,
-                        "source_article_id": article.id,
-                        "source_article_title": article.title,
-                        "lang_term": queue.lang_term,
-                        "lang_definition": queue.lang_definition,
-                    }
-                )
-                for item in queue.items
-            ]
-            queues.append(queue)
-
-        settings = await user_repo.get_or_create_settings(self.db, user.id)
-        if mode is StudyMode.learn:
-            limit = settings.learn_session_size
-        scheduler = self._scheduler(settings)
-        now = datetime.now(tz=UTC)
-        combined: list[QueueItem] = []
-        per_set = [list(queue.items) for queue in queues]
-        while any(per_set):
-            for current in per_set:
-                if current:
-                    combined.append(current.pop(0))
-        first = queues[0] if queues else None
-        new_left = first.new_left_today if first else settings.new_cards_per_day
-        reviews_left = first.reviews_left_today if first else settings.reviews_per_day
-        items: list[QueueItem] = []
-        selected_new = selected_reviews = 0
-        for item in combined:
-            is_new = item.state.state is CardStateKind.new
-            if scope is QueueScope.due and mode is not StudyMode.learn:
-                if is_new and selected_new >= new_left:
-                    continue
-                if not is_new and selected_reviews >= reviews_left:
-                    continue
-            items.append(item)
-            selected_new += int(is_new)
-            selected_reviews += int(not is_new)
-            if len(items) >= max(1, min(limit, MAX_QUEUE_LIMIT)):
-                break
-        return StudyQueue(
+        course, articles = await self._study_course_articles(user, course_id)
+        return await self._combined_queue(
+            user,
+            [(article.set_id, article) for article in articles],
+            title=course.title,
             course_id=course.id,
-            course_title=course.title,
-            set_title=course.title,
-            lang_term=first.lang_term if first else "ru",
-            lang_definition=first.lang_definition if first else "ru",
-            answer_strictness=Strictness(settings.answer_strictness),
-            learn_question_types=settings.learn_question_types,
-            learn_successes_required=settings.learn_successes_required,
-            learn_session_size=settings.learn_session_size,
-            learn_typing_check=settings.learn_typing_check,
-            learn_match_percent=settings.learn_match_percent,
             mode=mode,
-            generated_at=now,
-            scheduler_version=scheduler.version,
-            items=items,
-            due_total=sum(queue.due_total for queue in queues),
-            new_total=sum(queue.new_total for queue in queues),
-            new_left_today=new_left,
-            reviews_left_today=reviews_left,
+            scope=scope,
+            direction=direction,
+            limit=limit,
+            shuffle=shuffle,
         )
 
     async def get_folder_queue(
@@ -386,8 +329,34 @@ class StudyService:
     ) -> StudyQueue:
         library = LibraryService(self.db)
         folder, set_ids = await library.get_folder_set_ids(user, folder_id)
+        return await self._combined_queue(
+            user,
+            [(set_id, None) for set_id in set_ids],
+            title=folder.title,
+            folder_id=folder.id,
+            mode=mode,
+            scope=scope,
+            direction=direction,
+            limit=limit,
+            shuffle=shuffle,
+        )
+
+    async def _combined_queue(
+        self,
+        user: User,
+        sources: list[tuple[UUID, CourseArticle | None]],
+        *,
+        title: str,
+        mode: StudyMode,
+        scope: QueueScope,
+        direction: DirectionMode,
+        limit: int,
+        shuffle: bool,
+        course_id: UUID | None = None,
+        folder_id: UUID | None = None,
+    ) -> StudyQueue:
         queues: list[StudyQueue] = []
-        for set_id in set_ids:
+        for set_id, article in sources:
             queue = await self.get_queue(
                 user,
                 set_id,
@@ -397,29 +366,27 @@ class StudyService:
                 limit=MAX_QUEUE_LIMIT,
                 shuffle=shuffle,
             )
-            queue.items = [
-                item.model_copy(
-                    update={
-                        "source_set_id": queue.set_id,
-                        "source_set_title": queue.set_title,
-                        "lang_term": queue.lang_term,
-                        "lang_definition": queue.lang_definition,
-                    }
-                )
-                for item in queue.items
-            ]
+            for item in queue.items:
+                item.source_set_id = queue.set_id
+                item.source_set_title = queue.set_title
+                item.lang_term = queue.lang_term
+                item.lang_definition = queue.lang_definition
+                if article is not None:
+                    item.source_article_id = article.id
+                    item.source_article_title = article.title
             queues.append(queue)
 
         settings = await user_repo.get_or_create_settings(self.db, user.id)
         if mode is StudyMode.learn:
             limit = settings.learn_session_size
         scheduler = self._scheduler(settings)
-        combined: list[QueueItem] = []
-        per_set = [list(queue.items) for queue in queues]
-        while any(per_set):
-            for current in per_set:
-                if current:
-                    combined.append(current.pop(0))
+        # Чередуем наборы, сохраняя внутри каждого порядок планировщика.
+        combined = (
+            item
+            for group in zip_longest(*(queue.items for queue in queues))
+            for item in group
+            if item is not None
+        )
         first = queues[0] if queues else None
         new_left = first.new_left_today if first else settings.new_cards_per_day
         reviews_left = first.reviews_left_today if first else settings.reviews_per_day
@@ -438,9 +405,11 @@ class StudyService:
             if len(items) >= max(1, min(limit, MAX_QUEUE_LIMIT)):
                 break
         return StudyQueue(
-            folder_id=folder.id,
-            folder_title=folder.title,
-            set_title=folder.title,
+            course_id=course_id,
+            course_title=title if course_id else None,
+            folder_id=folder_id,
+            folder_title=title if folder_id else None,
+            set_title=title,
             lang_term=first.lang_term if first else "ru",
             lang_definition=first.lang_definition if first else "ru",
             answer_strictness=Strictness(settings.answer_strictness),
@@ -599,16 +568,7 @@ class StudyService:
             await self.content.get_study_set(user, body.set_id)
             existing = await study_repo.get_active_session(self.db, user.id, body.set_id, body.mode)
         elif body.course_id is not None:
-            course = await LibraryService(self.db).get_study_course(user, body.course_id)
-            articles = await course_repo.articles(self.db, course.id)
-            if course.owner_id != user.id:
-                saved = await library_repo.save_for_target(self.db, user.id, "course", course.id)
-                accepted_ids = {
-                    UUID(value["set"]["id"])
-                    for value in (saved.accepted_snapshot.get("articles", []) if saved else [])
-                    if value.get("set", {}).get("id")
-                }
-                articles = [article for article in articles if article.set_id in accepted_ids]
+            _, articles = await self._study_course_articles(user, body.course_id)
             config["set_ids"] = [str(article.set_id) for article in articles]
             existing = await study_repo.get_active_course_session(
                 self.db, user.id, body.course_id, body.mode

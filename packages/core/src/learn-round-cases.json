@@ -1,0 +1,155 @@
+{
+  "seed": "mixed",
+  "items": [
+    {
+      "card": {
+        "id": "0",
+        "position": 0,
+        "term": "Термин 0",
+        "definition": "Значение 0",
+        "wrong_term_answers": ["А", "Б", "В"],
+        "wrong_definition_answers": ["Г", "Д", "Е"],
+        "alt_answers": []
+      },
+      "lang_term": "ru",
+      "lang_definition": "ru",
+      "direction": "term_to_def",
+      "previews": [],
+      "state": {
+        "card_id": "0",
+        "direction": "term_to_def",
+        "state": "new",
+        "due_at": "2026-11-24T00:00:00Z",
+        "reps": 0
+      }
+    },
+    {
+      "card": {
+        "id": "1",
+        "position": 1,
+        "term": "Термин 1",
+        "definition": "Значение 1",
+        "wrong_term_answers": ["А", "Б", "В"],
+        "wrong_definition_answers": ["Г", "Д", "Е"],
+        "alt_answers": []
+      },
+      "lang_term": "ru",
+      "lang_definition": "ru",
+      "direction": "term_to_def",
+      "previews": [],
+      "state": {
+        "card_id": "1",
+        "direction": "term_to_def",
+        "state": "new",
+        "due_at": "2026-11-24T00:00:00Z",
+        "reps": 0
+      }
+    },
+    {
+      "card": {
+        "id": "2",
+        "position": 2,
+        "term": "Термин 2",
+        "definition": "Значение 2",
+        "wrong_term_answers": ["А", "Б", "В"],
+        "wrong_definition_answers": ["Г", "Д", "Е"],
+        "alt_answers": []
+      },
+      "lang_term": "ru",
+      "lang_definition": "ru",
+      "direction": "term_to_def",
+      "previews": [],
+      "state": {
+        "card_id": "2",
+        "direction": "term_to_def",
+        "state": "new",
+        "due_at": "2026-11-24T00:00:00Z",
+        "reps": 0
+      }
+    },
+    {
+      "card": {
+        "id": "3",
+        "position": 3,
+        "term": "Термин 3",
+        "definition": "Значение 3",
+        "wrong_term_answers": ["А", "Б", "В"],
+        "wrong_definition_answers": ["Г", "Д", "Е"],
+        "alt_answers": []
+      },
+      "lang_term": "ru",
+      "lang_definition": "ru",
+      "direction": "term_to_def",
+      "previews": [],
+      "state": {
+        "card_id": "3",
+        "direction": "term_to_def",
+        "state": "new",
+        "due_at": "2026-11-24T00:00:00Z",
+        "reps": 0
+      }
+    },
+    {
+      "card": {
+        "id": "4",
+        "position": 4,
+        "term": "Термин 4",
+        "definition": "Значение 4",
+        "wrong_term_answers": ["А", "Б", "В"],
+        "wrong_definition_answers": ["Г", "Д", "Е"],
+        "alt_answers": []
+      },
+      "lang_term": "ru",
+      "lang_definition": "ru",
+      "direction": "term_to_def",
+      "previews": [],
+      "state": {
+        "card_id": "4",
+        "direction": "term_to_def",
+        "state": "new",
+        "due_at": "2026-11-24T00:00:00Z",
+        "reps": 0
+      }
+    }
+  ],
+  "rounds": [
+    {
+      "kind": "easyTerm",
+      "direction": "def_to_term",
+      "options": ["Термин 0", "Термин 1", "Термин 3", "Термин 2"]
+    },
+    {
+      "kind": "recall",
+      "direction": "term_to_def"
+    },
+    {
+      "kind": "pairs",
+      "direction": "term_to_def",
+      "pairs": ["0", "1", "2", "3"]
+    },
+    {
+      "kind": "term",
+      "direction": "def_to_term",
+      "options": ["В", "Термин 0", "Б", "А"]
+    },
+    {
+      "kind": "definition",
+      "direction": "term_to_def",
+      "options": ["Г", "Е", "Значение 0", "Д"]
+    },
+    {
+      "kind": "writeTerm",
+      "direction": "def_to_term"
+    },
+    {
+      "kind": "writeDefinition",
+      "direction": "term_to_def"
+    },
+    {
+      "kind": "truth",
+      "direction": "term_to_def",
+      "statement": "Значение 0",
+      "truth": true
+    }
+  ]
+}

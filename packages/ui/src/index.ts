@@ -9,6 +9,8 @@ export { Card, CardHeader, CardTitle, CardDescription, type CardProps } from './
 export { Badge, type BadgeProps, type BadgeTone } from './components/Badge';
 export {
   CardContent,
+  CardFace,
+  type CardFaceProps,
   codeLanguageOptions,
   type CardContentProps,
   type CardContentType,
