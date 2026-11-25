@@ -2,6 +2,9 @@
   display: grid;
   gap: 1rem;
 }
+.match-switch {
+  justify-self: center;
+}
 .match-board {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
@@ -59,6 +62,8 @@
   display: none;
 }
 .match-round p[role='status'] {
+  text-align: center;
+  margin-bottom: 1rem;
   min-height: 1.5em;
 }
 .match-pulse {
@@ -87,9 +92,12 @@
   .match-board {
     display: none;
   }
-  .match-hand {
+  .match-hand,
+  .match-page {
     display: grid;
     gap: 10px;
+  }
+  .match-hand {
     touch-action: pan-y pinch-zoom;
   }
   .match-hand nav {

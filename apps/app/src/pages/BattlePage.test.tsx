@@ -311,3 +311,35 @@ it('переносит фокус на каждый новый вопрос и �
   await waitFor(() => expect(document.activeElement).toBe(result));
   expect(accepted).toBe(4);
 });
+it.each([
+  [4, 'Звёздная печать'],
+  [3, 'Выход на орбиту'],
+  [0, 'Мягкая посадка'],
+] as const)(
+  'показывает финал по личному результату завершённой битвы: %i из 4',
+  async (correct, sceneTitle) => {
+    const finished = room({
+      status: 'finished',
+      participants: [
+        { ...player, answered_count: 4, correct_count: correct },
+        {
+          ...player,
+          user_id: 'u2',
+          slot: 2,
+          is_current: false,
+          answered_count: 4,
+          correct_count: 4,
+        },
+      ],
+    });
+    vi.mocked(api.GET).mockImplementation(
+      async (path) =>
+        ({
+          data: String(path).endsWith('/result') ? { review: [] } : finished,
+        }) as never,
+    );
+    setup();
+    await screen.findByText('Точность решает');
+    expect(screen.getByText(sceneTitle)).toBeTruthy();
+  },
+);

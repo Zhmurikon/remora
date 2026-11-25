@@ -58,7 +58,7 @@ export function ListenPage() {
     enabled: status.data?.available === true,
   });
 
-  const { schedule, cancel } = useStudyTransition();
+  const { schedule, cancel, bodyRef } = useStudyTransition();
   const [typed, setTyped] = useState('');
   const [result, setResult] = useState<AnswerResult | null>(null);
   const [revealed, setRevealed] = useState(false);
@@ -177,6 +177,7 @@ export function ListenPage() {
 
   return (
     <StudyShell
+      bodyRef={bodyRef}
       title="На слух"
       subtitle={`Запишите услышанное · проверка «${STRICTNESS_LABELS[
         queue?.answer_strictness ?? 'moderate'
@@ -187,6 +188,7 @@ export function ListenPage() {
         </p>
       }
       done={index}
+      questionIndex={result ? index - 1 : index}
       total={items.length}
       onExit={() => {
         cancel();

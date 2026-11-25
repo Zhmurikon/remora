@@ -1,5 +1,6 @@
 import { Button } from '@remora/ui';
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode, type RefObject } from 'react';
+import { AnswerRewards } from './rewards/StudyRewards';
 import { useStudyStore } from './study-store';
 import './study-modes.css';
 
@@ -7,6 +8,8 @@ interface StudyShellProps {
   title: string;
   subtitle?: string;
   done: number;
+  questionIndex?: number;
+  bodyRef?: RefObject<HTMLDivElement | null>;
   total: number;
   onExit: () => void;
   children: ReactNode;
@@ -17,47 +20,56 @@ export function StudyShell({
   title,
   subtitle,
   done,
+  questionIndex = done,
+  bodyRef,
   total,
   onExit,
   children,
   footer,
 }: StudyShellProps) {
+  const defaultBody = useRef<HTMLDivElement>(null);
+  const body = bodyRef ?? defaultBody;
   const completed = Math.max(0, Math.min(done, total));
   const percent = total > 0 ? (completed / total) * 100 : 0;
   return (
-    <section className="study-workspace" data-study-answering="" aria-label={title}>
-      <header className="study-header">
-        <div>
-          <p className="study-eyebrow">Тренировка</p>
-          <h1>{title}</h1>
-          {subtitle && <p className="study-subtitle">{subtitle}</p>}
+    <div className="study-layout">
+      <section className="study-workspace" data-study-answering="" aria-label={title}>
+        <header className="study-header">
+          <div>
+            <p className="study-eyebrow">Тренировка</p>
+            <h1>{title}</h1>
+            {subtitle && <p className="study-subtitle">{subtitle}</p>}
+          </div>
+          <Button variant="ghost" onClick={onExit} className="study-exit">
+            Завершить <span aria-hidden="true">↗</span>
+          </Button>
+        </header>
+        <div className="study-progress">
+          <div className="study-progress-copy">
+            <span>
+              Пройдено <strong>{completed}</strong> из {total}
+            </span>
+            <span>Осталось {Math.max(0, total - completed)}</span>
+          </div>
+          <div
+            className="study-progress-track"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={total}
+            aria-valuenow={completed}
+            aria-label={`Пройдено ${completed} из ${total}`}
+          >
+            <div style={{ transform: `scaleX(${percent / 100})` }} />
+          </div>
         </div>
-        <Button variant="ghost" onClick={onExit} className="study-exit">
-          Завершить <span aria-hidden="true">↗</span>
-        </Button>
-      </header>
-      <div className="study-progress">
-        <div className="study-progress-copy">
-          <span>
-            Пройдено <strong>{completed}</strong> из {total}
-          </span>
-          <span>Осталось {Math.max(0, total - completed)}</span>
+        <SyncIndicator />
+        <div ref={body} className="study-body">
+          {children}
+          <AnswerRewards body={body} questionIndex={questionIndex} />
         </div>
-        <div
-          className="study-progress-track"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={total}
-          aria-valuenow={completed}
-          aria-label={`Пройдено ${completed} из ${total}`}
-        >
-          <div style={{ transform: `scaleX(${percent / 100})` }} />
-        </div>
-      </div>
-      <SyncIndicator />
-      <div className="study-body">{children}</div>
-      {footer && <footer className="study-footer">{footer}</footer>}
-    </section>
+        {footer && <footer className="study-footer">{footer}</footer>}
+      </section>
+    </div>
   );
 }
 

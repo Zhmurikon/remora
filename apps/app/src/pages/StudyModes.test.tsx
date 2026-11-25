@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import { useStudyStore, type QueueItem } from '../features/study/study-store';
+import * as playback from '../features/study/rewards/playback';
 import { StudyShell } from '../features/study/StudyShell';
 import { api } from '../lib/api';
 import { WritePage } from '../features/study/WritePage';
@@ -132,6 +133,139 @@ describe('Обратная связь по текущей карточке', () 
   });
 });
 
+it('держит последнюю карточку до окончания движения и записывает оценку один раз', async () => {
+  vi.useFakeTimers();
+  useStudyStore.setState({ items: [cards[0]!] });
+  let finish!: () => void;
+  const playbackDone = vi.spyOn(playback, 'rewardFinished').mockReturnValue(
+    new Promise<void>((resolve) => {
+      finish = resolve;
+    }),
+  );
+  try {
+    mount(<FlashcardsPage />);
+    const known = screen.getByRole('button', { name: 'Знаю' });
+    fireEvent.click(known);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1500);
+    });
+    expect(screen.getByText('drizzle')).toBeTruthy();
+    expect(known.hasAttribute('disabled')).toBe(true);
+    expect(
+      document.querySelector(
+        '.study-body > .study-reward-slot .study-reward-field:not([hidden])[data-streak="1"]',
+      ),
+    ).toBeTruthy();
+    fireEvent.keyDown(window, { key: 'ArrowUp' });
+    expect(useStudyStore.getState().answers).toHaveLength(1);
+    await act(async () => finish());
+    expect(screen.getByRole('heading', { name: 'Результат тренировки' })).toBeTruthy();
+  } finally {
+    playbackDone.mockRestore();
+  }
+});
+
+it('показывает одну награду за доску, даже если последнюю пару пришлось исправить', async () => {
+  vi.useFakeTimers();
+  session.types = ['choice'];
+  useStudyStore.setState({ sessionId: 'pairs' });
+  const { container } = mount(<LearnPage />);
+  const pick = (term: string, definition: string) => {
+    fireEvent.click(container.querySelector(`[data-term="${term}"]`)!);
+    fireEvent.click(container.querySelector(`[data-def="${definition}"]`)!);
+  };
+  pick('fourth', 'first');
+  for (const id of ['first', 'second', 'third']) pick(id, id);
+  expect(useStudyStore.getState().answers).toHaveLength(4);
+  expect(useStudyStore.getState().rewardCount).toBe(0);
+  expect(container.querySelector('.study-reward-field:not([hidden])')).toBeNull();
+  pick('fourth', 'fourth');
+  expect(screen.getByText('Все пары собраны.')).toBeTruthy();
+  expect(useStudyStore.getState().answers).toHaveLength(4);
+  expect(useStudyStore.getState().rewardCount).toBe(1);
+  expect(
+    container.querySelector('.study-reward-field:not([hidden])')?.getAttribute('data-streak'),
+  ).toBe('3');
+  let finish!: () => void;
+  const reward = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  const playbackDone = vi.spyOn(playback, 'rewardFinished').mockReturnValue(reward);
+  try {
+    await act(() => vi.advanceTimersByTimeAsync(1500));
+    expect(screen.getByText('Все пары собраны.')).toBeTruthy();
+    await act(async () => finish());
+    await act(() => vi.advanceTimersByTimeAsync(799));
+    expect(screen.getByText('Все пары собраны.')).toBeTruthy();
+    await act(() => vi.advanceTimersByTimeAsync(1));
+    expect(screen.queryByText('Все пары собраны.')).toBeNull();
+    expect(useStudyStore.getState().answers).toHaveLength(4);
+  } finally {
+    playbackDone.mockRestore();
+  }
+});
+
+it('засчитывает первую попытку по выбранной стороне и принимает пары в обоих направлениях', () => {
+  session.types = ['choice'];
+  useStudyStore.setState({ sessionId: 'pairs' });
+  const { container } = mount(<LearnPage />);
+  const click = (side: 'def' | 'term', id: string) =>
+    fireEvent.click(container.querySelector(`[data-${side}="${id}"]`)!);
+  click('def', 'first');
+  click('term', 'second');
+  click('term', 'first');
+  click('term', 'third');
+  click('def', 'third');
+  expect(screen.getByText('Собрано 2 из 4')).toBeTruthy();
+  expect(useStudyStore.getState().answers).toMatchObject([
+    { cardId: 'first', direction: 'def_to_term', correct: false },
+    { cardId: 'third', direction: 'term_to_def', correct: true },
+  ]);
+  expect(useStudyStore.getState().rewardCount).toBe(0);
+});
+
+it.each(['qa', 'session-1'])(
+  'подсвечивает ошибку и ждёт продолжения в задании %s',
+  async (seed) => {
+    vi.useFakeTimers();
+    session.types = ['choice'];
+    useStudyStore.setState({ sessionId: seed });
+    const { container } = mount(<LearnPage />);
+    const options = Array.from(container.querySelectorAll<HTMLButtonElement>('.study-option'));
+    const label =
+      seed === 'qa'
+        ? 'морось'
+        : container.querySelector('.study-question')!.textContent!.includes('морось')
+          ? 'Верно'
+          : 'Неверно';
+    const right = options.find((node) => node.textContent!.endsWith(label))!;
+    const wrong = options.find((node) => node !== right)!;
+    fireEvent.click(wrong);
+    expect(wrong.dataset.verdict).toBe('wrong');
+    expect(right.dataset.verdict).toBe('expected');
+    expect(container.querySelector('.study-feedback')).toBeNull();
+    await act(() => vi.advanceTimersByTimeAsync(3000));
+    expect(right.isConnected).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Дальше' }));
+    expect(right.isConnected).toBe(false);
+    expect(useStudyStore.getState().answers).toHaveLength(1);
+  },
+);
+
+it('подсвечивает верный вариант и автоматически меняет вопрос', async () => {
+  vi.useFakeTimers();
+  session.types = ['choice'];
+  useStudyStore.setState({ sessionId: 'qa' });
+  const { container } = mount(<LearnPage />);
+  const right = screen.getByRole('button', { name: 'морось' });
+  fireEvent.click(right);
+  expect(right.dataset.verdict).toBe('correct');
+  expect(container.querySelector('.study-feedback')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Дальше' })).toBeNull();
+  await act(() => vi.advanceTimersByTimeAsync(1000));
+  expect(right.isConnected).toBe(false);
+});
+
 it('при ошибке проверки озвучки предлагает повтор и другой режим', async () => {
   vi.mocked(api.GET).mockResolvedValue({ error: { code: 'UNAVAILABLE' } } as never);
   mount(<ListenPage />);
@@ -173,6 +307,9 @@ it('карточки не перехватывают Enter и стрелки н�
   screen.getByRole('checkbox').focus();
   await userEvent.keyboard('{ArrowDown}');
   expect(useStudyStore.getState().index).toBe(1);
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Знаю' }).hasAttribute('disabled')).toBe(false),
+  );
   fireEvent.keyDown(window, { key: 'ArrowRight' });
   expect(useStudyStore.getState().index).toBe(2);
 });
@@ -225,18 +362,22 @@ it('заучивание принимает правильный ввод и п�
 it('самооценка предлагает две оценки, цифра 2 записывает «Помню»', async () => {
   session.types = ['recall'];
   mount(<LearnPage />);
-  expect(screen.queryByText('морось')).toBeNull();
+  const visibleFace = () =>
+    document.querySelector('.study-flip-face[aria-hidden="false"]')?.textContent;
+  expect(visibleFace()).toContain('drizzle');
+  expect(visibleFace()).not.toContain('морось');
   await userEvent.click(screen.getByRole('button', { name: 'Показать ответ' }));
-  expect(screen.getByText('морось')).toBeTruthy();
-  expect(screen.getByRole('button', { name: 'Не помню' })).toBeTruthy();
-  expect(screen.getByRole('button', { name: 'Помню' })).toBeTruthy();
+  expect(visibleFace()).toContain('морось');
+  expect(visibleFace()).not.toContain('drizzle');
+  expect(screen.getByRole('button', { name: 'Не помню' }).textContent).toBe('Не помню');
+  expect(screen.getByRole('button', { name: 'Помню' }).textContent).toBe('Помню');
   await userEvent.keyboard('2');
   expect(useStudyStore.getState().answers[0]).toMatchObject({
     cardId: 'first',
     rating: 3,
     correct: true,
   });
-  expect(screen.getByText('thunder')).toBeTruthy();
+  expect(await screen.findByText('thunder')).toBeTruthy();
 });
 
 it('в смешанной очереди проверяет письмо по языку исходного набора', async () => {
@@ -270,6 +411,17 @@ it('просмотр новой карточки переносит её в хв
   });
   mount(<LearnPage />);
   expect(screen.getByText('Знакомство с карточкой')).toBeTruthy();
+  const visible = () =>
+    document.querySelector('.study-flip-face[aria-hidden="false"]')?.textContent;
+  expect(visible()).toContain('drizzle');
+  expect(visible()).not.toContain('морось');
+  await userEvent.click(screen.getByRole('button', { name: 'Дальше' }));
+  expect(visible()).toContain('морось');
+  expect(visible()).not.toContain('drizzle');
+  expect(useStudyStore.getState().items[0]?.card.id).toBe('first');
+  await userEvent.click(screen.getByRole('button', { name: 'Показать термин' }));
+  expect(visible()).toContain('drizzle');
+  await userEvent.click(screen.getByRole('button', { name: 'Показать определение' }));
   await userEvent.click(screen.getByRole('button', { name: 'Дальше' }));
   const state = useStudyStore.getState();
   expect(state.answers).toHaveLength(0);
@@ -332,6 +484,8 @@ it('при смене вопроса останавливает озвучку �
     const question = utterances[0]!;
     const ended = question.onend!;
     act(() => ended.call(question, {} as SpeechSynthesisEvent));
+    expect(utterances.map((u) => u.text)).toEqual(['drizzle']);
+    await userEvent.click(screen.getByRole('button', { name: 'Показать определение' }));
     expect(utterances.map((u) => u.text)).toEqual(['drizzle', 'морось']);
     const stale = utterances[1]!;
     const oldEnd = stale.onend!;

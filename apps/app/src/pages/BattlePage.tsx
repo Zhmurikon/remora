@@ -1,3 +1,5 @@
+import { sessionOutcome } from '../features/study/rewards/round';
+import { RoundFinale } from '../features/study/rewards/StudyRewards';
 import { pluralWithCount } from '@remora/core';
 import type { components } from '@remora/api-client';
 import { Button, CardContent } from '@remora/ui';
@@ -717,6 +719,14 @@ function BattleResult({ room }: { room: Room }) {
     },
   });
   const mine = room.participants.find((p) => p.is_current);
+  const outcome =
+    mine?.answered_count && mine.correct_count != null
+      ? sessionOutcome(
+          mine.correct_count,
+          room.question_count,
+          mine.answered_count === room.question_count,
+        )
+      : null;
   const title = room.is_draw
     ? 'Ничья'
     : room.winner_id === mine?.user_id
@@ -726,6 +736,7 @@ function BattleResult({ room }: { room: Room }) {
     <Frame back={`/sets/${room.set_id}`} title={title} description={room.set_title}>
       <section className="battle-panel battle-result">
         <h2>Точность решает</h2>
+        {outcome && <RoundFinale outcome={outcome} />}
         <p>
           {room.is_draw
             ? 'Верных ответов поровну, разница во времени — не больше половины секунды.'

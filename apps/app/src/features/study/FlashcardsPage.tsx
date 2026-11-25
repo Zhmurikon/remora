@@ -12,8 +12,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { SessionSummary } from './SessionSummary';
 import { StudyShell, StudyState } from './StudyShell';
-import { sideName } from './card-sides';
-import { StudyCardFace } from './StudyCardFace';
+import { useStudyTransition } from './study-transition';
+import { StudyFlipCard } from './StudyFlipCard';
 import { useCardTraining } from './use-card-training';
 import { type StudyScope } from './use-study-session';
 
@@ -34,10 +34,13 @@ export function FlashcardsPage() {
 
   const [flipped, setFlipped] = useState(false);
   const [autoplay, setAutoplay] = useState(false);
+  const { schedule, cancel, bodyRef } = useStudyTransition();
 
   const {
     query,
     current,
+    answeredItem,
+    setAnsweredItem,
     items,
     index,
     answers,
@@ -57,18 +60,21 @@ export function FlashcardsPage() {
     trackProgress: track,
   });
 
+  const displayIndex = answeredItem ? index - 1 : index;
   const move = useCallback(
     (delta: number) => {
+      if (answeredItem) return;
       setFlipped(false);
       shownAt.current = Date.now();
       goTo(Math.max(0, Math.min(items.length, index + delta)));
     },
-    [goTo, index, items.length, shownAt],
+    [answeredItem, goTo, index, items.length, shownAt],
   );
 
   const mark = useCallback(
     (known: boolean) => {
-      if (!current) return;
+      if (!current || answeredItem) return;
+      if (known) setAnsweredItem(current);
       answer({
         item: current,
         rating: known ? 3 : 1,
@@ -76,15 +82,21 @@ export function FlashcardsPage() {
         durationMs: Date.now() - shownAt.current,
         updatesSchedule: track,
       });
-      setFlipped(false);
-      shownAt.current = Date.now();
+      const advance = () => {
+        setAnsweredItem(null);
+        setFlipped(false);
+        shownAt.current = Date.now();
+      };
+      if (known) schedule(advance, 300);
+      else advance();
     },
-    [answer, current, shownAt, track],
+    [answer, answeredItem, current, schedule, setAnsweredItem, shownAt, track],
   );
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (
+        answeredItem ||
         finished ||
         !current ||
         (event.target instanceof HTMLElement &&
@@ -112,16 +124,16 @@ export function FlashcardsPage() {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [current, finished, mark, move]);
+  }, [answeredItem, current, finished, mark, move]);
 
   useEffect(() => {
-    if (!autoplay || finished || !current) return;
+    if (!autoplay || answeredItem || finished || !current) return;
     const timer = setTimeout(() => {
       if (flipped) move(1);
       else setFlipped(true);
     }, AUTOPLAY_MS);
     return () => clearTimeout(timer);
-  }, [autoplay, current, finished, flipped, move]);
+  }, [autoplay, answeredItem, current, finished, flipped, move]);
 
   const touchStart = useRef<number | null>(null);
 
@@ -172,17 +184,16 @@ export function FlashcardsPage() {
     );
   }
 
-  const role = flipped ? 'answer' : 'question';
-  const side = sideName(current, role);
-  const transcription = current.card[`${side}_transcription`];
-
   return (
     <StudyShell
+      bodyRef={bodyRef}
+      questionIndex={displayIndex}
       title="Карточки"
       subtitle={`${scopeLabels[scope]} · ${pluralWithCount(items.length, ['карточка', 'карточки', 'карточек'])}`}
       done={index}
       total={items.length}
       onExit={() => {
+        cancel();
         void finalizeSession();
         setFinished(true);
       }}
@@ -222,27 +233,14 @@ export function FlashcardsPage() {
           if (Math.abs(end - start) > 60) move(end < start ? 1 : -1);
         }}
       >
-        <button
-          type="button"
-          onClick={() => setFlipped((value) => !value)}
-          aria-label={side === 'term' ? 'Показать определение' : 'Показать термин'}
-          aria-pressed={flipped}
-          className="study-question study-flip"
-        >
-          <div className="w-full">
-            <span className="study-side">{side === 'term' ? 'Термин' : 'Определение'}</span>
-            <div className="study-question-content mt-6">
-              <StudyCardFace item={current} role={role} />
-            </div>
-            {transcription && <p className="text-fg-subtle mt-3 text-base">{transcription}</p>}
-            {!flipped && current.card.hint && (
-              <p className="text-fg-subtle mt-4 text-sm">Подсказка: {current.card.hint}</p>
-            )}
-            <p className="study-flip-cue">
-              Нажмите, чтобы {flipped ? 'вернуться к вопросу' : 'увидеть ответ'}
-            </p>
-          </div>
-        </button>
+        <StudyFlipCard
+          key={`${displayIndex}:${current.card.id}:${current.direction}`}
+          item={current}
+          flipped={flipped}
+          onFlip={() => {
+            if (!answeredItem) setFlipped((value) => !value);
+          }}
+        />
       </div>
 
       <div className="study-flash-controls">
@@ -250,15 +248,22 @@ export function FlashcardsPage() {
           variant="ghost"
           aria-label="Предыдущая карточка"
           onClick={() => move(-1)}
-          disabled={index === 0}
+          disabled={index === 0 || !!answeredItem}
         >
           ← <span className="study-flash-nav-label">Назад</span>
         </Button>
-        <Button variant="secondary" onClick={() => mark(false)}>
+        <Button variant="secondary" disabled={!!answeredItem} onClick={() => mark(false)}>
           Не знаю
         </Button>
-        <Button onClick={() => mark(true)}>Знаю</Button>
-        <Button variant="ghost" aria-label="Следующая карточка" onClick={() => move(1)}>
+        <Button disabled={!!answeredItem} onClick={() => mark(true)}>
+          Знаю
+        </Button>
+        <Button
+          variant="ghost"
+          aria-label="Следующая карточка"
+          disabled={!!answeredItem}
+          onClick={() => move(1)}
+        >
           <span className="study-flash-nav-label">Вперёд</span> →
         </Button>
       </div>

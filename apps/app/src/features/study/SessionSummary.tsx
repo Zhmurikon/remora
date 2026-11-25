@@ -4,7 +4,7 @@ import { CardContent } from '@remora/ui';
 import { formatIntervalSeconds, pluralWithCount } from '@remora/core';
 import { Link } from 'react-router-dom';
 import { useStudyStore, type AnswerLog } from './study-store';
-import './session-summary.css';
+import { SessionResultCard } from './SessionResultCard';
 
 interface SessionSummaryProps {
   setId: string;
@@ -27,11 +27,17 @@ export function SessionSummary({
   backLabel,
 }: SessionSummaryProps) {
   const items = useStudyStore((state) => state.items);
+  const index = useStudyStore((state) => state.index);
   const mode = useStudyStore((state) => state.mode);
   const cards = useMemo(() => new Map(items.map((item) => [item.card.id, item.card])), [items]);
   const correct = answers.filter((answer) => answer.correct).length;
   const mistakes = answers.filter((answer) => !answer.correct);
-  const percent = answers.length > 0 ? Math.round((correct / answers.length) * 100) : 0;
+  const complete =
+    items.length > 0 &&
+    index >= items.length &&
+    mistakes.length === 0 &&
+    new Set(answers.flatMap((entry) => (entry.queueIndex === undefined ? [] : [entry.queueIndex])))
+      .size === items.length;
   const hasNextDue = nextDueSeconds != null && Number.isFinite(nextDueSeconds);
 
   return (
@@ -44,31 +50,15 @@ export function SessionSummary({
           {backLabel ?? 'К набору'}
         </Link>
         <h1 id="session-result-title">Сессия завершена</h1>
-        <p>
-          {answers.length === 0
-            ? 'В этот раз вы не ответили ни на одну карточку.'
-            : mistakes.length === 0
-              ? 'Все ответы верные. Можно закончить или продолжить заниматься.'
-              : 'Посмотрите правильные ответы и сравните их со своими.'}
-        </p>
+        {answers.length === 0 && <p>В этот раз вы не ответили ни на одну карточку.</p>}
       </header>
 
-      <dl className="session-result__stats" aria-label="Итоги сессии">
-        <div>
-          <dt>Всего ответов</dt>
-          <dd>{answers.length}</dd>
-        </div>
-        <div>
-          <dt>Верно</dt>
-          <dd>
-            {correct} <span>{answers.length > 0 ? `${percent}%` : '—'}</span>
-          </dd>
-        </div>
-        <div>
-          <dt>С ошибкой</dt>
-          <dd>{mistakes.length}</dd>
-        </div>
-      </dl>
+      <SessionResultCard
+        correct={correct}
+        total={answers.length}
+        complete={complete}
+        answers={answers}
+      />
 
       {hasNextDue && (
         <p className="session-result__next">
@@ -96,14 +86,21 @@ export function SessionSummary({
           className={`session-result__button ${mistakes.length > 0 && onRepeatMistakes ? '' : 'session-result__button--primary'}`}
           onClick={onRestart}
         >
-          Продолжить учить
+          Продолжить учить <span aria-hidden="true">→</span>
         </button>
+        {mistakes.length > 0 && !onRepeatMistakes && (
+          <a href="#session-result-review" className="session-result__jump">
+            К ошибкам <span aria-hidden="true">↓</span>
+          </a>
+        )}
       </div>
 
       {mistakes.length > 0 && (
         <section className="session-result__review" aria-labelledby="session-result-review">
           <div className="session-result__review-heading">
-            <h2 id="session-result-review">Разбор ошибок</h2>
+            <h2 id="session-result-review" tabIndex={-1}>
+              Разбор ошибок
+            </h2>
             <span>{pluralWithCount(mistakes.length, ['ответ', 'ответа', 'ответов'])}</span>
           </div>
           <ol className="session-result__mistakes">
@@ -131,29 +128,39 @@ export function SessionSummary({
                   <div className="session-result__comparison">
                     <div className="session-result__answer">
                       <h3>Ваш ответ</h3>
-                      {answer.typed === undefined ? (
-                        <p className="session-result__unrecorded">
-                          Ответ отмечен как неверный. Текст ответа не записан.
-                        </p>
-                      ) : answer.typed === '' ? (
-                        <p className="session-result__unrecorded">Ответ не введён.</p>
-                      ) : (
-                        <p className="session-result__typed">
-                          <Diff expected={expected} typed={answer.typed} />
-                        </p>
-                      )}
+                      <div className="session-result__value">
+                        <span className="session-result__sign" aria-hidden="true">
+                          ×
+                        </span>
+                        {answer.typed === undefined ? (
+                          <p className="session-result__unrecorded">
+                            Ответ отмечен как неверный. Текст ответа не записан.
+                          </p>
+                        ) : answer.typed === '' ? (
+                          <p className="session-result__unrecorded">Ответ не введён.</p>
+                        ) : (
+                          <p className="session-result__typed">
+                            <Diff expected={expected} typed={answer.typed} />
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <div className="session-result__answer session-result__answer--expected">
                       <h3>Правильный ответ</h3>
-                      <CardContent
-                        value={expected}
-                        type={card?.content_type}
-                        codeLanguage={card?.code_language}
-                        imageUrl={
-                          expectedIsTerm ? card?.term_image_url : card?.definition_image_url
-                        }
-                        imageAlt="Изображение правильного ответа"
-                      />
+                      <div className="session-result__value">
+                        <span className="session-result__sign" aria-hidden="true">
+                          ✓
+                        </span>
+                        <CardContent
+                          value={expected}
+                          type={card?.content_type}
+                          codeLanguage={card?.code_language}
+                          imageUrl={
+                            expectedIsTerm ? card?.term_image_url : card?.definition_image_url
+                          }
+                          imageAlt="Изображение правильного ответа"
+                        />
+                      </div>
                     </div>
                   </div>
                 </li>

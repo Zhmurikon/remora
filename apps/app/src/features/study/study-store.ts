@@ -16,6 +16,7 @@ export type QueueItem = components['schemas']['QueueItem'];
 export type StudyQueue = components['schemas']['StudyQueue'];
 
 export interface AnswerLog {
+  queueIndex?: number;
   cardId: string;
   direction: StudyDirection;
   term: string;
@@ -29,6 +30,8 @@ export interface AnswerLog {
 type SyncState = 'idle' | 'syncing' | 'offline';
 
 interface StudyState {
+  rewardCount: number;
+  rewardStreak: number;
   mode: StudyMode | null;
   setId: string | null;
   sessionId: string | null;
@@ -57,6 +60,7 @@ interface StudyState {
     /** В сопоставлении определения можно решать в любом порядке. */
     consume?: QueueItem;
     updatesSchedule?: boolean;
+    showReward?: boolean;
     /** Показать карточку ещё раз в этой же сессии (ошибка в «Заучивании»). */
     requeue?: boolean;
   }) => void;
@@ -67,6 +71,8 @@ interface StudyState {
 }
 
 const initial = {
+  rewardCount: 0,
+  rewardStreak: 0,
   mode: null,
   setId: null,
   sessionId: null,
@@ -100,6 +106,7 @@ export const useStudyStore = create<StudyState>((set, get) => ({
     typed,
     durationMs,
     updatesSchedule = true,
+    showReward = true,
     requeue,
     consume,
   }) => {
@@ -131,10 +138,13 @@ export const useStudyStore = create<StudyState>((set, get) => ({
 
     set({
       index: state.index + 1,
+      rewardCount: state.rewardCount + Number(correct && showReward),
+      rewardStreak: correct ? state.rewardStreak + 1 : 0,
       pending: pendingCount(),
       answers: [
         ...state.answers,
         {
+          queueIndex: state.index,
           cardId: item.card.id,
           direction: item.direction,
           term: item.card.term,

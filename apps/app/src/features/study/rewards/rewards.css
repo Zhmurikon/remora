@@ -1,0 +1,158 @@
+.study-layout {
+  container: study-layout / inline-size;
+}
+.study-body {
+  position: relative;
+  isolation: isolate;
+}
+.study-reward-slot {
+  position: relative;
+  height: 94px;
+  z-index: -1;
+  pointer-events: none;
+  user-select: none;
+}
+.study-reward-field {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  gap: min(12%, 120px);
+  align-items: center;
+  overflow: hidden;
+}
+.study-reward-field[hidden],
+.study-reward-phone {
+  display: none;
+}
+.study-reward-field canvas,
+.study-reward-finale {
+  image-rendering: pixelated;
+}
+.study-reward-field > canvas:not(.study-reward-phone) {
+  width: auto;
+  height: 100%;
+  max-height: 94px;
+  object-fit: contain;
+}
+@container study-layout (min-width: 1020px) {
+  .study-reward-slot {
+    position: absolute;
+    inset: 0 calc((100% - 100cqw) / 2);
+    height: auto;
+  }
+  .study-reward-field {
+    justify-content: space-between;
+  }
+  .study-reward-field > canvas:not(.study-reward-phone) {
+    width: min(230px, calc((100cqw - 54rem) / 2 - 8px));
+    height: auto;
+    max-height: none;
+  }
+}
+.round-finale {
+  --art: rgb(var(--rm-lecture-cream));
+  --art-rule: color-mix(in srgb, rgb(var(--rm-lecture-muted)) 32%, var(--art));
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  margin: 0;
+  padding: 24px 20px 20px;
+  background:
+    radial-gradient(ellipse at 48% 45%, transparent 10%, var(--art) 83%),
+    radial-gradient(circle, var(--art-rule) 0.7px, transparent 1px) 0 0 / 7px 7px,
+    var(--art);
+}
+.round-finale::before,
+.round-finale::after {
+  content: '';
+  position: absolute;
+  bottom: 16px;
+  width: 10px;
+  height: 10px;
+  border: solid var(--art-rule);
+  pointer-events: none;
+}
+.round-finale::before {
+  left: 16px;
+  border-width: 0 0 1px 1px;
+}
+.round-finale::after {
+  right: 16px;
+  border-width: 0 1px 1px 0;
+}
+.round-finale figcaption {
+  margin-top: 4px;
+  font: italic 22px/1.2 var(--dashboard-serif, Georgia, serif);
+  text-align: center;
+  color: rgb(var(--rm-lecture-ink));
+}
+.study-reward-finale {
+  width: 100%;
+  height: clamp(190px, 20vw, 248px);
+  display: block;
+}
+.round-finale__replay {
+  position: absolute;
+  right: 8px;
+  top: 6px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: rgb(var(--rm-lecture-muted));
+}
+.round-finale__replay svg {
+  width: 18px;
+  height: 18px;
+}
+.round-finale__replay:hover {
+  background: rgb(var(--rm-lecture-paper));
+}
+.round-finale__replay:focus-visible {
+  outline: 2px solid rgb(var(--rm-lecture-action));
+  outline-offset: 2px;
+}
+.battle-result > .round-finale {
+  margin-block: 16px;
+  border-radius: 14px;
+  border: 1px solid rgb(var(--rm-border));
+}
+@media (max-width: 650px), (max-width: 950px) and (max-height: 500px) {
+  .study-body {
+    padding: 20px 6px;
+  }
+  .study-reward-slot {
+    position: absolute;
+    inset: 0 -16px;
+    height: auto;
+  }
+  .study-reward-field > canvas:not(.study-reward-phone) {
+    display: none;
+  }
+  .study-reward-phone {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .study-body :is(.study-flash-controls, .study-actions, .study-ratings) > button:disabled {
+    opacity: 1;
+    color: rgb(var(--rm-fg-muted));
+    background-color: rgb(var(--rm-surface-muted));
+  }
+  .study-body
+    :is(
+      .study-answer-form label,
+      .study-shortcuts,
+      .match-round > p,
+      .match-hand nav,
+      .study-actions .bg-transparent,
+      .study-flash-controls .bg-transparent
+    ) {
+    background-color: rgb(var(--rm-bg));
+  }
+}

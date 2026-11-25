@@ -464,7 +464,8 @@ it('проверяет квиз по набору урока и позволяе
     confirmLeave.mockRestore();
   }
   await userEvent.click(screen.getByRole('button', { name: 'Проверить' }));
-  await screen.findByText('100% верно');
+  await screen.findByRole('heading', { name: 'Тест завершён' });
+  expect(screen.getByText('Верно 1 из 1')).toBeTruthy();
   await userEvent.click(toolbar.getByRole('button', { name: 'Следующий урок' }));
   expect(await screen.findByText('Новый материал')).toBeTruthy();
   const nextToolbar = within(screen.getByRole('navigation', { name: 'Навигация по уроку' }));

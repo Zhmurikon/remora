@@ -30,19 +30,20 @@ it('не объявляет пустую сессию успешной и не �
   expect(screen.queryByText(/Все ответы верные/)).toBeNull();
   expect(screen.queryByText(/Следующее повторение/)).toBeNull();
   expect(screen.queryByText('Разбор ошибок')).toBeNull();
-  expect(screen.queryByText('0%')).toBeNull();
+  expect(screen.queryByLabelText('Итоги сессии')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Повторить анимацию' })).toBeNull();
 });
 it('показывает количество верных ответов и процент без разбора при полном успехе', () => {
   mount({ answers: [{ ...answer, correct: true }] });
-  expect(screen.getByText('100%')).toBeTruthy();
-  expect(screen.getByText(/Все ответы верные/)).toBeTruthy();
+  expect(screen.getByText('Верно 1 из 1')).toBeTruthy();
+  expect(document.querySelector('.session-result__score')?.textContent).toBe('100%');
   expect(screen.queryByText('Разбор ошибок')).toBeNull();
 });
 it('считает ответы, включая повтор одной карточки, без изменения алгоритма', () => {
   mount({ answers: [answer, { ...answer, correct: true }, answer] });
-  expect(screen.getByText('33%')).toBeTruthy();
+  expect(document.querySelector('.session-result__score')?.textContent).toBe('33%');
   expect(screen.getAllByRole('listitem')).toHaveLength(2);
-  expect(screen.getByLabelText('Итоги сессии').textContent).toContain('Всего ответов3');
+  expect(screen.getByLabelText('Итоги сессии').textContent).toContain('Верно 1 из 3');
 });
 it('рендерит форматирование обеих сторон и сохраняет длинный пользовательский текст', () => {
   const typed = 'длинный ответ\n'.repeat(100);
@@ -129,4 +130,38 @@ it('Diff читает весь ответ одной фразой и сохра�
   expect(container.querySelector('.sr-only')?.textContent).toBe('слова');
   expect(container.querySelector('.text-success')?.textContent).toBe('слов');
   expect(container.querySelector('.text-danger')?.textContent).toBe('а');
+});
+
+it.each([
+  { positions: [0, 1], index: 2, perfect: true },
+  { positions: [0, 0], index: 2, perfect: false },
+  { positions: [0], index: 1, perfect: false },
+])(
+  'проверяет все позиции очереди перед финалом: $positions, индекс $index',
+  ({ positions, index, perfect }) => {
+    const items = ['a', 'b'].map((id) => ({ card: { id } }) as QueueItem);
+    useStudyStore.setState({ items, index });
+    mount({ answers: positions.map((queueIndex) => ({ ...answer, queueIndex, correct: true })) });
+    expect(Boolean(screen.queryByRole('img', { name: 'Раунд без ошибок' }))).toBe(perfect);
+  },
+);
+
+it.each([
+  { results: [false, false], name: 'Мягкая посадка' },
+  { results: [true, false], name: 'Выход на орбиту' },
+])('выбирает финал «$name» и показывает попытки в порядке ответа', ({ results, name }) => {
+  const restart = vi.fn();
+  const { container } = mount({
+    answers: results.map((correct) => ({ ...answer, correct })),
+    onRestart: restart,
+  });
+  expect(screen.getByText(name)).toBeTruthy();
+  expect(
+    Array.from(
+      container.querySelectorAll('.session-result__strip i'),
+      (s) => s.getAttribute('data-error') === 'true',
+    ),
+  ).toEqual(results.map((correct) => !correct));
+  fireEvent.click(screen.getByRole('button', { name: 'Повторить анимацию' }));
+  expect(restart).not.toHaveBeenCalled();
 });

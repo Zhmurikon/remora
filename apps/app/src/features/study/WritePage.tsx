@@ -38,7 +38,7 @@ export function WritePage() {
     basePath,
   } = useCardTraining({ mode: 'write', scope: 'due' });
 
-  const { schedule, cancel } = useStudyTransition();
+  const { schedule, cancel, bodyRef } = useStudyTransition();
   const [typed, setTyped] = useState('');
   const [result, setResult] = useState<AnswerResult | null>(null);
   const [typoHint, setTypoHint] = useState<string | null>(null);
@@ -137,9 +137,11 @@ export function WritePage() {
 
   return (
     <StudyShell
+      bodyRef={bodyRef}
       title="Письмо"
       subtitle={`Введите ответ · проверка «${STRICTNESS_LABELS[queue?.answer_strictness ?? 'moderate'].toLowerCase()}»`}
       done={index}
+      questionIndex={result ? index - 1 : index}
       total={items.length}
       onExit={() => {
         cancel();

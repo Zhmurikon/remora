@@ -24,6 +24,7 @@ export function useLearnNarration() {
   });
   const available = supported && entitlements.data?.features?.['study.learn_narration'] === true;
   const [enabled, setEnabled] = useState(false);
+  const finished = useRef<(() => void) | null>(null);
   const [failed, setFailed] = useState(false);
   const active = useRef<SpeechSynthesisUtterance | null>(null);
   const stop = useCallback(() => {
@@ -31,16 +32,22 @@ export function useLearnNarration() {
     active.current.onend = null;
     active.current.onerror = null;
     active.current = null;
+    finished.current?.();
+    finished.current = null;
     window.speechSynthesis.cancel();
   }, []);
   const speak = useCallback(
     (...sides: SpokenSide[]) => {
       stop();
-      if (!enabled || !available || document.hidden) return;
+      if (!enabled || !available || document.hidden) return Promise.resolve();
       const lines = sides.filter((side) => side.text.trim());
       function play(index: number) {
         const side = lines[index];
-        if (!side) return;
+        if (!side) {
+          finished.current?.();
+          finished.current = null;
+          return;
+        }
         const utterance = new SpeechSynthesisUtterance(side.text);
         utterance.lang = side.lang || 'ru';
         active.current = utterance;
@@ -52,12 +59,17 @@ export function useLearnNarration() {
         utterance.onerror = () => {
           if (active.current !== utterance) return;
           active.current = null;
+          finished.current?.();
+          finished.current = null;
           setFailed(true);
           setEnabled(false);
         };
         window.speechSynthesis.speak(utterance);
       }
-      play(0);
+      return new Promise<void>((resolve) => {
+        finished.current = resolve;
+        play(0);
+      });
     },
     [available, enabled, stop],
   );

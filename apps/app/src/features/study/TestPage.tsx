@@ -5,6 +5,7 @@
  * только собирает введённое и показывает разбор, который вернул сервер.
  */
 
+import { SessionResultCard } from './SessionResultCard';
 import type { components } from '@remora/api-client';
 import { pluralWithCount } from '@remora/core';
 import { Badge, Button, Card, CardContent, Input } from '@remora/ui';
@@ -84,6 +85,11 @@ function TestContent({
   const setId = setIdOverride ?? routeSetId;
   const [attempt, setAttempt] = useState<TestAttempt | null>(null);
   const [result, setResult] = useState<TestResult | null>(null);
+  function startAttempt(next: TestAttempt) {
+    setAttempt(next);
+    setResult(null);
+    onActivityChange?.(true);
+  }
 
   if (result && attempt) {
     return (
@@ -92,11 +98,7 @@ function TestContent({
         embedded={embedded}
         result={result}
         attempt={attempt}
-        onRetake={(next) => {
-          onActivityChange?.(true);
-          setAttempt(next);
-          setResult(null);
-        }}
+        onRetake={startAttempt}
         onRestart={() => {
           setAttempt(null);
           setResult(null);
@@ -116,16 +118,7 @@ function TestContent({
       />
     );
   }
-  return (
-    <TestBuilder
-      setId={setId}
-      embedded={embedded}
-      onCreated={(value) => {
-        setAttempt(value);
-        onActivityChange?.(true);
-      }}
-    />
-  );
+  return <TestBuilder setId={setId} embedded={embedded} onCreated={startAttempt} />;
 }
 
 function TestBuilder({
@@ -539,17 +532,16 @@ function TestReview({
 
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="text-center">
-        <p className="text-5xl" aria-hidden="true">
-          {result.score >= 80 ? '🎉' : result.score >= 50 ? '👍' : '💪'}
-        </p>
-        <h1 className="mt-4 text-2xl font-semibold tracking-tight">
-          {Math.round(result.score)}% верно
-        </h1>
-        <p className="text-fg-muted mt-2">
-          {result.correct_count} из {result.total}
-        </p>
-      </div>
+      <header className="session-result__header">
+        <h1>Тест завершён</h1>
+      </header>
+      <SessionResultCard
+        correct={result.correct_count}
+        total={result.total}
+        score={result.score}
+        complete
+        answers={result.review}
+      />
 
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         {result.wrong_card_ids.length > 0 && (

@@ -1,41 +1,73 @@
 import { shuffleWithSeed } from '@remora/core';
 import { Button, CardFace } from '@remora/ui';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { QueueItem } from './study-store';
+import { useStudyStore, type QueueItem } from './study-store';
 import type { SpokenSide } from './use-learn-narration';
 import './match-pairs.css';
+
+type Side = 'term' | 'definition';
+type Selection = { item: QueueItem; side: Side };
+function opposite(side: Side): Side {
+  return side === 'term' ? 'definition' : 'term';
+}
 
 export function MatchPairs({
   items,
   seed,
   onPair,
-  onNext,
+  onComplete,
   speak,
 }: {
   items: QueueItem[];
   seed: string;
-  onPair: (item: QueueItem, correct: boolean, mobile: boolean) => void;
-  onNext: () => void;
+  onPair: (item: QueueItem, correct: boolean, firstSide: Side) => void;
+  onComplete: () => void;
   speak: (...sides: SpokenSide[]) => void;
 }) {
-  const [term, setTerm] = useState<QueueItem | null>(null);
+  const [selected, setSelected] = useState<Selection | null>(null);
+  const [promptSide, setPromptSide] = useState<Side>('definition');
   const [position, setPosition] = useState(0);
   const [solved, setSolved] = useState(new Set<string>());
   const mistakes = useRef(new Set<string>());
-  const [wrong, setWrong] = useState<{ id: string; attempt: number } | null>(null);
+  const [wrong, setWrong] = useState<{ id: string; side: Side; attempt: number } | null>(null);
   const [message, setMessage] = useState('');
   const board = useRef<HTMLDivElement>(null);
   const hand = useRef<HTMLDivElement>(null);
   const [paths, setPaths] = useState<string[]>([]);
   const touch = useRef<{ x: number; y: number } | null>(null);
   const swiped = useRef(false);
+  const advance = useRef<number | undefined>(undefined);
+  function cancelAdvance() {
+    window.clearTimeout(advance.current);
+  }
+  useEffect(() => cancelAdvance, []);
   const terms = useMemo(() => shuffleWithSeed(items, seed + 'terms'), [items, seed]);
   const definitions = useMemo(() => shuffleWithSeed(items, seed + 'defs'), [items, seed]);
-  const current = definitions[position]!;
+  const prompts = promptSide === 'definition' ? definitions : terms;
+  const options = promptSide === 'definition' ? terms : definitions;
+  const current = prompts[position]!;
+  const answerSide = opposite(promptSide);
+  const page = useRef<HTMLDivElement>(null);
+  const previousPage = useRef({ position, promptSide });
+  useLayoutEffect(() => {
+    const previous = previousPage.current;
+    previousPage.current = { position, promptSide };
+    if (previous.position === position && previous.promptSide === promptSide) return;
+    if (!window.matchMedia?.('(prefers-reduced-motion: no-preference)').matches) return;
+    const shift = position < previous.position ? -12 : 12;
+    const motion = page.current?.animate?.(
+      [
+        { opacity: 0.55, transform: `translateX(${shift}px)` },
+        { opacity: 1, transform: 'none' },
+      ],
+      { duration: 240, easing: 'ease-out' },
+    );
+    return () => motion?.cancel();
+  }, [position, promptSide]);
   useEffect(() => {
     if (hand.current?.getClientRects().length)
-      speak({ text: current.card.definition, lang: current.lang_definition });
-  }, [current, speak]);
+      speak({ text: current.card[promptSide], lang: current[`lang_${promptSide}`] });
+  }, [current, promptSide, speak]);
   useLayoutEffect(() => {
     const panel = board.current;
     if (!panel || solved.size === 0) return;
@@ -63,21 +95,27 @@ export function MatchPairs({
     return () => observer.disconnect();
   }, [solved]);
   function visit(next: number) {
+    cancelAdvance();
     if (next < 0 || next >= items.length || next === position) return;
     setPosition(next);
+    setSelected(null);
     setWrong(null);
     setMessage('');
   }
-  function pick(left: QueueItem, right: QueueItem, mobile: boolean) {
-    if (solved.has(left.card.id) || solved.has(right.card.id)) return;
-    if (left.card.id !== right.card.id) {
-      const question = mobile ? right : left;
-      if (!mistakes.current.has(question.card.id)) {
+  function pick(question: QueueItem, choice: QueueItem, firstSide: Side, fromPager = false) {
+    if (solved.has(question.card.id) || solved.has(choice.card.id)) return;
+    const secondSide = opposite(firstSide);
+    if (question.card.id !== choice.card.id) {
+      // Повторный промах прерывает серию, даже когда оценка этой пары уже записана.
+      if (mistakes.current.has(question.card.id)) {
+        useStudyStore.setState({ rewardStreak: 0 });
+      } else {
         mistakes.current.add(question.card.id);
-        onPair(question, false, mobile);
+        onPair(question, false, firstSide);
       }
       setWrong((old) => ({
-        id: (mobile ? left : right).card.id,
+        id: choice.card.id,
+        side: secondSide,
         attempt: (old?.attempt ?? 0) + 1,
       }));
       setMessage('Пара не совпала. Попробуйте другое сочетание.');
@@ -87,70 +125,77 @@ export function MatchPairs({
         navigator.vibrate?.(20);
       return;
     }
-    setSolved(new Set([...solved, left.card.id]));
-    setTerm(null);
+    const nextSolved = new Set([...solved, question.card.id]);
+    setSolved(nextSolved);
+    if (fromPager) {
+      for (let offset = 1; offset < prompts.length; offset++) {
+        const next = (position + offset) % prompts.length;
+        if (nextSolved.has(prompts[next]!.card.id)) continue;
+        advance.current = window.setTimeout(() => visit(next), 1000);
+        break;
+      }
+    }
+    setSelected(null);
     setWrong(null);
-    setMessage('Пара собрана.');
-    if (!mistakes.current.has(left.card.id)) onPair(left, true, mobile);
+    const complete = solved.size + 1 === items.length;
+    setMessage(complete ? 'Все пары собраны.' : 'Пара собрана.');
+    if (!mistakes.current.has(question.card.id)) onPair(question, true, firstSide);
+    // Завершение доски даёт одну награду, в том числе после исправления последней пары.
+    if (complete) {
+      useStudyStore.setState((state) => ({ rewardCount: state.rewardCount + 1 }));
+      onComplete();
+    }
     speak({
-      text: mobile ? left.card.term : left.card.definition,
-      lang: mobile ? left.lang_term : left.lang_definition,
+      text: choice.card[secondSide],
+      lang: choice[`lang_${secondSide}`],
     });
   }
-  function pulse(id: string) {
-    return wrong?.id === id ? (
+  function selectTile(item: QueueItem, side: Side) {
+    cancelAdvance();
+    if (selected && selected.side !== side) {
+      pick(selected.item, item, selected.side);
+      return;
+    }
+    setSelected(selected?.item === item ? null : { item, side });
+    setWrong(null);
+    setMessage('');
+    speak({ text: item.card[side], lang: item[`lang_${side}`] });
+  }
+  function pulse(id: string, side: Side) {
+    return wrong?.id === id && wrong.side === side ? (
       <span key={wrong.attempt} aria-hidden="true" className="match-pulse" />
     ) : null;
   }
-  const face = (item: QueueItem, side: 'term' | 'definition') => (
-    <CardFace card={item.card} side={side} />
-  );
+  const face = (item: QueueItem, side: Side) => <CardFace card={item.card} side={side} />;
+  function tile(item: QueueItem, side: Side) {
+    return (
+      <button
+        key={item.card.id}
+        data-term={side === 'term' ? item.card.id : undefined}
+        data-def={side === 'definition' ? item.card.id : undefined}
+        className="match-tile"
+        disabled={solved.has(item.card.id)}
+        aria-pressed={selected?.side === side && selected.item === item}
+        onClick={() => selectTile(item, side)}
+      >
+        {face(item, side)}
+        {pulse(item.card.id, side)}
+      </button>
+    );
+  }
   return (
     <section className="match-round" aria-label="Соедините пары">
       <p>
         Собрано {solved.size} из {items.length}
       </p>
       <div className="match-board" ref={board}>
-        <div>
-          {terms.map((item) => (
-            <button
-              key={item.card.id}
-              data-term={item.card.id}
-              className="match-tile"
-              disabled={solved.has(item.card.id)}
-              aria-pressed={term === item}
-              onClick={() => {
-                setTerm(term === item ? null : item);
-                setWrong(null);
-                setMessage('');
-                speak({ text: item.card.term, lang: item.lang_term });
-              }}
-            >
-              {face(item, 'term')}
-            </button>
-          ))}
-        </div>
+        <div>{terms.map((item) => tile(item, 'term'))}</div>
         <svg aria-hidden="true">
           {paths.map((path, i) => (
             <path key={i} d={path} />
           ))}
         </svg>
-        <div>
-          {definitions.map((item) => (
-            <button
-              key={item.card.id}
-              className="match-tile"
-              data-def={item.card.id}
-              disabled={solved.has(item.card.id)}
-              onClick={() =>
-                term ? pick(term, item, false) : setMessage('Сначала выберите термин.')
-              }
-            >
-              {face(item, 'definition')}
-              {pulse(item.card.id)}
-            </button>
-          ))}
-        </div>
+        <div>{definitions.map((item) => tile(item, 'definition'))}</div>
       </div>
       <div
         className="match-hand"
@@ -189,18 +234,18 @@ export function MatchPairs({
           }
         }}
       >
-        <nav aria-label="Определения раунда">
+        <nav aria-label={promptSide === 'term' ? 'Термины раунда' : 'Определения раунда'}>
           <button
-            aria-label="Предыдущее определение"
+            aria-label={promptSide === 'term' ? 'Предыдущий термин' : 'Предыдущее определение'}
             disabled={position === 0}
             onClick={() => visit(position - 1)}
           >
             ←
           </button>
-          {definitions.map((item, i) => (
+          {prompts.map((item, i) => (
             <button
               key={item.card.id}
-              aria-label={`Определение ${i + 1}${solved.has(item.card.id) ? ', пара собрана' : ''}`}
+              aria-label={`${promptSide === 'term' ? 'Термин' : 'Определение'} ${i + 1}${solved.has(item.card.id) ? ', пара собрана' : ''}`}
               aria-current={i === position ? 'step' : undefined}
               onClick={() => visit(i)}
             >
@@ -208,34 +253,57 @@ export function MatchPairs({
             </button>
           ))}
           <button
-            aria-label="Следующее определение"
+            aria-label={promptSide === 'term' ? 'Следующий термин' : 'Следующее определение'}
             disabled={position === items.length - 1}
             onClick={() => visit(position + 1)}
           >
             →
           </button>
         </nav>
-        <div className="match-prompt">
-          <p>{solved.has(current.card.id) ? 'Пара собрана' : 'Выберите термин'}</p>
-          {face(current, 'definition')}
+        <div className="match-page" ref={page}>
+          <div className="match-prompt">
+            <p>
+              {solved.has(current.card.id)
+                ? 'Пара собрана'
+                : promptSide === 'term'
+                  ? 'Выберите определение'
+                  : 'Выберите термин'}
+            </p>
+            {face(current, promptSide)}
+          </div>
+          {options.map((item) => (
+            <button
+              className={
+                'match-tile ' +
+                (solved.has(item.card.id) ? (item === current ? 'match-solved' : 'match-used') : '')
+              }
+              key={item.card.id}
+              disabled={solved.has(item.card.id) || solved.has(current.card.id)}
+              onClick={() => pick(current, item, promptSide, true)}
+            >
+              {face(item, answerSide)}
+              {pulse(item.card.id, answerSide)}
+            </button>
+          ))}
         </div>
-        {terms.map((item) => (
-          <button
-            className={
-              'match-tile ' +
-              (solved.has(item.card.id) ? (item === current ? 'match-solved' : 'match-used') : '')
-            }
-            key={item.card.id}
-            disabled={solved.has(item.card.id) || solved.has(current.card.id)}
-            onClick={() => pick(item, current, true)}
+        {solved.size < items.length && (
+          <Button
+            variant="ghost"
+            className="match-switch"
+            onClick={() => {
+              cancelAdvance();
+              setPromptSide(answerSide);
+              setPosition(options.indexOf(current));
+              setSelected(null);
+              setWrong(null);
+              setMessage('');
+            }}
           >
-            {face(item, 'term')}
-            {pulse(item.card.id)}
-          </button>
-        ))}
+            {promptSide === 'term' ? 'Начать с определения' : 'Начать с термина'}
+          </Button>
+        )}
       </div>
       <p role="status">{message}</p>
-      {solved.size === items.length && <Button onClick={onNext}>Дальше</Button>}
     </section>
   );
 }
